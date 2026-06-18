@@ -6,3 +6,8 @@
   from = "/api/ai-search"
   to = "/.netlify/functions/ai-search"
   status = 200
+
+[[redirects]]
+  from = "/api/realtime-session"
+  to = "/.netlify/functions/realtime-session"
+  status = 200
