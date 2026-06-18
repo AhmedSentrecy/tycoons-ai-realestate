@@ -16,12 +16,7 @@ const voiceBtn = document.getElementById("voiceBtn");
 document.getElementById("year").textContent = new Date().getFullYear();
 
 function headers(extra = {}) {
-  return {
-    apikey: SUPABASE_KEY,
-    Authorization: "Bearer " + SUPABASE_KEY,
-    "Content-Type": "application/json",
-    ...extra
-  };
+  return { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", ...extra };
 }
 
 async function getRows(table, query = "") {
@@ -50,35 +45,9 @@ function price(value) {
 
 function card(item, type = "unit") {
   if (type === "project") {
-    return `<article class="card">
-      <div class="image">${safe(item.location)}</div>
-      <div class="content">
-        <h3>${safe(item.name)}</h3>
-        <div class="tags">
-          <span class="tag">${safe(item.developer)}</span>
-          <span class="tag">${safe(item.status)}</span>
-          <span class="tag">${safe(item.installments_text)}</span>
-        </div>
-        <div class="price">${price(item.min_price)}</div>
-        <p>${safe(item.description, "")}</p>
-      </div>
-    </article>`;
+    return `<article class="card"><div class="image">${safe(item.location)}</div><div class="content"><h3>${safe(item.name)}</h3><div class="tags"><span class="tag">${safe(item.developer)}</span><span class="tag">${safe(item.status)}</span><span class="tag">${safe(item.installments_text)}</span></div><div class="price">${price(item.min_price)}</div><p>${safe(item.description, "")}</p></div></article>`;
   }
-
-  return `<article class="card">
-    <div class="image">${safe(item.location)}</div>
-    <div class="content">
-      <h3>${safe(item.project_name)}</h3>
-      <div class="tags">
-        <span class="tag">${safe(item.unit_type)}</span>
-        <span class="tag">${safe(item.bedrooms_text)}</span>
-        <span class="tag">${safe(item.installments_text)}</span>
-        <span class="tag">${safe(item.delivery_text)}</span>
-      </div>
-      <div class="price">${price(item.starting_price)}</div>
-      <p>Down payment: ${safe(item.down_payment_text)}</p>
-    </div>
-  </article>`;
+  return `<article class="card"><div class="image">${safe(item.location)}</div><div class="content"><h3>${safe(item.project_name)}</h3><div class="tags"><span class="tag">${safe(item.unit_type)}</span><span class="tag">${safe(item.bedrooms_text)}</span><span class="tag">${safe(item.installments_text)}</span><span class="tag">${safe(item.delivery_text)}</span></div><div class="price">${price(item.starting_price)}</div><p>Down payment: ${safe(item.down_payment_text)}</p></div></article>`;
 }
 
 function render(list, target, type = "unit") {
@@ -105,53 +74,28 @@ function normalize(text) {
     .replace(/,/g, "");
 }
 
-function budget(text) {
-  const lower = normalize(text);
-  const m = lower.match(/(\d+(\.\d+)?)\s*(m|million|مليون)/);
-  if (m) return Number(m[1]) * 1000000;
-  const n = lower.match(/(\d{6,})/);
-  return n ? Number(n[1]) : null;
-}
-
-function search(query) {
+function localSearch(query) {
   const q = normalize(query);
-  const maxBudget = budget(q);
   const terms = q.split(/\s+/).filter(Boolean);
-
   const scored = units.map(unit => {
-    const haystack = normalize([
-      unit.project_name, unit.developer, unit.location, unit.unit_type, unit.bedrooms_text,
-      unit.down_payment_text, unit.installments_text, unit.delivery_text, unit.description, unit.search_text
-    ].filter(Boolean).join(" "));
-
+    const haystack = normalize([unit.project_name, unit.developer, unit.location, unit.unit_type, unit.bedrooms_text, unit.down_payment_text, unit.installments_text, unit.delivery_text, unit.description, unit.search_text].filter(Boolean).join(" "));
     let score = 0;
-    terms.forEach(term => {
-      if (term.length > 2 && haystack.includes(term)) score += 1;
-    });
-
+    terms.forEach(term => { if (term.length > 2 && haystack.includes(term)) score += 1; });
     if (q.includes("new cairo") && haystack.includes("new cairo")) score += 5;
     if (q.includes("ain sokhna") && haystack.includes("ain sokhna")) score += 5;
     if (q.includes("apartment") && haystack.includes("apartment")) score += 4;
     if (q.includes("villa") && haystack.includes("villa")) score += 4;
     if (q.includes("ivilla") && haystack.includes("ivilla")) score += 4;
-    if (q.includes("twinhouse") && haystack.includes("twinhouse")) score += 4;
-
-    if (maxBudget && Number(unit.starting_price || 0) <= maxBudget) score += 4;
-    if (maxBudget && Number(unit.starting_price || 0) > maxBudget) score -= 2;
-
     return { ...unit, _score: score };
   }).filter(unit => unit._score > 0);
-
   scored.sort((a, b) => b._score - a._score || Number(a.starting_price || 0) - Number(b.starting_price || 0));
-
-  if (!scored.length) return [...units].sort((a, b) => Number(a.starting_price || 0) - Number(b.starting_price || 0)).slice(0, 6);
-  return scored.slice(0, 6);
+  return scored.length ? scored.slice(0, 6) : units.slice(0, 6);
 }
 
 function speak(text) {
   if (!("speechSynthesis" in window)) return;
   const msg = new SpeechSynthesisUtterance(text);
-  msg.lang = "en-US";
+  msg.lang = /[؀-ۿ]/.test(text) ? "ar-EG" : "en-US";
   msg.rate = 0.95;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(msg);
@@ -159,15 +103,12 @@ function speak(text) {
 
 async function loadData() {
   try {
-    statusBox.textContent = "Loading live data from Supabase...";
     statusBox.className = "status";
-
+    statusBox.textContent = "Loading live data from Supabase...";
     units = await getRows("units", "?select=*&availability_status=eq.available&order=starting_price.asc");
     projects = await getRows("projects", "?select=*&order=min_price.asc");
-
     render(units.slice(0, 6), results);
     render(projects, projectGrid, "project");
-
     statusBox.className = "status success";
     statusBox.textContent = "Connected to Supabase. Loaded " + units.length + " units and " + projects.length + " projects.";
   } catch (err) {
@@ -185,20 +126,32 @@ document.getElementById("searchBtn").addEventListener("click", async () => {
     return;
   }
 
-  const matches = search(query);
-  render(matches, results);
+  statusBox.className = "status";
+  statusBox.textContent = "AI is searching your live inventory...";
 
   try {
-    await insertRow("search_logs", { query, matched_results: matches.length });
-  } catch (err) {
-    console.warn("Search log failed:", err);
-  }
+    const res = await fetch("/api/ai-search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query })
+    });
 
-  const best = matches[0];
-  const answer = "I found " + matches.length + " matching option" + (matches.length > 1 ? "s" : "") + ". The closest match is " + best.project_name + ", " + price(best.starting_price) + ", with " + safe(best.installments_text) + " installments.";
-  statusBox.className = "status success";
-  statusBox.textContent = answer;
-  speak(answer);
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    render(data.results || [], results);
+    statusBox.className = "status success";
+    statusBox.textContent = data.answer || "AI search completed.";
+    if (data.answer) speak(data.answer);
+  } catch (err) {
+    console.warn("AI search failed, using local fallback:", err);
+    const matches = localSearch(query);
+    render(matches, results);
+    const best = matches[0];
+    const answer = "AI function is not ready yet, so I used basic search. Closest match: " + best.project_name + ", " + price(best.starting_price) + ".";
+    statusBox.className = "status error";
+    statusBox.textContent = answer;
+  }
 });
 
 leadForm.addEventListener("submit", async (event) => {
@@ -233,24 +186,11 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
   const recognition = new SpeechRecognition();
   recognition.lang = "en-US";
   recognition.interimResults = false;
-
-  voiceBtn.addEventListener("click", () => {
-    voiceBtn.textContent = "Listening...";
-    recognition.start();
-  });
-
-  recognition.addEventListener("result", (event) => {
-    searchInput.value = event.results[0][0].transcript;
-    voiceBtn.textContent = "Speak";
-  });
-
-  recognition.addEventListener("end", () => {
-    voiceBtn.textContent = "Speak";
-  });
+  voiceBtn.addEventListener("click", () => { voiceBtn.textContent = "Listening..."; recognition.start(); });
+  recognition.addEventListener("result", (event) => { searchInput.value = event.results[0][0].transcript; voiceBtn.textContent = "Speak"; });
+  recognition.addEventListener("end", () => { voiceBtn.textContent = "Speak"; });
 } else {
-  voiceBtn.addEventListener("click", () => {
-    statusBox.textContent = "Voice input is not supported in this browser. Try Chrome on desktop.";
-  });
+  voiceBtn.addEventListener("click", () => { statusBox.textContent = "Voice input is not supported in this browser. Try Chrome on desktop."; });
 }
 
 loadData();

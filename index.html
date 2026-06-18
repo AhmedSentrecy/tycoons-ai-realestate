@@ -15,22 +15,22 @@
   <main>
     <section class="hero">
       <div>
-        <span class="eyebrow">Connected MVP</span>
+        <span class="eyebrow">AI Connected MVP</span>
         <h1>Find the right property by typing or speaking naturally.</h1>
-        <p>This version loads live units from Supabase, searches them, and saves leads into your database.</p>
-        <a class="btn" href="#search">Start Search</a>
+        <p>This version uses Supabase for live inventory and a secure Netlify Function for OpenAI AI search.</p>
+        <a class="btn" href="#search">Start AI Search</a>
       </div>
       <div class="quote">I want an apartment in New Cairo with low down payment and 10 years installments.</div>
     </section>
 
     <section id="search" class="panel">
       <div class="topline">
-        <div><span class="eyebrow">Live Database Search</span><h2>Tell us what you are looking for</h2></div>
+        <div><span class="eyebrow">AI Search</span><h2>Tell us what you are looking for</h2></div>
         <button id="voiceBtn" class="ghost">Speak</button>
       </div>
       <div class="searchbar">
-        <textarea id="searchInput" rows="3" placeholder="Example: apartment in New Cairo under 12 million with 10 years installments"></textarea>
-        <button id="searchBtn" class="btn">Search Properties</button>
+        <textarea id="searchInput" rows="3" placeholder="Example: apartment in New Cairo under 9 million"></textarea>
+        <button id="searchBtn" class="btn">AI Search</button>
       </div>
       <div id="status" class="status">Loading property database...</div>
       <div id="results" class="grid"></div>
@@ -59,7 +59,7 @@
     </section>
   </main>
 
-  <footer>© <span id="year"></span> Tycoons Investments · Supabase connected MVP</footer>
+  <footer>© <span id="year"></span> Tycoons Investments · AI search MVP</footer>
   <script>
     window.TYCOONS_SUPABASE_URL = "https://coqnjymekrkoausiiytm.supabase.co";
     window.TYCOONS_SUPABASE_KEY = "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
