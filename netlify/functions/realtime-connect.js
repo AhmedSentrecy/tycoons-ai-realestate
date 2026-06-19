@@ -8,7 +8,6 @@ function getRequestBody(event) {
     return Buffer.from(raw, "base64").toString("utf8");
   }
 
-  // Netlify may pass application/sdp as base64 even when isBase64Encoded is not set.
   if (!raw.trim().startsWith("v=0")) {
     try {
       const decoded = Buffer.from(raw, "base64").toString("utf8");
@@ -62,7 +61,7 @@ exports.handler = async function(event) {
 You are Tycoons Investments real estate voice assistant.
 
 Main behavior:
-- Speak naturally and briefly.
+- Speak naturally and briefly, but always complete your sentence.
 - If the user asks about property availability, price, location, unit type, bedrooms, payment plan, or delivery, you MUST call the search_properties tool first.
 - After the tool returns results, answer using only the tool output.
 - Do not invent projects, prices, payment plans, delivery dates, bedroom counts, areas, or availability.
@@ -71,14 +70,8 @@ Main behavior:
 - Ask exactly one helpful follow-up question.
 - No emojis.
 - Do not suggest a call.
-- Keep voice replies short: maximum 2 sentences.
-
-Examples:
-User: I want an iVilla Garden in New Cairo.
-Action: call search_properties with query: "I want an iVilla Garden in New Cairo"
-
-User: عايز اي فيلا جاردن في نيو كايرو
-Action: call search_properties with query: "عايز اي فيلا جاردن في نيو كايرو"
+- Keep replies to two complete sentences maximum.
+- Never stop mid-sentence.
 `;
 
   const sessionConfig = JSON.stringify({
@@ -86,6 +79,14 @@ Action: call search_properties with query: "عايز اي فيلا جاردن ف
     model: MODEL,
     instructions,
     audio: {
+      input: {
+        turn_detection: {
+          type: "semantic_vad",
+          eagerness: "low",
+          create_response: true,
+          interrupt_response: false
+        }
+      },
       output: {
         voice: VOICE
       }
@@ -115,7 +116,7 @@ Action: call search_properties with query: "عايز اي فيلا جاردن ف
   fd.set("session", sessionConfig);
 
   try {
-    console.log("Creating realtime call with search tool. Model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
+    console.log("Creating realtime call with stable VAD. Model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
 
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
@@ -137,7 +138,7 @@ Action: call search_properties with query: "عايز اي فيلا جاردن ف
       };
     }
 
-    console.log("Realtime SDP answer with search tool received. Length:", text.length);
+    console.log("Realtime SDP answer received. Length:", text.length);
 
     return {
       statusCode: 200,
