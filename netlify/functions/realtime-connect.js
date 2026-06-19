@@ -117,12 +117,19 @@ Search behavior:
 - If results exist, mention the best match only.
 - If no exact result exists, mention the closest option briefly.
 
+Voice lead capture rules:
+- After giving a useful property result, collect one sales detail at a time only when the user sounds interested.
+- Useful lead details: budget, unit type, preferred location, project interest, phone or WhatsApp number, and notes.
+- If the user asks for payment breakdown, details, availability, reservation, or says they are interested, ask one short follow-up question.
+- When you have useful intent or the user gives budget/phone, call save_voice_lead.
+- The website does not automatically know the visitor's phone. If the phone is missing after lead intent is clear, you may ask for WhatsApp once.
+- Do not push hard. Keep it natural.
+
 Conversation rules:
 - Maximum two short complete sentences.
 - Ask exactly one helpful follow-up question.
 - No emojis.
 - Do not suggest a call.
-- Do not ask for name, phone, or email.
 - Never stop mid-sentence.
 `;
 
@@ -160,6 +167,48 @@ Conversation rules:
           },
           required: ["query"]
         }
+      },
+      {
+        type: "function",
+        name: "save_voice_lead",
+        description: "Save a real estate voice lead into Supabase after the visitor shows interest or provides budget/contact details.",
+        parameters: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+              description: "Visitor name if they provided it."
+            },
+            phone: {
+              type: "string",
+              description: "Visitor phone or WhatsApp number if provided."
+            },
+            preferred_location: {
+              type: "string",
+              description: "Preferred location such as New Cairo."
+            },
+            budget: {
+              type: "string",
+              description: "Budget in natural language, such as 9 million or 9000000."
+            },
+            unit_type: {
+              type: "string",
+              description: "Unit type such as apartment, iVilla Garden, Sky Villa, Twinhouse."
+            },
+            project_interest: {
+              type: "string",
+              description: "Interested project such as Mountain View Creek View."
+            },
+            message: {
+              type: "string",
+              description: "Short summary of the visitor's request and intent."
+            },
+            notes: {
+              type: "string",
+              description: "Any extra useful sales notes from the voice conversation."
+            }
+          }
+        }
       }
     ],
     tool_choice: "auto"
@@ -170,7 +219,7 @@ Conversation rules:
   fd.set("session", sessionConfig);
 
   try {
-    console.log("Creating humanized realtime call. Model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
+    console.log("Creating voice lead capture realtime call. Model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
 
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
