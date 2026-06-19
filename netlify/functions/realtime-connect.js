@@ -60,6 +60,12 @@ exports.handler = async function(event) {
   const instructions = `
 You are Tycoons Investments real estate voice assistant.
 
+Push-to-talk rules:
+- The user will only speak while holding the push-to-talk button.
+- Do not respond until the user finishes their turn.
+- Never say the search is still continuing if tool results were provided.
+- If tool results are provided, immediately summarize the best matching unit.
+
 Main behavior:
 - Speak naturally and briefly, but always complete your sentence.
 - If the user asks about property availability, price, location, unit type, bedrooms, payment plan, or delivery, you MUST call the search_properties tool first.
@@ -81,8 +87,10 @@ Main behavior:
     audio: {
       input: {
         turn_detection: {
-          type: "semantic_vad",
-          eagerness: "low",
+          type: "server_vad",
+          threshold: 0.55,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 650,
           create_response: true,
           interrupt_response: false
         }
@@ -116,7 +124,7 @@ Main behavior:
   fd.set("session", sessionConfig);
 
   try {
-    console.log("Creating realtime call with stable VAD. Model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
+    console.log("Creating push-to-talk realtime call. Model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
 
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
