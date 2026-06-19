@@ -55,6 +55,30 @@ function safe(value, fallback = "Not specified") {
   return value === null || value === undefined || value === "" ? fallback : value;
 }
 
+
+function escapeAttr(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function mediaImage(item) {
+  const location = safe(item.location);
+  if (item.image_url) {
+    return `<div class="image photo" style="background-image:url('${escapeAttr(item.image_url)}')"><span>${location}</span></div>`;
+  }
+  return `<div class="image">${location}</div>`;
+}
+
+function mediaLinks(item) {
+  const links = [];
+  if (item.brochure_url) links.push(`<a href="${escapeAttr(item.brochure_url)}" target="_blank" rel="noopener">Brochure</a>`);
+  if (item.video_url) links.push(`<a href="${escapeAttr(item.video_url)}" target="_blank" rel="noopener">Video</a>`);
+  return links.length ? `<div class="card-links">${links.join("")}</div>` : "";
+}
+
 function price(value) {
   if (!value) return "Price on request";
   return "From " + new Intl.NumberFormat("en-US").format(Number(value)) + " EGP";
@@ -62,10 +86,10 @@ function price(value) {
 
 function card(item, type = "unit") {
   if (type === "project") {
-    return `<article class="card"><div class="image">${safe(item.location)}</div><div class="content"><h3>${safe(item.name)}</h3><div class="tags"><span class="tag">${safe(item.developer)}</span><span class="tag">${safe(item.status)}</span><span class="tag">${safe(item.installments_text)}</span></div><div class="price">${price(item.min_price)}</div><p>${safe(item.description, "")}</p></div></article>`;
+    return `<article class="card">${mediaImage(item)}<div class="content"><h3>${safe(item.name)}</h3><div class="tags"><span class="tag">${safe(item.developer)}</span><span class="tag">${safe(item.status)}</span><span class="tag">${safe(item.installments_text)}</span></div><div class="price">${price(item.min_price)}</div><p>${safe(item.description, "")}</p>${mediaLinks(item)}</div></article>`;
   }
 
-  return `<article class="card"><div class="image">${safe(item.location)}</div><div class="content"><h3>${safe(item.project_name)}</h3><div class="tags"><span class="tag">${safe(item.unit_type)}</span><span class="tag">${safe(item.bedrooms_text)}</span><span class="tag">${safe(item.installments_text)}</span><span class="tag">${safe(item.delivery_text)}</span></div><div class="price">${price(item.starting_price)}</div><p>Down payment: ${safe(item.down_payment_text)}</p></div></article>`;
+  return `<article class="card">${mediaImage(item)}<div class="content"><h3>${safe(item.project_name)}</h3><div class="tags"><span class="tag">${safe(item.unit_type)}</span><span class="tag">${safe(item.bedrooms_text)}</span><span class="tag">${safe(item.installments_text)}</span><span class="tag">${safe(item.delivery_text)}</span></div><div class="price">${price(item.starting_price)}</div><p>Down payment: ${safe(item.down_payment_text)}</p>${mediaLinks(item)}</div></article>`;
 }
 
 function render(list, target, type = "unit") {
@@ -604,7 +628,10 @@ async function handleRealtimeEvent(event) {
         starting_price: unit.starting_price,
         down_payment_text: unit.down_payment_text,
         installments_text: unit.installments_text,
-        delivery_text: unit.delivery_text
+        delivery_text: unit.delivery_text,
+        image_url: unit.image_url,
+        brochure_url: unit.brochure_url,
+        video_url: unit.video_url
       }))
     };
 
