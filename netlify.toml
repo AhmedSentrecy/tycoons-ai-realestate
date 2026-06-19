@@ -16,3 +16,8 @@
   from = "/api/realtime-connect"
   to = "/.netlify/functions/realtime-connect"
   status = 200
+
+[[redirects]]
+  from = "/api/admin-inventory"
+  to = "/.netlify/functions/admin-inventory"
+  status = 200

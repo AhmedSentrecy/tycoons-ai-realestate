@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tycoons Admin | Inventory Panel</title>
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+  <header class="admin-header">
+    <div><strong>Tycoons Admin</strong><small>Inventory Panel V1</small></div>
+    <a href="index.html">Back to website</a>
+  </header>
+
+  <main>
+    <section id="loginPanel" class="panel">
+      <span class="eyebrow">Admin Login</span>
+      <h1>Inventory control panel</h1>
+      <p>Enter the admin password you saved in Netlify environment variables.</p>
+      <div class="row">
+        <input id="adminPassword" type="password" placeholder="Admin password">
+        <button id="loginBtn" class="btn" type="button">Enter Admin</button>
+      </div>
+      <div id="loginStatus" class="status hidden"></div>
+    </section>
+
+    <section id="adminPanel" class="hidden">
+      <div class="dashboard">
+        <div class="stat"><span>Projects</span><strong id="projectCount">0</strong></div>
+        <div class="stat"><span>Units</span><strong id="unitCount">0</strong></div>
+        <div class="stat"><span>Available</span><strong id="availableCount">0</strong></div>
+      </div>
+
+      <section class="panel">
+        <div class="topline"><div><span class="eyebrow">Projects</span><h2>Add / edit project</h2></div><button id="resetProjectBtn" class="ghost" type="button">New Project</button></div>
+        <form id="projectForm" class="form-grid">
+          <input type="hidden" name="id">
+          <label>Project name<input name="name" required placeholder="Mountain View Creek View"></label>
+          <label>Developer<input name="developer" placeholder="Mountain View"></label>
+          <label>Location<input name="location" required placeholder="New Cairo"></label>
+          <label>Status<input name="status" placeholder="Under construction / Ready"></label>
+          <label>Minimum price<input name="min_price" type="number" placeholder="6900000"></label>
+          <label>Down payment<input name="down_payment_text" placeholder="5% down payment"></label>
+          <label>Installments<input name="installments_text" placeholder="6 years"></label>
+          <label>Delivery<input name="delivery_text" placeholder="2029"></label>
+          <label class="full">Description<textarea name="description" rows="3" placeholder="Short project description"></textarea></label>
+          <button class="btn" type="submit">Save Project</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="topline"><div><span class="eyebrow">Units</span><h2>Add / edit unit</h2></div><button id="resetUnitBtn" class="ghost" type="button">New Unit</button></div>
+        <form id="unitForm" class="form-grid">
+          <input type="hidden" name="id">
+          <label>Project<select name="project_id" id="projectSelect" required></select></label>
+          <label>Unit type<input name="unit_type" required placeholder="Apartment / iVilla Garden / Sky Villa"></label>
+          <label>Bedrooms<input name="bedrooms_text" placeholder="2 bedrooms"></label>
+          <label>Area sqm<input name="area_sqm" type="number" step="0.01" placeholder="115"></label>
+          <label>Starting price<input name="starting_price" type="number" required placeholder="12900000"></label>
+          <label>Down payment<input name="down_payment_text" placeholder="5% down payment"></label>
+          <label>Installments<input name="installments_text" placeholder="6 years"></label>
+          <label>Delivery<input name="delivery_text" placeholder="2029"></label>
+          <label>Finishing<input name="finishing" placeholder="Semi-finished / Finished"></label>
+          <label>Availability<select name="availability_status"><option value="available">available</option><option value="unavailable">unavailable</option><option value="sold_out">sold_out</option></select></label>
+          <label class="full">Description<textarea name="description" rows="3" placeholder="Short unit notes"></textarea></label>
+          <button class="btn" type="submit">Save Unit</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <span class="eyebrow">CSV Import</span><h2>Upload clean inventory rows</h2>
+        <p>Use the included inventory_template.csv. Import will create missing projects by project name and add units.</p>
+        <div class="row"><input id="csvFile" type="file" accept=".csv,text/csv"><button id="importCsvBtn" class="btn" type="button">Import CSV</button></div>
+        <div id="importStatus" class="status hidden"></div>
+      </section>
+
+      <section class="panel">
+        <div class="topline"><div><span class="eyebrow">Inventory</span><h2>Current units</h2></div><button id="refreshBtn" class="ghost" type="button">Refresh</button></div>
+        <input id="unitFilter" placeholder="Search by project, location, unit type, price...">
+        <div id="unitTableWrap" class="table-wrap"></div>
+      </section>
+    </section>
+  </main>
+  <script src="admin.js"></script>
+</body>
+</html>
