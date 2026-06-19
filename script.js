@@ -10,6 +10,7 @@ let realtimeDc = null;
 let realtimeStream = null;
 let remoteAudio = null;
 let micTrack = null;
+let pendingVoiceLead = null;
 const handledFunctionCalls = new Set();
 
 const results = document.getElementById("results");
@@ -24,6 +25,10 @@ const startVoiceAgentBtn = document.getElementById("startVoiceAgentBtn");
 const holdToTalkBtn = document.getElementById("holdToTalkBtn");
 const stopVoiceAgentBtn = document.getElementById("stopVoiceAgentBtn");
 const voiceStatus = document.getElementById("voiceStatus");
+const phoneConfirmBox = document.getElementById("phoneConfirmBox");
+const detectedPhoneInput = document.getElementById("detectedPhoneInput");
+const confirmPhoneBtn = document.getElementById("confirmPhoneBtn");
+const cancelPhoneBtn = document.getElementById("cancelPhoneBtn");
 
 document.getElementById("year").textContent = new Date().getFullYear();
 
@@ -367,8 +372,70 @@ function parseBudgetNumber(value) {
   return Math.round(num);
 }
 
+
+function normalizePhoneDisplay(value) {
+  return String(value || "")
+    .replace(/[^\d+]/g, "")
+    .replace(/^0020/, "0")
+    .replace(/^\+20/, "0");
+}
+
+function showPhoneConfirmation(leadRow) {
+  pendingVoiceLead = { ...leadRow };
+  const detected = normalizePhoneDisplay(leadRow.phone);
+
+  if (phoneConfirmBox) phoneConfirmBox.classList.remove("hidden");
+  if (detectedPhoneInput) detectedPhoneInput.value = detected;
+  if (leadStatus) {
+    leadStatus.classList.remove("hidden");
+    leadStatus.className = "status";
+    leadStatus.textContent = "Phone detected from voice. Please confirm before saving.";
+  }
+
+  setVoiceStatus("Phone detected. Please check the number on screen and press Confirm & Save Lead.", "status");
+}
+
+async function confirmPendingVoiceLead() {
+  if (!pendingVoiceLead) {
+    setVoiceStatus("No pending voice lead to confirm.", "status error");
+    return;
+  }
+
+  const confirmedPhone = normalizePhoneDisplay(detectedPhoneInput?.value || pendingVoiceLead.phone);
+
+  if (!confirmedPhone || confirmedPhone.length < 8) {
+    setVoiceStatus("Please enter a valid phone number before saving.", "status error");
+    return;
+  }
+
+  const row = {
+    ...pendingVoiceLead,
+    phone: confirmedPhone,
+    source: "website_voice_confirmed_phone"
+  };
+
+  await insertRow("leads", row);
+
+  pendingVoiceLead = null;
+  if (phoneConfirmBox) phoneConfirmBox.classList.add("hidden");
+
+  if (leadStatus) {
+    leadStatus.classList.remove("hidden");
+    leadStatus.className = "status success";
+    leadStatus.textContent = "Confirmed voice lead saved in Supabase.";
+  }
+
+  setVoiceStatus("Lead saved with confirmed WhatsApp number.", "status success");
+}
+
+function cancelPendingVoiceLead() {
+  pendingVoiceLead = null;
+  if (phoneConfirmBox) phoneConfirmBox.classList.add("hidden");
+  setVoiceStatus("Phone confirmation cancelled. Hold to Talk again to continue.");
+}
+
 async function saveVoiceLeadFromArgs(args) {
-  const phoneRaw = String(args.phone || args.whatsapp || "").trim();
+  const phoneRaw = normalizePhoneDisplay(args.phone || args.whatsapp || "");
 
   const row = {
     name: args.name || null,
@@ -378,11 +445,24 @@ async function saveVoiceLeadFromArgs(args) {
     budget: parseBudgetNumber(args.budget),
     unit_type: args.unit_type || null,
     project_interest: args.project_interest || args.project || null,
-    source: phoneRaw ? "website_voice_with_phone" : "website_voice_pending_phone"
+    source: phoneRaw ? "website_voice_pending_confirmation" : "website_voice_pending_phone"
   };
 
+  if (phoneRaw) {
+    showPhoneConfirmation(row);
+    return {
+      ...row,
+      pending_confirmation: true,
+      saved: false
+    };
+  }
+
   await insertRow("leads", row);
-  return row;
+  return {
+    ...row,
+    pending_confirmation: false,
+    saved: true
+  };
 }
 
 function sendToolOutput(callId, output) {
@@ -505,7 +585,7 @@ Lead capture:
   }
 
   if (payload.name === "save_voice_lead") {
-    setVoiceStatus("Saving voice lead...");
+    setVoiceStatus("Preparing voice lead...");
 
     try {
       const savedLead = await saveVoiceLeadFromArgs(args);
@@ -513,13 +593,14 @@ Lead capture:
       if (leadStatus) {
         leadStatus.classList.remove("hidden");
         leadStatus.className = "status success";
-        leadStatus.textContent = "Voice lead saved in Supabase.";
+        leadStatus.textContent = savedLead.pending_confirmation ? "Phone detected. Waiting for confirmation before saving." : "Voice lead saved in Supabase.";
       }
 
       sendToolOutput(callId, {
-        saved: true,
-        saved_to: "Supabase leads table",
-        phone_status: savedLead.phone === "voice-not-provided" ? "phone_not_provided" : "phone_provided",
+        saved: savedLead.saved === true,
+        pending_confirmation: savedLead.pending_confirmation === true,
+        saved_to: savedLead.saved === true ? "Supabase leads table" : "waiting_for_user_phone_confirmation",
+        phone_status: savedLead.phone === "voice-not-provided" ? "phone_not_provided" : "phone_pending_confirmation",
         lead: savedLead
       });
 
@@ -528,17 +609,19 @@ Lead capture:
         response: {
           modalities: ["audio", "text"],
           instructions: `
-The lead was saved successfully.
+The save_voice_lead tool returned status.
 
-If Arabic:
-- Reply in Egyptian Arabic.
-- If phone was not provided, ask for the WhatsApp number in one short question.
-- If phone was provided, say that the details are saved and ask one short follow-up question.
+If pending_confirmation is true:
+- Tell the user the number is shown on screen and ask them to press Confirm & Save Lead after checking it.
+- Do not say it is saved yet.
 
-If English:
-- Reply in warm simple English.
-- If phone was not provided, ask for the WhatsApp number in one short question.
-- If phone was provided, say the details are saved and ask one short follow-up question.
+If saved is true:
+- Say the details are saved.
+
+If phone_status is phone_not_provided:
+- Ask for the WhatsApp number in one short question.
+
+Use the user's language. Arabic should be Egyptian Arabic.
 `
         }
       }));
@@ -680,6 +763,25 @@ window.addEventListener("keyup", (event) => {
     endPushToTalk(event);
   }
 });
+
+
+if (confirmPhoneBtn) {
+  confirmPhoneBtn.addEventListener("click", async () => {
+    try {
+      confirmPhoneBtn.disabled = true;
+      await confirmPendingVoiceLead();
+    } catch (error) {
+      console.error("Confirm phone save error:", error);
+      setVoiceStatus("Could not save confirmed lead: " + (error.message || "Unknown error"), "status error");
+    } finally {
+      confirmPhoneBtn.disabled = false;
+    }
+  });
+}
+
+if (cancelPhoneBtn) {
+  cancelPhoneBtn.addEventListener("click", cancelPendingVoiceLead);
+}
 
 startVoiceAgentBtn.addEventListener("click", startRealtimeAgent);
 stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("Voice session stopped."));

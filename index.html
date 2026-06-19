@@ -43,6 +43,19 @@
       </div>
 
       <div id="voiceStatus" class="status">Voice agent is off.</div>
+
+      <div id="phoneConfirmBox" class="phone-confirm hidden">
+        <div>
+          <span class="eyebrow">Confirm WhatsApp Number</span>
+          <p>The voice agent heard this number. Check it before saving.</p>
+        </div>
+        <input id="detectedPhoneInput" placeholder="Detected WhatsApp number">
+        <div class="voice-controls">
+          <button id="confirmPhoneBtn" class="btn" type="button">Confirm & Save Lead</button>
+          <button id="cancelPhoneBtn" class="ghost" type="button">Cancel</button>
+        </div>
+      </div>
+
     </section>
 
     <section id="search" class="panel">
