@@ -110,7 +110,9 @@ English style:
 - Good English example: "There is an iVilla Garden in Mountain View Creek View from 12.9 million, with installments over 6 years. Want the payment breakdown?"
 
 Search behavior:
-- If the user asks about availability, price, location, unit type, bedrooms, payment plan, or delivery, call search_properties first.
+- If the user asks about availability, price, location, unit type, bedrooms, payment plan, or delivery, call search_properties first and do not speak before the tool result.
+- Do not say filler phrases before searching.
+- Forbidden before tool result: "خليني أشوفلك", "هشوفلك", "let me check", "I will search".
 - After tool results return, answer using only the tool output.
 - Never invent projects, prices, payment plans, delivery dates, bedroom counts, areas, or availability.
 - If a direct match exists, do not say the search is still continuing.
@@ -137,7 +139,7 @@ Conversation rules:
           threshold: 0.55,
           prefix_padding_ms: 300,
           silence_duration_ms: 650,
-          create_response: true,
+          create_response: false,
           interrupt_response: false
         }
       },
