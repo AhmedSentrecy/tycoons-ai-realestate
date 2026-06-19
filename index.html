@@ -23,21 +23,22 @@
   <main>
     <section class="hero">
       <div>
-        <span class="eyebrow">Realtime Voice MVP</span>
-        <h1>Talk to your property search agent in real time.</h1>
-        <p>Text search still works, and the new voice agent uses OpenAI Realtime with your live Supabase inventory.</p>
+        <span class="eyebrow">Push-to-Talk Voice MVP</span>
+        <h1>Talk to your property search agent with controlled voice.</h1>
+        <p>Press Start Voice Agent, then hold the Push to Talk button only while speaking. Release it and the AI will answer.</p>
         <a class="btn" href="#voice">Start Voice Agent</a>
       </div>
-      <div class="quote">“I want an iVilla Garden in New Cairo.”</div>
+      <div class="quote">Hold to talk: “I want an iVilla Garden in New Cairo.”</div>
     </section>
 
     <section id="voice" class="panel voice-panel">
       <span class="eyebrow">Option B</span>
       <h2>Real voice-to-voice agent</h2>
-      <p>Press Start, allow microphone access, then speak naturally. Press Stop when finished to control cost.</p>
+      <p>Use push-to-talk to stop the AI from hearing its own voice or background noise while answering.</p>
 
       <div class="voice-controls">
         <button id="startVoiceAgentBtn" class="btn" type="button">Start Voice Agent</button>
+        <button id="holdToTalkBtn" class="talk-btn" type="button" disabled>Hold to Talk</button>
         <button id="stopVoiceAgentBtn" class="ghost" type="button" disabled>Stop Session</button>
       </div>
 
@@ -47,7 +48,7 @@
     <section id="search" class="panel">
       <div class="topline">
         <div><span class="eyebrow">AI Search</span><h2>Tell us what you are looking for</h2></div>
-        <button id="voiceBtn" class="ghost" type="button">Quick Speak</button>
+        <button id="voiceBtn" class="ghost" type="button">Dictate Search</button>
       </div>
 
       <div class="searchbar">
@@ -82,7 +83,7 @@
     </section>
   </main>
 
-  <footer>© <span id="year"></span> Tycoons Investments · Realtime voice MVP</footer>
+  <footer>© <span id="year"></span> Tycoons Investments · Push-to-talk voice MVP</footer>
 
   <script>
     window.TYCOONS_SUPABASE_URL = "https://coqnjymekrkoausiiytm.supabase.co";

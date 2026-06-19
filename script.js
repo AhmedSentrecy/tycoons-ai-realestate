@@ -9,6 +9,7 @@ let realtimePc = null;
 let realtimeDc = null;
 let realtimeStream = null;
 let remoteAudio = null;
+let micTrack = null;
 const handledFunctionCalls = new Set();
 
 const results = document.getElementById("results");
@@ -20,6 +21,7 @@ const leadStatus = document.getElementById("leadStatus");
 const voiceBtn = document.getElementById("voiceBtn");
 const searchBtn = document.getElementById("searchBtn");
 const startVoiceAgentBtn = document.getElementById("startVoiceAgentBtn");
+const holdToTalkBtn = document.getElementById("holdToTalkBtn");
 const stopVoiceAgentBtn = document.getElementById("stopVoiceAgentBtn");
 const voiceStatus = document.getElementById("voiceStatus");
 
@@ -111,8 +113,7 @@ function localSearch(query) {
   return scored.length ? scored.slice(0, 6) : units.slice(0, 6);
 }
 
-// Old browser text-to-speech remains disabled.
-// Only OpenAI Realtime should speak.
+// Old browser text-to-speech is disabled completely.
 function speak() {
   return;
 }
@@ -194,7 +195,7 @@ searchBtn.addEventListener("click", async () => {
   await runAISearch();
 });
 
-// Quick Speak is dictation only. It does NOT speak the answer back.
+// Quick Speak is dictation only.
 if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
@@ -280,8 +281,31 @@ function setVoiceStatus(text, className = "status") {
   voiceStatus.textContent = text;
 }
 
+function setMicEnabled(enabled) {
+  if (!micTrack) return;
+
+  micTrack.enabled = enabled;
+
+  if (enabled) {
+    holdToTalkBtn.classList.add("talking");
+    holdToTalkBtn.textContent = "Listening...";
+    setVoiceStatus("Listening. Release Push to Talk when you finish speaking.", "status success");
+  } else {
+    holdToTalkBtn.classList.remove("talking");
+    holdToTalkBtn.textContent = "Hold to Talk";
+    if (realtimeDc && realtimeDc.readyState === "open") {
+      setVoiceStatus("Mic muted. Waiting for AI response or hold to talk again.");
+    }
+  }
+}
+
 function stopRealtimeAgent(message = "Voice agent is off.") {
   handledFunctionCalls.clear();
+
+  if (micTrack) {
+    micTrack.enabled = false;
+    micTrack = null;
+  }
 
   if (realtimeDc) {
     try { realtimeDc.close(); } catch (_) {}
@@ -305,6 +329,9 @@ function stopRealtimeAgent(message = "Voice agent is off.") {
   }
 
   startVoiceAgentBtn.disabled = false;
+  holdToTalkBtn.disabled = true;
+  holdToTalkBtn.classList.remove("talking");
+  holdToTalkBtn.textContent = "Hold to Talk";
   stopVoiceAgentBtn.disabled = true;
   setVoiceStatus(message);
 }
@@ -325,7 +352,7 @@ async function handleRealtimeEvent(event) {
   }
 
   if (payload.type === "session.created") {
-    setVoiceStatus("Voice agent connected. Ask for a property now.", "status success");
+    setVoiceStatus("Voice agent connected. Hold Push to Talk and ask for a property.", "status success");
   }
 
   if (payload.type === "input_audio_buffer.speech_started") {
@@ -336,14 +363,21 @@ async function handleRealtimeEvent(event) {
     setVoiceStatus("Processing your request...");
   }
 
+  if (payload.type === "response.created") {
+    // Safety: mute mic while AI is preparing/speaking.
+    setMicEnabled(false);
+    setVoiceStatus("AI is answering. Keep mic released.");
+  }
+
+  if (payload.type === "response.audio.done" || payload.type === "response.done") {
+    setMicEnabled(false);
+    setVoiceStatus("AI finished. Hold Push to Talk again to continue.", "status success");
+  }
+
   if (payload.type === "conversation.item.input_audio_transcription.completed" && payload.transcript) {
     searchInput.value = payload.transcript;
   }
 
-  // IMPORTANT FIX:
-  // Only execute the tool after Realtime says the function arguments are fully done.
-  // Handling conversation.item.created can fire too early and create duplicate responses,
-  // which can make the voice stop mid-sentence.
   if (payload.type !== "response.function_call_arguments.done" || payload.name !== "search_properties") {
     return;
   }
@@ -391,7 +425,7 @@ async function handleRealtimeEvent(event) {
     type: "response.create",
     response: {
       modalities: ["audio", "text"],
-      instructions: "Use the search_properties tool output only. Give one complete short sentence with the matched unit details, then ask one short follow-up question. Do not stop mid-sentence."
+      instructions: "Use the search_properties tool output only. Say the selected match clearly in one complete sentence, then ask one short follow-up question. Do not say the search is still continuing."
     }
   }));
 }
@@ -400,10 +434,10 @@ async function startRealtimeAgent() {
   try {
     startVoiceAgentBtn.disabled = true;
     stopVoiceAgentBtn.disabled = false;
+    holdToTalkBtn.disabled = true;
     handledFunctionCalls.clear();
     setVoiceStatus("Starting Realtime voice connection...");
 
-    // Make sure old browser speech is never playing while Realtime starts.
     window.speechSynthesis?.cancel?.();
 
     realtimePc = new RTCPeerConnection();
@@ -423,8 +457,6 @@ async function startRealtimeAgent() {
       }
     };
 
-    // Echo cancellation/noise suppression helps stop the AI from hearing its own output
-    // through the user's speaker and interrupting itself.
     realtimeStream = await navigator.mediaDevices.getUserMedia({
       audio: {
         echoCancellation: true,
@@ -434,17 +466,22 @@ async function startRealtimeAgent() {
       }
     });
 
+    micTrack = realtimeStream.getAudioTracks()[0];
+    if (micTrack) micTrack.enabled = false; // Push-to-talk starts muted.
+
     realtimeStream.getTracks().forEach(track => realtimePc.addTrack(track, realtimeStream));
 
     realtimeDc = realtimePc.createDataChannel("oai-events");
     realtimeDc.addEventListener("message", handleRealtimeEvent);
 
     realtimeDc.addEventListener("open", () => {
-      setVoiceStatus("Realtime voice agent is live. Ask about a unit or project.", "status success");
+      holdToTalkBtn.disabled = false;
+      setVoiceStatus("Realtime voice agent is live. Hold Push to Talk while speaking.", "status success");
     });
 
     realtimeDc.addEventListener("close", () => {
       setVoiceStatus("Realtime voice data channel closed.", "status error");
+      holdToTalkBtn.disabled = true;
     });
 
     const offer = await realtimePc.createOffer();
@@ -479,6 +516,37 @@ async function startRealtimeAgent() {
     voiceStatus.className = "status error";
   }
 }
+
+function beginPushToTalk(event) {
+  event.preventDefault();
+  if (!realtimeDc || realtimeDc.readyState !== "open" || !micTrack) return;
+  window.speechSynthesis?.cancel?.();
+  setMicEnabled(true);
+}
+
+function endPushToTalk(event) {
+  event.preventDefault();
+  setMicEnabled(false);
+}
+
+holdToTalkBtn.addEventListener("mousedown", beginPushToTalk);
+holdToTalkBtn.addEventListener("mouseup", endPushToTalk);
+holdToTalkBtn.addEventListener("mouseleave", endPushToTalk);
+holdToTalkBtn.addEventListener("touchstart", beginPushToTalk, { passive: false });
+holdToTalkBtn.addEventListener("touchend", endPushToTalk, { passive: false });
+holdToTalkBtn.addEventListener("touchcancel", endPushToTalk, { passive: false });
+
+window.addEventListener("keydown", (event) => {
+  if (event.code === "Space" && !event.repeat && document.activeElement.tagName !== "TEXTAREA" && document.activeElement.tagName !== "INPUT") {
+    beginPushToTalk(event);
+  }
+});
+
+window.addEventListener("keyup", (event) => {
+  if (event.code === "Space" && document.activeElement.tagName !== "TEXTAREA" && document.activeElement.tagName !== "INPUT") {
+    endPushToTalk(event);
+  }
+});
 
 startVoiceAgentBtn.addEventListener("click", startRealtimeAgent);
 stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("Voice session stopped."));
