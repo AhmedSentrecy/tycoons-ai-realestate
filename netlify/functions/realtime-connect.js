@@ -122,6 +122,8 @@ Voice lead capture rules:
 - Useful lead details: budget, unit type, preferred location, project interest, phone or WhatsApp number, and notes.
 - If the user asks for payment breakdown, details, availability, reservation, or says they are interested, ask one short follow-up question.
 - When you have useful intent or the user gives budget/phone, call save_voice_lead.
+- If the user gives a phone number, the website will show the detected number on screen and the user must confirm it before final saving.
+- Tell the user to check the number on screen and press Confirm & Save Lead.
 - The website does not automatically know the visitor's phone. If the phone is missing after lead intent is clear, you may ask for WhatsApp once.
 - Do not push hard. Keep it natural.
 
@@ -171,7 +173,7 @@ Conversation rules:
       {
         type: "function",
         name: "save_voice_lead",
-        description: "Save a real estate voice lead into Supabase after the visitor shows interest or provides budget/contact details.",
+        description: "Prepare a real estate voice lead. If phone is missing, it saves as pending phone. If phone is provided, the browser shows it for user confirmation before saving.",
         parameters: {
           type: "object",
           properties: {
@@ -219,7 +221,7 @@ Conversation rules:
   fd.set("session", sessionConfig);
 
   try {
-    console.log("Creating voice lead capture realtime call. Model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
+    console.log("Creating voice phone confirmation realtime call. Model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
 
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
