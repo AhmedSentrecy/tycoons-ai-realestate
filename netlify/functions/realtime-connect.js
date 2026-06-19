@@ -32,6 +32,7 @@ exports.handler = async function(event) {
   const sdp = event.body || "";
 
   if (!sdp.includes("v=0")) {
+    console.error("Invalid SDP received. First 200 chars:", sdp.slice(0, 200));
     return {
       statusCode: 400,
       headers: { "Content-Type": "application/json" },
@@ -39,42 +40,18 @@ exports.handler = async function(event) {
     };
   }
 
-  const instructions = `
-You are Tycoons Investments real estate voice assistant.
-
-Use the search_properties tool before answering any question about property availability, price, location, payment plan, or unit type.
-Never invent projects, prices, delivery dates, payment plans, bedroom counts, or availability.
-If the user speaks Arabic, reply in natural Egyptian Arabic.
-If the user speaks English, reply in English.
-Keep spoken answers short and ask one helpful follow-up question.
-No emojis. Do not suggest a call.
-`;
-
+  // Minimal stability test session.
+  // This intentionally removes tools/function-calling so we can confirm
+  // the raw OpenAI Realtime WebRTC session stays open first.
   const sessionConfig = JSON.stringify({
     type: "realtime",
     model: MODEL,
-    instructions,
+    instructions: "You are a short voice test agent for Tycoons Investments. Reply briefly. If the user asks about property data, say: I am connected, and the inventory search tool will be added next.",
     audio: {
-      output: { voice: VOICE }
-    },
-    tools: [
-      {
-        type: "function",
-        name: "search_properties",
-        description: "Search the live Tycoons property inventory for matching real estate units.",
-        parameters: {
-          type: "object",
-          properties: {
-            query: {
-              type: "string",
-              description: "The user's full natural-language property request."
-            }
-          },
-          required: ["query"]
-        }
+      output: {
+        voice: VOICE
       }
-    ],
-    tool_choice: "auto"
+    }
   });
 
   const fd = new FormData();
@@ -82,6 +59,8 @@ No emojis. Do not suggest a call.
   fd.set("session", sessionConfig);
 
   try {
+    console.log("Creating minimal realtime call with model:", MODEL, "voice:", VOICE);
+
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
       headers: {
@@ -94,13 +73,15 @@ No emojis. Do not suggest a call.
     const text = await response.text();
 
     if (!response.ok) {
-      console.error("OpenAI realtime/calls error:", text);
+      console.error("OpenAI realtime/calls error:", response.status, text);
       return {
         statusCode: response.status,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ error: text })
       };
     }
+
+    console.log("Realtime SDP answer received. Length:", text.length);
 
     return {
       statusCode: 200,
