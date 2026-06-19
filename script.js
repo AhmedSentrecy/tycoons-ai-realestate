@@ -158,7 +158,6 @@ async function runAISearch(queryOverride = null) {
 
     statusBox.className = "status success";
     statusBox.textContent = data.answer || "AI search completed.";
-
     return data;
   } catch (err) {
     console.warn("AI search failed, using local fallback:", err);
@@ -278,7 +277,7 @@ function setVoiceStatus(text, className = "status") {
   voiceStatus.textContent = text;
 }
 
-function stopRealtimeAgent() {
+function stopRealtimeAgent(message = "Voice agent is off.") {
   if (realtimeDc) {
     try { realtimeDc.close(); } catch (_) {}
     realtimeDc = null;
@@ -302,7 +301,7 @@ function stopRealtimeAgent() {
 
   startVoiceAgentBtn.disabled = false;
   stopVoiceAgentBtn.disabled = true;
-  setVoiceStatus("Voice agent is off.");
+  setVoiceStatus(message);
 }
 
 async function handleRealtimeEvent(event) {
@@ -395,15 +394,7 @@ async function startRealtimeAgent() {
   try {
     startVoiceAgentBtn.disabled = true;
     stopVoiceAgentBtn.disabled = false;
-    setVoiceStatus("Starting secure Realtime session...");
-
-    const tokenRes = await fetch("/api/realtime-session", { method: "POST" });
-    if (!tokenRes.ok) throw new Error(await tokenRes.text());
-
-    const tokenData = await tokenRes.json();
-    const ephemeralKey = tokenData.value || tokenData.client_secret?.value;
-
-    if (!ephemeralKey) throw new Error("No ephemeral Realtime token returned.");
+    setVoiceStatus("Starting Realtime voice connection...");
 
     realtimePc = new RTCPeerConnection();
 
@@ -413,6 +404,13 @@ async function startRealtimeAgent() {
 
     realtimePc.ontrack = (event) => {
       remoteAudio.srcObject = event.streams[0];
+    };
+
+    realtimePc.onconnectionstatechange = () => {
+      console.log("WebRTC connection state:", realtimePc.connectionState);
+      if (["failed", "disconnected", "closed"].includes(realtimePc.connectionState)) {
+        setVoiceStatus("Voice connection state: " + realtimePc.connectionState);
+      }
     };
 
     realtimeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -426,39 +424,44 @@ async function startRealtimeAgent() {
     });
 
     realtimeDc.addEventListener("close", () => {
-      setVoiceStatus("Voice session closed.");
+      setVoiceStatus("Voice data channel closed. Check Netlify realtime-connect logs if this happened immediately.", "status error");
     });
 
     const offer = await realtimePc.createOffer();
     await realtimePc.setLocalDescription(offer);
 
-    const sdpRes = await fetch("https://api.openai.com/v1/realtime/calls", {
+    const sdpRes = await fetch("/api/realtime-connect", {
       method: "POST",
       body: offer.sdp,
       headers: {
-        Authorization: "Bearer " + ephemeralKey,
         "Content-Type": "application/sdp"
       }
     });
 
-    if (!sdpRes.ok) throw new Error(await sdpRes.text());
+    if (!sdpRes.ok) {
+      const errorText = await sdpRes.text();
+      throw new Error(errorText);
+    }
 
-    const answer = {
+    const answerSdp = await sdpRes.text();
+
+    if (!answerSdp.includes("v=0")) {
+      throw new Error("Invalid SDP answer returned: " + answerSdp.slice(0, 300));
+    }
+
+    await realtimePc.setRemoteDescription({
       type: "answer",
-      sdp: await sdpRes.text()
-    };
-
-    await realtimePc.setRemoteDescription(answer);
+      sdp: answerSdp
+    });
   } catch (err) {
     console.error(err);
-    setVoiceStatus("Could not start voice agent: " + err.message, "status error");
-    stopRealtimeAgent();
+    stopRealtimeAgent("Could not start voice agent: " + err.message);
+    voiceStatus.className = "status error";
   }
 }
 
 startVoiceAgentBtn.addEventListener("click", startRealtimeAgent);
-stopVoiceAgentBtn.addEventListener("click", stopRealtimeAgent);
-
-window.addEventListener("beforeunload", stopRealtimeAgent);
+stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("Voice session stopped."));
+window.addEventListener("beforeunload", () => stopRealtimeAgent("Voice agent is off."));
 
 loadData();

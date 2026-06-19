@@ -11,3 +11,8 @@
   from = "/api/realtime-session"
   to = "/.netlify/functions/realtime-session"
   status = 200
+
+[[redirects]]
+  from = "/api/realtime-connect"
+  to = "/.netlify/functions/realtime-connect"
+  status = 200
