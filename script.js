@@ -336,6 +336,66 @@ function stopRealtimeAgent(message = "Voice agent is off.") {
   setVoiceStatus(message);
 }
 
+
+function isArabicText(text) {
+  return /[\u0600-\u06FF]/.test(String(text || ""));
+}
+
+function parseBudgetNumber(value) {
+  if (value === null || value === undefined || value === "") return null;
+
+  if (typeof value === "number") return value;
+
+  const text = String(value)
+    .toLowerCase()
+    .replace(/,/g, "")
+    .replace(/egp/g, "")
+    .replace(/جنيه/g, "")
+    .replace(/جم/g, "")
+    .trim();
+
+  const firstNumber = text.match(/[\d.]+/);
+  if (!firstNumber) return null;
+
+  let num = Number(firstNumber[0]);
+  if (!Number.isFinite(num)) return null;
+
+  if (text.includes("million") || text.includes("m") || text.includes("مليون")) {
+    num = num * 1000000;
+  }
+
+  return Math.round(num);
+}
+
+async function saveVoiceLeadFromArgs(args) {
+  const phoneRaw = String(args.phone || args.whatsapp || "").trim();
+
+  const row = {
+    name: args.name || null,
+    phone: phoneRaw || "voice-not-provided",
+    message: args.message || args.notes || "Voice lead captured from website voice agent",
+    preferred_location: args.preferred_location || args.location || null,
+    budget: parseBudgetNumber(args.budget),
+    unit_type: args.unit_type || null,
+    project_interest: args.project_interest || args.project || null,
+    source: phoneRaw ? "website_voice_with_phone" : "website_voice_pending_phone"
+  };
+
+  await insertRow("leads", row);
+  return row;
+}
+
+function sendToolOutput(callId, output) {
+  realtimeDc.send(JSON.stringify({
+    type: "conversation.item.create",
+    item: {
+      type: "function_call_output",
+      call_id: callId,
+      output: JSON.stringify(output)
+    }
+  }));
+}
+
 async function handleRealtimeEvent(event) {
   let payload;
   try {
@@ -377,7 +437,7 @@ async function handleRealtimeEvent(event) {
     searchInput.value = payload.transcript;
   }
 
-  if (payload.type !== "response.function_call_arguments.done" || payload.name !== "search_properties") {
+  if (payload.type !== "response.function_call_arguments.done") {
     return;
   }
 
@@ -391,83 +451,116 @@ async function handleRealtimeEvent(event) {
 
   let args = {};
   try { args = JSON.parse(payload.arguments || "{}"); } catch (_) {}
-  const query = args.query || args.search_query || searchInput.value || "property search";
 
-  searchInput.value = query;
-  setVoiceStatus("Searching live inventory for: " + query);
+  if (payload.name === "search_properties") {
+    const query = args.query || args.search_query || searchInput.value || "property search";
 
-  const searchData = await runAISearch(query);
-  const toolOutput = {
-    answer: searchData?.answer || "Search completed.",
-    results: (searchData?.results || []).slice(0, 6).map(unit => ({
-      project_name: unit.project_name,
-      location: unit.location,
-      unit_type: unit.unit_type,
-      bedrooms_text: unit.bedrooms_text,
-      starting_price: unit.starting_price,
-      down_payment_text: unit.down_payment_text,
-      installments_text: unit.installments_text,
-      delivery_text: unit.delivery_text
-    }))
-  };
+    searchInput.value = query;
+    setVoiceStatus("Searching live inventory for: " + query);
 
-  realtimeDc.send(JSON.stringify({
-    type: "conversation.item.create",
-    item: {
-      type: "function_call_output",
-      call_id: callId,
-      output: JSON.stringify(toolOutput)
-    }
-  }));
+    const searchData = await runAISearch(query);
+    const toolOutput = {
+      answer_language_hint: isArabicText(query) ? "egyptian_arabic" : "english",
+      answer: searchData?.answer || "Search completed.",
+      results: (searchData?.results || []).slice(0, 6).map(unit => ({
+        project_name: unit.project_name,
+        location: unit.location,
+        unit_type: unit.unit_type,
+        bedrooms_text: unit.bedrooms_text,
+        starting_price: unit.starting_price,
+        down_payment_text: unit.down_payment_text,
+        installments_text: unit.installments_text,
+        delivery_text: unit.delivery_text
+      }))
+    };
 
-  realtimeDc.send(JSON.stringify({
-    type: "response.create",
-    response: {
-      modalities: ["audio", "text"],
-      instructions: `
-Speak like a real Egyptian real estate admin, not a formal assistant.
+    sendToolOutput(callId, toolOutput);
 
-Critical Arabic rule:
-- If the user spoke Arabic, reply ONLY in Egyptian spoken Arabic.
-- Do not reply in English.
-- Do not use formal Arabic.
-- Do not translate project names, but pronounce them naturally inside Arabic.
-- Keep the Arabic answer casual and short, like WhatsApp voice from a sales admin.
+    realtimeDc.send(JSON.stringify({
+      type: "response.create",
+      response: {
+        modalities: ["audio", "text"],
+        instructions: `
+Use the search_properties tool output only.
 
-Arabic style examples:
-- Say: "في آي فيلا جاردن في ماونتن فيو كريك فيو، سعرها من اتناشر مليون وتسعمية ألف، والتقسيط على ست سنين. تحب أطلعلك طريقة الدفع؟"
-- Say: "في شقق في التجمع تبدأ من ستة مليون وتسعمية، والتقسيط على ست سنين. تحب غرفتين ولا تلاتة؟"
-- Say: "المتاح الأقرب ليك في ماونتن فيو كريك فيو. تحب أقولك أقل مقدم؟"
+If the user's last request was Arabic:
+- Reply in Egyptian Arabic as naturally as possible.
+- Mention only the best result.
+- Ask one short follow-up question.
+- Do not say the search is still continuing.
 
-Never say in Arabic:
-- "تم العثور"
-- "بناءً على طلبك"
-- "هل ترغب"
-- "سأقوم"
-- "يمكنني مساعدتك"
-- "الخيار المتاح"
-- "عملية البحث"
-- "ما زال البحث مستمرًا"
-- "فهمت"
-- "أكيد"
-- "تمام"
-- "بالظبط"
-- "ماشي"
+If the user's last request was English:
+- Reply in warm simple English.
+- Mention only the best result.
+- Ask one short follow-up question.
 
-English style:
-- If the user spoke English, reply in warm simple conversational English.
-- Avoid: "I have found", "based on your request", "certainly", "would you like me to assist".
-
-When results exist:
-- Mention only the best matching result.
-- In Arabic, convert prices into spoken Arabic words where possible: 12.9 million = "اتناشر مليون وتسعمية ألف", 6 years = "ست سنين".
-- Ask only one short follow-up question.
-
-When no results exist:
-- Say the closest available option briefly, then ask one question to narrow the search.
+Lead capture:
+- If the user sounds interested, asks for payment breakdown, says yes, asks for details, mentions budget, or gives a phone/WhatsApp number, continue the conversation naturally and collect one missing detail at a time.
+- Once you have useful lead intent, call save_voice_lead.
 `
+      }
+    }));
+
+    return;
+  }
+
+  if (payload.name === "save_voice_lead") {
+    setVoiceStatus("Saving voice lead...");
+
+    try {
+      const savedLead = await saveVoiceLeadFromArgs(args);
+
+      if (leadStatus) {
+        leadStatus.classList.remove("hidden");
+        leadStatus.className = "status success";
+        leadStatus.textContent = "Voice lead saved in Supabase.";
+      }
+
+      sendToolOutput(callId, {
+        saved: true,
+        saved_to: "Supabase leads table",
+        phone_status: savedLead.phone === "voice-not-provided" ? "phone_not_provided" : "phone_provided",
+        lead: savedLead
+      });
+
+      realtimeDc.send(JSON.stringify({
+        type: "response.create",
+        response: {
+          modalities: ["audio", "text"],
+          instructions: `
+The lead was saved successfully.
+
+If Arabic:
+- Reply in Egyptian Arabic.
+- If phone was not provided, ask for the WhatsApp number in one short question.
+- If phone was provided, say that the details are saved and ask one short follow-up question.
+
+If English:
+- Reply in warm simple English.
+- If phone was not provided, ask for the WhatsApp number in one short question.
+- If phone was provided, say the details are saved and ask one short follow-up question.
+`
+        }
+      }));
+    } catch (error) {
+      console.error("Voice lead save error:", error);
+
+      sendToolOutput(callId, {
+        saved: false,
+        error: error.message || "Could not save voice lead"
+      });
+
+      realtimeDc.send(JSON.stringify({
+        type: "response.create",
+        response: {
+          modalities: ["audio", "text"],
+          instructions: "The lead was not saved. Apologize briefly and ask the user to use the contact form."
+        }
+      }));
     }
-  }));
+
+    return;
+  }
 }
 
 async function startRealtimeAgent() {
