@@ -110,17 +110,11 @@ function localSearch(query) {
   return scored.length ? scored.slice(0, 6) : units.slice(0, 6);
 }
 
-function detectAnswerLanguage(text) {
-  return /[\u0600-\u06FF]/.test(String(text || "")) ? "ar-EG" : "en-US";
-}
-
-function speak(text) {
-  if (!("speechSynthesis" in window)) return;
-  const msg = new SpeechSynthesisUtterance(text);
-  msg.lang = detectAnswerLanguage(text);
-  msg.rate = 0.95;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(msg);
+// IMPORTANT:
+// Browser text-to-speech from Option A is now disabled completely.
+// The only spoken voice should come from Start Voice Agent / OpenAI Realtime.
+function speak() {
+  return;
 }
 
 function setSearchLoading(isLoading) {
@@ -134,7 +128,7 @@ async function runAISearch(queryOverride = null) {
 
   if (!query) {
     statusBox.className = "status";
-    statusBox.textContent = "Please type or speak what you are looking for.";
+    statusBox.textContent = "Please type what you are looking for, or use Start Voice Agent for real voice.";
     return null;
   }
 
@@ -197,9 +191,64 @@ async function loadData() {
 }
 
 searchBtn.addEventListener("click", async () => {
-  const data = await runAISearch();
-  if (data?.answer) speak(data.answer);
+  await runAISearch();
 });
+
+// Quick Speak is now dictation only. It does NOT speak the answer back.
+if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const recognition = new SpeechRecognition();
+  recognition.lang = "ar-EG";
+  recognition.interimResults = false;
+  recognition.continuous = false;
+
+  voiceBtn.textContent = "Dictate Search";
+
+  voiceBtn.addEventListener("click", () => {
+    if (isSearching) return;
+
+    window.speechSynthesis?.cancel?.();
+
+    voiceBtn.disabled = true;
+    voiceBtn.textContent = "Listening...";
+    statusBox.className = "status";
+    statusBox.textContent = "Listening for dictation only. For real voice reply, use Start Voice Agent.";
+
+    try {
+      recognition.start();
+    } catch (err) {
+      voiceBtn.disabled = false;
+      voiceBtn.textContent = "Dictate Search";
+      statusBox.className = "status error";
+      statusBox.textContent = "Microphone could not start. Try again or allow microphone permission.";
+    }
+  });
+
+  recognition.addEventListener("result", async (event) => {
+    const transcript = event.results[0][0].transcript;
+    searchInput.value = transcript;
+    statusBox.className = "status";
+    statusBox.textContent = "Heard: " + transcript + " — searching now...";
+    await runAISearch(transcript);
+  });
+
+  recognition.addEventListener("end", () => {
+    voiceBtn.disabled = false;
+    voiceBtn.textContent = "Dictate Search";
+  });
+
+  recognition.addEventListener("error", (event) => {
+    voiceBtn.disabled = false;
+    voiceBtn.textContent = "Dictate Search";
+    statusBox.className = "status error";
+    statusBox.textContent = "Voice input error: " + event.error + ". You can type your search instead.";
+  });
+} else {
+  voiceBtn.addEventListener("click", () => {
+    statusBox.className = "status error";
+    statusBox.textContent = "Voice input is not supported in this browser. Try Chrome on desktop.";
+  });
+}
 
 leadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -227,50 +276,6 @@ leadForm.addEventListener("submit", async (event) => {
     leadStatus.textContent = "Lead was not saved. Check the leads insert policy.";
   }
 });
-
-if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const recognition = new SpeechRecognition();
-  recognition.lang = "ar-EG";
-  recognition.interimResults = false;
-  recognition.continuous = false;
-
-  voiceBtn.addEventListener("click", () => {
-    if (isSearching) return;
-    window.speechSynthesis.cancel();
-    voiceBtn.disabled = true;
-    voiceBtn.textContent = "Listening...";
-    statusBox.className = "status";
-    statusBox.textContent = "Listening... say what kind of property you want.";
-    try { recognition.start(); } catch (err) { voiceBtn.disabled = false; voiceBtn.textContent = "Quick Speak"; }
-  });
-
-  recognition.addEventListener("result", async (event) => {
-    const transcript = event.results[0][0].transcript;
-    searchInput.value = transcript;
-    statusBox.className = "status";
-    statusBox.textContent = "Heard: " + transcript + " — searching now...";
-    const data = await runAISearch(transcript);
-    if (data?.answer) speak(data.answer);
-  });
-
-  recognition.addEventListener("end", () => {
-    voiceBtn.disabled = false;
-    voiceBtn.textContent = "Quick Speak";
-  });
-
-  recognition.addEventListener("error", (event) => {
-    voiceBtn.disabled = false;
-    voiceBtn.textContent = "Quick Speak";
-    statusBox.className = "status error";
-    statusBox.textContent = "Voice input error: " + event.error + ". You can type your search instead.";
-  });
-} else {
-  voiceBtn.addEventListener("click", () => {
-    statusBox.className = "status error";
-    statusBox.textContent = "Voice input is not supported in this browser. Try Chrome on desktop.";
-  });
-}
 
 function setVoiceStatus(text, className = "status") {
   voiceStatus.className = className;
@@ -396,6 +401,9 @@ async function startRealtimeAgent() {
     stopVoiceAgentBtn.disabled = false;
     setVoiceStatus("Starting Realtime voice connection...");
 
+    // Make sure old browser speech is never playing while Realtime starts.
+    window.speechSynthesis?.cancel?.();
+
     realtimePc = new RTCPeerConnection();
 
     remoteAudio = document.createElement("audio");
@@ -420,11 +428,11 @@ async function startRealtimeAgent() {
     realtimeDc.addEventListener("message", handleRealtimeEvent);
 
     realtimeDc.addEventListener("open", () => {
-      setVoiceStatus("Voice agent is live. Ask about a unit or project.", "status success");
+      setVoiceStatus("Realtime voice agent is live. Ask about a unit or project.", "status success");
     });
 
     realtimeDc.addEventListener("close", () => {
-      setVoiceStatus("Voice data channel closed. Check Netlify realtime-connect logs if this happened immediately.", "status error");
+      setVoiceStatus("Realtime voice data channel closed.", "status error");
     });
 
     const offer = await realtimePc.createOffer();
