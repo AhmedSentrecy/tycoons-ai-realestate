@@ -1,6 +1,25 @@
 const MODEL = process.env.OPENAI_REALTIME_MODEL || "gpt-realtime-2";
 const VOICE = process.env.OPENAI_REALTIME_VOICE || "marin";
 
+function getRequestBody(event) {
+  const raw = event.body || "";
+
+  if (event.isBase64Encoded) {
+    return Buffer.from(raw, "base64").toString("utf8");
+  }
+
+  // Netlify can sometimes pass application/sdp as a base64-like string.
+  // If it does not start as SDP, try decoding it safely.
+  if (!raw.trim().startsWith("v=0")) {
+    try {
+      const decoded = Buffer.from(raw, "base64").toString("utf8");
+      if (decoded.trim().startsWith("v=0")) return decoded;
+    } catch (_) {}
+  }
+
+  return raw;
+}
+
 exports.handler = async function(event) {
   if (event.httpMethod === "OPTIONS") {
     return {
@@ -29,20 +48,19 @@ exports.handler = async function(event) {
     };
   }
 
-  const sdp = event.body || "";
+  const sdp = getRequestBody(event);
 
-  if (!sdp.includes("v=0")) {
-    console.error("Invalid SDP received. First 200 chars:", sdp.slice(0, 200));
+  if (!sdp.trim().startsWith("v=0")) {
+    console.error("Invalid SDP received. isBase64Encoded:", event.isBase64Encoded, "First 200 chars:", String(event.body || "").slice(0, 200));
     return {
       statusCode: 400,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Invalid SDP offer." })
+      body: JSON.stringify({ error: "Invalid SDP offer after decoding." })
     };
   }
 
   // Minimal stability test session.
-  // This intentionally removes tools/function-calling so we can confirm
-  // the raw OpenAI Realtime WebRTC session stays open first.
+  // After this stays open, we will add search_properties back.
   const sessionConfig = JSON.stringify({
     type: "realtime",
     model: MODEL,
@@ -59,7 +77,7 @@ exports.handler = async function(event) {
   fd.set("session", sessionConfig);
 
   try {
-    console.log("Creating minimal realtime call with model:", MODEL, "voice:", VOICE);
+    console.log("Creating minimal realtime call with model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
 
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
