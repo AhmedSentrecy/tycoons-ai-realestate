@@ -336,6 +336,28 @@ function stopRealtimeAgent(message = "Voice agent is off.") {
   setVoiceStatus(message);
 }
 
+
+function isArabicText(text) {
+  return /[\u0600-\u06FF]/.test(String(text || ""));
+}
+
+function requestRealtimeResponseAfterUserSpeech() {
+  if (!realtimeDc || realtimeDc.readyState !== "open") return;
+
+  const heard = searchInput.value || "";
+  const arabic = isArabicText(heard);
+
+  realtimeDc.send(JSON.stringify({
+    type: "response.create",
+    response: {
+      modalities: ["audio", "text"],
+      instructions: arabic
+        ? `المستخدم اتكلم عربي. لو سأل عن عقار أو سعر أو منطقة أو نوع وحدة، استخدم search_properties بصمت الأول، وماتتكلمش قبل نتيجة الأداة. ممنوع تقول خليني أشوفلك أو هشوفلك. بعد نتيجة الأداة رد بجملة عامية مصرية واحدة عن أفضل نتيجة، وبعدها سؤال واحد قصير.`
+        : `If the user asked about a property, price, location, unit type, bedrooms, payment plan, or delivery, call search_properties silently first. Do not say let me check or I will search. After the tool result, answer with the best match and one short follow-up question.`
+    }
+  }));
+}
+
 async function handleRealtimeEvent(event) {
   let payload;
   try {
@@ -361,6 +383,7 @@ async function handleRealtimeEvent(event) {
 
   if (payload.type === "input_audio_buffer.speech_stopped") {
     setVoiceStatus("Processing your request...");
+    requestRealtimeResponseAfterUserSpeech();
   }
 
   if (payload.type === "response.created") {
@@ -398,6 +421,7 @@ async function handleRealtimeEvent(event) {
 
   const searchData = await runAISearch(query);
   const toolOutput = {
+    answer_language_hint: isArabicText(query) ? "egyptian_arabic" : "english",
     answer: searchData?.answer || "Search completed.",
     results: (searchData?.results || []).slice(0, 6).map(unit => ({
       project_name: unit.project_name,
@@ -425,46 +449,26 @@ async function handleRealtimeEvent(event) {
     response: {
       modalities: ["audio", "text"],
       instructions: `
-Speak like a real Egyptian real estate admin, not a formal assistant.
+This is AFTER search_properties returned results.
 
-Critical Arabic rule:
-- If the user spoke Arabic, reply ONLY in Egyptian spoken Arabic.
-- Do not reply in English.
-- Do not use formal Arabic.
-- Do not translate project names, but pronounce them naturally inside Arabic.
-- Keep the Arabic answer casual and short, like WhatsApp voice from a sales admin.
+If the user's last request was Arabic:
+- Reply ONLY in Egyptian Arabic عامية.
+- Give the actual best result now. Do not say you will search.
+- Forbidden: خليني أشوفلك، هشوفلك، هراجعلك، تم العثور، بناءً على طلبك، هل ترغب، ما زال البحث مستمر.
+- Use this exact style when the result is iVilla Garden:
+"في آي فيلا جاردن في ماونتن فيو كريك فيو، سعرها من اتناشر مليون وتسعمية ألف، والتقسيط على ست سنين. تحب أطلعلك طريقة الدفع؟"
+- If result differs, keep the same structure: unit + project + spoken price + installments + one short question.
 
-Arabic style examples:
-- Say: "في آي فيلا جاردن في ماونتن فيو كريك فيو، سعرها من اتناشر مليون وتسعمية ألف، والتقسيط على ست سنين. تحب أطلعلك طريقة الدفع؟"
-- Say: "في شقق في التجمع تبدأ من ستة مليون وتسعمية، والتقسيط على ست سنين. تحب غرفتين ولا تلاتة؟"
-- Say: "المتاح الأقرب ليك في ماونتن فيو كريك فيو. تحب أقولك أقل مقدم؟"
+If the user's last request was English:
+- Reply in warm simple English.
+- Give the actual best result now.
+- Do not say you will search.
+- Good style: "There is an iVilla Garden in Mountain View Creek View from 12.9 million, with installments over 6 years. Want the payment breakdown?"
 
-Never say in Arabic:
-- "تم العثور"
-- "بناءً على طلبك"
-- "هل ترغب"
-- "سأقوم"
-- "يمكنني مساعدتك"
-- "الخيار المتاح"
-- "عملية البحث"
-- "ما زال البحث مستمرًا"
-- "فهمت"
-- "أكيد"
-- "تمام"
-- "بالظبط"
-- "ماشي"
-
-English style:
-- If the user spoke English, reply in warm simple conversational English.
-- Avoid: "I have found", "based on your request", "certainly", "would you like me to assist".
-
-When results exist:
+Always:
 - Mention only the best matching result.
-- In Arabic, convert prices into spoken Arabic words where possible: 12.9 million = "اتناشر مليون وتسعمية ألف", 6 years = "ست سنين".
-- Ask only one short follow-up question.
-
-When no results exist:
-- Say the closest available option briefly, then ask one question to narrow the search.
+- Maximum two short sentences.
+- Ask one question only.
 `
     }
   }));
