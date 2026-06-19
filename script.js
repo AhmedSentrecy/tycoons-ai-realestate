@@ -380,6 +380,56 @@ function normalizePhoneDisplay(value) {
     .replace(/^\+20/, "0");
 }
 
+
+function formatShortPrice(value, arabic = false) {
+  const num = Number(value || 0);
+  if (!num) return arabic ? "السعر غير محدد" : "price on request";
+
+  const million = num / 1000000;
+  const clean = Number.isInteger(million) ? String(million) : String(Math.round(million * 10) / 10);
+
+  return arabic ? clean + " مليون جنيه" : clean + " million EGP";
+}
+
+function optionLine(unit, index, arabic = false) {
+  const unitType = unit.unit_type || "unit";
+  const project = unit.project_name || "project";
+  const location = unit.location || "";
+  const priceText = formatShortPrice(unit.starting_price, arabic);
+  const installments = unit.installments_text || "";
+  const bedrooms = unit.bedrooms_text || "";
+
+  if (arabic) {
+    const label = index === 0 ? "الأول" : "التاني";
+    return `${label}: ${unitType} في ${project}${location ? " - " + location : ""}، ${priceText}${bedrooms ? "، " + bedrooms : ""}${installments ? "، تقسيط " + installments : ""}`;
+  }
+
+  const label = index === 0 ? "first" : "second";
+  return `${label}: ${unitType} in ${project}${location ? " - " + location : ""}, ${priceText}${bedrooms ? ", " + bedrooms : ""}${installments ? ", installments " + installments : ""}`;
+}
+
+function buildSpokenSearchSummary(query, searchData) {
+  const arabic = isArabicText(query);
+  const found = (searchData?.results || []).slice(0, 2);
+
+  if (!found.length) {
+    return arabic
+      ? "مش لاقي نتيجة مطابقة بالظبط. تحب أدوّرلك حسب ميزانية معينة؟"
+      : "I do not see an exact match yet. What budget range should I filter by?";
+  }
+
+  if (found.length === 1) {
+    const unit = found[0];
+    return arabic
+      ? `المتاح قدامي: ${unit.unit_type || "وحدة"} في ${unit.project_name || "المشروع"}، ${formatShortPrice(unit.starting_price, true)}${unit.installments_text ? "، والتقسيط " + unit.installments_text : ""}. تحب أطلعلك طريقة الدفع؟`
+      : `The best match is ${unit.unit_type || "a unit"} in ${unit.project_name || "the project"}, from ${formatShortPrice(unit.starting_price, false)}${unit.installments_text ? ", with installments " + unit.installments_text : ""}. Want the payment breakdown?`;
+  }
+
+  return arabic
+    ? `في اختيارين مناسبين: ${optionLine(found[0], 0, true)}. و${optionLine(found[1], 1, true)}. أنهي واحد تحب تفاصيله؟`
+    : `I found two good options: ${optionLine(found[0], 0, false)}. And ${optionLine(found[1], 1, false)}. Which one do you want details for?`;
+}
+
 function showPhoneConfirmation(leadRow) {
   pendingVoiceLead = { ...leadRow };
   const detected = normalizePhoneDisplay(leadRow.phone);
@@ -539,9 +589,13 @@ async function handleRealtimeEvent(event) {
     setVoiceStatus("Searching live inventory for: " + query);
 
     const searchData = await runAISearch(query);
+    const spokenSummary = buildSpokenSearchSummary(query, searchData);
+
     const toolOutput = {
+      must_read_first: spokenSummary,
       answer_language_hint: isArabicText(query) ? "egyptian_arabic" : "english",
       answer: searchData?.answer || "Search completed.",
+      results_count: (searchData?.results || []).length,
       results: (searchData?.results || []).slice(0, 6).map(unit => ({
         project_name: unit.project_name,
         location: unit.location,
@@ -561,22 +615,25 @@ async function handleRealtimeEvent(event) {
       response: {
         modalities: ["audio", "text"],
         instructions: `
-Use the search_properties tool output only.
+You just received search_properties tool output.
 
-If the user's last request was Arabic:
-- Reply in Egyptian Arabic as naturally as possible.
-- Mention only the best result.
-- Ask one short follow-up question.
+Critical:
+- First, read the field must_read_first to the user.
+- Do not call save_voice_lead in this response.
+- Do not ask for phone in this response.
 - Do not say the search is still continuing.
+- Do not say you will check or search.
+- The result cards are already on screen, but you still must read the best option or options aloud.
 
-If the user's last request was English:
+If Arabic:
+- Reply in Egyptian Arabic as naturally as possible.
+- Read must_read_first in Arabic if it is Arabic.
+
+If English:
 - Reply in warm simple English.
-- Mention only the best result.
-- Ask one short follow-up question.
+- Read must_read_first in English if it is English.
 
-Lead capture:
-- If the user sounds interested, asks for payment breakdown, says yes, asks for details, mentions budget, or gives a phone/WhatsApp number, continue the conversation naturally and collect one missing detail at a time.
-- Once you have useful lead intent, call save_voice_lead.
+After this response, wait for the user's next push-to-talk message. Only in a later user turn may you collect budget or phone.
 `
       }
     }));
