@@ -364,7 +364,6 @@ async function handleRealtimeEvent(event) {
   }
 
   if (payload.type === "response.created") {
-    // Safety: mute mic while AI is preparing/speaking.
     setMicEnabled(false);
     setVoiceStatus("AI is answering. Keep mic released.");
   }
@@ -425,7 +424,30 @@ async function handleRealtimeEvent(event) {
     type: "response.create",
     response: {
       modalities: ["audio", "text"],
-      instructions: "Use the search_properties tool output only. Say the selected match clearly in one complete sentence, then ask one short follow-up question. Do not say the search is still continuing."
+      instructions: `
+Speak like a real Tycoons sales admin, not a formal assistant.
+
+Language:
+- If the user spoke Arabic, reply only in Egyptian Arabic عامية مصرية. Never use formal Arabic or English.
+- If the user spoke English, reply in warm simple conversational English.
+
+Tone:
+- Natural, calm, and human.
+- Short voice answer only.
+- No robotic phrases.
+- No "I have found", no "based on your request", no "the search is still continuing".
+- Never say "understood", "certainly", "sure", "تمام", "أكيد", "فهمت", "بالظبط", or "ماشي".
+- No emojis.
+
+When results exist:
+- Mention only the best matching result.
+- Arabic example style: "في آي فيلا جاردن في Mountain View Creek View، السعر من 12.9 مليون والتقسيط على 6 سنين. تحب أطلعلك تفاصيل الأقساط؟"
+- English example style: "There is an iVilla Garden in Mountain View Creek View from 12.9 million, with installments over 6 years. Want the payment breakdown?"
+- Ask only one short follow-up question.
+
+When no results exist:
+- Say the closest available option briefly, then ask one question to narrow the search.
+`
     }
   }));
 }
@@ -467,7 +489,7 @@ async function startRealtimeAgent() {
     });
 
     micTrack = realtimeStream.getAudioTracks()[0];
-    if (micTrack) micTrack.enabled = false; // Push-to-talk starts muted.
+    if (micTrack) micTrack.enabled = false;
 
     realtimeStream.getTracks().forEach(track => realtimePc.addTrack(track, realtimeStream));
 
