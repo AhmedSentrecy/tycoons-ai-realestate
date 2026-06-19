@@ -8,8 +8,7 @@ function getRequestBody(event) {
     return Buffer.from(raw, "base64").toString("utf8");
   }
 
-  // Netlify can sometimes pass application/sdp as a base64-like string.
-  // If it does not start as SDP, try decoding it safely.
+  // Netlify may pass application/sdp as base64 even when isBase64Encoded is not set.
   if (!raw.trim().startsWith("v=0")) {
     try {
       const decoded = Buffer.from(raw, "base64").toString("utf8");
@@ -59,17 +58,56 @@ exports.handler = async function(event) {
     };
   }
 
-  // Minimal stability test session.
-  // After this stays open, we will add search_properties back.
+  const instructions = `
+You are Tycoons Investments real estate voice assistant.
+
+Main behavior:
+- Speak naturally and briefly.
+- If the user asks about property availability, price, location, unit type, bedrooms, payment plan, or delivery, you MUST call the search_properties tool first.
+- After the tool returns results, answer using only the tool output.
+- Do not invent projects, prices, payment plans, delivery dates, bedroom counts, areas, or availability.
+- If the user speaks Arabic, reply in natural Egyptian Arabic.
+- If the user speaks English, reply in English.
+- Ask exactly one helpful follow-up question.
+- No emojis.
+- Do not suggest a call.
+- Keep voice replies short: maximum 2 sentences.
+
+Examples:
+User: I want an iVilla Garden in New Cairo.
+Action: call search_properties with query: "I want an iVilla Garden in New Cairo"
+
+User: عايز اي فيلا جاردن في نيو كايرو
+Action: call search_properties with query: "عايز اي فيلا جاردن في نيو كايرو"
+`;
+
   const sessionConfig = JSON.stringify({
     type: "realtime",
     model: MODEL,
-    instructions: "You are a short voice test agent for Tycoons Investments. Reply briefly. If the user asks about property data, say: I am connected, and the inventory search tool will be added next.",
+    instructions,
     audio: {
       output: {
         voice: VOICE
       }
-    }
+    },
+    tools: [
+      {
+        type: "function",
+        name: "search_properties",
+        description: "Search the live Tycoons property inventory from Supabase and return matching units.",
+        parameters: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "The user's full natural-language real estate request."
+            }
+          },
+          required: ["query"]
+        }
+      }
+    ],
+    tool_choice: "auto"
   });
 
   const fd = new FormData();
@@ -77,7 +115,7 @@ exports.handler = async function(event) {
   fd.set("session", sessionConfig);
 
   try {
-    console.log("Creating minimal realtime call with model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
+    console.log("Creating realtime call with search tool. Model:", MODEL, "voice:", VOICE, "SDP length:", sdp.length);
 
     const response = await fetch("https://api.openai.com/v1/realtime/calls", {
       method: "POST",
@@ -99,7 +137,7 @@ exports.handler = async function(event) {
       };
     }
 
-    console.log("Realtime SDP answer received. Length:", text.length);
+    console.log("Realtime SDP answer with search tool received. Length:", text.length);
 
     return {
       statusCode: 200,
