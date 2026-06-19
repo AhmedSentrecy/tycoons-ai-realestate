@@ -9,6 +9,7 @@ let realtimePc = null;
 let realtimeDc = null;
 let realtimeStream = null;
 let remoteAudio = null;
+const handledFunctionCalls = new Set();
 
 const results = document.getElementById("results");
 const projectGrid = document.getElementById("projectGrid");
@@ -110,9 +111,8 @@ function localSearch(query) {
   return scored.length ? scored.slice(0, 6) : units.slice(0, 6);
 }
 
-// IMPORTANT:
-// Browser text-to-speech from Option A is now disabled completely.
-// The only spoken voice should come from Start Voice Agent / OpenAI Realtime.
+// Old browser text-to-speech remains disabled.
+// Only OpenAI Realtime should speak.
 function speak() {
   return;
 }
@@ -194,7 +194,7 @@ searchBtn.addEventListener("click", async () => {
   await runAISearch();
 });
 
-// Quick Speak is now dictation only. It does NOT speak the answer back.
+// Quick Speak is dictation only. It does NOT speak the answer back.
 if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
@@ -206,9 +206,7 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
 
   voiceBtn.addEventListener("click", () => {
     if (isSearching) return;
-
     window.speechSynthesis?.cancel?.();
-
     voiceBtn.disabled = true;
     voiceBtn.textContent = "Listening...";
     statusBox.className = "status";
@@ -283,6 +281,8 @@ function setVoiceStatus(text, className = "status") {
 }
 
 function stopRealtimeAgent(message = "Voice agent is off.") {
+  handledFunctionCalls.clear();
+
   if (realtimeDc) {
     try { realtimeDc.close(); } catch (_) {}
     realtimeDc = null;
@@ -340,23 +340,24 @@ async function handleRealtimeEvent(event) {
     searchInput.value = payload.transcript;
   }
 
-  const functionCallFromItem =
-    payload.type === "conversation.item.created" &&
-    payload.item &&
-    payload.item.type === "function_call" &&
-    payload.item.name === "search_properties";
+  // IMPORTANT FIX:
+  // Only execute the tool after Realtime says the function arguments are fully done.
+  // Handling conversation.item.created can fire too early and create duplicate responses,
+  // which can make the voice stop mid-sentence.
+  if (payload.type !== "response.function_call_arguments.done" || payload.name !== "search_properties") {
+    return;
+  }
 
-  const functionCallDone =
-    payload.type === "response.function_call_arguments.done" &&
-    payload.name === "search_properties";
+  const callId = payload.call_id;
 
-  if (!functionCallFromItem && !functionCallDone) return;
+  if (!callId || handledFunctionCalls.has(callId)) {
+    return;
+  }
 
-  const callId = functionCallDone ? payload.call_id : payload.item.call_id;
-  const rawArgs = functionCallDone ? payload.arguments : payload.item.arguments;
+  handledFunctionCalls.add(callId);
 
   let args = {};
-  try { args = JSON.parse(rawArgs || "{}"); } catch (_) {}
+  try { args = JSON.parse(payload.arguments || "{}"); } catch (_) {}
   const query = args.query || args.search_query || searchInput.value || "property search";
 
   searchInput.value = query;
@@ -390,7 +391,7 @@ async function handleRealtimeEvent(event) {
     type: "response.create",
     response: {
       modalities: ["audio", "text"],
-      instructions: "Use the search_properties tool output only. Give a short spoken answer and ask one helpful follow-up question."
+      instructions: "Use the search_properties tool output only. Give one complete short sentence with the matched unit details, then ask one short follow-up question. Do not stop mid-sentence."
     }
   }));
 }
@@ -399,6 +400,7 @@ async function startRealtimeAgent() {
   try {
     startVoiceAgentBtn.disabled = true;
     stopVoiceAgentBtn.disabled = false;
+    handledFunctionCalls.clear();
     setVoiceStatus("Starting Realtime voice connection...");
 
     // Make sure old browser speech is never playing while Realtime starts.
@@ -421,7 +423,17 @@ async function startRealtimeAgent() {
       }
     };
 
-    realtimeStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Echo cancellation/noise suppression helps stop the AI from hearing its own output
+    // through the user's speaker and interrupting itself.
+    realtimeStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        channelCount: 1
+      }
+    });
+
     realtimeStream.getTracks().forEach(track => realtimePc.addTrack(track, realtimeStream));
 
     realtimeDc = realtimePc.createDataChannel("oai-events");
