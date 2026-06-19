@@ -613,7 +613,7 @@ async function handleRealtimeEvent(event) {
     realtimeDc.send(JSON.stringify({
       type: "response.create",
       response: {
-        modalities: ["audio", "text"],
+        output_modalities: ["audio"],
         instructions: `
 You just received search_properties tool output.
 
@@ -664,7 +664,7 @@ After this response, wait for the user's next push-to-talk message. Only in a la
       realtimeDc.send(JSON.stringify({
         type: "response.create",
         response: {
-          modalities: ["audio", "text"],
+          output_modalities: ["audio"],
           instructions: `
 The save_voice_lead tool returned status.
 
@@ -693,7 +693,7 @@ Use the user's language. Arabic should be Egyptian Arabic.
       realtimeDc.send(JSON.stringify({
         type: "response.create",
         response: {
-          modalities: ["audio", "text"],
+          output_modalities: ["audio"],
           instructions: "The lead was not saved. Apologize briefly and ask the user to use the contact form."
         }
       }));
