@@ -12,6 +12,8 @@ let remoteAudio = null;
 let micTrack = null;
 let pendingVoiceLead = null;
 const handledFunctionCalls = new Set();
+let realtimeResponseInProgress = false;
+let pendingRealtimeResponseInstructions = null;
 
 const results = document.getElementById("results");
 const projectGrid = document.getElementById("projectGrid");
@@ -129,21 +131,35 @@ function render(list, target, type = "unit") {
 function normalize(text) {
   return String(text || "")
     .toLowerCase()
+    .replace(/[\u064B-\u065F\u0670]/g, "")
+    .replace(/[إأآا]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/القاهره الجديده/g, "new cairo")
     .replace(/القاهرة الجديدة/g, "new cairo")
+    .replace(/التجمع الخامس/g, "new cairo")
     .replace(/التجمع/g, "new cairo")
     .replace(/تجمع/g, "new cairo")
     .replace(/سخنة/g, "ain sokhna")
     .replace(/السخنة/g, "ain sokhna")
     .replace(/جلالة/g, "galala")
+    .replace(/اي فيلا/g, "ivilla")
+    .replace(/اى فيلا/g, "ivilla")
+    .replace(/ايفيلا/g, "ivilla")
+    .replace(/i villa/g, "ivilla")
+    .replace(/i-villa/g, "ivilla")
     .replace(/شقة/g, "apartment")
     .replace(/شقق/g, "apartment")
+    .replace(/دوبلكس/g, "duplex")
     .replace(/فيلا/g, "villa")
-    .replace(/اى فيلا/g, "ivilla")
-    .replace(/اي فيلا/g, "ivilla")
     .replace(/مقدم/g, "down payment")
     .replace(/تقسيط/g, "installments")
     .replace(/سنين/g, "years")
-    .replace(/,/g, "");
+    .replace(/,/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function localSearch(query) {
@@ -172,7 +188,6 @@ function localSearch(query) {
   return scored.length ? scored.slice(0, 6) : units.slice(0, 6);
 }
 
-// Old browser text-to-speech is disabled completely.
 function speak() {
   return;
 }
@@ -254,7 +269,6 @@ searchBtn.addEventListener("click", async () => {
   await runAISearch();
 });
 
-// Quick Speak is dictation only.
 if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const recognition = new SpeechRecognition();
@@ -360,6 +374,8 @@ function setMicEnabled(enabled) {
 
 function stopRealtimeAgent(message = "المساعد الصوتي متوقف.") {
   handledFunctionCalls.clear();
+  realtimeResponseInProgress = false;
+  pendingRealtimeResponseInstructions = null;
 
   if (micTrack) {
     micTrack.enabled = false;
@@ -638,6 +654,31 @@ function sendToolOutput(callId, output) {
   }));
 }
 
+function requestRealtimeAudioResponse(instructions) {
+  pendingRealtimeResponseInstructions = instructions;
+  flushPendingRealtimeResponse();
+}
+
+function flushPendingRealtimeResponse() {
+  if (!pendingRealtimeResponseInstructions) return;
+  if (!realtimeDc || realtimeDc.readyState !== "open") return;
+  if (realtimeResponseInProgress) return;
+
+  const instructions = pendingRealtimeResponseInstructions;
+  pendingRealtimeResponseInstructions = null;
+  realtimeResponseInProgress = true;
+
+  realtimeDc.send(JSON.stringify({
+    type: "response.create",
+    response: {
+      output_modalities: ["audio"],
+      instructions
+    }
+  }));
+
+  setVoiceStatus("المساعد بيرد دلوقتي...");
+}
+
 async function handleRealtimeEvent(event) {
   let payload;
   try {
@@ -666,13 +707,20 @@ async function handleRealtimeEvent(event) {
   }
 
   if (payload.type === "response.created") {
+    realtimeResponseInProgress = true;
     setMicEnabled(false);
     setVoiceStatus("المساعد بيرد دلوقتي...");
   }
 
   if (payload.type === "response.audio.done" || payload.type === "response.done") {
+    realtimeResponseInProgress = false;
     setMicEnabled(false);
-    setVoiceStatus("تقدر تسأل سؤال تاني دلوقتي.", "status success");
+
+    if (pendingRealtimeResponseInstructions) {
+      setTimeout(flushPendingRealtimeResponse, 150);
+    } else {
+      setVoiceStatus("تقدر تسأل سؤال تاني دلوقتي.", "status success");
+    }
   }
 
   if (payload.type === "conversation.item.input_audio_transcription.completed" && payload.transcript) {
@@ -702,56 +750,48 @@ async function handleRealtimeEvent(event) {
 
     const searchData = await runAISearch(query);
     const spokenSummary = buildSpokenSearchSummary(query, searchData);
+    const publicVoiceResults = dedupeUnitsForDisplay(searchData?.results || []).slice(0, 6);
 
     const toolOutput = {
       must_read_first: spokenSummary,
       answer_language_hint: isArabicText(query) ? "egyptian_arabic" : "english",
-      answer: searchData?.answer || "Search completed.",
-      results_count: (searchData?.results || []).length,
-      results: (searchData?.results || []).slice(0, 6).map(unit => ({
+      results_count: publicVoiceResults.length,
+      visible_cards_are_on_screen: true,
+      results_public_summary: publicVoiceResults.map(unit => ({
         project_name: unit.project_name,
         location: unit.location,
-        unit_type: unit.unit_type,
-        bedrooms_text: unit.bedrooms_text,
-        starting_price: unit.starting_price,
-        down_payment_text: unit.down_payment_text,
-        installments_text: unit.installments_text,
-        delivery_text: unit.delivery_text,
-        image_url: unit.image_url,
-        brochure_url: unit.brochure_url,
-        video_url: unit.video_url
+        unit_type: unit.unit_type
       }))
     };
 
     sendToolOutput(callId, toolOutput);
 
-    realtimeDc.send(JSON.stringify({
-      type: "response.create",
-      response: {
-        output_modalities: ["audio"],
-        instructions: `
+    requestRealtimeAudioResponse(`
 You just received search_properties tool output.
 
 Critical:
-- First, read the field must_read_first to the user.
+- Say ONLY the exact text in must_read_first.
+- Do not add any extra details.
+- Do not mention price, area, bedrooms, delivery, payment, or installments unless those words are already inside must_read_first.
+- Do not read results_public_summary aloud.
+- Do not read anything from the visible cards.
 - Do not call save_voice_lead in this response.
 - Do not ask for phone in this response.
 - Do not say the search is still continuing.
 - Do not say you will check or search.
-- The result cards are already on screen, but you still must read the best option or options aloud.
+- Keep the reply short and natural.
+- After reading must_read_first, stop.
 
 If Arabic:
-- Reply in Egyptian Arabic as naturally as possible.
-- Read must_read_first in Arabic if it is Arabic.
+- Reply in Egyptian Arabic.
+- Read must_read_first exactly if it is Arabic.
 
 If English:
 - Reply in warm simple English.
-- Read must_read_first in English if it is English.
+- Read must_read_first exactly if it is English.
 
 After this response, wait for the user's next push-to-talk message. Only in a later user turn may you collect budget or phone.
-`
-      }
-    }));
+`);
 
     return;
   }
@@ -776,11 +816,7 @@ After this response, wait for the user's next push-to-talk message. Only in a la
         lead: savedLead
       });
 
-      realtimeDc.send(JSON.stringify({
-        type: "response.create",
-        response: {
-          output_modalities: ["audio"],
-          instructions: `
+      requestRealtimeAudioResponse(`
 The save_voice_lead tool returned status.
 
 If pending_confirmation is true:
@@ -794,9 +830,7 @@ If phone_status is phone_not_provided:
 - Ask for the WhatsApp number in one short question.
 
 Use the user's language. Arabic should be Egyptian Arabic.
-`
-        }
-      }));
+`);
     } catch (error) {
       console.error("Voice lead save error:", error);
 
@@ -805,13 +839,7 @@ Use the user's language. Arabic should be Egyptian Arabic.
         error: error.message || "Could not save voice lead"
       });
 
-      realtimeDc.send(JSON.stringify({
-        type: "response.create",
-        response: {
-          output_modalities: ["audio"],
-          instructions: "The lead was not saved. Apologize briefly and ask the user to use the contact form."
-        }
-      }));
+      requestRealtimeAudioResponse("The lead was not saved. Apologize briefly and ask the user to use the contact form.");
     }
 
     return;
@@ -824,6 +852,8 @@ async function startRealtimeAgent() {
     stopVoiceAgentBtn.disabled = false;
     holdToTalkBtn.disabled = true;
     handledFunctionCalls.clear();
+    realtimeResponseInProgress = false;
+    pendingRealtimeResponseInstructions = null;
     setVoiceStatus("جاري تشغيل المساعد الصوتي...");
 
     window.speechSynthesis?.cancel?.();
