@@ -12,9 +12,16 @@ function headers(extra = {}) {
 }
 
 async function getUnits() {
-  const url = SUPABASE_URL + "/rest/v1/units?select=*&availability_status=eq.available&order=starting_price.asc";
+  const url =
+    SUPABASE_URL +
+    "/rest/v1/units?select=*&availability_status=eq.available&order=starting_price.asc";
+
   const res = await fetch(url, { headers: headers() });
-  if (!res.ok) throw new Error("Supabase units error: " + await res.text());
+
+  if (!res.ok) {
+    throw new Error("Supabase units error: " + (await res.text()));
+  }
+
   return res.json();
 }
 
@@ -82,148 +89,479 @@ function normalizeSearchText(text) {
     .trim();
 }
 
+function hasAny(normalizedText, patterns) {
+  return patterns.some((pattern) =>
+    normalizedText.includes(normalizeSearchText(pattern))
+  );
+}
+
 function expandSearchText(text) {
   let q = normalizeSearchText(text);
   const aliases = [];
 
-  const hasAny = (...patterns) => patterns.some((pattern) => q.includes(normalizeSearchText(pattern)));
-
-  if (hasAny("i villa", "ivilla", "i-villa", "اي فيلا", "اى فيلا", "آي فيلا")) {
+  if (
+    hasAny(q, [
+      "i villa",
+      "ivilla",
+      "i-villa",
+      "اي فيلا",
+      "اى فيلا",
+      "آي فيلا",
+      "ايڤيلا",
+      "ايفيلا"
+    ])
+  ) {
     aliases.push(
-      "i villa ivilla i-villa اي فيلا اى فيلا آي فيلا",
+      "i villa ivilla i-villa اي فيلا اى فيلا آي فيلا ايفيلا",
       "duplex دوبلكس garden duplex roof duplex lagoon duplex",
       "garden duplex جاردن دوبلكس roof duplex روف دوبلكس lagoon duplex لاجون دوبلكس"
     );
   }
 
-  if (hasAny("i villa garden", "ivilla garden", "اي فيلا جاردن", "garden duplex", "جاردن دوبلكس")) {
-    aliases.push("i villa garden ivilla garden garden duplex جاردن دوبلكس garden");
+  if (
+    hasAny(q, [
+      "i villa garden",
+      "ivilla garden",
+      "اي فيلا جاردن",
+      "garden duplex",
+      "جاردن دوبلكس"
+    ])
+  ) {
+    aliases.push(
+      "i villa garden ivilla garden garden duplex جاردن دوبلكس garden"
+    );
   }
 
-  if (hasAny("i villa roof", "ivilla roof", "اي فيلا روف", "roof duplex", "روف دوبلكس")) {
+  if (
+    hasAny(q, [
+      "i villa roof",
+      "ivilla roof",
+      "اي فيلا روف",
+      "roof duplex",
+      "روف دوبلكس"
+    ])
+  ) {
     aliases.push("i villa roof ivilla roof roof duplex روف دوبلكس roof");
   }
 
-  if (hasAny("lagoon", "لاجون", "lagoon duplex", "lagoon apartment")) {
-    aliases.push("lagoon لاجون lagoon duplex lagoon apartment beach house beachfront apartment");
+  if (
+    hasAny(q, [
+      "lagoon",
+      "لاجون",
+      "lagoon duplex",
+      "lagoon apartment",
+      "beach house",
+      "beachfront apartment"
+    ])
+  ) {
+    aliases.push(
+      "lagoon لاجون lagoon duplex lagoon apartment beach house beachfront apartment"
+    );
   }
 
-  if (hasAny("duplex", "دوبلكس")) {
-    aliases.push("duplex دوبلكس i villa ivilla i-villa اي فيلا garden duplex roof duplex lagoon duplex");
+  if (hasAny(q, ["duplex", "دوبلكس"])) {
+    aliases.push(
+      "duplex دوبلكس i villa ivilla i-villa اي فيلا garden duplex roof duplex lagoon duplex"
+    );
   }
 
-  if (hasAny("villa", "فيلا")) {
-    aliases.push("villa فيلا standalone villa twinhouse townhouse i villa ivilla duplex");
+  if (hasAny(q, ["villa", "فيلا"])) {
+    aliases.push(
+      "villa فيلا standalone villa twinhouse townhouse i villa ivilla duplex"
+    );
   }
 
-  if (hasAny("new cairo", "tagamoa", "tagamo3", "التجمع", "التجمع الخامس")) {
-    aliases.push("new cairo التجمع التجمع الخامس tagamoa tagamo3 fifth settlement");
+  if (
+    hasAny(q, [
+      "new cairo",
+      "tagamoa",
+      "tagamo3",
+      "التجمع",
+      "التجمع الخامس",
+      "القاهرة الجديدة",
+      "القاهره الجديده"
+    ])
+  ) {
+    aliases.push(
+      "new cairo التجمع التجمع الخامس tagamoa tagamo3 fifth settlement القاهرة الجديدة"
+    );
   }
 
-  if (hasAny("sheikh zayed", "zayed", "زايد", "الشيخ زايد")) {
-    aliases.push("sheikh zayed zayed زايد الشيخ زايد new zayed");
+  if (
+    hasAny(q, [
+      "sheikh zayed",
+      "zayed",
+      "زايد",
+      "الشيخ زايد",
+      "new zayed",
+      "نيو زايد"
+    ])
+  ) {
+    aliases.push("sheikh zayed zayed زايد الشيخ زايد new zayed نيو زايد");
   }
 
-  if (hasAny("north coast", "sahel", "الساحل", "الساحل الشمالي")) {
-    aliases.push("north coast الساحل الساحل الشمالي sahel");
+  if (
+    hasAny(q, [
+      "north coast",
+      "sahel",
+      "الساحل",
+      "الساحل الشمالي",
+      "ras el hekma",
+      "راس الحكمة",
+      "سيدي عبد الرحمن"
+    ])
+  ) {
+    aliases.push(
+      "north coast الساحل الساحل الشمالي sahel ras el hekma راس الحكمة سيدي عبد الرحمن"
+    );
   }
 
-  if (hasAny("mostakbal", "مستقبل", "المستقبل")) {
+  if (hasAny(q, ["mostakbal", "مستقبل", "المستقبل", "mostakbal city"])) {
     aliases.push("mostakbal city مستقبل المستقبل");
   }
 
-  if (aliases.length) q += " " + aliases.join(" ");
+  if (aliases.length) {
+    q += " " + aliases.join(" ");
+  }
+
   return normalizeSearchText(q);
 }
 
+function detectLocationIntent(query) {
+  const q = normalizeSearchText(query);
+
+  if (
+    hasAny(q, [
+      "new cairo",
+      "tagamoa",
+      "tagamo3",
+      "التجمع",
+      "التجمع الخامس",
+      "القاهرة الجديدة",
+      "القاهره الجديده"
+    ])
+  ) {
+    return "new_cairo";
+  }
+
+  if (
+    hasAny(q, [
+      "sheikh zayed",
+      "zayed",
+      "زايد",
+      "الشيخ زايد",
+      "new zayed",
+      "نيو زايد"
+    ])
+  ) {
+    return "sheikh_zayed";
+  }
+
+  if (
+    hasAny(q, [
+      "north coast",
+      "sahel",
+      "الساحل",
+      "الساحل الشمالي",
+      "ras el hekma",
+      "راس الحكمة",
+      "سيدي عبد الرحمن"
+    ])
+  ) {
+    return "north_coast";
+  }
+
+  if (hasAny(q, ["mostakbal", "مستقبل", "المستقبل", "mostakbal city"])) {
+    return "mostakbal";
+  }
+
+  return null;
+}
+
+function unitMatchesLocationIntent(unit, locationIntent) {
+  if (!locationIntent) return true;
+
+  const location = normalizeSearchText(unit.location || "");
+  const project = normalizeSearchText(unit.project_name || "");
+  const combined = location + " " + project;
+
+  if (locationIntent === "new_cairo") {
+    return (
+      combined.includes("new cairo") ||
+      combined.includes("التجمع") ||
+      combined.includes("القاهره الجديده") ||
+      combined.includes("القاهرة الجديدة")
+    );
+  }
+
+  if (locationIntent === "sheikh_zayed") {
+    return (
+      combined.includes("sheikh zayed") ||
+      combined.includes("zayed") ||
+      combined.includes("زايد")
+    );
+  }
+
+  if (locationIntent === "north_coast") {
+    return (
+      combined.includes("north coast") ||
+      combined.includes("الساحل") ||
+      combined.includes("ras el hekma") ||
+      combined.includes("راس الحكمه") ||
+      combined.includes("سيدي عبد الرحمن")
+    );
+  }
+
+  if (locationIntent === "mostakbal") {
+    return (
+      combined.includes("mostakbal") ||
+      combined.includes("مستقبل") ||
+      combined.includes("المستقبل")
+    );
+  }
+
+  return true;
+}
+
+function applyLocationFilter(query, units) {
+  const locationIntent = detectLocationIntent(query);
+
+  if (!locationIntent) return units;
+
+  const filtered = units.filter((unit) =>
+    unitMatchesLocationIntent(unit, locationIntent)
+  );
+
+  return filtered.length ? filtered : units;
+}
+
 function buildHaystack(unit) {
-  return expandSearchText([
-    unit.project_name,
-    unit.developer,
-    unit.location,
-    unit.unit_type,
-    unit.bedrooms_text,
-    unit.area_sqm,
-    unit.starting_price,
-    unit.down_payment_text,
-    unit.installments_text,
-    unit.delivery_text,
-    unit.finishing,
-    unit.availability_status,
-    unit.description,
-    unit.search_text
-  ].filter(Boolean).join(" "));
+  return expandSearchText(
+    [
+      unit.project_name,
+      unit.developer,
+      unit.location,
+      unit.unit_type,
+      unit.bedrooms_text,
+      unit.area_sqm,
+      unit.starting_price,
+      unit.down_payment_text,
+      unit.installments_text,
+      unit.delivery_text,
+      unit.finishing,
+      unit.availability_status,
+      unit.description,
+      unit.search_text
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
 }
 
 function scoreUnit(query, unit) {
   const q = expandSearchText(query);
   const haystack = buildHaystack(unit);
   const terms = q.split(/\s+/).filter((term) => term.length > 1);
+
   let score = 0;
 
   for (const term of terms) {
-    if (haystack.includes(term)) score += term.length > 3 ? 2 : 1;
+    if (haystack.includes(term)) {
+      score += term.length > 3 ? 2 : 1;
+    }
   }
 
   const rawQuery = normalizeSearchText(query);
 
   if (
-    /\b(i\s*villa|ivilla|i\s+villa)\b/.test(rawQuery) ||
+    rawQuery.includes("i villa") ||
+    rawQuery.includes("ivilla") ||
     rawQuery.includes("اي فيلا") ||
-    rawQuery.includes("اى فيلا")
+    rawQuery.includes("اى فيلا") ||
+    rawQuery.includes("ايفيلا")
   ) {
-    if (haystack.includes("ivilla") || haystack.includes("i villa") || haystack.includes("اي فيلا")) score += 30;
-    if (haystack.includes("duplex") || haystack.includes("دوبلكس")) score += 20;
-    if (haystack.includes("standalone villa")) score -= 8;
+    if (
+      haystack.includes("ivilla") ||
+      haystack.includes("i villa") ||
+      haystack.includes("اي فيلا") ||
+      haystack.includes("ايفيلا")
+    ) {
+      score += 35;
+    }
+
+    if (haystack.includes("duplex") || haystack.includes("دوبلكس")) {
+      score += 25;
+    }
+
+    if (haystack.includes("standalone villa")) {
+      score -= 12;
+    }
   }
 
   if (rawQuery.includes("garden") || rawQuery.includes("جاردن")) {
-    if (haystack.includes("garden duplex") || haystack.includes("جاردن دوبلكس")) score += 15;
-    if (haystack.includes("garden apartment")) score += 8;
+    if (haystack.includes("garden duplex") || haystack.includes("جاردن دوبلكس")) {
+      score += 18;
+    }
+
+    if (haystack.includes("garden apartment")) {
+      score += 8;
+    }
   }
 
   if (rawQuery.includes("roof") || rawQuery.includes("روف")) {
-    if (haystack.includes("roof duplex") || haystack.includes("روف دوبلكس")) score += 15;
+    if (haystack.includes("roof duplex") || haystack.includes("روف دوبلكس")) {
+      score += 18;
+    }
   }
 
   if (rawQuery.includes("lagoon") || rawQuery.includes("لاجون")) {
-    if (haystack.includes("lagoon duplex") || haystack.includes("lagoon apartment") || haystack.includes("لاجون")) score += 15;
+    if (
+      haystack.includes("lagoon duplex") ||
+      haystack.includes("lagoon apartment") ||
+      haystack.includes("لاجون")
+    ) {
+      score += 18;
+    }
   }
 
   if (rawQuery.includes("new cairo") || rawQuery.includes("التجمع")) {
-    if (haystack.includes("new cairo") || haystack.includes("التجمع")) score += 12;
+    if (haystack.includes("new cairo") || haystack.includes("التجمع")) {
+      score += 20;
+    }
   }
 
   if (rawQuery.includes("sheikh zayed") || rawQuery.includes("زايد")) {
-    if (haystack.includes("sheikh zayed") || haystack.includes("زايد")) score += 12;
+    if (haystack.includes("sheikh zayed") || haystack.includes("زايد")) {
+      score += 20;
+    }
   }
 
   if (rawQuery.includes("north coast") || rawQuery.includes("الساحل")) {
-    if (haystack.includes("north coast") || haystack.includes("الساحل")) score += 12;
+    if (haystack.includes("north coast") || haystack.includes("الساحل")) {
+      score += 20;
+    }
   }
 
   if (rawQuery.includes("apartment") || rawQuery.includes("شقه") || rawQuery.includes("شقة")) {
-    if (haystack.includes("apartment")) score += 10;
+    if (haystack.includes("apartment")) {
+      score += 12;
+    }
   }
 
   if (rawQuery.includes("chalet") || rawQuery.includes("شاليه")) {
-    if (haystack.includes("chalet")) score += 10;
+    if (haystack.includes("chalet")) {
+      score += 12;
+    }
   }
 
   return score;
 }
 
 function rankUnits(query, units, limit = 6) {
-  const scored = units
+  const locationFilteredUnits = applyLocationFilter(query, units);
+
+  const scored = locationFilteredUnits
     .map((unit) => ({ ...unit, _score: scoreUnit(query, unit) }))
     .filter((unit) => unit._score > 0)
-    .sort((a, b) => b._score - a._score || Number(a.starting_price || 0) - Number(b.starting_price || 0));
+    .sort((a, b) => {
+      if (b._score !== a._score) return b._score - a._score;
+      return Number(a.starting_price || 0) - Number(b.starting_price || 0);
+    });
 
-  return (scored.length ? scored : units).slice(0, limit);
+  return (scored.length ? scored : locationFilteredUnits).slice(0, limit);
 }
 
-function localFallback(query, units) {
-  return rankUnits(query, units, 6);
+function isAskingForPrice(query) {
+  const q = normalizeSearchText(query);
+
+  return hasAny(q, [
+    "price",
+    "prices",
+    "budget",
+    "cheapest",
+    "starting price",
+    "كام",
+    "سعر",
+    "اسعار",
+    "الاسعار",
+    "ميزانيه",
+    "ميزانية",
+    "ارخص",
+    "اقل سعر"
+  ]);
+}
+
+function isAskingForArea(query) {
+  const q = normalizeSearchText(query);
+
+  return hasAny(q, [
+    "area",
+    "sqm",
+    "meter",
+    "meters",
+    "space",
+    "مساحه",
+    "مساحة",
+    "متر"
+  ]);
+}
+
+function isAskingForBedrooms(query) {
+  const q = normalizeSearchText(query);
+
+  return hasAny(q, [
+    "bedroom",
+    "bedrooms",
+    "room",
+    "rooms",
+    "غرف",
+    "غرفه",
+    "غرفة",
+    "نوم"
+  ]);
+}
+
+function isAskingForDelivery(query) {
+  const q = normalizeSearchText(query);
+
+  return hasAny(q, [
+    "delivery",
+    "handover",
+    "ready",
+    "استلام",
+    "جاهز",
+    "جاهزة",
+    "فوري"
+  ]);
+}
+
+function isAskingForPayment(query) {
+  const q = normalizeSearchText(query);
+
+  return hasAny(q, [
+    "payment",
+    "installment",
+    "installments",
+    "down payment",
+    "تقسيط",
+    "اقساط",
+    "أقساط",
+    "مقدم"
+  ]);
+}
+
+function getUniqueProjectNames(results, max = 3) {
+  const names = [];
+
+  for (const unit of results || []) {
+    if (unit.project_name && !names.includes(unit.project_name)) {
+      names.push(unit.project_name);
+    }
+
+    if (names.length >= max) break;
+  }
+
+  return names;
 }
 
 function fallbackAnswer(query, results) {
@@ -236,11 +574,55 @@ function fallbackAnswer(query, results) {
       : "I could not find a close match in the current inventory. Which area are you targeting?";
   }
 
+  const projects = getUniqueProjectNames(results, 3);
+  const projectTextArabic = projects.join(" و");
+  const projectTextEnglish = projects.join(" and ");
+
   if (arabic) {
-    return `لقيت اختيار مناسب: ${best.project_name} ${best.unit_type} في ${best.location} بسعر يبدأ من ${formatPrice(best.starting_price)}. ميزانيتك في حدود كام؟`;
+    if (isAskingForPrice(query)) {
+      return `فيه اختيار مناسب في ${best.project_name} بسعر يبدأ من ${formatPrice(best.starting_price)}. ميزانيتك في حدود كام؟`;
+    }
+
+    if (isAskingForArea(query)) {
+      return `فيه اختيار مناسب في ${best.project_name} بمساحة تبدأ من ${best.area_sqm} متر. بتدور على مساحة في حدود كام؟`;
+    }
+
+    if (isAskingForBedrooms(query)) {
+      return `فيه اختيارات مناسبة في ${projectTextArabic}. محتاج كام غرفة؟`;
+    }
+
+    if (isAskingForDelivery(query)) {
+      return `فيه اختيارات مناسبة في ${projectTextArabic} باستلامات مختلفة حسب المشروع. محتاج استلام قريب؟`;
+    }
+
+    if (isAskingForPayment(query)) {
+      return `فيه أنظمة دفع مختلفة حسب المشروع وموعد الاستلام. بتدور على أقل مقدم ولا أطول فترة تقسيط؟`;
+    }
+
+    return `فيه اختيارات مناسبة في ${projectTextArabic}. تفضل نوع وحدة معين؟`;
   }
 
-  return `I found a strong match: ${best.project_name} ${best.unit_type} in ${best.location}, starting from ${formatPrice(best.starting_price)}. What budget range are you targeting?`;
+  if (isAskingForPrice(query)) {
+    return `I found a suitable option in ${best.project_name}, starting from ${formatPrice(best.starting_price)}. What budget range are you targeting?`;
+  }
+
+  if (isAskingForArea(query)) {
+    return `I found a suitable option in ${best.project_name}, starting from ${best.area_sqm} sqm. What area range are you targeting?`;
+  }
+
+  if (isAskingForBedrooms(query)) {
+    return `I found suitable options in ${projectTextEnglish}. How many bedrooms do you need?`;
+  }
+
+  if (isAskingForDelivery(query)) {
+    return `I found suitable options in ${projectTextEnglish} with different delivery timelines. Do you need soon delivery?`;
+  }
+
+  if (isAskingForPayment(query)) {
+    return `Payment plans vary by project and delivery date. Are you looking for the lowest down payment or longest installment plan?`;
+  }
+
+  return `I found suitable options in ${projectTextEnglish}. Which unit type do you prefer?`;
 }
 
 function extractJson(text) {
@@ -262,7 +644,7 @@ function extractJson(text) {
   return null;
 }
 
-exports.handler = async function(event) {
+exports.handler = async function (event) {
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 204,
@@ -296,7 +678,7 @@ exports.handler = async function(event) {
     const candidateUnits = rankUnits(query, units, 120);
 
     if (!process.env.OPENAI_API_KEY) {
-      const results = localFallback(query, units);
+      const results = rankUnits(query, units, 6);
       await logSearch(query, results.length);
 
       return {
@@ -335,23 +717,39 @@ Hard rules:
 3. Pick up to 6 best matching units.
 4. If the user asks in English, the answer MUST be 100% English.
 5. If the user asks in Arabic, answer in natural Egyptian Arabic.
-6. Do not mix Arabic and English except for project names or unit type names like iVilla, Garden Duplex, Roof Duplex, Lagoon Duplex, New Cairo.
-7. Keep the answer short: maximum 2 sentences.
-8. End with exactly one helpful sales question.
+6. Do not mix Arabic and English except for project names, locations, and unit type names like iVilla, Garden Duplex, Roof Duplex, Lagoon Duplex, New Cairo.
+7. Keep the answer very short: maximum 2 short sentences.
+8. End with exactly one helpful question.
 9. No emojis.
 10. Do not suggest a call.
-11. Mention price/payment only if present in the selected unit data.
-12. If there is one strong match, say it clearly.
-13. If the match is weak, ask one clarifying question instead of pretending certainty.
-14. Treat iVilla, i villa, I-Villa, اي فيلا, آي فيلا, دوبلكس, Duplex, Garden Duplex, Roof Duplex, and Lagoon Duplex as related search terms.
-15. If the user asks for iVilla, prefer units whose unit_type or description includes iVilla or Duplex aliases over standalone villas.
+11. Do NOT mention price unless the user specifically asks about price, budget, cheapest, starting price, or payment.
+12. Do NOT mention area unless the user specifically asks about area, sqm, meter, المساحة, متر.
+13. Do NOT mention bedrooms unless the user specifically asks about bedrooms, rooms, غرف.
+14. Do NOT mention delivery unless the user specifically asks about delivery, handover, استلام, جاهز.
+15. Do NOT mention installments or down payment unless the user specifically asks about payment, installments, تقسيط, مقدم.
+16. If the user asks generally for a unit type and location, answer with matching projects only, then ask one filtering question.
+17. If multiple projects match, mention up to 3 project names only.
+18. If there is one strong match, mention the project and unit type only.
+19. Do not say all details in one answer.
+20. Treat iVilla, i villa, I-Villa, اي فيلا, آي فيلا, دوبلكس, Duplex, Garden Duplex, Roof Duplex, and Lagoon Duplex as related search terms.
+21. If the user asks for iVilla, prefer units whose unit_type or description includes iVilla or Duplex aliases over standalone villas.
+22. If the user mentions a location like التجمع / New Cairo, do not mention Sheikh Zayed or North Coast projects in the answer unless there are no matching results in that location.
+23. If the user mentions Sheikh Zayed, do not mention New Cairo or North Coast projects unless there are no matching results there.
+24. If the user mentions North Coast / الساحل, do not mention New Cairo or Sheikh Zayed projects unless there are no matching results there.
+25. If the selected results include prices, areas, bedrooms, delivery, and payment, keep them hidden unless the user asked for that specific detail.
 
 Examples:
 English answer style:
-"I found a strong match: Mountain View Aliva iVilla Garden / Garden Duplex in Mostakbal City, starting from 19,383,443 EGP. What budget range are you targeting?"
+"I found suitable iVilla / Duplex options in Mountain View iCity New Cairo and Mountain View 1.1. Do you prefer Garden or Roof?"
 
 Egyptian Arabic answer style:
-"لقيت اختيار مناسب: Mountain View Aliva iVilla Garden / Garden Duplex في Mostakbal City بسعر يبدأ من 19,383,443 EGP. ميزانيتك في حدود كام؟"
+"فيه اختيارات iVilla / Duplex مناسبة في Mountain View iCity New Cairo وMountain View 1.1 في التجمع. تفضل Garden ولا Roof؟"
+
+If user asks about price:
+"فيه iVilla / Duplex في Mountain View iCity New Cairo بسعر يبدأ من 21,553,551 جنيه. ميزانيتك في حدود كام؟"
+
+If user asks about delivery:
+"فيه اختيارات iVilla / Duplex في التجمع باستلامات مختلفة حسب المشروع. محتاج استلام قريب ولا عادي خلال كام سنة؟"
 `;
 
     const openaiRes = await fetch("https://api.openai.com/v1/responses", {
@@ -370,7 +768,7 @@ Egyptian Arabic answer style:
       const details = await openaiRes.text();
       console.error("OpenAI API error:", details);
 
-      const fallback = localFallback(query, units);
+      const fallback = rankUnits(query, units, 6);
       await logSearch(query, fallback.length);
 
       return {
@@ -402,7 +800,7 @@ Egyptian Arabic answer style:
     }
 
     if (!selected.length) {
-      selected = localFallback(query, units);
+      selected = rankUnits(query, units, 6);
     }
 
     await logSearch(query, selected.length);
