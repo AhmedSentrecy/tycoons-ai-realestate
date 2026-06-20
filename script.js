@@ -55,7 +55,6 @@ function safe(value, fallback = "Not specified") {
   return value === null || value === undefined || value === "" ? fallback : value;
 }
 
-
 function escapeAttr(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -86,14 +85,45 @@ function price(value) {
 
 function card(item, type = "unit") {
   if (type === "project") {
-    return `<article class="card">${mediaImage(item)}<div class="content"><h3>${safe(item.name)}</h3><div class="tags"><span class="tag">${safe(item.developer)}</span><span class="tag">${safe(item.status)}</span><span class="tag">${safe(item.installments_text)}</span></div><div class="price">${price(item.min_price)}</div><p>${safe(item.description, "")}</p>${mediaLinks(item)}</div></article>`;
+    return `<article class="card">${mediaImage(item)}<div class="content"><h3>${safe(item.name)}</h3><div class="tags"><span class="tag">${safe(item.developer)}</span><span class="tag">${safe(item.status)}</span></div><div class="price">${price(item.min_price)}</div>${mediaLinks(item)}</div></article>`;
   }
 
-  return `<article class="card">${mediaImage(item)}<div class="content"><h3>${safe(item.project_name)}</h3><div class="tags"><span class="tag">${safe(item.unit_type)}</span><span class="tag">${safe(item.bedrooms_text)}</span><span class="tag">${safe(item.installments_text)}</span><span class="tag">${safe(item.delivery_text)}</span></div><div class="price">${price(item.starting_price)}</div><p>Down payment: ${safe(item.down_payment_text)}</p>${mediaLinks(item)}</div></article>`;
+  return `<article class="card">${mediaImage(item)}<div class="content"><h3>${safe(item.project_name)}</h3><div class="tags"><span class="tag">${safe(item.unit_type)}</span><span class="tag">${safe(item.bedrooms_text)}</span></div><div class="price">${price(item.starting_price)}</div>${mediaLinks(item)}</div></article>`;
+}
+
+function dedupeUnitsForDisplay(list) {
+  const map = new Map();
+
+  (list || []).forEach((item) => {
+    const key = [
+      item.project_name || "",
+      item.unit_type || "",
+      item.bedrooms_text || ""
+    ].join("||").toLowerCase();
+
+    const current = map.get(key);
+
+    if (!current) {
+      map.set(key, item);
+      return;
+    }
+
+    const currentPrice = Number(current.starting_price || Infinity);
+    const newPrice = Number(item.starting_price || Infinity);
+
+    if (newPrice < currentPrice) {
+      map.set(key, item);
+    }
+  });
+
+  return Array.from(map.values());
 }
 
 function render(list, target, type = "unit") {
-  target.innerHTML = list.length ? list.map(item => card(item, type)).join("") : '<div class="status">No matching items found.</div>';
+  const displayList = type === "unit" ? dedupeUnitsForDisplay(list) : list;
+  target.innerHTML = displayList.length
+    ? displayList.map(item => card(item, type)).join("")
+    : '<div class="status">No matching items found.</div>';
 }
 
 function normalize(text) {
@@ -238,7 +268,7 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
     if (isSearching) return;
     window.speechSynthesis?.cancel?.();
     voiceBtn.disabled = true;
-    voiceBtn.textContent = "Listening...";
+    voiceBtn.textContent = "بسمعك...";
     statusBox.className = "status";
     statusBox.textContent = "Listening for dictation only. For real voice reply, use Start Voice Agent.";
 
@@ -317,18 +347,18 @@ function setMicEnabled(enabled) {
 
   if (enabled) {
     holdToTalkBtn.classList.add("talking");
-    holdToTalkBtn.textContent = "Listening...";
-    setVoiceStatus("Listening. Release Push to Talk when you finish speaking.", "status success");
+    holdToTalkBtn.textContent = "بسمعك...";
+    setVoiceStatus("بسمعك... سيب الزر لما تخلص.", "status success");
   } else {
     holdToTalkBtn.classList.remove("talking");
-    holdToTalkBtn.textContent = "Hold to Talk";
+    holdToTalkBtn.textContent = "اضغط واسأل";
     if (realtimeDc && realtimeDc.readyState === "open") {
-      setVoiceStatus("Mic muted. Waiting for AI response or hold to talk again.");
+      setVoiceStatus("جاري تجهيز الرد أو اضغط واسأل تاني.");
     }
   }
 }
 
-function stopRealtimeAgent(message = "Voice agent is off.") {
+function stopRealtimeAgent(message = "المساعد الصوتي متوقف.") {
   handledFunctionCalls.clear();
 
   if (micTrack) {
@@ -360,11 +390,10 @@ function stopRealtimeAgent(message = "Voice agent is off.") {
   startVoiceAgentBtn.disabled = false;
   holdToTalkBtn.disabled = true;
   holdToTalkBtn.classList.remove("talking");
-  holdToTalkBtn.textContent = "Hold to Talk";
+  holdToTalkBtn.textContent = "اضغط واسأل";
   stopVoiceAgentBtn.disabled = true;
   setVoiceStatus(message);
 }
-
 
 function isArabicText(text) {
   return /[\u0600-\u06FF]/.test(String(text || ""));
@@ -396,14 +425,12 @@ function parseBudgetNumber(value) {
   return Math.round(num);
 }
 
-
 function normalizePhoneDisplay(value) {
   return String(value || "")
     .replace(/[^\d+]/g, "")
     .replace(/^0020/, "0")
     .replace(/^\+20/, "0");
 }
-
 
 function formatShortPrice(value, arabic = false) {
   const num = Number(value || 0);
@@ -415,43 +442,104 @@ function formatShortPrice(value, arabic = false) {
   return arabic ? clean + " مليون جنيه" : clean + " million EGP";
 }
 
-function optionLine(unit, index, arabic = false) {
-  const unitType = unit.unit_type || "unit";
-  const project = unit.project_name || "project";
-  const location = unit.location || "";
-  const priceText = formatShortPrice(unit.starting_price, arabic);
-  const installments = unit.installments_text || "";
-  const bedrooms = unit.bedrooms_text || "";
+function queryIncludesAny(query, words) {
+  const q = normalize(query);
+  return words.some((word) => q.includes(normalize(word)));
+}
 
-  if (arabic) {
-    const label = index === 0 ? "الأول" : "التاني";
-    return `${label}: ${unitType} في ${project}${location ? " - " + location : ""}، ${priceText}${bedrooms ? "، " + bedrooms : ""}${installments ? "، تقسيط " + installments : ""}`;
-  }
+function uniqueValues(list, getter, max = 3) {
+  const values = [];
 
-  const label = index === 0 ? "first" : "second";
-  return `${label}: ${unitType} in ${project}${location ? " - " + location : ""}, ${priceText}${bedrooms ? ", " + bedrooms : ""}${installments ? ", installments " + installments : ""}`;
+  (list || []).forEach((item) => {
+    const value = getter(item);
+    if (value && !values.includes(value)) values.push(value);
+  });
+
+  return values.slice(0, max);
+}
+
+function joinNames(names, arabic = false) {
+  if (!names.length) return arabic ? "المشاريع المتاحة" : "available projects";
+  if (names.length === 1) return names[0];
+
+  const separator = arabic ? " و" : " and ";
+  return names.slice(0, -1).join(arabic ? "، " : ", ") + separator + names[names.length - 1];
 }
 
 function buildSpokenSearchSummary(query, searchData) {
   const arabic = isArabicText(query);
-  const found = (searchData?.results || []).slice(0, 2);
+  const found = dedupeUnitsForDisplay(searchData?.results || []).slice(0, 3);
 
   if (!found.length) {
     return arabic
-      ? "مش لاقي نتيجة مطابقة بالظبط. تحب أدوّرلك حسب ميزانية معينة؟"
-      : "I do not see an exact match yet. What budget range should I filter by?";
+      ? "مش لاقي نتيجة مطابقة من الداتا الحالية. بتدور في أنهي منطقة؟"
+      : "I could not find a close match in the current inventory. Which area are you targeting?";
   }
 
-  if (found.length === 1) {
-    const unit = found[0];
-    return arabic
-      ? `المتاح قدامي: ${unit.unit_type || "وحدة"} في ${unit.project_name || "المشروع"}، ${formatShortPrice(unit.starting_price, true)}${unit.installments_text ? "، والتقسيط " + unit.installments_text : ""}. تحب أطلعلك طريقة الدفع؟`
-      : `The best match is ${unit.unit_type || "a unit"} in ${unit.project_name || "the project"}, from ${formatShortPrice(unit.starting_price, false)}${unit.installments_text ? ", with installments " + unit.installments_text : ""}. Want the payment breakdown?`;
+  const projectNames = uniqueValues(found, (unit) => unit.project_name, 3);
+  const projectText = joinNames(projectNames, arabic);
+  const best = found[0];
+
+  const asksPrice = queryIncludesAny(query, ["price", "prices", "budget", "cheapest", "starting price", "سعر", "اسعار", "الاسعار", "ميزانية", "ميزانيه", "ارخص", "اقل سعر", "كام"]);
+  const asksArea = queryIncludesAny(query, ["area", "sqm", "meter", "meters", "مساحة", "مساحه", "متر"]);
+  const asksBedrooms = queryIncludesAny(query, ["bedroom", "bedrooms", "rooms", "غرف", "غرفة", "غرفه", "نوم"]);
+  const asksDelivery = queryIncludesAny(query, ["delivery", "handover", "ready", "استلام", "جاهز", "جاهزة", "فوري"]);
+  const asksPayment = queryIncludesAny(query, ["payment", "installments", "installment", "down payment", "تقسيط", "اقساط", "أقساط", "مقدم"]);
+  const asksIVilla = queryIncludesAny(query, ["i villa", "ivilla", "i-villa", "اي فيلا", "اى فيلا", "آي فيلا", "دوبلكس", "duplex"]);
+
+  if (arabic) {
+    if (asksPrice) {
+      return `فيه اختيار مناسب في ${best.project_name} بسعر يبدأ من ${formatShortPrice(best.starting_price, true)}. ميزانيتك في حدود كام؟`;
+    }
+
+    if (asksArea) {
+      return `فيه اختيار مناسب في ${best.project_name} بمساحة تبدأ من ${best.area_sqm} متر. بتدور على مساحة في حدود كام؟`;
+    }
+
+    if (asksBedrooms) {
+      return `فيه اختيارات مناسبة في ${projectText}. محتاج كام غرفة؟`;
+    }
+
+    if (asksDelivery) {
+      return `فيه اختيارات مناسبة في ${projectText} باستلامات مختلفة حسب المشروع. محتاج استلام قريب؟`;
+    }
+
+    if (asksPayment) {
+      return "أنظمة الدفع بتختلف حسب المشروع وموعد الاستلام. بتدور على أقل مقدم ولا أطول فترة تقسيط؟";
+    }
+
+    if (asksIVilla) {
+      return `فيه اختيارات iVilla / Duplex مناسبة في ${projectText}. تفضل Garden ولا Roof؟`;
+    }
+
+    return `فيه اختيارات مناسبة في ${projectText}. تفضل نوع وحدة معين؟`;
   }
 
-  return arabic
-    ? `في اختيارين مناسبين: ${optionLine(found[0], 0, true)}. و${optionLine(found[1], 1, true)}. أنهي واحد تحب تفاصيله؟`
-    : `I found two good options: ${optionLine(found[0], 0, false)}. And ${optionLine(found[1], 1, false)}. Which one do you want details for?`;
+  if (asksPrice) {
+    return `I found a suitable option in ${best.project_name}, starting from ${formatShortPrice(best.starting_price, false)}. What budget range are you targeting?`;
+  }
+
+  if (asksArea) {
+    return `I found a suitable option in ${best.project_name}, starting from ${best.area_sqm} sqm. What area range are you targeting?`;
+  }
+
+  if (asksBedrooms) {
+    return `I found suitable options in ${projectText}. How many bedrooms do you need?`;
+  }
+
+  if (asksDelivery) {
+    return `I found suitable options in ${projectText} with different delivery timelines. Do you need soon delivery?`;
+  }
+
+  if (asksPayment) {
+    return "Payment plans vary by project and delivery date. Are you looking for the lowest down payment or longest installment plan?";
+  }
+
+  if (asksIVilla) {
+    return `I found suitable iVilla / Duplex options in ${projectText}. Do you prefer Garden or Roof?`;
+  }
+
+  return `I found suitable options in ${projectText}. Which unit type do you prefer?`;
 }
 
 function showPhoneConfirmation(leadRow) {
@@ -463,22 +551,22 @@ function showPhoneConfirmation(leadRow) {
   if (leadStatus) {
     leadStatus.classList.remove("hidden");
     leadStatus.className = "status";
-    leadStatus.textContent = "Phone detected from voice. Please confirm before saving.";
+    leadStatus.textContent = "الرقم اتسمع من الصوت. راجعه قبل الحفظ.";
   }
 
-  setVoiceStatus("Phone detected. Please check the number on screen and press Confirm & Save Lead.", "status");
+  setVoiceStatus("الرقم ظاهر على الشاشة. راجعه واضغط حفظ.", "status");
 }
 
 async function confirmPendingVoiceLead() {
   if (!pendingVoiceLead) {
-    setVoiceStatus("No pending voice lead to confirm.", "status error");
+    setVoiceStatus("مفيش رقم محتاج تأكيد دلوقتي.", "status error");
     return;
   }
 
   const confirmedPhone = normalizePhoneDisplay(detectedPhoneInput?.value || pendingVoiceLead.phone);
 
   if (!confirmedPhone || confirmedPhone.length < 8) {
-    setVoiceStatus("Please enter a valid phone number before saving.", "status error");
+    setVoiceStatus("اكتب رقم صحيح قبل الحفظ.", "status error");
     return;
   }
 
@@ -496,16 +584,16 @@ async function confirmPendingVoiceLead() {
   if (leadStatus) {
     leadStatus.classList.remove("hidden");
     leadStatus.className = "status success";
-    leadStatus.textContent = "Confirmed voice lead saved in Supabase.";
+    leadStatus.textContent = "تم حفظ الليد بعد تأكيد الرقم.";
   }
 
-  setVoiceStatus("Lead saved with confirmed WhatsApp number.", "status success");
+  setVoiceStatus("تم حفظ الليد برقم واتساب مؤكد.", "status success");
 }
 
 function cancelPendingVoiceLead() {
   pendingVoiceLead = null;
   if (phoneConfirmBox) phoneConfirmBox.classList.add("hidden");
-  setVoiceStatus("Phone confirmation cancelled. Hold to Talk again to continue.");
+  setVoiceStatus("Phone confirmation cancelled. اضغط واسأل again to continue.");
 }
 
 async function saveVoiceLeadFromArgs(args) {
@@ -561,30 +649,30 @@ async function handleRealtimeEvent(event) {
   console.log("Realtime event:", payload);
 
   if (payload.type === "error") {
-    setVoiceStatus("Realtime error: " + (payload.error?.message || "Unknown error"), "status error");
+    setVoiceStatus("خطأ في المساعد الصوتي: " + (payload.error?.message || "Unknown error"), "status error");
     return;
   }
 
   if (payload.type === "session.created") {
-    setVoiceStatus("Voice agent connected. Hold Push to Talk and ask for a property.", "status success");
+    setVoiceStatus("المساعد الصوتي جاهز. اضغط مطولًا واسأل.", "status success");
   }
 
   if (payload.type === "input_audio_buffer.speech_started") {
-    setVoiceStatus("Listening...");
+    setVoiceStatus("بسمعك...");
   }
 
   if (payload.type === "input_audio_buffer.speech_stopped") {
-    setVoiceStatus("Processing your request...");
+    setVoiceStatus("جاري تجهيز الرد...");
   }
 
   if (payload.type === "response.created") {
     setMicEnabled(false);
-    setVoiceStatus("AI is answering. Keep mic released.");
+    setVoiceStatus("المساعد بيرد دلوقتي...");
   }
 
   if (payload.type === "response.audio.done" || payload.type === "response.done") {
     setMicEnabled(false);
-    setVoiceStatus("AI finished. Hold Push to Talk again to continue.", "status success");
+    setVoiceStatus("تقدر تسأل سؤال تاني دلوقتي.", "status success");
   }
 
   if (payload.type === "conversation.item.input_audio_transcription.completed" && payload.transcript) {
@@ -610,7 +698,7 @@ async function handleRealtimeEvent(event) {
     const query = args.query || args.search_query || searchInput.value || "property search";
 
     searchInput.value = query;
-    setVoiceStatus("Searching live inventory for: " + query);
+    setVoiceStatus("بدور في المخزون عن: " + query);
 
     const searchData = await runAISearch(query);
     const spokenSummary = buildSpokenSearchSummary(query, searchData);
@@ -669,7 +757,7 @@ After this response, wait for the user's next push-to-talk message. Only in a la
   }
 
   if (payload.name === "save_voice_lead") {
-    setVoiceStatus("Preparing voice lead...");
+    setVoiceStatus("بجهز بيانات الليد...");
 
     try {
       const savedLead = await saveVoiceLeadFromArgs(args);
@@ -677,7 +765,7 @@ After this response, wait for the user's next push-to-talk message. Only in a la
       if (leadStatus) {
         leadStatus.classList.remove("hidden");
         leadStatus.className = "status success";
-        leadStatus.textContent = savedLead.pending_confirmation ? "Phone detected. Waiting for confirmation before saving." : "Voice lead saved in Supabase.";
+        leadStatus.textContent = savedLead.pending_confirmation ? "الرقم محتاج تأكيد قبل الحفظ." : "تم حفظ الليد من الصوت.";
       }
 
       sendToolOutput(callId, {
@@ -736,7 +824,7 @@ async function startRealtimeAgent() {
     stopVoiceAgentBtn.disabled = false;
     holdToTalkBtn.disabled = true;
     handledFunctionCalls.clear();
-    setVoiceStatus("Starting Realtime voice connection...");
+    setVoiceStatus("جاري تشغيل المساعد الصوتي...");
 
     window.speechSynthesis?.cancel?.();
 
@@ -753,7 +841,7 @@ async function startRealtimeAgent() {
     realtimePc.onconnectionstatechange = () => {
       console.log("WebRTC connection state:", realtimePc.connectionState);
       if (["failed", "disconnected", "closed"].includes(realtimePc.connectionState)) {
-        setVoiceStatus("Voice connection state: " + realtimePc.connectionState);
+        setVoiceStatus("حالة اتصال المساعد: " + realtimePc.connectionState);
       }
     };
 
@@ -776,11 +864,11 @@ async function startRealtimeAgent() {
 
     realtimeDc.addEventListener("open", () => {
       holdToTalkBtn.disabled = false;
-      setVoiceStatus("Realtime voice agent is live. Hold Push to Talk while speaking.", "status success");
+      setVoiceStatus("المساعد الصوتي جاهز. اضغط مطولًا واسأل.", "status success");
     });
 
     realtimeDc.addEventListener("close", () => {
-      setVoiceStatus("Realtime voice data channel closed.", "status error");
+      setVoiceStatus("اتصال المساعد الصوتي اتقفل.", "status error");
       holdToTalkBtn.disabled = true;
     });
 
@@ -812,7 +900,7 @@ async function startRealtimeAgent() {
     });
   } catch (err) {
     console.error(err);
-    stopRealtimeAgent("Could not start voice agent: " + err.message);
+    stopRealtimeAgent("تعذر تشغيل المساعد الصوتي: " + err.message);
     voiceStatus.className = "status error";
   }
 }
@@ -848,7 +936,6 @@ window.addEventListener("keyup", (event) => {
   }
 });
 
-
 if (confirmPhoneBtn) {
   confirmPhoneBtn.addEventListener("click", async () => {
     try {
@@ -856,7 +943,7 @@ if (confirmPhoneBtn) {
       await confirmPendingVoiceLead();
     } catch (error) {
       console.error("Confirm phone save error:", error);
-      setVoiceStatus("Could not save confirmed lead: " + (error.message || "Unknown error"), "status error");
+      setVoiceStatus("تعذر حفظ الليد المؤكد: " + (error.message || "Unknown error"), "status error");
     } finally {
       confirmPhoneBtn.disabled = false;
     }
@@ -868,7 +955,7 @@ if (cancelPhoneBtn) {
 }
 
 startVoiceAgentBtn.addEventListener("click", startRealtimeAgent);
-stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("Voice session stopped."));
-window.addEventListener("beforeunload", () => stopRealtimeAgent("Voice agent is off."));
+stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("تم إيقاف المساعد الصوتي."));
+window.addEventListener("beforeunload", () => stopRealtimeAgent("المساعد الصوتي متوقف."));
 
 loadData();
