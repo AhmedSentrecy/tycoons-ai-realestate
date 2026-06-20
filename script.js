@@ -80,6 +80,30 @@ function mediaLinks(item) {
   return links.length ? `<div class="card-links">${links.join("")}</div>` : "";
 }
 
+function enrichProjectsWithUnitMedia(projectList) {
+  return (projectList || []).map((project) => {
+    if (project.image_url && project.brochure_url && project.video_url) {
+      return project;
+    }
+
+    const matchedUnit = (units || []).find((unit) => {
+      return normalize(unit.project_name) === normalize(project.name)
+        && (unit.image_url || unit.brochure_url || unit.video_url);
+    });
+
+    if (!matchedUnit) {
+      return project;
+    }
+
+    return {
+      ...project,
+      image_url: project.image_url || matchedUnit.image_url || null,
+      brochure_url: project.brochure_url || matchedUnit.brochure_url || null,
+      video_url: project.video_url || matchedUnit.video_url || null
+    };
+  });
+}
+
 function price(value) {
   if (!value) return "Price on request";
   return "From " + new Intl.NumberFormat("en-US").format(Number(value)) + " EGP";
@@ -252,6 +276,8 @@ async function loadData() {
 
     units = await getRows("units", "?select=*&availability_status=eq.available&order=starting_price.asc");
     projects = await getRows("projects", "?select=*&order=min_price.asc");
+
+    projects = enrichProjectsWithUnitMedia(projects);
 
     render(units.slice(0, 6), results);
     render(projects, projectGrid, "project");
