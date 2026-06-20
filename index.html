@@ -3,38 +3,84 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tycoons Investments | AI Real Estate Voice Search</title>
+  <title>Tycoons Investments | AI Real Estate Search</title>
+  <meta name="description" content="Search live real estate inventory with Tycoons Investments using AI text search and push-to-talk voice search.">
+  <link rel="icon" href="assets/tycoons-icon-light.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <div class="brand">
-      <div class="logo">T</div>
-      <div><strong>Tycoons Investments</strong><small>AI Real Estate Search</small></div>
-    </div>
-    <nav>
+  <div class="site-bg"></div>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Tycoons Investments home">
+      <img class="brand-logo" src="assets/tycoons-logo-light.svg" alt="Tycoons Investments">
+    </a>
+
+    <nav class="main-nav" aria-label="Main navigation">
       <a href="#search">Search</a>
-      <a href="#voice">Voice Agent</a>
+      <a href="#voice">Voice</a>
       <a href="#projects">Projects</a>
       <a href="#lead">Contact</a>
     </nav>
   </header>
 
-  <main>
+  <main id="top">
     <section class="hero">
-      <div>
-        <span class="eyebrow">Push-to-Talk Voice MVP</span>
-        <h1>Talk to your property search agent with controlled voice.</h1>
-        <p>Press Start Voice Agent, then hold the Push to Talk button only while speaking. Release it and the AI will answer.</p>
-        <a class="btn" href="#voice">Start Voice Agent</a>
+      <div class="hero-copy">
+        <span class="eyebrow">Tycoons AI Inventory</span>
+        <h1>Find the right property from live developer inventory.</h1>
+        <p>Search available units, compare projects, and use voice search for a faster real estate experience.</p>
+
+        <div class="hero-actions">
+          <a class="btn" href="#search">Search Inventory</a>
+          <a class="ghost" href="#voice">Start Voice Agent</a>
+        </div>
+
+        <div class="trust-row" aria-label="System highlights">
+          <span>Live inventory</span>
+          <span>AI search</span>
+          <span>Voice assistant</span>
+        </div>
       </div>
-      <div class="quote">Hold to talk: “I want an iVilla Garden in New Cairo.”</div>
+
+      <div class="hero-card">
+        <span class="eyebrow">Try this</span>
+        <p class="hero-quote">“I want an iVilla Garden in New Cairo.”</p>
+        <div class="mini-stats">
+          <div><strong>Text</strong><span>Search</span></div>
+          <div><strong>Voice</strong><span>Push-to-talk</span></div>
+          <div><strong>Cards</strong><span>Media ready</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="search" class="panel search-panel">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">AI Search</span>
+          <h2>Tell us what you are looking for</h2>
+          <p>Ask by project, area, budget, unit type, bedrooms, delivery, or iVilla / Duplex style.</p>
+        </div>
+        <button id="voiceBtn" class="ghost" type="button">Dictate Search</button>
+      </div>
+
+      <div class="searchbar">
+        <textarea id="searchInput" rows="3" placeholder="Example: أي فيلا في التجمع أو apartment in New Cairo under 9 million"></textarea>
+        <button id="searchBtn" class="btn" type="button">AI Search</button>
+      </div>
+
+      <div id="status" class="status">Loading property database...</div>
+      <div id="results" class="grid"></div>
     </section>
 
     <section id="voice" class="panel voice-panel">
-      <span class="eyebrow">Option B</span>
-      <h2>Real voice-to-voice agent</h2>
-      <p>Use push-to-talk to stop the AI from hearing its own voice or background noise while answering.</p>
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Voice Agent</span>
+          <h2>Speak with the property assistant</h2>
+          <p>Start the voice agent, hold the button while speaking, then release it for a short controlled answer.</p>
+        </div>
+      </div>
 
       <div class="voice-controls">
         <button id="startVoiceAgentBtn" class="btn" type="button">Start Voice Agent</button>
@@ -55,27 +101,16 @@
           <button id="cancelPhoneBtn" class="ghost" type="button">Cancel</button>
         </div>
       </div>
-
-    </section>
-
-    <section id="search" class="panel">
-      <div class="topline">
-        <div><span class="eyebrow">AI Search</span><h2>Tell us what you are looking for</h2></div>
-        <button id="voiceBtn" class="ghost" type="button">Dictate Search</button>
-      </div>
-
-      <div class="searchbar">
-        <textarea id="searchInput" rows="3" placeholder="Example: apartment in New Cairo under 9 million"></textarea>
-        <button id="searchBtn" class="btn" type="button">AI Search</button>
-      </div>
-
-      <div id="status" class="status">Loading property database...</div>
-      <div id="results" class="grid"></div>
     </section>
 
     <section id="projects" class="panel">
-      <span class="eyebrow">Projects</span>
-      <h2>Loaded from Supabase</h2>
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Projects</span>
+          <h2>Featured inventory</h2>
+          <p>Project cards are loaded directly from your Supabase database.</p>
+        </div>
+      </div>
       <div id="projectGrid" class="grid"></div>
     </section>
 
@@ -83,7 +118,7 @@
       <div>
         <span class="eyebrow">Lead Capture</span>
         <h2>Request a callback</h2>
-        <p>This form saves directly into your Supabase leads table.</p>
+        <p>Leave your details and the sales team will follow up with suitable options.</p>
       </div>
       <form id="leadForm">
         <input name="name" placeholder="Name">
@@ -96,7 +131,10 @@
     </section>
   </main>
 
-  <footer>© <span id="year"></span> Tycoons Investments · Push-to-talk voice MVP</footer>
+  <footer class="site-footer">
+    <span>© <span id="year"></span> Tycoons Investments</span>
+    <span>AI real estate search · Voice assistant · Live inventory</span>
+  </footer>
 
   <script>
     window.TYCOONS_SUPABASE_URL = "https://coqnjymekrkoausiiytm.supabase.co";
