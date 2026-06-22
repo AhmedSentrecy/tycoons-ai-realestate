@@ -239,8 +239,40 @@ function localSearch(query) {
   return scored.length ? scored.slice(0, 6) : units.slice(0, 6);
 }
 
-function speak() {
-  return;
+function isArabicText(text) {
+  return /[\u0600-\u06FF]/.test(String(text || ""));
+}
+
+let preferredVoiceAr = null;
+let preferredVoiceEn = null;
+
+function pickVoices() {
+  if (!("speechSynthesis" in window)) return;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || !voices.length) return;
+  preferredVoiceAr = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("ar")) || null;
+  preferredVoiceEn = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("en")) || null;
+}
+
+if ("speechSynthesis" in window) {
+  pickVoices();
+  window.speechSynthesis.addEventListener("voiceschanged", pickVoices);
+}
+
+function speak(text, sourceTextForLanguage) {
+  if (!("speechSynthesis" in window) || !text) return;
+
+  try { window.speechSynthesis.cancel(); } catch (_) {}
+
+  const arabic = isArabicText(sourceTextForLanguage || text);
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = arabic ? "ar-EG" : "en-US";
+  utterance.rate = 1;
+
+  const chosenVoice = arabic ? preferredVoiceAr : preferredVoiceEn;
+  if (chosenVoice) utterance.voice = chosenVoice;
+
+  window.speechSynthesis.speak(utterance);
 }
 
 function setSearchLoading(isLoading) {
@@ -296,27 +328,6 @@ async function runAISearch(queryOverride = null) {
   }
 }
 
-async function loadData() {
-  try {
-    statusBox.className = "status";
-    statusBox.textContent = "Loading live data from Supabase...";
-
-    units = await getRows("units", "?select=*&availability_status=eq.available&order=starting_price.asc");
-    projects = await getRows("projects", "?select=*&order=min_price.asc");
-    projects = enrichProjectsWithUnitMedia(projects);
-
-    render(units.slice(0, 6), results);
-    render(projects, projectGrid, "project");
-
-    statusBox.className = "status success";
-    statusBox.textContent = "Connected to Supabase. Loaded " + units.length + " units and " + projects.length + " projects.";
-  } catch (err) {
-    console.error(err);
-    statusBox.className = "status error";
-    statusBox.textContent = "Could not load Supabase data. Check the API key, URL, and RLS policies.";
-  }
-}
-
 searchBtn.addEventListener("click", async () => {
   await runAISearch();
 });
@@ -336,7 +347,7 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
     voiceBtn.disabled = true;
     voiceBtn.textContent = "Listening...";
     statusBox.className = "status";
-    statusBox.textContent = "Listening for dictation only. For real voice reply, use Start Voice Agent.";
+    statusBox.textContent = "Listening — free voice search. Speak now.";
 
     try {
       recognition.start();
@@ -353,7 +364,12 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
     searchInput.value = transcript;
     statusBox.className = "status";
     statusBox.textContent = "Heard: " + transcript + " — searching now...";
-    await runAISearch(transcript);
+
+    const data = await runAISearch(transcript);
+
+    if (data && data.answer) {
+      speak(data.answer, transcript);
+    }
   });
 
   recognition.addEventListener("end", () => {
@@ -459,10 +475,6 @@ function stopRealtimeAgent(message = "Voice agent is off.") {
   holdToTalkBtn.textContent = "Hold to Talk";
   stopVoiceAgentBtn.disabled = true;
   setVoiceStatus(message);
-}
-
-function isArabicText(text) {
-  return /[\u0600-\u06FF]/.test(String(text || ""));
 }
 
 function parseBudgetNumber(value) {
@@ -964,3 +976,135 @@ stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("Voice sessi
 window.addEventListener("beforeunload", () => stopRealtimeAgent("Voice agent is off."));
 
 loadData();
+
+async function loadData() {
+  try {
+    statusBox.className = "status";
+    statusBox.textContent = "Loading live data from Supabase...";
+
+    units = await getRows("units", "?select=*&availability_status=eq.available&order=starting_price.asc");
+    projects = await getRows("projects", "?select=*&order=min_price.asc");
+    projects = enrichProjectsWithUnitMedia(projects);
+
+    render(units.slice(0, 6), results);
+    render(projects, projectGrid, "project");
+
+    statusBox.className = "status success";
+    statusBox.textContent = "Connected to Supabase. Loaded " + units.length + " units and " + projects.length + " projects.";
+  } catch (err) {
+    console.error(err);
+    statusBox.className = "status error";
+    statusBox.textContent = "Could not load Supabase data. Check the API key, URL, and RLS policies.";
+  }
+}
+/* ============================================================
+   FREE VOICE SEARCH ADD-ON
+   --------------------------------------------------------------
+   Uses the browser's built-in SpeechRecognition (speech-to-text)
+   and SpeechSynthesis (text-to-speech) — both are free, built
+   into the browser, no OpenAI Realtime API cost at all.
+
+   Flow:
+   1. Tap "Voice Search (Free)"
+   2. Browser listens, converts speech to text
+   3. Text is sent to the EXISTING /api/ai-search endpoint
+      (already cheap — gpt-5.4-mini with a free local fallback)
+   4. The AI's text answer is read aloud using speechSynthesis
+
+   This does not touch or replace the paid "Start Voice Agent"
+   (OpenAI Realtime) feature — it is a separate, free alternative
+   button placed next to it.
+   ============================================================ */
+
+(function () {
+  const freeVoiceBtn = document.getElementById("freeVoiceBtn");
+  if (!freeVoiceBtn) return;
+
+  const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognitionImpl) {
+    freeVoiceBtn.addEventListener("click", () => {
+      voiceStatus.className = "status error";
+      voiceStatus.textContent = "Free voice search needs a browser with speech recognition support, like Chrome on desktop or Android.";
+    });
+    return;
+  }
+
+  const freeRecognition = new SpeechRecognitionImpl();
+  freeRecognition.lang = "ar-EG";
+  freeRecognition.interimResults = false;
+  freeRecognition.continuous = false;
+
+  let freeVoiceActive = false;
+
+  function speak(text, lang) {
+    if (!window.speechSynthesis || !text) return;
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang;
+    utterance.rate = 1;
+
+    const voices = window.speechSynthesis.getVoices();
+    const matchedVoice = voices.find((voice) => voice.lang && voice.lang.startsWith(lang.split("-")[0]));
+    if (matchedVoice) utterance.voice = matchedVoice;
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  freeVoiceBtn.addEventListener("click", () => {
+    if (freeVoiceActive || isSearching) return;
+
+    window.speechSynthesis?.cancel?.();
+    freeVoiceActive = true;
+    freeVoiceBtn.disabled = true;
+    freeVoiceBtn.textContent = "Listening...";
+    voiceStatus.className = "status";
+    voiceStatus.textContent = "Listening for your free voice search...";
+
+    try {
+      freeRecognition.start();
+    } catch (err) {
+      freeVoiceActive = false;
+      freeVoiceBtn.disabled = false;
+      freeVoiceBtn.textContent = "Voice Search (Free)";
+      voiceStatus.className = "status error";
+      voiceStatus.textContent = "Microphone could not start. Check browser permissions and try again.";
+    }
+  });
+
+  freeRecognition.addEventListener("result", async (event) => {
+    const transcript = event.results[0][0].transcript;
+    const arabic = /[\u0600-\u06FF]/.test(transcript);
+
+    searchInput.value = transcript;
+    voiceStatus.className = "status";
+    voiceStatus.textContent = "Heard: " + transcript + " — searching now...";
+
+    const data = await runAISearch(transcript);
+
+    if (data && data.answer) {
+      voiceStatus.className = "status success";
+      voiceStatus.textContent = data.answer;
+      speak(data.answer, arabic ? "ar-EG" : "en-US");
+    } else {
+      voiceStatus.className = "status error";
+      voiceStatus.textContent = "No spoken answer was returned. Check the results below instead.";
+    }
+  });
+
+  freeRecognition.addEventListener("end", () => {
+    freeVoiceActive = false;
+    freeVoiceBtn.disabled = false;
+    freeVoiceBtn.textContent = "Voice Search (Free)";
+  });
+
+  freeRecognition.addEventListener("error", (event) => {
+    freeVoiceActive = false;
+    freeVoiceBtn.disabled = false;
+    freeVoiceBtn.textContent = "Voice Search (Free)";
+    voiceStatus.className = "status error";
+    voiceStatus.textContent = "Voice input error: " + event.error + ". You can type your search instead.";
+  });
+})();
