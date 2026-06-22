@@ -885,9 +885,7 @@ body::before{
 .image{
   height:245px !important;
   min-height:245px !important;
-  background:
-    linear-gradient(135deg,rgba(198,161,91,.22),rgba(255,255,255,.04)),
-    #202020 !important;
+  background-color:#202020 !important;
 }
 
 .image.photo{
@@ -992,4 +990,14 @@ input:focus,textarea:focus{
     height:215px !important;
     min-height:215px !important;
   }
+}
+
+
+/* v1.6.4 IMAGE URL VISIBILITY FIX
+   Do not set background shorthand on .image.photo.
+   The real property image comes from inline background-image:url(...) in script.js. */
+.image.photo{
+  background-size:cover !important;
+  background-position:center center !important;
+  background-repeat:no-repeat !important;
 }
