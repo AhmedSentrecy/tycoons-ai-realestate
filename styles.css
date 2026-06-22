@@ -625,7 +625,7 @@ body::before {
 .card-links a:hover { text-decoration: underline; }
 
 /* voice panel */
-.voice-panel { background: var(--surface-soft); }
+.voice-panel { background: var(--surface); border-bottom: 1px solid var(--border); }
 .voice-controls { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
 .talk-btn {
   background: var(--surface);

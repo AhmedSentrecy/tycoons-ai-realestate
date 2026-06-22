@@ -12,11 +12,11 @@
 <div class="site-bg"></div>
 <header class="site-header">
 <a class="brand" href="#top" aria-label="Tycoons Investments home">
-<img class="brand-logo" src="assets/tycoons-logo-light.svg" alt="Tycoons Investments">
+<img class="brand-logo" src="assets/tycoons-logo-header.svg" alt="Tycoons Investments">
 </a>
 <nav class="main-nav" aria-label="Main navigation">
-<a href="#search">Search</a>
 <a href="#voice">Voice</a>
+<a href="#search">Search</a>
 <a href="#projects">Projects</a>
 <a href="#lead">Contact</a>
 </nav>
@@ -28,8 +28,8 @@
 <h1>Find the right property from live developer inventory.</h1>
 <p>Search available units, compare projects, and use voice search for a faster real estate experience.</p>
 <div class="hero-actions">
-<a class="btn" href="#search">Search Inventory</a>
-<a class="ghost" href="#voice">Start Voice Agent</a>
+<a class="ghost" href="#search">Search Inventory</a>
+<a class="btn" href="#voice">Start Voice Agent</a>
 </div>
 <div class="trust-row" aria-label="System highlights">
 <span>Live inventory</span>
@@ -46,23 +46,6 @@
 <div><strong>Cards</strong><span>Media ready</span></div>
 </div>
 </div>
-</section>
-
-<section id="search" class="panel search-panel">
-<div class="section-head">
-<div>
-<span class="eyebrow">AI Search</span>
-<h2>Tell us what you are looking for</h2>
-<p>Ask by project, area, budget, unit type, bedrooms, delivery, or iVilla / Duplex style.</p>
-</div>
-<button id="voiceBtn" class="ghost" type="button">Dictate Search</button>
-</div>
-<div class="searchbar">
-<textarea id="searchInput" rows="3" placeholder="Example: أي فيلا في التجمع أو apartment in New Cairo under 9 million"></textarea>
-<button id="searchBtn" class="btn" type="button">AI Search</button>
-</div>
-<div id="status" class="status">Loading property database...</div>
-<div id="results" class="grid"></div>
 </section>
 
 <section id="voice" class="panel voice-panel">
@@ -90,6 +73,23 @@
 <button id="cancelPhoneBtn" class="ghost" type="button">Cancel</button>
 </div>
 </div>
+</section>
+
+<section id="search" class="panel search-panel">
+<div class="section-head">
+<div>
+<span class="eyebrow">AI Search</span>
+<h2>Tell us what you are looking for</h2>
+<p>Ask by project, area, budget, unit type, bedrooms, delivery, or iVilla / Duplex style.</p>
+</div>
+<button id="voiceBtn" class="ghost" type="button">Dictate Search</button>
+</div>
+<div class="searchbar">
+<textarea id="searchInput" rows="3" placeholder="Example: أي فيلا في التجمع أو apartment in New Cairo under 9 million"></textarea>
+<button id="searchBtn" class="btn" type="button">AI Search</button>
+</div>
+<div id="status" class="status">Loading property database...</div>
+<div id="results" class="grid"></div>
 </section>
 
 <section id="projects" class="panel">
