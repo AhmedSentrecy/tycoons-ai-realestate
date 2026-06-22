@@ -173,7 +173,7 @@ function buildProjectPage(project, units) {
   const unitCards = units
     .map((u) => {
       const price = formatPrice(u.starting_price);
-      return `<article class="unit-card" itemscope itemtype="https://schema.org/Apartment">
+      return `<article class="unit-detail-card" itemscope itemtype="https://schema.org/Apartment">
   <h3 itemprop="name">${escapeHtml(u.unit_type)} &mdash; ${escapeHtml(u.bedrooms_text)}</h3>
   <p class="unit-meta">${escapeHtml(u.area_sqm)} sqm &middot; ${escapeHtml(u.finishing)} &middot; ${escapeHtml(u.availability_status)}</p>
   ${price ? `<p class="unit-price">Starting from <strong>${price} EGP</strong></p>` : ""}
@@ -338,7 +338,7 @@ function buildDeveloperPage(developer, units) {
       const pSlug = slugify(`${p.project_name}-${p.location}`);
       const prices = rows.map((r) => Number(r.starting_price)).filter((n) => !Number.isNaN(n) && n > 0);
       const minPrice = prices.length ? Math.min(...prices) : null;
-      return `<a class="unit-card" href="/projects/${pSlug}.html">
+      return `<a class="unit-detail-card" href="/projects/${pSlug}.html">
   <h3>${escapeHtml(p.project_name)}</h3>
   <p class="unit-meta">${escapeHtml(p.location)}</p>
   ${minPrice ? `<p class="unit-price">From ${formatPrice(minPrice)} EGP</p>` : ""}
