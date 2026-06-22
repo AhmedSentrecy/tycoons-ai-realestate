@@ -789,3 +789,207 @@ input:focus,textarea:focus{
   border-color:rgba(255,216,138,.78) !important;
   box-shadow:0 0 0 4px rgba(255,216,138,.10) !important;
 }
+
+
+/* v1.6.3 CALM EYE-COMFORT PALETTE + IMAGE VISIBILITY FIX */
+:root{
+  --bg:#080808 !important;
+  --bg2:#101010 !important;
+  --panel:#141414 !important;
+  --panel2:#191919 !important;
+  --card:#161616 !important;
+  --text:#f5f1ea !important;
+  --muted:#b8b0a4 !important;
+  --soft:#8f877c !important;
+  --line:rgba(245,241,234,.12) !important;
+  --line2:rgba(213,184,121,.22) !important;
+  --gold:#c6a15b !important;
+  --gold2:#e4c77c !important;
+  --champagne:#e8d5a0 !important;
+  --cream:#f5f1ea !important;
+  --bronze:#8f6a3a !important;
+  --green:#7fa982 !important;
+}
+
+body{
+  background:
+    radial-gradient(circle at 18% 8%,rgba(198,161,91,.10),transparent 32%),
+    radial-gradient(circle at 88% 10%,rgba(255,255,255,.035),transparent 30%),
+    linear-gradient(180deg,#080808 0%,#101010 52%,#080808 100%) !important;
+  color:var(--text) !important;
+}
+
+body::before{
+  opacity:.18 !important;
+  background-size:84px 84px !important;
+}
+
+.site-header{
+  background:rgba(8,8,8,.86) !important;
+  border-bottom:1px solid rgba(245,241,234,.10) !important;
+}
+
+.hero-card,.panel{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.022)),
+    #121212 !important;
+  border-color:rgba(245,241,234,.10) !important;
+  box-shadow:0 22px 70px rgba(0,0,0,.34) !important;
+}
+
+.search-panel{
+  border-color:rgba(228,199,124,.20) !important;
+}
+
+.voice-panel{
+  border-color:rgba(228,199,124,.16) !important;
+}
+
+.btn{
+  background:linear-gradient(135deg,#b9904d,#e4c77c) !important;
+  color:#0b0b0b !important;
+  box-shadow:0 12px 30px rgba(198,161,91,.14) !important;
+}
+
+.ghost{
+  background:rgba(255,255,255,.055) !important;
+  border:1px solid rgba(245,241,234,.12) !important;
+  color:var(--cream) !important;
+}
+
+.talk-btn{
+  background:rgba(228,199,124,.10) !important;
+  border:1px solid rgba(228,199,124,.24) !important;
+  color:var(--champagne) !important;
+}
+
+.talk-btn.talking{
+  background:linear-gradient(135deg,#b9904d,#e4c77c) !important;
+  color:#0b0b0b !important;
+}
+
+.card{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.018)),
+    #151515 !important;
+  border:1px solid rgba(245,241,234,.11) !important;
+  box-shadow:0 20px 54px rgba(0,0,0,.32) !important;
+}
+
+.card:hover{
+  border-color:rgba(228,199,124,.30) !important;
+  box-shadow:0 22px 62px rgba(0,0,0,.38) !important;
+}
+
+/* Image visibility first */
+.image{
+  height:245px !important;
+  min-height:245px !important;
+  background:
+    linear-gradient(135deg,rgba(198,161,91,.22),rgba(255,255,255,.04)),
+    #202020 !important;
+}
+
+.image.photo{
+  height:245px !important;
+  min-height:245px !important;
+  background-size:cover !important;
+  background-position:center center !important;
+  background-repeat:no-repeat !important;
+}
+
+/* Keep photos bright. Only add bottom readability gradient. */
+.image.photo::before{
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,.06) 48%,rgba(0,0,0,.48) 100%) !important;
+}
+
+.image.photo span{
+  position:absolute !important;
+  left:14px !important;
+  bottom:14px !important;
+  right:auto !important;
+  top:auto !important;
+  z-index:2 !important;
+  background:rgba(8,8,8,.56) !important;
+  border:1px solid rgba(255,255,255,.16) !important;
+  color:#fffaf0 !important;
+  backdrop-filter:blur(8px) !important;
+  letter-spacing:.05em !important;
+  max-width:calc(100% - 28px) !important;
+}
+
+.card-kicker,.eyebrow{
+  color:var(--gold2) !important;
+}
+
+.content h3{
+  color:var(--cream) !important;
+}
+
+.tag{
+  background:rgba(255,255,255,.055) !important;
+  border-color:rgba(245,241,234,.105) !important;
+  color:#c9c0b4 !important;
+}
+
+.price-row{
+  background:rgba(198,161,91,.10) !important;
+  border:1px solid rgba(228,199,124,.18) !important;
+}
+
+.price-row span{
+  color:#a79e93 !important;
+}
+
+.price-row strong{
+  color:var(--champagne) !important;
+}
+
+.metric{
+  background:rgba(255,255,255,.035) !important;
+  border:1px solid rgba(245,241,234,.09) !important;
+}
+
+.metric span{
+  color:#938b80 !important;
+}
+
+.metric strong{
+  color:#eee6da !important;
+}
+
+.card-links a{
+  background:rgba(228,199,124,.12) !important;
+  border:1px solid rgba(228,199,124,.24) !important;
+  color:var(--champagne) !important;
+  box-shadow:none !important;
+}
+
+.status{
+  background:rgba(198,161,91,.09) !important;
+  border-color:rgba(228,199,124,.18) !important;
+  color:#f2dfaa !important;
+}
+
+.status.success{
+  background:rgba(127,169,130,.10) !important;
+  border-color:rgba(127,169,130,.22) !important;
+  color:#d9efd9 !important;
+}
+
+input,textarea{
+  background:rgba(0,0,0,.24) !important;
+  border-color:rgba(245,241,234,.12) !important;
+}
+
+input:focus,textarea:focus{
+  border-color:rgba(228,199,124,.62) !important;
+  box-shadow:0 0 0 4px rgba(228,199,124,.08) !important;
+}
+
+@media(max-width:520px){
+  .image,.image.photo{
+    height:215px !important;
+    min-height:215px !important;
+  }
+}
