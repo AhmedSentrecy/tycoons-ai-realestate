@@ -206,15 +206,15 @@ function buildProjectPage(project, units) {
 
   const faqHtml = faqItems
     .map(
-      (f) => `<div class="faq-item">
-  <h3>${escapeHtml(f.q)}</h3>
+      (f, i) => `<details class="faq-item"${i === 0 ? " open" : ""}>
+  <summary>${escapeHtml(f.q)}</summary>
   <p>${escapeHtml(f.a)}</p>
-</div>`
+</details>`
     )
     .join("\n");
 
   const bodyHtml = `
-<section class="panel">
+<section class="section">
   <nav aria-label="Breadcrumb" class="breadcrumb">
     <a href="/">Home</a> &rsaquo;
     <a href="/developers/${slugify(developer)}.html">${escapeHtml(developer)}</a> &rsaquo;
@@ -229,14 +229,14 @@ function buildProjectPage(project, units) {
   <a class="btn" href="/#search">Ask the AI Search about ${escapeHtml(projectName)}</a>
 </section>
 
-<section class="panel">
+<section class="section">
   <h2>Available Units${units.length ? ` (${units.length})` : ""}</h2>
   <div class="grid">
 ${unitCards || "<p>No live units listed for this project right now. Contact us for availability.</p>"}
   </div>
 </section>
 
-<section class="panel">
+<section class="section">
   <h2>Frequently Asked Questions</h2>
 ${faqHtml}
 </section>
@@ -347,7 +347,7 @@ function buildDeveloperPage(developer, units) {
     .join("\n");
 
   const bodyHtml = `
-<section class="panel">
+<section class="section">
   <nav aria-label="Breadcrumb" class="breadcrumb">
     <a href="/">Home</a> &rsaquo; <span>${escapeHtml(developer)}</span>
   </nav>
@@ -355,7 +355,7 @@ function buildDeveloperPage(developer, units) {
   <h1>${escapeHtml(developer)}</h1>
   <p>All current projects and live unit availability for ${escapeHtml(developer)} in Egypt.</p>
 </section>
-<section class="panel">
+<section class="section">
   <h2>Projects</h2>
   <div class="grid">
 ${projectCards}
