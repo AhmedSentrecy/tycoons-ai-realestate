@@ -454,8 +454,8 @@ body::before {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
   gap: 32px;
-  align-items: center;
-  padding: clamp(36px, 6vw, 72px) clamp(20px, 4vw, 64px);
+  align-items: start;
+  padding: clamp(28px, 5vw, 56px) clamp(20px, 4vw, 64px) clamp(20px, 3vw, 32px);
   background: var(--surface-soft);
   border-bottom: 1px solid var(--border);
 }
@@ -509,7 +509,7 @@ body::before {
 .mini-stats strong { display: block; font-size: 16px; color: var(--navy); margin-bottom: 2px; }
 
 /* panel sections used throughout index.html */
-.panel { padding: 48px clamp(20px, 4vw, 64px); }
+.panel { padding: 32px clamp(20px, 4vw, 64px) 48px; }
 .search-panel { background: var(--surface); }
 .section-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
 .section-head h2 { font-family: var(--font-serif); font-size: 26px; color: var(--navy); margin: 6px 0; }
