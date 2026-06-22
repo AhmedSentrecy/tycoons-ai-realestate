@@ -4,127 +4,137 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tycoons Investments | AI Real Estate Search</title>
-<meta name="description" content="Search live real estate inventory with Tycoons Investments using AI text search and push-to-talk voice search.">
+<meta name="description" content="Search live developer inventory with Tycoons Investments using AI text search and voice search.">
 <link rel="icon" href="assets/tycoons-icon-light.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div class="site-bg"></div>
 <header class="site-header">
-<a class="brand" href="#top" aria-label="Tycoons Investments home">
-<img class="brand-logo" src="assets/tycoons-logo-header.svg" alt="Tycoons Investments">
-</a>
-<nav class="main-nav" aria-label="Main navigation">
-<a href="#voice">Voice</a>
-<a href="#search">Search</a>
-<a href="#projects">Projects</a>
-<a href="#lead">Contact</a>
-</nav>
+  <a class="brand" href="#top" aria-label="Tycoons Investments home">
+    <img class="brand-logo" src="assets/tycoons-logo-header.svg" alt="Tycoons Investments">
+  </a>
+  <nav class="main-nav" aria-label="Main navigation">
+    <a href="#search">Search</a>
+    <a href="#voice">Voice</a>
+    <a href="#projects">Projects</a>
+    <a href="#lead">Contact</a>
+  </nav>
 </header>
+
 <main id="top">
-<section class="hero">
-<div class="hero-copy">
-<span class="eyebrow">Tycoons AI Inventory</span>
-<h1>Find the right property from live developer inventory.</h1>
-<p>Search available units, compare projects, and use voice search for a faster real estate experience.</p>
-<div class="hero-actions">
-<a class="btn" href="#voice">Start Voice Agent</a>
-<a class="ghost" href="#search">Search Inventory</a>
-</div>
-<div class="trust-row" aria-label="System highlights">
-<span>Live inventory</span>
-<span>AI search</span>
-<span>Voice assistant</span>
-</div>
-</div>
-<div class="hero-card">
-<span class="eyebrow">Try this</span>
-<p class="hero-quote">"I want an iVilla Garden in New Cairo."</p>
-<div class="mini-stats">
-<div><strong>Text</strong><span>Search</span></div>
-<div><strong>Voice</strong><span>Push-to-talk</span></div>
-<div><strong>Cards</strong><span>Media ready</span></div>
-</div>
-</div>
-</section>
+  <section class="hero-market">
+    <div class="hero-copy">
+      <span class="eyebrow">AI-powered property search</span>
+      <h1>Search Egypt’s premium developer inventory in seconds.</h1>
+      <p class="lede">Find available units by area, project, budget, unit type, delivery, or iVilla / Duplex style. Results are loaded from the live Tycoons inventory database.</p>
 
-<section id="voice" class="panel voice-panel">
-<div class="section-head">
-<div>
-<span class="eyebrow">Voice Agent</span>
-<h2>Speak with the property assistant</h2>
-<p>Start the voice agent, hold the button while speaking, then release it for a short controlled answer.</p>
-<p style="font-size:13px; color:var(--ink-faint); margin-top:4px;">"Start Voice Agent" is a natural spoken conversation. "Voice Search" uses your device's built-in voice.</p>
-</div>
-</div>
-<div class="voice-controls">
-<button id="startVoiceAgentBtn" class="btn" type="button">Start Voice Agent</button>
-<button id="holdToTalkBtn" class="talk-btn" type="button" disabled>Hold to Talk</button>
-<button id="stopVoiceAgentBtn" class="ghost" type="button" disabled>Stop Session</button>
-<button id="freeVoiceBtn" class="ghost" type="button">Voice Search</button>
-</div>
-<div id="voiceStatus" class="status">Voice agent is off.</div>
-<div id="phoneConfirmBox" class="phone-confirm hidden">
-<div>
-<span class="eyebrow">Confirm WhatsApp Number</span>
-<p>The voice agent heard this number. Check it before saving.</p>
-</div>
-<input id="detectedPhoneInput" placeholder="Detected WhatsApp number">
-<div class="voice-controls">
-<button id="confirmPhoneBtn" class="btn" type="button">Confirm & Save Lead</button>
-<button id="cancelPhoneBtn" class="ghost" type="button">Cancel</button>
-</div>
-</div>
-</section>
+      <div id="search" class="search-card">
+        <div class="searchbar">
+          <textarea id="searchInput" rows="3" placeholder="Example: أي فيلا في التجمع أو apartment in New Cairo under 9 million"></textarea>
+          <button id="searchBtn" class="btn btn-primary" type="button">AI Search</button>
+          <button id="voiceBtn" class="btn btn-secondary" type="button">Dictate</button>
+        </div>
+        <div class="quick-chips" aria-label="Example searches">
+          <span>iVilla in New Cairo</span>
+          <span>Apartment under 9M</span>
+          <span>North Coast chalet</span>
+          <span>Ready to move</span>
+        </div>
+        <div id="status" class="status">Loading property database...</div>
+      </div>
+    </div>
 
-<section id="search" class="panel search-panel">
-<div class="section-head">
-<div>
-<span class="eyebrow">AI Search</span>
-<h2>Tell us what you are looking for</h2>
-<p>Ask by project, area, budget, unit type, bedrooms, delivery, or iVilla / Duplex style.</p>
-</div>
-<button id="voiceBtn" class="ghost" type="button">Dictate Search</button>
-</div>
-<div class="searchbar">
-<textarea id="searchInput" rows="3" placeholder="Example: أي فيلا في التجمع أو apartment in New Cairo under 9 million"></textarea>
-<button id="searchBtn" class="btn" type="button">AI Search</button>
-</div>
-<div id="status" class="status">Loading property database...</div>
-<div id="results" class="grid"></div>
-</section>
+    <aside class="hero-side">
+      <div class="hero-stat">
+        <span>Live</span>
+        <strong>Developer inventory</strong>
+      </div>
+      <div class="hero-stat">
+        <span>Smart</span>
+        <strong>Arabic + English search</strong>
+      </div>
+      <div class="hero-stat">
+        <span>Fast</span>
+        <strong>Voice assistant support</strong>
+      </div>
+    </aside>
+  </section>
 
-<section id="projects" class="panel">
-<div class="section-head">
-<div>
-<span class="eyebrow">Projects</span>
-<h2>Browse the full catalogue</h2>
-<p>Every project as its own card — separate from the search results above, this is the complete live list from Supabase.</p>
-</div>
-</div>
-<div id="projectGrid" class="grid"></div>
-</section>
+  <section class="section results-section">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Search results</span>
+        <h2>Recommended units</h2>
+        <p>Cards show the essentials first: image, project, unit type, price, area, delivery, and media links.</p>
+      </div>
+      <a class="admin-link" href="/admin.html">Admin panel</a>
+    </div>
+    <div id="results" class="property-grid"></div>
+  </section>
 
-<section id="lead" class="panel lead">
-<div>
-<span class="eyebrow">Lead Capture</span>
-<h2>Request a callback</h2>
-<p>Leave your details and the sales team will follow up with suitable options.</p>
-</div>
-<form id="leadForm">
-<input name="name" placeholder="Name">
-<input name="phone" placeholder="Phone / WhatsApp" required>
-<input name="interest" placeholder="Interested project or area">
-<input name="budget" placeholder="Budget, example: 12000000">
-<button class="btn" type="submit">Submit Lead</button>
-</form>
-<div id="leadStatus" class="status hidden"></div>
-</section>
+  <section id="voice" class="section voice-section">
+    <div class="voice-card">
+      <div>
+        <span class="eyebrow">Voice agent</span>
+        <h2>Talk to the property assistant</h2>
+        <p>Start the voice agent, hold the button while speaking, then release it for a short controlled answer.</p>
+      </div>
+
+      <div class="voice-controls">
+        <button id="startVoiceAgentBtn" class="btn btn-primary" type="button">Start Voice Agent</button>
+        <button id="holdToTalkBtn" class="talk-btn" type="button" disabled>Hold to Talk</button>
+        <button id="stopVoiceAgentBtn" class="btn btn-secondary" type="button" disabled>Stop Session</button>
+        <button id="freeVoiceBtn" class="btn btn-secondary" type="button">Voice Search</button>
+      </div>
+
+      <div id="voiceStatus" class="status">Voice agent is off.</div>
+
+      <div id="phoneConfirmBox" class="phone-confirm hidden">
+        <div>
+          <span class="eyebrow">Confirm WhatsApp Number</span>
+          <p>The voice agent heard this number. Check it before saving.</p>
+        </div>
+        <input id="detectedPhoneInput" placeholder="Detected WhatsApp number">
+        <div class="voice-controls">
+          <button id="confirmPhoneBtn" class="btn btn-primary" type="button">Confirm & Save Lead</button>
+          <button id="cancelPhoneBtn" class="btn btn-secondary" type="button">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="projects" class="section projects-section">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Projects</span>
+        <h2>Browse the live catalogue</h2>
+        <p>Project cards are loaded from Supabase and can inherit media from available unit rows.</p>
+      </div>
+    </div>
+    <div id="projectGrid" class="property-grid"></div>
+  </section>
+
+  <section id="lead" class="section lead-section">
+    <div class="lead-copy">
+      <span class="eyebrow">Lead capture</span>
+      <h2>Request suitable options</h2>
+      <p>Leave your details and the sales team will follow up with filtered inventory.</p>
+    </div>
+
+    <form id="leadForm" class="lead-form">
+      <input name="name" placeholder="Name">
+      <input name="phone" placeholder="Phone / WhatsApp" required>
+      <input name="interest" placeholder="Interested project or area">
+      <input name="budget" placeholder="Budget, example: 12000000">
+      <button class="btn btn-primary" type="submit">Submit Lead</button>
+    </form>
+    <div id="leadStatus" class="status hidden"></div>
+  </section>
 </main>
 
 <footer class="site-footer">
-<span>© <span id="year"></span> Tycoons Investments</span>
-<span>AI real estate search · Voice assistant · Live inventory</span>
+  <span>© <span id="year"></span> Tycoons Investments</span>
+  <span>AI real estate search · Voice assistant · Live inventory</span>
 </footer>
 
 <script>

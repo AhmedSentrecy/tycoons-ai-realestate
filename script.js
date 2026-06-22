@@ -259,13 +259,19 @@ if ("speechSynthesis" in window) {
   window.speechSynthesis.addEventListener("voiceschanged", pickVoices);
 }
 
+function trimSpokenAnswer(text) {
+  const clean = String(text || "").replace(/\s+/g, " ").trim();
+  if (clean.length <= 220) return clean;
+  return clean.slice(0, 220).replace(/\s+\S*$/, "") + ".";
+}
+
 function speak(text, sourceTextForLanguage) {
   if (!("speechSynthesis" in window) || !text) return;
 
   try { window.speechSynthesis.cancel(); } catch (_) {}
 
   const arabic = isArabicText(sourceTextForLanguage || text);
-  const utterance = new SpeechSynthesisUtterance(text);
+  const utterance = new SpeechSynthesisUtterance(trimSpokenAnswer(text));
   utterance.lang = arabic ? "ar-EG" : "en-US";
   utterance.rate = 1;
 
@@ -568,10 +574,10 @@ function showPhoneConfirmation(leadRow) {
   if (leadStatus) {
     leadStatus.classList.remove("hidden");
     leadStatus.className = "status";
-    leadStatus.textContent = "Phone detected from voice. Please confirm before saving.";
+    leadStatus.textContent = "الرقم ظاهر قدامك. راجعه واضغط حفظ لو صحيح.";
   }
 
-  setVoiceStatus("Phone detected. Please check the number on screen and press Confirm & Save Lead.", "status");
+  setVoiceStatus("الرقم ظاهر قدامك على الشاشة. راجعه واضغط حفظ لو صحيح.", "status");
 }
 
 async function confirmPendingVoiceLead() {
@@ -601,10 +607,10 @@ async function confirmPendingVoiceLead() {
   if (leadStatus) {
     leadStatus.classList.remove("hidden");
     leadStatus.className = "status success";
-    leadStatus.textContent = "Confirmed voice lead saved in Supabase.";
+    leadStatus.textContent = "تم حفظ بيانات العميل بعد تأكيد الرقم.";
   }
 
-  setVoiceStatus("Lead saved with confirmed WhatsApp number.", "status success");
+  setVoiceStatus("تم حفظ بيانات العميل برقم واتساب مؤكد.", "status success");
 }
 
 function cancelPendingVoiceLead() {
@@ -782,7 +788,7 @@ After this response, wait for the user's next push-to-talk message. Only in a la
       if (leadStatus) {
         leadStatus.classList.remove("hidden");
         leadStatus.className = "status success";
-        leadStatus.textContent = savedLead.pending_confirmation ? "Phone detected. Waiting for confirmation before saving." : "Voice lead saved in Supabase.";
+        leadStatus.textContent = savedLead.pending_confirmation ? "الرقم ظاهر قدامك. راجعه واضغط حفظ لو صحيح." : "تم حفظ بيانات العميل.";
       }
 
       sendToolOutput(callId, {
@@ -801,16 +807,18 @@ After this response, wait for the user's next push-to-talk message. Only in a la
 The save_voice_lead tool returned status.
 
 If pending_confirmation is true:
-- Tell the user the number is shown on screen and ask them to press Confirm & Save Lead after checking it.
-- Do not say it is saved yet.
+- Say exactly in Egyptian Arabic: الرقم ظاهر قدامك على الشاشة، راجعه واضغط حفظ لو صحيح.
+- Do not say the lead is saved yet.
+- Do not say: مش هسجل الليد، مش هحفظ الليد، لن يتم الحفظ, waiting for database, or any negative warning.
+- Do not mention database, Supabase, tools, or confirmation logic.
 
 If saved is true:
-- Say the details are saved.
+- Say exactly in Egyptian Arabic: تم حفظ بياناتك، وفريق المبيعات هيراجع الاختيارات المناسبة.
 
 If phone_status is phone_not_provided:
-- Ask for the WhatsApp number in one short question.
+- Ask one short question in Egyptian Arabic: رقم واتساب للتواصل؟
 
-Use the user's language. Arabic should be Egyptian Arabic.
+Use the user's language, but if Arabic use Egyptian Arabic only.
 `
         }
       }));
