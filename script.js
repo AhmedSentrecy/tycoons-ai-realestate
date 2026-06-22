@@ -65,9 +65,16 @@ function escapeAttr(value) {
 
 function mediaImage(item) {
   const location = safe(item.location);
+
   if (item.image_url) {
-    return `<div class="image photo" style="background-image:url('${escapeAttr(item.image_url)}')"><span>${location}</span></div>`;
+    return `
+      <div class="image photo has-img">
+        <img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(location)}" loading="lazy" referrerpolicy="no-referrer">
+        <span>${location}</span>
+      </div>
+    `;
   }
+
   return `<div class="image">${location}</div>`;
 }
 
@@ -89,11 +96,11 @@ function cleanDisplayText(value) {
 
 function areaText(value) {
   const num = Number(value || 0);
-  if (!num) return "Ask for area";
+  if (!num) return "";
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(num) + " sqm";
 }
 
-function shortText(value, fallback = "Ask admin") {
+function shortText(value, fallback = "") {
   const text = cleanDisplayText(value);
   return text || fallback;
 }
@@ -106,44 +113,23 @@ function cardMetric(label, value) {
 
 function dedupeUnitsForDisplay(list) {
   const map = new Map();
-
   (list || []).forEach((item) => {
-    const key = [
-      item.project_name || "",
-      item.unit_type || "",
-      item.bedrooms_text || "",
-      item.area_sqm || ""
-    ].join("||").toLowerCase();
-
+    const key = [item.project_name || "", item.unit_type || "", item.bedrooms_text || "", item.area_sqm || ""].join("||").toLowerCase();
     const current = map.get(key);
-
-    if (!current) {
-      map.set(key, item);
-      return;
-    }
-
-    const currentPrice = Number(current.starting_price || Infinity);
-    const newPrice = Number(item.starting_price || Infinity);
-
-    if (newPrice < currentPrice) {
+    if (!current || Number(item.starting_price || Infinity) < Number(current.starting_price || Infinity)) {
       map.set(key, item);
     }
   });
-
   return Array.from(map.values());
 }
 
 function enrichProjectsWithUnitMedia(projectList) {
   return (projectList || []).map((project) => {
     if (project.image_url && project.brochure_url && project.video_url) return project;
-
     const matchedUnit = (units || []).find((unit) => {
-      return normalize(unit.project_name) === normalize(project.name)
-        && (unit.image_url || unit.brochure_url || unit.video_url);
+      return normalize(unit.project_name) === normalize(project.name) && (unit.image_url || unit.brochure_url || unit.video_url);
     });
-
     if (!matchedUnit) return project;
-
     return {
       ...project,
       image_url: project.image_url || matchedUnit.image_url || null,
@@ -156,19 +142,13 @@ function enrichProjectsWithUnitMedia(projectList) {
 function price(value) {
   const num = Number(value || 0);
   if (!num) return "Price on request";
-
-  return "From " + new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: 0
-  }).format(Math.round(num)) + " EGP";
+  return "From " + new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(num)) + " EGP";
 }
 
 function card(item, type = "unit") {
   if (type === "project") {
-    const tags = [
-      shortText(item.developer, ""),
-      shortText(item.location, ""),
-      shortText(item.status, "")
-    ].filter(Boolean).map(value => `<span class="tag">${value}</span>`).join("");
+    const tags = [shortText(item.developer, ""), shortText(item.location, ""), shortText(item.status, "")]
+      .filter(Boolean).map(value => `<span class="tag">${value}</span>`).join("");
 
     return `
       <article class="card project-card">
@@ -177,20 +157,15 @@ function card(item, type = "unit") {
           <div class="card-kicker">Project</div>
           <h3>${safe(item.name)}</h3>
           <div class="tags">${tags}</div>
-          <div class="price-row">
-            <span>Starting price</span>
-            <strong>${price(item.min_price)}</strong>
-          </div>
+          <div class="price-row"><span>Starting price</span><strong>${price(item.min_price)}</strong></div>
           ${mediaLinks(item)}
         </div>
       </article>
     `;
   }
 
-  const tags = [
-    shortText(item.unit_type, ""),
-    shortText(item.bedrooms_text, "")
-  ].filter(Boolean).map(value => `<span class="tag">${value}</span>`).join("");
+  const tags = [shortText(item.unit_type, ""), shortText(item.bedrooms_text, "")]
+    .filter(Boolean).map(value => `<span class="tag">${value}</span>`).join("");
 
   const metrics = [
     cardMetric("Area", areaText(item.area_sqm)),
@@ -205,10 +180,7 @@ function card(item, type = "unit") {
         <div class="card-kicker">Available unit</div>
         <h3>${safe(item.project_name)}</h3>
         <div class="tags">${tags}</div>
-        <div class="price-row">
-          <span>Starting price</span>
-          <strong>${price(item.starting_price)}</strong>
-        </div>
+        <div class="price-row"><span>Starting price</span><strong>${price(item.starting_price)}</strong></div>
         <div class="card-metrics">${metrics}</div>
         ${mediaLinks(item)}
       </div>
@@ -218,9 +190,7 @@ function card(item, type = "unit") {
 
 function render(list, target, type = "unit") {
   const displayList = type === "unit" ? dedupeUnitsForDisplay(list) : list;
-  target.innerHTML = displayList.length
-    ? displayList.map(item => card(item, type)).join("")
-    : '<div class="status">No matching items found.</div>';
+  target.innerHTML = displayList.length ? displayList.map(item => card(item, type)).join("") : '<div class="status">No matching items found.</div>';
 }
 
 function normalize(text) {
