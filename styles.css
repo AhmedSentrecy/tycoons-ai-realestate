@@ -447,7 +447,7 @@ body::before {
   align-items: center;
   gap: 8px;
 }
-.brand-logo { height: 36px; }
+.brand-logo { height: 72px; }
 
 /* hero (matches index.html's .hero / .hero-copy / .hero-card) */
 .hero {

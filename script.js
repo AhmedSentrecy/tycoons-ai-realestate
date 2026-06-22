@@ -1005,7 +1005,7 @@ async function loadData() {
    into the browser, no OpenAI Realtime API cost at all.
 
    Flow:
-   1. Tap "Voice Search (Free)"
+   1. Tap "Voice Search"
    2. Browser listens, converts speech to text
    3. Text is sent to the EXISTING /api/ai-search endpoint
       (already cheap — gpt-5.4-mini with a free local fallback)
@@ -1068,7 +1068,7 @@ async function loadData() {
     } catch (err) {
       freeVoiceActive = false;
       freeVoiceBtn.disabled = false;
-      freeVoiceBtn.textContent = "Voice Search (Free)";
+      freeVoiceBtn.textContent = "Voice Search";
       voiceStatus.className = "status error";
       voiceStatus.textContent = "Microphone could not start. Check browser permissions and try again.";
     }
@@ -1097,13 +1097,13 @@ async function loadData() {
   freeRecognition.addEventListener("end", () => {
     freeVoiceActive = false;
     freeVoiceBtn.disabled = false;
-    freeVoiceBtn.textContent = "Voice Search (Free)";
+    freeVoiceBtn.textContent = "Voice Search";
   });
 
   freeRecognition.addEventListener("error", (event) => {
     freeVoiceActive = false;
     freeVoiceBtn.disabled = false;
-    freeVoiceBtn.textContent = "Voice Search (Free)";
+    freeVoiceBtn.textContent = "Voice Search";
     voiceStatus.className = "status error";
     voiceStatus.textContent = "Voice input error: " + event.error + ". You can type your search instead.";
   });
