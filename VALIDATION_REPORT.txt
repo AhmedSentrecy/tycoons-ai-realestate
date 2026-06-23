@@ -1,13 +1,14 @@
 VALIDATION REPORT
 
 Patch:
-WhatsApp message line-break + formatting fix.
+WhatsApp real line break fix.
 
-Issue:
-Literal \n was appearing in WhatsApp text.
+Expected source snippet:
+const finalMessage = lines.filter(Boolean).join("\\n");
 
-Fix:
-JavaScript source now uses escaped newline syntax so WhatsApp receives real line breaks after encodeURIComponent.
+Actual source snippet:
+const finalMessage = lines.filter(Boolean).join("\n");
+  return "https://wa.me/" + TYCOONS
 
 JavaScript validation:
 node --check script.js exit=0

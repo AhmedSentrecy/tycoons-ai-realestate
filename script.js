@@ -1273,7 +1273,7 @@ function buildTrackedWhatsAppUrl(link, context) {
     ];
   }
 
-  const finalMessage = lines.filter(Boolean).join("\\n");
+  const finalMessage = lines.filter(Boolean).join("\n");
   return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(finalMessage);
 }
 
