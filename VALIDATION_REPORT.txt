@@ -1,25 +1,18 @@
 VALIDATION REPORT
 
-Package: SEO/AIO + WhatsApp-first v1
-Date: 2026-06-23
+Patch:
+WhatsApp icon added by CSS pseudo-element.
 
-WhatsApp number:
-+201200704344
+Affected classes:
+- .header-whatsapp
+- .btn-whatsapp
+- .card-whatsapp
+- .floating-whatsapp
 
-Root files missing:
-[]
-
-Required homepage IDs missing:
-[]
-
-Static indexable pages generated:
-12
-
-Sitemap URLs:
-13
-
-WhatsApp links in homepage/script:
-6
+Floating WhatsApp:
+- changed to circular icon button
+- keeps same href and aria-label
+- no HTML/manual SVG edits needed across pages
 
 JavaScript validation:
 node --check script.js exit=0
