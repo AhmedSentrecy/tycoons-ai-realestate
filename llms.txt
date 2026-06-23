@@ -1,0 +1,29 @@
+# Tycoons Investments
+
+Tycoons Investments is an AI-assisted real estate inventory website for Egypt.
+
+Main site:
+https://tycoons-inv.de/
+
+Core purpose:
+- Help users search developer inventory by voice or text.
+- Show relevant property cards from live inventory.
+- Convert qualified interest directly to WhatsApp.
+
+Contact:
+WhatsApp +201200704344
+
+Important indexable pages:
+- https://tycoons-inv.de/
+- https://tycoons-inv.de/projects/
+- https://tycoons-inv.de/areas/new-cairo/
+- https://tycoons-inv.de/areas/north-coast/
+- https://tycoons-inv.de/areas/ain-sokhna/
+- https://tycoons-inv.de/property-types/ivilla/
+- https://tycoons-inv.de/property-types/chalet/
+- https://tycoons-inv.de/property-types/apartment/
+- https://tycoons-inv.de/developers/mountain-view/
+- https://tycoons-inv.de/developers/palm-hills/
+- https://tycoons-inv.de/developers/la-vista/
+- https://tycoons-inv.de/developers/tatweer-misr/
+- https://tycoons-inv.de/developers/direction-white/

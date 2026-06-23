@@ -1,6 +1,7 @@
 const SUPABASE_URL = window.TYCOONS_SUPABASE_URL;
 const SUPABASE_KEY = window.TYCOONS_SUPABASE_KEY;
 const API_BASE = SUPABASE_URL + "/rest/v1";
+const TYCOONS_WHATSAPP_NUMBER = "201200704344";
 
 let units = [];
 let projects = [];
@@ -30,7 +31,7 @@ const detectedPhoneInput = document.getElementById("detectedPhoneInput");
 const confirmPhoneBtn = document.getElementById("confirmPhoneBtn");
 const cancelPhoneBtn = document.getElementById("cancelPhoneBtn");
 
-document.getElementById("year").textContent = new Date().getFullYear();
+if (document.getElementById("year")) document.getElementById("year").textContent = new Date().getFullYear();
 
 function headers(extra = {}) {
   return { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", ...extra };
@@ -61,6 +62,15 @@ function escapeAttr(value) {
     .replace(/"/g, "&quot;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+
+function whatsappUrl(message) {
+  return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(message);
+}
+
+function whatsappButton(label, message) {
+  return `<a class="card-whatsapp" href="${whatsappUrl(message)}" target="_blank" rel="noopener">${label}</a>`;
 }
 
 function mediaImage(item) {
@@ -159,6 +169,7 @@ function card(item, type = "unit") {
           <div class="tags">${tags}</div>
           <div class="price-row"><span>Starting price</span><strong>${price(item.min_price)}</strong></div>
           ${mediaLinks(item)}
+          ${whatsappButton("Ask on WhatsApp", "Hello Tycoons Investments, I am interested in " + safe(item.name, "this project") + ". Please send me available options.")}
         </div>
       </article>
     `;
@@ -183,6 +194,7 @@ function card(item, type = "unit") {
         <div class="price-row"><span>Starting price</span><strong>${price(item.starting_price)}</strong></div>
         <div class="card-metrics">${metrics}</div>
         ${mediaLinks(item)}
+        ${whatsappButton("Send WhatsApp Request", "Hello Tycoons Investments, I am interested in " + safe(item.project_name, "this project") + " - " + safe(item.unit_type, "unit") + " - " + safe(item.bedrooms_text, "bedrooms") + ". Please send me details.")}
       </div>
     </article>
   `;
