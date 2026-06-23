@@ -1,14 +1,13 @@
 VALIDATION REPORT
 
 Patch:
-WhatsApp real line break fix.
+WhatsApp image preview first URL.
 
-Expected source snippet:
-const finalMessage = lines.filter(Boolean).join("\\n");
+Expected:
+Card WhatsApp message starts with image_url, so WhatsApp previews the image link first.
 
-Actual source snippet:
-const finalMessage = lines.filter(Boolean).join("\n");
-  return "https://wa.me/" + TYCOONS
+Limitation:
+Google Drive thumbnail URLs may still not unfurl as image previews.
 
 JavaScript validation:
 node --check script.js exit=0

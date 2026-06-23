@@ -1235,14 +1235,18 @@ function formatWhatsAppPrice(value) {
 }
 
 function buildTrackedWhatsAppUrl(link, context) {
+  const baseMessage = getWhatsAppBaseMessage(link, context.source);
   const priceText = formatWhatsAppPrice(context.starting_price);
   const isCard = context.source === "unit_card" || context.source === "project_card" || context.project_name || context.unit_type;
-  const pagePath = context.page_path || "/";
 
   let lines;
 
   if (isCard) {
+    // WhatsApp usually creates a preview from the first URL in the message.
+    // Put the unit image first so the preview has the best chance to show the property image.
     lines = [
+      context.image_url || "",
+      "",
       "Hello Tycoons Investments, I am interested in this property:",
       "",
       context.project_name ? "Project: " + context.project_name : "",
@@ -1254,16 +1258,14 @@ function buildTrackedWhatsAppUrl(link, context) {
       context.finishing ? "Finishing: " + context.finishing : "",
       "",
       "Links:",
-      "Page: " + context.page_url,
-      context.image_url ? "Image: " + context.image_url : "",
       context.brochure_url ? "Brochure: " + context.brochure_url : "",
       context.video_url ? "Video: " + context.video_url : "",
+      "Page: " + context.page_url,
       "",
       "Tracking ID: " + context.tracking_id,
       "Source: " + context.source
     ];
   } else {
-    const baseMessage = getWhatsAppBaseMessage(link, context.source);
     lines = [
       baseMessage,
       "",
@@ -1273,7 +1275,7 @@ function buildTrackedWhatsAppUrl(link, context) {
     ];
   }
 
-  const finalMessage = lines.filter(Boolean).join("\n");
+  const finalMessage = lines.filter(Boolean).join("\\n");
   return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(finalMessage);
 }
 
