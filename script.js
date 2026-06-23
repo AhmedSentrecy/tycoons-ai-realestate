@@ -2,6 +2,10 @@ const SUPABASE_URL = window.TYCOONS_SUPABASE_URL;
 const SUPABASE_KEY = window.TYCOONS_SUPABASE_KEY;
 const API_BASE = SUPABASE_URL + "/rest/v1";
 const TYCOONS_WHATSAPP_NUMBER = "201200704344";
+const WHATSAPP_TRACKING_TABLE = "whatsapp_clicks";
+const WHATSAPP_UTM_SOURCE = "website";
+const WHATSAPP_UTM_MEDIUM = "whatsapp";
+const WHATSAPP_UTM_CAMPAIGN = "tycoons_lead";
 
 let units = [];
 let projects = [];
@@ -65,12 +69,34 @@ function escapeAttr(value) {
 }
 
 
-function whatsappUrl(message) {
-  return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(message);
+function whatsappUrl(message, source = "website", extra = {}) {
+  const trackingId = extra.tracking_id || ("wa_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8));
+  const contextLines = [
+    "",
+    "Source: " + source,
+    "Page: " + (extra.page_path || window.location.pathname || "/"),
+    "Tracking ID: " + trackingId
+  ];
+
+  const trackedMessage = String(message || "Hello Tycoons Investments, I want suitable property options.")
+    + contextLines.join("\n");
+
+  return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(trackedMessage);
 }
 
-function whatsappButton(label, message) {
-  return `<a class="card-whatsapp" href="${whatsappUrl(message)}" target="_blank" rel="noopener">${label}</a>`;
+function whatsappButton(label, message, source = "card_whatsapp", extra = {}) {
+  const attrs = [
+    `data-wa-source="${escapeAttr(source)}"`,
+    `data-wa-message="${escapeAttr(message)}"`
+  ];
+
+  Object.entries(extra || {}).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== "") {
+      attrs.push(`data-wa-${escapeAttr(key)}="${escapeAttr(value)}"`);
+    }
+  });
+
+  return `<a class="card-whatsapp" href="${whatsappUrl(message, source, extra)}" target="_blank" rel="noopener" ${attrs.join(" ")}>${label}</a>`;
 }
 
 function mediaImage(item) {
@@ -169,7 +195,10 @@ function card(item, type = "unit") {
           <div class="tags">${tags}</div>
           <div class="price-row"><span>Starting price</span><strong>${price(item.min_price)}</strong></div>
           ${mediaLinks(item)}
-          ${whatsappButton("Ask on WhatsApp", "Hello Tycoons Investments, I am interested in " + safe(item.name, "this project") + ". Please send me available options.")}
+          ${whatsappButton("Ask on WhatsApp", "Hello Tycoons Investments, I am interested in " + safe(item.name, "this project") + ". Please send me available options.", "project_card", {
+            project_name: safe(item.name, ""),
+            starting_price: item.min_price || ""
+          })}
         </div>
       </article>
     `;
@@ -194,7 +223,12 @@ function card(item, type = "unit") {
         <div class="price-row"><span>Starting price</span><strong>${price(item.starting_price)}</strong></div>
         <div class="card-metrics">${metrics}</div>
         ${mediaLinks(item)}
-        ${whatsappButton("Send WhatsApp Request", "Hello Tycoons Investments, I am interested in " + safe(item.project_name, "this project") + " - " + safe(item.unit_type, "unit") + " - " + safe(item.bedrooms_text, "bedrooms") + ". Please send me details.")}
+        ${whatsappButton("Send WhatsApp Request", "Hello Tycoons Investments, I am interested in " + safe(item.project_name, "this project") + " - " + safe(item.unit_type, "unit") + " - " + safe(item.bedrooms_text, "bedrooms") + ". Please send me details.", "unit_card", {
+          project_name: safe(item.project_name, ""),
+          unit_type: safe(item.unit_type, ""),
+          bedrooms_text: safe(item.bedrooms_text, ""),
+          starting_price: item.starting_price || ""
+        })}
       </div>
     </article>
   `;
@@ -1128,3 +1162,125 @@ async function loadData() {
     voiceStatus.textContent = "Voice input error: " + event.error + ". You can type your search instead.";
   });
 })();
+
+
+/* ============================================================
+   WHATSAPP LEAD TRACKING V1
+   ------------------------------------------------------------
+   Tracks WhatsApp clicks by source before opening WhatsApp.
+   It works for:
+   - header WhatsApp button
+   - floating WhatsApp button
+   - lead section WhatsApp button
+   - static page WhatsApp buttons
+   - dynamic unit/project card WhatsApp buttons
+   If Supabase table whatsapp_clicks does not exist yet, clicks still open WhatsApp normally.
+   ============================================================ */
+
+function getWhatsAppSource(link) {
+  if (link.dataset.waSource) return link.dataset.waSource;
+  if (link.classList.contains("floating-whatsapp")) return "floating_whatsapp";
+  if (link.classList.contains("header-whatsapp")) return "header_whatsapp";
+  if (link.classList.contains("card-whatsapp")) return "card_whatsapp";
+  if (link.closest(".lead-section")) return "lead_section_whatsapp";
+  if (link.closest(".aio-answer-card")) return "aio_answer_whatsapp";
+  if (link.closest(".static-hero")) return "static_hero_whatsapp";
+  if (link.closest(".static-card")) return "static_card_whatsapp";
+  return "website_whatsapp";
+}
+
+function getWhatsAppBaseMessage(link, source) {
+  if (link.dataset.waMessage) return link.dataset.waMessage;
+
+  try {
+    const url = new URL(link.href);
+    const existing = url.searchParams.get("text");
+    if (existing) return existing;
+  } catch (_) {}
+
+  return "Hello Tycoons Investments, I want help finding a suitable property.";
+}
+
+function buildWhatsAppTrackingContext(link) {
+  const source = getWhatsAppSource(link);
+  const trackingId = "wa_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
+
+  return {
+    tracking_id: trackingId,
+    source,
+    page_url: window.location.href,
+    page_path: window.location.pathname || "/",
+    referrer: document.referrer || null,
+    user_agent: navigator.userAgent || null,
+    project_name: link.dataset.waProject_name || link.dataset.waProjectName || null,
+    unit_type: link.dataset.waUnit_type || link.dataset.waUnitType || null,
+    bedrooms_text: link.dataset.waBedrooms_text || link.dataset.waBedroomsText || null,
+    starting_price: link.dataset.waStarting_price || link.dataset.waStartingPrice || null,
+    utm_source: WHATSAPP_UTM_SOURCE,
+    utm_medium: WHATSAPP_UTM_MEDIUM,
+    utm_campaign: WHATSAPP_UTM_CAMPAIGN
+  };
+}
+
+function buildTrackedWhatsAppUrl(link, context) {
+  const baseMessage = getWhatsAppBaseMessage(link, context.source);
+  const finalMessage = [
+    baseMessage,
+    "",
+    "Source: " + context.source,
+    "Page: " + context.page_path,
+    context.project_name ? "Project: " + context.project_name : "",
+    context.unit_type ? "Unit type: " + context.unit_type : "",
+    context.bedrooms_text ? "Bedrooms: " + context.bedrooms_text : "",
+    context.starting_price ? "Starting price: " + context.starting_price : "",
+    "Tracking ID: " + context.tracking_id
+  ].filter(Boolean).join("\n");
+
+  return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(finalMessage);
+}
+
+function trackWhatsAppClick(context, whatsappUrl) {
+  const row = {
+    tracking_id: context.tracking_id,
+    source: context.source,
+    page_url: context.page_url,
+    page_path: context.page_path,
+    referrer: context.referrer,
+    user_agent: context.user_agent,
+    project_name: context.project_name,
+    unit_type: context.unit_type,
+    bedrooms_text: context.bedrooms_text,
+    starting_price: context.starting_price ? Number(context.starting_price) : null,
+    whatsapp_url: whatsappUrl,
+    utm_source: context.utm_source,
+    utm_medium: context.utm_medium,
+    utm_campaign: context.utm_campaign
+  };
+
+  try {
+    fetch(API_BASE + "/" + WHATSAPP_TRACKING_TABLE, {
+      method: "POST",
+      headers: headers({ Prefer: "return=minimal" }),
+      body: JSON.stringify(row),
+      keepalive: true
+    }).catch((error) => {
+      console.warn("WhatsApp click tracking was not saved:", error);
+    });
+  } catch (error) {
+    console.warn("WhatsApp click tracking skipped:", error);
+  }
+}
+
+document.addEventListener("click", (event) => {
+  const link = event.target.closest('a[href*="wa.me/"], a[href*="api.whatsapp.com/send"]');
+  if (!link) return;
+
+  const context = buildWhatsAppTrackingContext(link);
+  const trackedUrl = buildTrackedWhatsAppUrl(link, context);
+
+  trackWhatsAppClick(context, trackedUrl);
+
+  event.preventDefault();
+  window.open(trackedUrl, "_blank", "noopener,noreferrer");
+});
+

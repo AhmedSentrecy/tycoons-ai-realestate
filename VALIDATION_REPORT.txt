@@ -1,18 +1,19 @@
 VALIDATION REPORT
 
-Patch:
-WhatsApp icon added by CSS pseudo-element.
+Package:
+WhatsApp Lead Tracking v1
 
-Affected classes:
-- .header-whatsapp
-- .btn-whatsapp
-- .card-whatsapp
-- .floating-whatsapp
+Required files missing:
+[]
 
-Floating WhatsApp:
-- changed to circular icon button
-- keeps same href and aria-label
-- no HTML/manual SVG edits needed across pages
+HTML files patched:
+13
+
+Tracking JS present:
+True
+
+Supabase SQL present:
+True
 
 JavaScript validation:
 node --check script.js exit=0
