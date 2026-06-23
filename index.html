@@ -44,18 +44,26 @@
       </div>
     </div>
 
-    <aside class="hero-side">
-      <div class="hero-stat">
-        <span>Live</span>
-        <strong>Developer inventory</strong>
-      </div>
-      <div class="hero-stat">
-        <span>Smart</span>
-        <strong>Arabic + English search</strong>
-      </div>
-      <div class="hero-stat">
-        <span>Fast</span>
-        <strong>Voice assistant support</strong>
+    <aside class="hero-side hero-side-compact">
+      <div class="hero-panel">
+        <span class="eyebrow">Live overview</span>
+
+        <div class="hero-points">
+          <div class="hero-point">
+            <strong>Developer inventory</strong>
+            <span>Live results pulled directly from the Tycoons database.</span>
+          </div>
+
+          <div class="hero-point">
+            <strong>Arabic + English search</strong>
+            <span>Understands mixed search terms, locations, and unit styles.</span>
+          </div>
+
+          <div class="hero-point">
+            <strong>Voice assistant support</strong>
+            <span>Short guided answers with lead capture flow.</span>
+          </div>
+        </div>
       </div>
     </aside>
   </section>
@@ -84,7 +92,6 @@
         <button id="startVoiceAgentBtn" class="btn btn-primary" type="button">Start Voice Agent</button>
         <button id="holdToTalkBtn" class="talk-btn" type="button" disabled>Hold to Talk</button>
         <button id="stopVoiceAgentBtn" class="btn btn-secondary" type="button" disabled>Stop Session</button>
-        <button id="freeVoiceBtn" class="btn btn-secondary" type="button">Voice Search</button>
       </div>
 
       <div id="voiceStatus" class="status">Voice agent is off.</div>
