@@ -1,11 +1,15 @@
 VALIDATION REPORT
 
-WhatsApp rich message patch:
-- Dynamic unit card messages include image/brochure/video/page links.
-- Dynamic project card messages include image/brochure/video/page links.
-- wa.me limitation documented: cannot attach actual image/card, only text and links.
+Patch:
+WhatsApp message line-break + formatting fix.
 
-JavaScript:
+Issue:
+Literal \n was appearing in WhatsApp text.
+
+Fix:
+JavaScript source now uses escaped newline syntax so WhatsApp receives real line breaks after encodeURIComponent.
+
+JavaScript validation:
 node --check script.js exit=0
 STDOUT:
 

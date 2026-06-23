@@ -1235,30 +1235,43 @@ function formatWhatsAppPrice(value) {
 }
 
 function buildTrackedWhatsAppUrl(link, context) {
-  const baseMessage = getWhatsAppBaseMessage(link, context.source);
   const priceText = formatWhatsAppPrice(context.starting_price);
+  const isCard = context.source === "unit_card" || context.source === "project_card" || context.project_name || context.unit_type;
+  const pagePath = context.page_path || "/";
 
-  const lines = [
-    baseMessage,
-    "",
-    "Property details:",
-    context.project_name ? "Project: " + context.project_name : "",
-    context.unit_type ? "Unit type: " + context.unit_type : "",
-    context.bedrooms_text ? "Bedrooms: " + context.bedrooms_text : "",
-    context.area_sqm ? "Area: " + context.area_sqm + " sqm" : "",
-    priceText ? "Starting price: " + priceText : "",
-    context.delivery_text ? "Delivery: " + context.delivery_text : "",
-    context.finishing ? "Finishing: " + context.finishing : "",
-    "",
-    context.image_url ? "Image: " + context.image_url : "",
-    context.brochure_url ? "Brochure: " + context.brochure_url : "",
-    context.video_url ? "Video: " + context.video_url : "",
-    "Page: " + context.page_url,
-    "",
-    "Tracking:",
-    "Source: " + context.source,
-    "Tracking ID: " + context.tracking_id
-  ];
+  let lines;
+
+  if (isCard) {
+    lines = [
+      "Hello Tycoons Investments, I am interested in this property:",
+      "",
+      context.project_name ? "Project: " + context.project_name : "",
+      context.unit_type ? "Unit type: " + context.unit_type : "",
+      context.bedrooms_text ? "Bedrooms: " + context.bedrooms_text : "",
+      context.area_sqm ? "Area: " + context.area_sqm + " sqm" : "",
+      priceText ? "Starting price: " + priceText : "",
+      context.delivery_text ? "Delivery: " + context.delivery_text : "",
+      context.finishing ? "Finishing: " + context.finishing : "",
+      "",
+      "Links:",
+      "Page: " + context.page_url,
+      context.image_url ? "Image: " + context.image_url : "",
+      context.brochure_url ? "Brochure: " + context.brochure_url : "",
+      context.video_url ? "Video: " + context.video_url : "",
+      "",
+      "Tracking ID: " + context.tracking_id,
+      "Source: " + context.source
+    ];
+  } else {
+    const baseMessage = getWhatsAppBaseMessage(link, context.source);
+    lines = [
+      baseMessage,
+      "",
+      "Page: " + context.page_url,
+      "Tracking ID: " + context.tracking_id,
+      "Source: " + context.source
+    ];
+  }
 
   const finalMessage = lines.filter(Boolean).join("\\n");
   return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(finalMessage);
