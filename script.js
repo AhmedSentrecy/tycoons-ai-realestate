@@ -70,18 +70,9 @@ function escapeAttr(value) {
 
 
 function whatsappUrl(message, source = "website", extra = {}) {
-  const trackingId = extra.tracking_id || ("wa_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8));
-  const contextLines = [
-    "",
-    "Source: " + source,
-    "Page: " + (extra.page_path || window.location.pathname || "/"),
-    "Tracking ID: " + trackingId
-  ];
-
-  const trackedMessage = String(message || "Hello Tycoons Investments, I want suitable property options.")
-    + contextLines.join("\n");
-
-  return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(trackedMessage);
+  return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(
+    String(message || "Hello Tycoons Investments, I want suitable property options.")
+  );
 }
 
 function whatsappButton(label, message, source = "card_whatsapp", extra = {}) {
@@ -197,7 +188,10 @@ function card(item, type = "unit") {
           ${mediaLinks(item)}
           ${whatsappButton("Ask on WhatsApp", "Hello Tycoons Investments, I am interested in " + safe(item.name, "this project") + ". Please send me available options.", "project_card", {
             project_name: safe(item.name, ""),
-            starting_price: item.min_price || ""
+            starting_price: item.min_price || "",
+            image_url: item.image_url || "",
+            brochure_url: item.brochure_url || "",
+            video_url: item.video_url || ""
           })}
         </div>
       </article>
@@ -227,7 +221,13 @@ function card(item, type = "unit") {
           project_name: safe(item.project_name, ""),
           unit_type: safe(item.unit_type, ""),
           bedrooms_text: safe(item.bedrooms_text, ""),
-          starting_price: item.starting_price || ""
+          area_sqm: item.area_sqm || "",
+          delivery_text: safe(item.delivery_text, ""),
+          finishing: safe(item.finishing, ""),
+          starting_price: item.starting_price || "",
+          image_url: item.image_url || "",
+          brochure_url: item.brochure_url || "",
+          video_url: item.video_url || ""
         })}
       </div>
     </article>
@@ -1215,27 +1215,52 @@ function buildWhatsAppTrackingContext(link) {
     project_name: link.dataset.waProject_name || link.dataset.waProjectName || null,
     unit_type: link.dataset.waUnit_type || link.dataset.waUnitType || null,
     bedrooms_text: link.dataset.waBedrooms_text || link.dataset.waBedroomsText || null,
+    area_sqm: link.dataset.waArea_sqm || link.dataset.waAreaSqm || null,
+    delivery_text: link.dataset.waDelivery_text || link.dataset.waDeliveryText || null,
+    finishing: link.dataset.waFinishing || null,
     starting_price: link.dataset.waStarting_price || link.dataset.waStartingPrice || null,
+    image_url: link.dataset.waImage_url || link.dataset.waImageUrl || null,
+    brochure_url: link.dataset.waBrochure_url || link.dataset.waBrochureUrl || null,
+    video_url: link.dataset.waVideo_url || link.dataset.waVideoUrl || null,
     utm_source: WHATSAPP_UTM_SOURCE,
     utm_medium: WHATSAPP_UTM_MEDIUM,
     utm_campaign: WHATSAPP_UTM_CAMPAIGN
   };
 }
 
+function formatWhatsAppPrice(value) {
+  const num = Number(value || 0);
+  if (!num) return null;
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(num) + " EGP";
+}
+
 function buildTrackedWhatsAppUrl(link, context) {
   const baseMessage = getWhatsAppBaseMessage(link, context.source);
-  const finalMessage = [
+  const priceText = formatWhatsAppPrice(context.starting_price);
+
+  const lines = [
     baseMessage,
     "",
-    "Source: " + context.source,
-    "Page: " + context.page_path,
+    "Property details:",
     context.project_name ? "Project: " + context.project_name : "",
     context.unit_type ? "Unit type: " + context.unit_type : "",
     context.bedrooms_text ? "Bedrooms: " + context.bedrooms_text : "",
-    context.starting_price ? "Starting price: " + context.starting_price : "",
+    context.area_sqm ? "Area: " + context.area_sqm + " sqm" : "",
+    priceText ? "Starting price: " + priceText : "",
+    context.delivery_text ? "Delivery: " + context.delivery_text : "",
+    context.finishing ? "Finishing: " + context.finishing : "",
+    "",
+    context.image_url ? "Image: " + context.image_url : "",
+    context.brochure_url ? "Brochure: " + context.brochure_url : "",
+    context.video_url ? "Video: " + context.video_url : "",
+    "Page: " + context.page_url,
+    "",
+    "Tracking:",
+    "Source: " + context.source,
     "Tracking ID: " + context.tracking_id
-  ].filter(Boolean).join("\n");
+  ];
 
+  const finalMessage = lines.filter(Boolean).join("\\n");
   return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(finalMessage);
 }
 
