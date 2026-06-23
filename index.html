@@ -23,61 +23,64 @@
 
 <main id="top">
   <section class="hero-market">
-    <div class="hero-copy">
-      <span class="eyebrow">AI-powered property search</span>
-      <h1>Search Egypt’s premium developer inventory in seconds.</h1>
-      <p class="lede">Find available units by area, project, budget, unit type, delivery, or iVilla / Duplex style. Results are loaded from the live Tycoons inventory database.</p>
+    <div class="hero-copy voice-first-hero">
+      <span class="eyebrow">Voice-first property search</span>
+      <h1>Tell the AI what you’re looking for, by voice or text.</h1>
+      <p class="lede">Start with a normal request like “عايز شاليه في الساحل” or type it below. The assistant searches live Tycoons inventory and shows matching units instantly.</p>
 
-      <div id="search" class="search-card">
+      <div id="search" class="search-card search-card-voice">
+        <div class="search-label-row">
+          <span>Search by voice or text</span>
+          <a href="#voice">Open voice agent</a>
+        </div>
+
         <div class="searchbar">
-          <textarea id="searchInput" rows="3" placeholder="Example: أي فيلا في التجمع أو apartment in New Cairo under 9 million"></textarea>
-          <button id="searchBtn" class="btn btn-primary" type="button">AI Search</button>
+          <textarea id="searchInput" rows="3" placeholder="Example: كنت بدور على شاليه في الساحل أو iVilla in New Cairo"></textarea>
+          <button id="searchBtn" class="btn btn-primary" type="button">Search</button>
           <button id="voiceBtn" class="btn btn-secondary" type="button">Dictate</button>
         </div>
+
         <div class="quick-chips" aria-label="Example searches">
-          <span>iVilla in New Cairo</span>
+          <span>عايز شاليه في الساحل</span>
+          <span>آي فيلا في التجمع</span>
           <span>Apartment under 9M</span>
-          <span>North Coast chalet</span>
           <span>Ready to move</span>
         </div>
+
+        <div class="hero-voice-cta">
+          <a class="btn btn-primary" href="#voice">Start Voice Agent</a>
+          <p>For a real conversation, use the voice agent below. For quick search, type or dictate here.</p>
+        </div>
+
         <div id="status" class="status">Loading property database...</div>
       </div>
     </div>
 
     <aside class="hero-side hero-side-compact">
-      <div class="hero-panel">
-        <span class="eyebrow">Live overview</span>
+      <div class="hero-panel voice-journey-panel">
+        <span class="eyebrow">How it works</span>
 
-        <div class="hero-points">
+        <div class="hero-points voice-journey">
           <div class="hero-point">
-            <strong>Developer inventory</strong>
-            <span>Live results pulled directly from the Tycoons database.</span>
+            <span class="step-number">01</span>
+            <strong>Say what you want</strong>
+            <span>Location, unit type, budget, delivery, or project name.</span>
           </div>
 
           <div class="hero-point">
-            <strong>Arabic + English search</strong>
-            <span>Understands mixed search terms, locations, and unit styles.</span>
+            <span class="step-number">02</span>
+            <strong>AI searches live stock</strong>
+            <span>Results come from the Tycoons database, not generic ads.</span>
           </div>
 
           <div class="hero-point">
-            <strong>Voice assistant support</strong>
-            <span>Short guided answers with lead capture flow.</span>
+            <span class="step-number">03</span>
+            <strong>See matching cards</strong>
+            <span>Price, area, delivery, image, brochure, and next action.</span>
           </div>
         </div>
       </div>
     </aside>
-  </section>
-
-  <section class="section results-section">
-    <div class="section-head">
-      <div>
-        <span class="eyebrow">Search results</span>
-        <h2>Recommended units</h2>
-        <p>Cards show the essentials first: image, project, unit type, price, area, delivery, and media links.</p>
-      </div>
-      <a class="admin-link" href="/admin.html">Admin panel</a>
-    </div>
-    <div id="results" class="property-grid"></div>
   </section>
 
   <section id="voice" class="section voice-section">
@@ -85,7 +88,7 @@
       <div>
         <span class="eyebrow">Voice agent</span>
         <h2>Talk to the property assistant</h2>
-        <p>Start the voice agent, hold the button while speaking, then release it for a short controlled answer.</p>
+        <p>This is the full voice conversation mode connected to the same search box above. Start it, hold while speaking, then release for a short controlled answer.</p>
       </div>
 
       <div class="voice-controls">
@@ -108,6 +111,18 @@
         </div>
       </div>
     </div>
+  </section>
+
+  <section class="section results-section">
+    <div class="section-head">
+      <div>
+        <span class="eyebrow">Search results</span>
+        <h2>Recommended units</h2>
+        <p>Cards show the essentials first: image, project, unit type, price, area, delivery, and media links.</p>
+      </div>
+      <a class="admin-link" href="/admin.html">Admin panel</a>
+    </div>
+    <div id="results" class="property-grid"></div>
   </section>
 
   <section id="projects" class="section projects-section">
