@@ -591,24 +591,55 @@ function optionLine(unit, index, arabic = false) {
 
 function buildSpokenSearchSummary(query, searchData) {
   const arabic = isArabicText(query);
-  const found = (searchData?.results || []).slice(0, 2);
+  const found = searchData?.results || [];
+  const totalMatches = Number(searchData?.total_matches || found.length || 0);
+  const developers = Array.isArray(searchData?.developers) ? searchData.developers.filter(Boolean) : [];
+  const projects = Array.isArray(searchData?.projects) ? searchData.projects.filter(Boolean) : [];
+  const priceRange = searchData?.price_range || {};
+  const minPrice = Number(priceRange.min || 0);
+  const maxPrice = Number(priceRange.max || 0);
 
   if (!found.length) {
     return arabic
-      ? "مش لاقي نتيجة مطابقة بالظبط. تحب أدوّرلك حسب ميزانية معينة؟"
-      : "I do not see an exact match yet. What budget range should I filter by?";
+      ? "مش لاقي نتيجة مطابقة دلوقتي. قولي المنطقة أو نوع الوحدة اللي بتدور عليها وأنا أرشحلك الأفضل."
+      : "I couldn't find an exact match yet. Tell me the location or unit type and I'll recommend the best options.";
   }
 
-  if (found.length === 1) {
-    const unit = found[0];
-    return arabic
-      ? `المتاح قدامي: ${unit.unit_type || "وحدة"} في ${unit.project_name || "المشروع"}، ${formatShortPrice(unit.starting_price, true)}${unit.installments_text ? "، والتقسيط " + unit.installments_text : ""}. تحب أطلعلك طريقة الدفع؟`
-      : `The best match is ${unit.unit_type || "a unit"} in ${unit.project_name || "the project"}, from ${formatShortPrice(unit.starting_price, false)}${unit.installments_text ? ", with installments " + unit.installments_text : ""}. Want the payment breakdown?`;
+  if (arabic) {
+    let message = totalMatches > 6
+      ? `عندي حالياً ${totalMatches} وحدة مناسبة لبحثك`
+      : "عندي اختيارات مناسبة لبحثك";
+
+    if (developers.length) {
+      message += ` من ${developers.slice(0, 3).join(" و ")}`;
+    } else if (projects.length) {
+      message += ` في ${projects.slice(0, 3).join(" و ")}`;
+    }
+
+    if (minPrice && maxPrice && minPrice !== maxPrice) {
+      message += `. الأسعار بتبدأ من ${formatShortPrice(minPrice, true)} وتوصل لحوالي ${formatShortPrice(maxPrice, true)}`;
+    }
+
+    message += ". في مشروع معين في بالك ولا تحب أرشحلك الأنسب؟";
+    return message;
   }
 
-  return arabic
-    ? `في اختيارين مناسبين: ${optionLine(found[0], 0, true)}. و${optionLine(found[1], 1, true)}. أنهي واحد تحب تفاصيله؟`
-    : `I found two good options: ${optionLine(found[0], 0, false)}. And ${optionLine(found[1], 1, false)}. Which one do you want details for?`;
+  let message = totalMatches > 6
+    ? `I currently have ${totalMatches} matching options`
+    : "I found suitable options";
+
+  if (developers.length) {
+    message += ` from ${developers.slice(0, 3).join(", ")}`;
+  } else if (projects.length) {
+    message += ` in ${projects.slice(0, 3).join(", ")}`;
+  }
+
+  if (minPrice && maxPrice && minPrice !== maxPrice) {
+    message += `. Prices start from ${formatShortPrice(minPrice, false)} and go up to around ${formatShortPrice(maxPrice, false)}`;
+  }
+
+  message += ". Do you already have a project in mind, or would you like me to recommend the best fit?";
+  return message;
 }
 
 function showPhoneConfirmation(leadRow) {
@@ -776,9 +807,14 @@ async function handleRealtimeEvent(event) {
       must_read_first: spokenSummary,
       answer_language_hint: isArabicText(query) ? "egyptian_arabic" : "english",
       answer: searchData?.answer || "Search completed.",
+      inventory_count: searchData?.total_matches || (searchData?.results || []).length,
+      developers: searchData?.developers || [],
+      projects: searchData?.projects || [],
+      price_range: searchData?.price_range || null,
       results_count: (searchData?.results || []).length,
       results: (searchData?.results || []).slice(0, 6).map(unit => ({
         project_name: unit.project_name,
+        developer: unit.developer,
         location: unit.location,
         unit_type: unit.unit_type,
         bedrooms_text: unit.bedrooms_text,
@@ -801,23 +837,37 @@ async function handleRealtimeEvent(event) {
         instructions: `
 You just received search_properties tool output.
 
+You are Tycoons Investments Senior Property Consultant.
+
 Critical:
 - First, read the field must_read_first to the user.
 - Do not call save_voice_lead in this response.
 - Do not ask for phone in this response.
+- Do not ask for budget in this response unless the user already asked for prices.
 - Do not say the search is still continuing.
 - Do not say you will check or search.
-- The result cards are already on screen, but you still must read the best option or options aloud.
+- Do not mention AI, database, Supabase, tools, functions, or search engine.
+- Speak like a real estate consultant, not a support bot.
+- Keep the response under 3 short sentences.
+- Ask only ONE question.
+
+Consultant behavior:
+- Mention inventory size when must_read_first includes it.
+- Mention developers when must_read_first includes them.
+- Mention price range only if must_read_first includes it or the user asked for prices.
+- If the user gave a broad request, ask whether they have a specific project in mind or want a recommendation.
+- If the user asked for a specific unit type, ask purpose: personal use or investment.
+- Ask for WhatsApp only in a later turn after the customer asks for offer, brochure, availability details, or says send details.
 
 If Arabic:
-- Reply in Egyptian Arabic as naturally as possible.
-- Read must_read_first in Arabic if it is Arabic.
+- Reply in natural Egyptian Arabic only.
+- Do not use formal Arabic.
+- Keep project and developer names in English.
 
 If English:
-- Reply in warm simple English.
-- Read must_read_first in English if it is English.
+- Reply in simple warm English.
 
-After this response, wait for the user's next push-to-talk message. Only in a later user turn may you collect budget or phone.
+After this response, wait for the user's next push-to-talk message.
 `
       }
     }));
