@@ -564,65 +564,165 @@ function getUniqueProjectNames(results, max = 3) {
   return names;
 }
 
-function fallbackAnswer(query, results) {
-  const arabic = hasArabic(query);
-  const best = results[0];
+function getUniqueDevelopers(results, max = 3) {
+  const names = [];
 
-  if (!best) {
+  for (const unit of results || []) {
+    if (unit.developer && !names.includes(unit.developer)) {
+      names.push(unit.developer);
+    }
+
+    if (names.length >= max) break;
+  }
+
+  return names;
+}
+
+function getPriceRange(results) {
+  const prices = (results || [])
+    .map((unit) => Number(unit.starting_price || 0))
+    .filter((price) => Number.isFinite(price) && price > 0);
+
+  if (!prices.length) {
+    return { min: null, max: null };
+  }
+
+  return {
+    min: Math.min(...prices),
+    max: Math.max(...prices)
+  };
+}
+
+function formatShortPrice(value, arabic = false) {
+  const num = Number(value || 0);
+  if (!num) return arabic ? "السعر غير محدد" : "price on request";
+
+  const million = num / 1000000;
+  const rounded = Math.round(million * 10) / 10;
+  const clean = Number.isInteger(rounded) ? String(rounded) : String(rounded).replace(/\.0$/, "");
+
+  return arabic ? clean + " مليون جنيه" : clean + " million EGP";
+}
+
+function hasGeneralBuyingIntent(query) {
+  const q = normalizeSearchText(query);
+
+  return hasAny(q, [
+    "عايز",
+    "بدور",
+    "محتاج",
+    "عاوز",
+    "looking for",
+    "i want",
+    "need",
+    "interested",
+    "رشح",
+    "recommend",
+    "ترشيح"
+  ]);
+}
+
+function isStrongInterestForLead(query) {
+  const q = normalizeSearchText(query);
+
+  return hasAny(q, [
+    "ابعت",
+    "ابعتهالي",
+    "ابعتلي",
+    "brochure",
+    "offer",
+    "availability",
+    "details",
+    "تفاصيل",
+    "بروشور",
+    "اوفَر",
+    "اوفر",
+    "العرض",
+    "متاح",
+    "المتاح",
+    "send"
+  ]);
+}
+
+function buildConsultantAnswer(query, allMatches, resultSample) {
+  const arabic = hasArabic(query);
+  const matches = allMatches && allMatches.length ? allMatches : resultSample;
+  const sample = resultSample && resultSample.length ? resultSample : matches;
+
+  if (!sample || !sample.length) {
     return arabic
       ? "مش لاقي اختيار مطابق من الداتا الحالية. بتدور في أنهي منطقة؟"
       : "I could not find a close match in the current inventory. Which area are you targeting?";
   }
 
-  const projects = getUniqueProjectNames(results, 3);
+  const totalMatches = matches.length;
+  const developers = getUniqueDevelopers(matches, 3);
+  const projects = getUniqueProjectNames(matches, 3);
+  const range = getPriceRange(matches);
+  const developerTextArabic = developers.join(" و");
+  const developerTextEnglish = developers.join(", ");
   const projectTextArabic = projects.join(" و");
-  const projectTextEnglish = projects.join(" and ");
+  const projectTextEnglish = projects.join(", ");
 
-  if (arabic) {
-    if (isAskingForPrice(query)) {
-      return `فيه اختيار مناسب في ${best.project_name} بسعر يبدأ من ${formatPrice(best.starting_price)}. ميزانيتك في حدود كام؟`;
-    }
-
-    if (isAskingForArea(query)) {
-      return `فيه اختيار مناسب في ${best.project_name} بمساحة تبدأ من ${best.area_sqm} متر. بتدور على مساحة في حدود كام؟`;
-    }
-
-    if (isAskingForBedrooms(query)) {
-      return `فيه اختيارات مناسبة في ${projectTextArabic}. محتاج كام غرفة؟`;
-    }
-
-    if (isAskingForDelivery(query)) {
-      return `فيه اختيارات مناسبة في ${projectTextArabic} باستلامات مختلفة حسب المشروع. محتاج استلام قريب؟`;
-    }
-
-    if (isAskingForPayment(query)) {
-      return `فيه أنظمة دفع مختلفة حسب المشروع وموعد الاستلام. بتدور على أقل مقدم ولا أطول فترة تقسيط؟`;
-    }
-
-    return `فيه اختيارات مناسبة في ${projectTextArabic}. تفضل نوع وحدة معين؟`;
+  if (isStrongInterestForLead(query)) {
+    return arabic
+      ? "أقدر أبعتلك العرض والبروشور على الواتساب. رقم واتساب للتواصل؟"
+      : "I can send you the offer and brochure on WhatsApp. What WhatsApp number should I send it to?";
   }
 
   if (isAskingForPrice(query)) {
-    return `I found a suitable option in ${best.project_name}, starting from ${formatPrice(best.starting_price)}. What budget range are you targeting?`;
+    if (range.min && range.max && range.min !== range.max) {
+      return arabic
+        ? `الأسعار المناسبة لبحثك بتبدأ من ${formatShortPrice(range.min, true)} وتوصل لحوالي ${formatShortPrice(range.max, true)} حسب المشروع والوحدة. تحب أرشحلك الأنسب حسب الاستخدام ولا الاستثمار؟`
+        : `Matching prices start from ${formatShortPrice(range.min, false)} and go up to around ${formatShortPrice(range.max, false)} depending on project and unit. Is this for personal use or investment?`;
+    }
+
+    return arabic
+      ? `أقل سعر مناسب لبحثك يبدأ من ${formatShortPrice(range.min, true)}. تحب أرشحلك حسب السكن ولا الاستثمار؟`
+      : `The lowest matching price starts from ${formatShortPrice(range.min, false)}. Is this for personal use or investment?`;
   }
 
-  if (isAskingForArea(query)) {
-    return `I found a suitable option in ${best.project_name}, starting from ${best.area_sqm} sqm. What area range are you targeting?`;
+  if (arabic) {
+    let message = totalMatches > 6
+      ? `عندي حالياً ${totalMatches} اختيار مناسب لبحثك`
+      : `عندي اختيارات مناسبة لبحثك`;
+
+    if (developers.length) {
+      message += ` من ${developerTextArabic}`;
+    } else if (projects.length) {
+      message += ` في ${projectTextArabic}`;
+    }
+
+    if (hasGeneralBuyingIntent(query)) {
+      message += ". في مشروع معين في بالك ولا تحب أرشحلك الأنسب؟";
+    } else {
+      message += ". تحب أضيقلك الاختيارات حسب نوع الوحدة؟";
+    }
+
+    return message;
   }
 
-  if (isAskingForBedrooms(query)) {
-    return `I found suitable options in ${projectTextEnglish}. How many bedrooms do you need?`;
+  let message = totalMatches > 6
+    ? `I currently have ${totalMatches} matching options`
+    : `I found suitable options`;
+
+  if (developers.length) {
+    message += ` from ${developerTextEnglish}`;
+  } else if (projects.length) {
+    message += ` in ${projectTextEnglish}`;
   }
 
-  if (isAskingForDelivery(query)) {
-    return `I found suitable options in ${projectTextEnglish} with different delivery timelines. Do you need soon delivery?`;
+  if (hasGeneralBuyingIntent(query)) {
+    message += `. Do you already have a project in mind, or would you like me to recommend the best fit?`;
+  } else {
+    message += `. Would you like me to narrow them down by unit type?`;
   }
 
-  if (isAskingForPayment(query)) {
-    return `Payment plans vary by project and delivery date. Are you looking for the lowest down payment or longest installment plan?`;
-  }
+  return message;
+}
 
-  return `I found suitable options in ${projectTextEnglish}. Which unit type do you prefer?`;
+function fallbackAnswer(query, results, allMatches = null) {
+  return buildConsultantAnswer(query, allMatches || results, results);
 }
 
 function extractJson(text) {
@@ -675,29 +775,46 @@ exports.handler = async function (event) {
     const units = await getUnits();
     const userLanguage = hasArabic(query) ? "Egyptian Arabic" : "English";
     const expandedQuery = expandSearchText(query);
-    const candidateUnits = rankUnits(query, units, 120);
+    const candidateUnits = rankUnits(query, units, Math.max(units.length, 120));
+    const totalMatches = candidateUnits.length;
+    const matchedDevelopers = getUniqueDevelopers(candidateUnits, 6);
+    const matchedProjects = getUniqueProjectNames(candidateUnits, 6);
+    const matchedPriceRange = getPriceRange(candidateUnits);
 
     if (!process.env.OPENAI_API_KEY) {
-      const results = rankUnits(query, units, 6);
+      const results = candidateUnits.slice(0, 6);
       await logSearch(query, results.length);
 
       return {
         statusCode: 200,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          answer: fallbackAnswer(query, results),
+          answer: fallbackAnswer(query, results, candidateUnits),
           results,
+          total_matches: totalMatches,
+          developers: matchedDevelopers,
+          projects: matchedProjects,
+          price_range: matchedPriceRange,
           mode: "fallback-no-key"
         })
       };
     }
 
     const prompt = `
-You are the AI property search engine for Tycoons Investments.
+You are the senior real estate consultant for Tycoons Investments.
+
+You are NOT a search engine.
+You are NOT customer support.
+You are a real estate sales consultant helping the buyer narrow down suitable options.
 
 USER_LANGUAGE: ${userLanguage}
 USER_QUERY: ${query}
 NORMALIZED_EXPANDED_QUERY: ${expandedQuery}
+TOTAL_MATCHES: ${totalMatches}
+MATCHED_DEVELOPERS: ${matchedDevelopers.join(", ")}
+MATCHED_PROJECTS: ${matchedProjects.join(", ")}
+PRICE_RANGE_MIN: ${matchedPriceRange.min || "not available"}
+PRICE_RANGE_MAX: ${matchedPriceRange.max || "not available"}
 
 AVAILABLE_UNITS_JSON:
 ${JSON.stringify(candidateUnits.map(compactUnit))}
@@ -711,45 +828,50 @@ Required JSON shape:
   "reason": "string"
 }
 
-Hard rules:
-1. Use ONLY the supplied AVAILABLE_UNITS_JSON.
-2. Never invent a project, price, location, area, payment plan, delivery date, bedroom count, or availability.
+Core rules:
+1. Use ONLY AVAILABLE_UNITS_JSON.
+2. Never invent a project, developer, price, location, area, payment plan, delivery date, bedroom count, or availability.
 3. Pick up to 6 best matching units.
-4. If the user asks in English, the answer MUST be 100% English.
-5. If the user asks in Arabic, answer in natural Egyptian Arabic.
-6. Do not mix Arabic and English except for project names, locations, and unit type names like iVilla, Garden Duplex, Roof Duplex, Lagoon Duplex, New Cairo.
-7. Keep the answer very short: maximum 2 short sentences.
-8. End with exactly one helpful question.
-9. No emojis.
-10. Do not suggest a call.
-11. Do NOT mention price unless the user specifically asks about price, budget, cheapest, starting price, or payment.
-12. Do NOT mention area unless the user specifically asks about area, sqm, meter, المساحة, متر.
-13. Do NOT mention bedrooms unless the user specifically asks about bedrooms, rooms, غرف.
-14. Do NOT mention delivery unless the user specifically asks about delivery, handover, استلام, جاهز.
-15. Do NOT mention installments or down payment unless the user specifically asks about payment, installments, تقسيط, مقدم.
-16. If the user asks generally for a unit type and location, answer with matching projects only, then ask one filtering question.
-17. If multiple projects match, mention up to 3 project names only.
-18. If there is one strong match, mention the project and unit type only.
-19. Do not say all details in one answer.
-20. Treat iVilla, i villa, I-Villa, اي فيلا, آي فيلا, دوبلكس, Duplex, Garden Duplex, Roof Duplex, and Lagoon Duplex as related search terms.
-21. If the user asks for iVilla, prefer units whose unit_type or description includes iVilla or Duplex aliases over standalone villas.
-22. If the user mentions a location like التجمع / New Cairo, do not mention Sheikh Zayed or North Coast projects in the answer unless there are no matching results in that location.
-23. If the user mentions Sheikh Zayed, do not mention New Cairo or North Coast projects unless there are no matching results there.
-24. If the user mentions North Coast / الساحل, do not mention New Cairo or Sheikh Zayed projects unless there are no matching results there.
-25. If the selected results include prices, areas, bedrooms, delivery, and payment, keep them hidden unless the user asked for that specific detail.
+4. If the user asks in English, answer 100% in English.
+5. If the user asks in Arabic, answer in natural Egyptian Arabic only.
+6. Do not mix Arabic and English except for project names, developer names, locations, and unit type names.
+7. No emojis.
+8. Do not suggest a call.
+9. Ask only ONE question at the end.
+10. Maximum 3 short sentences.
+11. Provide value before asking a question.
+12. Never sound like a database or search engine.
+13. Never mention AI, database, Supabase, tools, function, search engine, or inventory system.
 
-Examples:
-English answer style:
-"I found suitable iVilla / Duplex options in Mountain View iCity New Cairo and Mountain View 1.1. Do you prefer Garden or Roof?"
+Consultant behavior:
+14. If the user gives a broad request like "عايز شاليه في الساحل" or "villa in New Cairo", mention that there are multiple suitable options, mention up to 3 developers or projects, then ask if they have a specific project in mind or want a recommendation.
+15. Do NOT ask for budget as the first question.
+16. Do NOT ask for WhatsApp number as the first question.
+17. Qualification order should be:
+   location → project → unit type → purpose → budget.
+18. If the user asks generally, do not dump details. Start with developers/projects and one natural question.
+19. If user asks for unit type, mention availability and ask one narrowing question.
+20. If user asks for price, mention ONLY the lowest and highest matching prices, not a long list.
+21. If user asks for brochure, offer, availability details, or says "ابعتلي", then ask for WhatsApp number.
+22. Keep prices voice-friendly in Arabic when possible: say "18.7 مليون جنيه" not "18,700,000 جنيه".
+23. Treat iVilla, i villa, I-Villa, اي فيلا, آي فيلا, دوبلكس, Duplex, Garden Duplex, Roof Duplex, and Lagoon Duplex as related search terms.
+24. If user asks for iVilla, prefer units whose unit_type or description includes iVilla or Duplex aliases over standalone villas.
+25. If the user mentions New Cairo / التجمع, avoid Sheikh Zayed or North Coast unless there are no matching results there.
+26. If the user mentions Sheikh Zayed, avoid New Cairo or North Coast unless there are no matching results there.
+27. If the user mentions North Coast / الساحل, avoid New Cairo or Sheikh Zayed unless there are no matching results there.
 
-Egyptian Arabic answer style:
-"فيه اختيارات iVilla / Duplex مناسبة في Mountain View iCity New Cairo وMountain View 1.1 في التجمع. تفضل Garden ولا Roof؟"
+Arabic style examples:
+Broad request:
+"عندي اختيارات متعددة في الساحل من Mountain View و SODIC و Tatweer Misr. في مشروع معين في بالك ولا تحب أرشحلك الأنسب؟"
 
-If user asks about price:
-"فيه iVilla / Duplex في Mountain View iCity New Cairo بسعر يبدأ من 21,553,551 جنيه. ميزانيتك في حدود كام؟"
+Unit type request:
+"عندي اختيارات فيلات مناسبة في التجمع من أكتر من مشروع. بتدور على فيلا للسكن ولا للاستثمار؟"
 
-If user asks about delivery:
-"فيه اختيارات iVilla / Duplex في التجمع باستلامات مختلفة حسب المشروع. محتاج استلام قريب ولا عادي خلال كام سنة؟"
+Price request:
+"الأسعار المناسبة لبحثك بتبدأ من 14.7 مليون جنيه وتوصل لحوالي 38 مليون جنيه حسب المشروع والوحدة. تحب أرشحلك الأنسب للسكن ولا الاستثمار؟"
+
+Lead request:
+"أقدر أبعتلك العرض والبروشور على الواتساب. رقم واتساب للتواصل؟"
 `;
 
     const openaiRes = await fetch("https://api.openai.com/v1/responses", {
@@ -768,15 +890,19 @@ If user asks about delivery:
       const details = await openaiRes.text();
       console.error("OpenAI API error:", details);
 
-      const fallback = rankUnits(query, units, 6);
+      const fallback = candidateUnits.slice(0, 6);
       await logSearch(query, fallback.length);
 
       return {
         statusCode: 200,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          answer: fallbackAnswer(query, fallback),
+          answer: fallbackAnswer(query, fallback, candidateUnits),
           results: fallback,
+          total_matches: totalMatches,
+          developers: matchedDevelopers,
+          projects: matchedProjects,
+          price_range: matchedPriceRange,
           mode: "fallback-openai-error"
         })
       };
@@ -800,7 +926,7 @@ If user asks about delivery:
     }
 
     if (!selected.length) {
-      selected = rankUnits(query, units, 6);
+      selected = candidateUnits.slice(0, 6);
     }
 
     await logSearch(query, selected.length);
@@ -809,8 +935,12 @@ If user asks about delivery:
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        answer: parsed?.answer || fallbackAnswer(query, selected),
+        answer: parsed?.answer || fallbackAnswer(query, selected, candidateUnits),
         results: selected.slice(0, 6),
+        total_matches: totalMatches,
+        developers: matchedDevelopers,
+        projects: matchedProjects,
+        price_range: matchedPriceRange,
         mode: "ai"
       })
     };
