@@ -101,29 +101,23 @@ function whatsappButton(label, message, source = "card_whatsapp", extra = {}) {
 
 function parseGalleryUrls(value) {
   if (!value) return [];
-  if (Array.isArray(value)) return value.map(url => String(url || "").trim()).filter(Boolean);
+
+  if (Array.isArray(value)) {
+    return value.map(url => String(url || "").trim()).filter(Boolean);
+  }
+
   return String(value || "")
-    .split(/[
-,]+/)
+    .split(/[\n,]+/)
     .map(url => url.trim())
     .filter(Boolean);
 }
 
-function uniqueMediaUrls(urls) {
-  const seen = new Set();
-  return (urls || []).filter((url) => {
-    const clean = String(url || "").trim();
-    if (!clean || seen.has(clean)) return false;
-    seen.add(clean);
-    return true;
-  });
-}
-
 function mediaUrls(item) {
-  return uniqueMediaUrls([
-    item.image_url,
-    ...parseGalleryUrls(item.gallery_urls)
-  ]);
+  const urls = [item.image_url, ...parseGalleryUrls(item.gallery_urls)]
+    .map(url => String(url || "").trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(urls));
 }
 
 function mediaImage(item) {
@@ -131,19 +125,17 @@ function mediaImage(item) {
   const urls = mediaUrls(item);
 
   if (urls.length > 1) {
-    const slides = urls.map((url, index) => `
-        <img class="carousel-img${index === 0 ? " active" : ""}" src="${escapeAttr(url)}" alt="${escapeAttr(location)} image ${index + 1}" loading="lazy" referrerpolicy="no-referrer" data-slide-index="${index}">
-      `).join("");
+    const slides = urls.map((url, index) => {
+      return `<img class="carousel-img${index === 0 ? " active" : ""}" src="${escapeAttr(url)}" alt="${escapeAttr(location)} image ${index + 1}" loading="lazy" referrerpolicy="no-referrer">`;
+    }).join("");
 
-    const dots = urls.map((_, index) => `
-        <button class="carousel-dot${index === 0 ? " active" : ""}" type="button" data-carousel-dot="${index}" aria-label="Show image ${index + 1}"></button>
-      `).join("");
+    const dots = urls.map((_, index) => {
+      return `<button class="carousel-dot${index === 0 ? " active" : ""}" type="button" data-carousel-dot="${index}" aria-label="Show image ${index + 1}"></button>`;
+    }).join("");
 
     return `
-      <div class="image photo has-img image-carousel" data-carousel-index="0" data-carousel-total="${urls.length}">
-        <div class="carousel-track">
-          ${slides}
-        </div>
+      <div class="image photo has-img image-carousel" data-carousel-index="0">
+        <div class="carousel-track">${slides}</div>
         <button class="carousel-nav carousel-prev" type="button" data-carousel-dir="-1" aria-label="Previous image">‹</button>
         <button class="carousel-nav carousel-next" type="button" data-carousel-dir="1" aria-label="Next image">›</button>
         <div class="carousel-counter">1 / ${urls.length}</div>
@@ -220,7 +212,6 @@ function enrichProjectsWithUnitMedia(projectList) {
     return {
       ...project,
       image_url: project.image_url || matchedUnit.image_url || null,
-      gallery_urls: project.gallery_urls || matchedUnit.gallery_urls || null,
       brochure_url: project.brochure_url || matchedUnit.brochure_url || null,
       video_url: project.video_url || matchedUnit.video_url || null
     };
@@ -1131,6 +1122,65 @@ startVoiceAgentBtn.addEventListener("click", startRealtimeAgent);
 stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("Voice session stopped."));
 window.addEventListener("beforeunload", () => stopRealtimeAgent("Voice agent is off."));
 
+
+/* ============================================================
+   SAFE PROPERTY CARD IMAGE CAROUSEL
+   ------------------------------------------------------------
+   image_url = first/main image
+   gallery_urls = extra images separated by commas or line breaks
+   If gallery_urls is empty, old single-image cards stay unchanged.
+   ============================================================ */
+
+function updatePropertyCarousel(carousel, nextIndex) {
+  if (!carousel) return;
+
+  const slides = Array.from(carousel.querySelectorAll(".carousel-img"));
+  if (!slides.length) return;
+
+  const total = slides.length;
+  const safeIndex = ((Number(nextIndex || 0) % total) + total) % total;
+
+  carousel.dataset.carouselIndex = String(safeIndex);
+
+  slides.forEach((slide, index) => {
+    slide.classList.toggle("active", index === safeIndex);
+  });
+
+  carousel.querySelectorAll(".carousel-dot").forEach((dot, index) => {
+    dot.classList.toggle("active", index === safeIndex);
+  });
+
+  const counter = carousel.querySelector(".carousel-counter");
+  if (counter) counter.textContent = `${safeIndex + 1} / ${total}`;
+}
+
+document.addEventListener("click", function handlePropertyCarouselClick(event) {
+  const clicked = event.target;
+  if (!clicked || !clicked.closest) return;
+
+  const navButton = clicked.closest("[data-carousel-dir]");
+  const dotButton = clicked.closest("[data-carousel-dot]");
+
+  if (!navButton && !dotButton) return;
+
+  const carousel = clicked.closest(".image-carousel");
+  if (!carousel) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const currentIndex = Number(carousel.dataset.carouselIndex || 0);
+
+  if (navButton) {
+    const direction = Number(navButton.dataset.carouselDir || 1);
+    updatePropertyCarousel(carousel, currentIndex + direction);
+    return;
+  }
+
+  updatePropertyCarousel(carousel, Number(dotButton.dataset.carouselDot || 0));
+});
+
+
 loadData();
 
 async function loadData() {
@@ -1265,43 +1315,6 @@ async function loadData() {
   });
 })();
 
-
-
-/* ============================================================
-   PROPERTY CARD IMAGE CAROUSEL
-   ------------------------------------------------------------
-   Uses image_url as the main image and gallery_urls as extra images.
-   If gallery_urls is empty, cards keep the old single-image behavior.
-   ============================================================ */
-
-function updateCarousel(carousel, nextIndex) {
-  if (!carousel) return;
-  const slides = Array.from(carousel.querySelectorAll(".carousel-img"));
-  if (!slides.length) return;
-  const total = slides.length;
-  const normalizedIndex = ((nextIndex % total) + total) % total;
-  carousel.dataset.carouselIndex = String(normalizedIndex);
-  slides.forEach((slide, index) => slide.classList.toggle("active", index === normalizedIndex));
-  carousel.querySelectorAll(".carousel-dot").forEach((dot, index) => dot.classList.toggle("active", index === normalizedIndex));
-  const counter = carousel.querySelector(".carousel-counter");
-  if (counter) counter.textContent = `${normalizedIndex + 1} / ${total}`;
-}
-
-document.addEventListener("click", (event) => {
-  const navButton = event.target.closest("[data-carousel-dir]");
-  const dotButton = event.target.closest("[data-carousel-dot]");
-  if (!navButton && !dotButton) return;
-  const carousel = event.target.closest(".image-carousel");
-  if (!carousel) return;
-  event.preventDefault();
-  event.stopPropagation();
-  const currentIndex = Number(carousel.dataset.carouselIndex || 0);
-  if (navButton) {
-    updateCarousel(carousel, currentIndex + Number(navButton.dataset.carouselDir || 1));
-    return;
-  }
-  updateCarousel(carousel, Number(dotButton.dataset.carouselDot || 0));
-});
 
 /* ============================================================
    WHATSAPP LEAD TRACKING V1
