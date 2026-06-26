@@ -74,7 +74,7 @@ function whatsappUrl(message, source = "website", extra = {}) {
   const contextLines = [
     "",
     "Source: " + source,
-    "Page: " + (extra.page_path || window.location.pathname || "/"),
+    "Page: " + (extra.page_path || currentCleanPageUrl()),
     "Tracking ID: " + trackingId
   ];
 
@@ -83,6 +83,67 @@ function whatsappUrl(message, source = "website", extra = {}) {
 
   return "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(trackedMessage);
 }
+
+
+function currentCleanPageUrl() {
+  return String(window.location.href || "https://tycoons-inv.de/").split("#")[0];
+}
+
+function whatsappLine(label, value) {
+  const clean = safe(value, "");
+  return clean ? `${label}: ${clean}` : "";
+}
+
+function whatsappMoney(value) {
+  const num = Number(value || 0);
+  if (!num) return "";
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(num)) + " EGP";
+}
+
+function itemDisplayUrl(item) {
+  return item.image_url || item.brochure_url || currentCleanPageUrl();
+}
+
+function unitWhatsappMessage(item) {
+  return [
+    "Hello Tycoons Investments,",
+    "I am interested in this available unit:",
+    "",
+    whatsappLine("Project", item.project_name),
+    whatsappLine("Developer", item.developer),
+    whatsappLine("Location", item.location),
+    whatsappLine("Unit type", item.unit_type),
+    whatsappLine("Bedrooms", item.bedrooms_text),
+    whatsappLine("Area", areaText(item.area_sqm)),
+    whatsappLine("Starting price", whatsappMoney(item.starting_price)),
+    whatsappLine("Delivery", item.delivery_text),
+    whatsappLine("Finishing", item.finishing),
+    "",
+    whatsappLine("URL", itemDisplayUrl(item)),
+    item.brochure_url && item.brochure_url !== itemDisplayUrl(item) ? whatsappLine("Brochure", item.brochure_url) : "",
+    "",
+    "Please send me the latest availability and payment plan."
+  ].filter(Boolean).join("\n");
+}
+
+function projectWhatsappMessage(item) {
+  return [
+    "Hello Tycoons Investments,",
+    "I am interested in this project:",
+    "",
+    whatsappLine("Project", item.name),
+    whatsappLine("Developer", item.developer),
+    whatsappLine("Location", item.location),
+    whatsappLine("Starting price", whatsappMoney(item.min_price)),
+    whatsappLine("Status", item.status),
+    "",
+    whatsappLine("URL", itemDisplayUrl(item)),
+    item.brochure_url && item.brochure_url !== itemDisplayUrl(item) ? whatsappLine("Brochure", item.brochure_url) : "",
+    "",
+    "Please send me available options and details."
+  ].filter(Boolean).join("\n");
+}
+
 
 function whatsappButton(label, message, source = "card_whatsapp", extra = {}) {
   const attrs = [
@@ -99,56 +160,13 @@ function whatsappButton(label, message, source = "card_whatsapp", extra = {}) {
   return `<a class="card-whatsapp" href="${whatsappUrl(message, source, extra)}" target="_blank" rel="noopener" ${attrs.join(" ")}>${label}</a>`;
 }
 
-function parseGalleryUrls(value) {
-  if (!value) return [];
-
-  if (Array.isArray(value)) {
-    return value.map(url => String(url || "").trim()).filter(Boolean);
-  }
-
-  return String(value || "")
-    .split(/[\n,]+/)
-    .map(url => url.trim())
-    .filter(Boolean);
-}
-
-function mediaUrls(item) {
-  const urls = [item.image_url, ...parseGalleryUrls(item.gallery_urls)]
-    .map(url => String(url || "").trim())
-    .filter(Boolean);
-
-  return Array.from(new Set(urls));
-}
-
 function mediaImage(item) {
   const location = safe(item.location);
-  const urls = mediaUrls(item);
 
-  if (urls.length > 1) {
-    const slides = urls.map((url, index) => {
-      return `<img class="carousel-img${index === 0 ? " active" : ""}" src="${escapeAttr(url)}" alt="${escapeAttr(location)} image ${index + 1}" loading="lazy" referrerpolicy="no-referrer">`;
-    }).join("");
-
-    const dots = urls.map((_, index) => {
-      return `<button class="carousel-dot${index === 0 ? " active" : ""}" type="button" data-carousel-dot="${index}" aria-label="Show image ${index + 1}"></button>`;
-    }).join("");
-
-    return `
-      <div class="image photo has-img image-carousel" data-carousel-index="0">
-        <div class="carousel-track">${slides}</div>
-        <button class="carousel-nav carousel-prev" type="button" data-carousel-dir="-1" aria-label="Previous image">‹</button>
-        <button class="carousel-nav carousel-next" type="button" data-carousel-dir="1" aria-label="Next image">›</button>
-        <div class="carousel-counter">1 / ${urls.length}</div>
-        <div class="carousel-dots">${dots}</div>
-        <span>${location}</span>
-      </div>
-    `;
-  }
-
-  if (urls.length === 1) {
+  if (item.image_url) {
     return `
       <div class="image photo has-img">
-        <img src="${escapeAttr(urls[0])}" alt="${escapeAttr(location)}" loading="lazy" referrerpolicy="no-referrer">
+        <img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(location)}" loading="lazy" referrerpolicy="no-referrer">
         <span>${location}</span>
       </div>
     `;
@@ -238,9 +256,10 @@ function card(item, type = "unit") {
           <div class="tags">${tags}</div>
           <div class="price-row"><span>Starting price</span><strong>${price(item.min_price)}</strong></div>
           ${mediaLinks(item)}
-          ${whatsappButton("Ask on WhatsApp", "Hello Tycoons Investments, I am interested in " + safe(item.name, "this project") + ". Please send me available options.", "project_card", {
+          ${whatsappButton("Ask on WhatsApp", projectWhatsappMessage(item), "project_card", {
             project_name: safe(item.name, ""),
-            starting_price: item.min_price || ""
+            starting_price: item.min_price || "",
+            url: itemDisplayUrl(item)
           })}
         </div>
       </article>
@@ -266,11 +285,12 @@ function card(item, type = "unit") {
         <div class="price-row"><span>Starting price</span><strong>${price(item.starting_price)}</strong></div>
         <div class="card-metrics">${metrics}</div>
         ${mediaLinks(item)}
-        ${whatsappButton("Send WhatsApp Request", "Hello Tycoons Investments, I am interested in " + safe(item.project_name, "this project") + " - " + safe(item.unit_type, "unit") + " - " + safe(item.bedrooms_text, "bedrooms") + ". Please send me details.", "unit_card", {
+        ${whatsappButton("Send WhatsApp Request", unitWhatsappMessage(item), "unit_card", {
           project_name: safe(item.project_name, ""),
           unit_type: safe(item.unit_type, ""),
           bedrooms_text: safe(item.bedrooms_text, ""),
-          starting_price: item.starting_price || ""
+          starting_price: item.starting_price || "",
+          url: itemDisplayUrl(item)
         })}
       </div>
     </article>
@@ -1121,65 +1141,6 @@ if (cancelPhoneBtn) {
 startVoiceAgentBtn.addEventListener("click", startRealtimeAgent);
 stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("Voice session stopped."));
 window.addEventListener("beforeunload", () => stopRealtimeAgent("Voice agent is off."));
-
-
-/* ============================================================
-   SAFE PROPERTY CARD IMAGE CAROUSEL
-   ------------------------------------------------------------
-   image_url = first/main image
-   gallery_urls = extra images separated by commas or line breaks
-   If gallery_urls is empty, old single-image cards stay unchanged.
-   ============================================================ */
-
-function updatePropertyCarousel(carousel, nextIndex) {
-  if (!carousel) return;
-
-  const slides = Array.from(carousel.querySelectorAll(".carousel-img"));
-  if (!slides.length) return;
-
-  const total = slides.length;
-  const safeIndex = ((Number(nextIndex || 0) % total) + total) % total;
-
-  carousel.dataset.carouselIndex = String(safeIndex);
-
-  slides.forEach((slide, index) => {
-    slide.classList.toggle("active", index === safeIndex);
-  });
-
-  carousel.querySelectorAll(".carousel-dot").forEach((dot, index) => {
-    dot.classList.toggle("active", index === safeIndex);
-  });
-
-  const counter = carousel.querySelector(".carousel-counter");
-  if (counter) counter.textContent = `${safeIndex + 1} / ${total}`;
-}
-
-document.addEventListener("click", function handlePropertyCarouselClick(event) {
-  const clicked = event.target;
-  if (!clicked || !clicked.closest) return;
-
-  const navButton = clicked.closest("[data-carousel-dir]");
-  const dotButton = clicked.closest("[data-carousel-dot]");
-
-  if (!navButton && !dotButton) return;
-
-  const carousel = clicked.closest(".image-carousel");
-  if (!carousel) return;
-
-  event.preventDefault();
-  event.stopPropagation();
-
-  const currentIndex = Number(carousel.dataset.carouselIndex || 0);
-
-  if (navButton) {
-    const direction = Number(navButton.dataset.carouselDir || 1);
-    updatePropertyCarousel(carousel, currentIndex + direction);
-    return;
-  }
-
-  updatePropertyCarousel(carousel, Number(dotButton.dataset.carouselDot || 0));
-});
-
 
 loadData();
 
