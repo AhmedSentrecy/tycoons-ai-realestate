@@ -1060,3 +1060,37 @@ textarea:focus,input:focus{
 @media(max-width:480px){
   .pp-search-form{flex-direction:column}
 }
+
+/* ============================================================
+   HOMEPAGE CARD: make the project/unit title look clickable
+   ------------------------------------------------------------
+   Adds a gold hover color + small arrow so visitors notice the
+   project name leads to its own page.
+   ============================================================ */
+.card-title-link{
+  display:inline-block;
+  text-decoration:none;
+}
+.card-title-link h3{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  transition:color .15s ease;
+}
+.card-title-link h3::after{
+  content:"→";
+  font-size:15px;
+  color:var(--gold);
+  opacity:0;
+  transform:translateX(-4px);
+  transition:opacity .15s ease,transform .15s ease;
+}
+.card-title-link:hover h3{
+  color:var(--gold);
+  text-decoration:underline;
+  text-decoration-color:rgba(184,137,57,.45);
+}
+.card-title-link:hover h3::after{
+  opacity:1;
+  transform:translateX(0);
+}
