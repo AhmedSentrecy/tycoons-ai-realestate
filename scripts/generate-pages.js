@@ -67,14 +67,17 @@ function formatPrice(value) {
    IMAGE GALLERY + CAROUSEL (for the right side of project pages)
    ------------------------------------------------------------ */
 
-// Collect all usable images for a project: its own image_url and
-// gallery_urls, plus any images found on its units as a fallback.
+function isExternalThumbnail(url) {
+  return /drive\.google\.com/i.test(String(url || ""));
+}
+
+// Collect all usable images for a project: its own gallery_urls first
+// (real Supabase Storage uploads), falling back to image_url only if
+// it's not an external thumbnail (e.g. Google Drive), then unit images.
 function collectProjectImages(project, units) {
   const raw = [];
 
-  if (project.image_url) raw.push(project.image_url);
-
-  // gallery_urls may be a comma/newline separated string or an array
+  // Project's own gallery first (Supabase Storage)
   if (project.gallery_urls) {
     if (Array.isArray(project.gallery_urls)) {
       raw.push(...project.gallery_urls);
@@ -83,13 +86,18 @@ function collectProjectImages(project, units) {
     }
   }
 
-  // Fallback: pull images from units if the project itself has few
+  // Project's own image_url, but skip it if it's an external thumbnail
+  if (project.image_url && !isExternalThumbnail(project.image_url)) {
+    raw.push(project.image_url);
+  }
+
+  // Fallback: pull images from units (gallery first, then image_url if not external)
   (units || []).forEach((u) => {
-    if (u.image_url) raw.push(u.image_url);
     if (u.gallery_urls) {
       if (Array.isArray(u.gallery_urls)) raw.push(...u.gallery_urls);
       else raw.push(...String(u.gallery_urls).split(/[\n,]+/));
     }
+    if (u.image_url && !isExternalThumbnail(u.image_url)) raw.push(u.image_url);
   });
 
   // Clean, trim, dedupe
