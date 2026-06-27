@@ -320,7 +320,7 @@ function card(item, type = "unit") {
         ${mediaImage(item)}
         <div class="content">
           <div class="card-kicker">Project</div>
-          <a href="${escapeAttr(projectUrl)}">
+          <a class="card-title-link" href="${escapeAttr(projectUrl)}">
             <h3>${safe(item.name)}</h3>
           </a>
           <div class="tags">${tags}</div>
@@ -355,7 +355,7 @@ function card(item, type = "unit") {
       ${mediaImage(item)}
       <div class="content">
         <div class="card-kicker">Available unit</div>
-        <a href="${escapeAttr(unitProjectUrl)}">
+        <a class="card-title-link" href="${escapeAttr(unitProjectUrl)}">
           <h3>${safe(item.project_name)}</h3>
         </a>
         <div class="tags">${tags}</div>
