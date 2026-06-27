@@ -176,6 +176,100 @@ const CAROUSEL_SCRIPT = `<script>
 })();
 </script>`;
 
+// Self-contained "Ask for Brochure" popup, baked with this site's
+// Supabase config so static pages can save a lead without loading
+// the full script.js. Saves to the same "leads" table used by the
+// homepage contact form, then opens the brochure link.
+const BROCHURE_WIDGET_SCRIPT = `<script>
+(function(){
+  var TYCOONS_WHATSAPP_NUMBER = "201200704344";
+
+  function buildModal(){
+    if (document.getElementById('brochureModalBackdrop')) return;
+    var wrap = document.createElement('div');
+    wrap.id = 'brochureModalBackdrop';
+    wrap.className = 'brochure-modal-backdrop hidden';
+    wrap.innerHTML =
+      '<div class="brochure-modal" role="dialog" aria-modal="true">' +
+        '<button type="button" class="brochure-modal-close" aria-label="Close">&times;</button>' +
+        '<h3>Ask for Brochure</h3>' +
+        '<p class="brochure-modal-project"></p>' +
+        '<form class="brochure-modal-form">' +
+          '<input type="text" name="name" placeholder="Your name" required>' +
+          '<input type="tel" name="phone" placeholder="WhatsApp number" required>' +
+          '<button type="submit">Send &amp; Get Brochure</button>' +
+        '</form>' +
+        '<div class="brochure-modal-status"></div>' +
+      '</div>';
+    document.body.appendChild(wrap);
+  }
+
+  function openModal(projectName, brochureUrl, source){
+    buildModal();
+    var backdrop = document.getElementById('brochureModalBackdrop');
+    backdrop.classList.remove('hidden');
+    backdrop.dataset.brochureUrl = brochureUrl || '';
+    backdrop.dataset.projectName = projectName || '';
+    backdrop.dataset.source = source || 'brochure_request';
+    backdrop.querySelector('.brochure-modal-project').textContent = projectName ? ('For: ' + projectName) : '';
+    backdrop.querySelector('.brochure-modal-status').textContent = '';
+    backdrop.querySelector('.brochure-modal-form').reset();
+  }
+
+  function closeModal(){
+    var backdrop = document.getElementById('brochureModalBackdrop');
+    if (backdrop) backdrop.classList.add('hidden');
+  }
+
+  document.addEventListener('click', function(e){
+    var trigger = e.target.closest('.js-ask-brochure');
+    if (trigger){
+      e.preventDefault();
+      openModal(trigger.dataset.project || '', trigger.dataset.brochureUrl || '', trigger.dataset.source || 'brochure_request');
+      return;
+    }
+    if (e.target.closest('.brochure-modal-close') || e.target.id === 'brochureModalBackdrop'){
+      closeModal();
+    }
+  });
+
+  document.addEventListener('submit', function(e){
+    var form = e.target.closest('.brochure-modal-form');
+    if (!form) return;
+    e.preventDefault();
+
+    var backdrop = document.getElementById('brochureModalBackdrop');
+    var statusEl = backdrop.querySelector('.brochure-modal-status');
+    var data = new FormData(form);
+    var name = (data.get('name') || '').toString().trim();
+    var phone = (data.get('phone') || '').toString().trim();
+    var projectName = backdrop.dataset.projectName;
+    var source = backdrop.dataset.source;
+
+    if (!name || !phone){
+      statusEl.textContent = 'Please fill in your name and number.';
+      return;
+    }
+
+    statusEl.textContent = 'Opening WhatsApp...';
+
+    var message = [
+      'Hello Tycoons Investments,',
+      'I am requesting the brochure for:',
+      projectName,
+      '',
+      'Name: ' + name,
+      'WhatsApp: ' + phone
+    ].filter(Boolean).join('\\n');
+
+    var waUrl = 'https://wa.me/' + TYCOONS_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message);
+    window.open(waUrl, '_blank', 'noopener');
+
+    setTimeout(closeModal, 600);
+  });
+})();
+</script>`;
+
 /**
  * FIX FOR DUPLICATE UNIT DESCRIPTIONS
  * ------------------------------------
@@ -336,7 +430,7 @@ function buildProjectPage(project, units) {
   <p class="unit-terms">${escapeHtml(u.down_payment_text)} &middot; ${escapeHtml(u.installments_text)}</p>
   <p class="unit-delivery">${escapeHtml(u.delivery_text)}</p>
   <p class="unit-desc">${escapeHtml(buildUnitDescription(project, u))}</p>
-  ${u.brochure_url ? `<a class="ghost" href="${escapeHtml(u.brochure_url)}" target="_blank" rel="noopener">Download Brochure</a>` : ""}
+  <button type="button" class="ghost js-ask-brochure" data-project="${escapeHtml(projectName)}" data-source="unit_page_brochure_request">Brochure</button>
 </article>`;
     })
     .join("\n");
@@ -388,7 +482,7 @@ function buildProjectPage(project, units) {
       <p class="location-line">${escapeHtml(location)}</p>
       ${minPrice ? `<p class="hero-quote">Starting from ${formatPrice(minPrice)} EGP</p>` : ""}
       ${project.description ? `<p>${escapeHtml(project.description)}</p>` : ""}
-      ${project.brochure_url ? `<a class="ghost" href="${escapeHtml(project.brochure_url)}" target="_blank" rel="noopener">Project Brochure</a>` : ""}
+      <button type="button" class="ghost js-ask-brochure" data-project="${escapeHtml(projectName)}" data-source="project_page_brochure_request">Brochure</button>
       <a class="btn" href="/#search">Ask the AI Search about ${escapeHtml(projectName)}</a>
     </div>
     <div class="pp-hero-media">
@@ -486,7 +580,7 @@ ${faqHtml}
     bodyHtml,
     jsonLd: [jsonLd, faqJsonLd],
     breadcrumbJsonLd,
-    extraScript: CAROUSEL_SCRIPT,
+    extraScript: CAROUSEL_SCRIPT + BROCHURE_WIDGET_SCRIPT,
   });
 
   return { url, html, lastmod: project.last_updated_at };
