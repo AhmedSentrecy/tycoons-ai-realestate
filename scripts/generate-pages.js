@@ -63,6 +63,53 @@ function formatPrice(value) {
   return n.toLocaleString("en-US");
 }
 
+/**
+ * FIX FOR DUPLICATE UNIT DESCRIPTIONS
+ * ------------------------------------
+ * Previously each unit card just printed the raw `description` field
+ * from Supabase. If many units share the same (or empty) description
+ * text in the database, Google sees identical paragraphs repeated
+ * across many pages — this is the "duplicate content" SEO problem.
+ *
+ * This function instead builds a description out of facts that are
+ * almost always unique per unit (type, bedrooms, area, price,
+ * finishing, delivery, location). The original free-text description
+ * (if present) is appended as a bonus, never used alone.
+ */
+function buildUnitDescription(project, unit) {
+  const parts = [];
+
+  const type = unit.unit_type || "Unit";
+  const bedrooms = unit.bedrooms_text;
+  const area = unit.area_sqm;
+  const location = project.location || unit.location;
+  const projectName = project.name || unit.project_name;
+  const price = formatPrice(unit.starting_price);
+  const delivery = unit.delivery_text;
+  const finishing = unit.finishing;
+
+  // Sentence 1: the basics — unique because area/price/type rarely repeat together
+  let sentence1 = `${type}`;
+  if (bedrooms) sentence1 += ` with ${bedrooms}`;
+  if (area) sentence1 += ` and ${area} sqm built-up area`;
+  sentence1 += ` in ${projectName}${location ? `, ${location}` : ""}.`;
+  parts.push(sentence1);
+
+  // Sentence 2: commercial details
+  let sentence2 = "";
+  if (price) sentence2 += `Priced from ${price} EGP`;
+  if (finishing) sentence2 += `${sentence2 ? ", with" : "Comes with"} ${finishing} finishing`;
+  if (delivery) sentence2 += `${sentence2 ? "," : ""} delivery ${delivery}`;
+  if (sentence2) parts.push(sentence2.trim() + ".");
+
+  // Sentence 3: original free-text description, used only as a supplement
+  if (unit.description && String(unit.description).trim().length > 0) {
+    parts.push(String(unit.description).trim());
+  }
+
+  return parts.join(" ");
+}
+
 async function fetchTable(table) {
   const url = `${SUPABASE_URL}/rest/v1/${table}?select=*&order=last_updated_at.desc`;
   const res = await fetch(url, {
@@ -179,7 +226,7 @@ function buildProjectPage(project, units) {
   ${price ? `<p class="unit-price">Starting from <strong>${price} EGP</strong></p>` : ""}
   <p class="unit-terms">${escapeHtml(u.down_payment_text)} &middot; ${escapeHtml(u.installments_text)}</p>
   <p class="unit-delivery">${escapeHtml(u.delivery_text)}</p>
-  ${u.description ? `<p class="unit-desc">${escapeHtml(u.description)}</p>` : ""}
+  <p class="unit-desc">${escapeHtml(buildUnitDescription(project, u))}</p>
   ${u.brochure_url ? `<a class="ghost" href="${escapeHtml(u.brochure_url)}" target="_blank" rel="noopener">Download Brochure</a>` : ""}
 </article>`;
     })
