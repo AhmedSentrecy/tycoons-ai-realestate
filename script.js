@@ -68,6 +68,29 @@ function escapeAttr(value) {
     .replace(/>/g, "&gt;");
 }
 
+/* ============================================================
+   PROJECT PAGE LINK BUILDER
+   ------------------------------------------------------------
+   Mirrors the exact same slugify logic used in
+   scripts/generate-pages.js so the link always points to the
+   real, already-built static page (/projects/<slug>.html).
+   ============================================================ */
+function slugify(str) {
+  if (!str) return "unit";
+  return String(str)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0600-\u06FF]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "item";
+}
+
+function projectPageUrl(projectName, location) {
+  const slug = slugify(`${projectName || ""}-${location || ""}`);
+  return `/projects/${slug}.html`;
+}
+
 
 function whatsappUrl(message, source = "website", extra = {}) {
   const trackingId = extra.tracking_id || ("wa_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8));
@@ -290,14 +313,21 @@ function card(item, type = "unit") {
     const tags = [shortText(item.developer, ""), shortText(item.location, ""), shortText(item.status, "")]
       .filter(Boolean).map(value => `<span class="tag">${value}</span>`).join("");
 
+    const projectUrl = projectPageUrl(item.name, item.location);
+
     return `
       <article class="card project-card">
         ${mediaImage(item)}
         <div class="content">
           <div class="card-kicker">Project</div>
-          <h3>${safe(item.name)}</h3>
+          <a href="${escapeAttr(projectUrl)}">
+            <h3>${safe(item.name)}</h3>
+          </a>
           <div class="tags">${tags}</div>
           <div class="price-row"><span>Starting price</span><strong>${price(item.min_price)}</strong></div>
+          <div class="card-links">
+            <a href="${escapeAttr(projectUrl)}">View Project Page</a>
+          </div>
           ${mediaLinks(item)}
           ${whatsappButton("Ask on WhatsApp", projectWhatsappMessage(item), "project_card", {
             project_name: safe(item.name, ""),
@@ -318,15 +348,22 @@ function card(item, type = "unit") {
     cardMetric("Finishing", item.finishing)
   ].filter(Boolean).join("");
 
+  const unitProjectUrl = projectPageUrl(item.project_name, item.location);
+
   return `
     <article class="card unit-card">
       ${mediaImage(item)}
       <div class="content">
         <div class="card-kicker">Available unit</div>
-        <h3>${safe(item.project_name)}</h3>
+        <a href="${escapeAttr(unitProjectUrl)}">
+          <h3>${safe(item.project_name)}</h3>
+        </a>
         <div class="tags">${tags}</div>
         <div class="price-row"><span>Starting price</span><strong>${price(item.starting_price)}</strong></div>
         <div class="card-metrics">${metrics}</div>
+        <div class="card-links">
+          <a href="${escapeAttr(unitProjectUrl)}">View Project Page</a>
+        </div>
         ${mediaLinks(item)}
         ${whatsappButton("Send WhatsApp Request", unitWhatsappMessage(item), "unit_card", {
           project_name: safe(item.project_name, ""),
@@ -1498,4 +1535,3 @@ document.addEventListener("click", (event) => {
   event.preventDefault();
   window.open(trackedUrl, "_blank", "noopener,noreferrer");
 });
-
