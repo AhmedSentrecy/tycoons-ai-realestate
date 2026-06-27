@@ -102,11 +102,6 @@ function buildUnitDescription(project, unit) {
   if (delivery) sentence2 += `${sentence2 ? "," : ""} delivery ${delivery}`;
   if (sentence2) parts.push(sentence2.trim() + ".");
 
-  // Sentence 3: original free-text description, used only as a supplement
-  if (unit.description && String(unit.description).trim().length > 0) {
-    parts.push(String(unit.description).trim());
-  }
-
   return parts.join(" ");
 }
 
@@ -175,7 +170,7 @@ ${breadcrumbJsonLd ? `<script type="application/ld+json">${JSON.stringify(breadc
 <div class="site-bg"></div>
 <header class="site-header">
   <a class="brand" href="/" aria-label="${SITE_NAME} home">
-    <img class="brand-logo" src="/assets/tycoons-logo-light.svg" alt="${SITE_NAME}">
+    <img class="brand-logo" src="/assets/tycoons-logo-header.svg" alt="${SITE_NAME}">
   </a>
   <nav class="main-nav" aria-label="Main navigation">
     <a href="/#search">AI Search</a>
