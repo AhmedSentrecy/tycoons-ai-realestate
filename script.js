@@ -160,13 +160,56 @@ function whatsappButton(label, message, source = "card_whatsapp", extra = {}) {
   return `<a class="card-whatsapp" href="${whatsappUrl(message, source, extra)}" target="_blank" rel="noopener" ${attrs.join(" ")}>${label}</a>`;
 }
 
+function parseGalleryUrls(value) {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value.map(url => String(url || "").trim()).filter(Boolean);
+  }
+
+  return String(value || "")
+    .split(/[\n,]+/)
+    .map(url => url.trim())
+    .filter(Boolean);
+}
+
+function mediaUrls(item) {
+  const urls = [item.image_url, ...parseGalleryUrls(item.gallery_urls)]
+    .map(url => String(url || "").trim())
+    .filter(Boolean);
+
+  return Array.from(new Set(urls));
+}
+
 function mediaImage(item) {
   const location = safe(item.location);
+  const urls = mediaUrls(item);
 
-  if (item.image_url) {
+  if (urls.length > 1) {
+    const slides = urls.map((url, index) => {
+      return `<img class="carousel-img${index === 0 ? " active" : ""}" src="${escapeAttr(url)}" alt="${escapeAttr(location)} image ${index + 1}" loading="lazy" referrerpolicy="no-referrer">`;
+    }).join("");
+
+    const dots = urls.map((_, index) => {
+      return `<button class="carousel-dot${index === 0 ? " active" : ""}" type="button" data-carousel-dot="${index}" aria-label="Show image ${index + 1}"></button>`;
+    }).join("");
+
+    return `
+      <div class="image photo has-img image-carousel" data-carousel-index="0">
+        <div class="carousel-track">${slides}</div>
+        <button class="carousel-nav carousel-prev" type="button" data-carousel-dir="-1" aria-label="Previous image">‹</button>
+        <button class="carousel-nav carousel-next" type="button" data-carousel-dir="1" aria-label="Next image">›</button>
+        <div class="carousel-counter">1 / ${urls.length}</div>
+        <div class="carousel-dots">${dots}</div>
+        <span>${location}</span>
+      </div>
+    `;
+  }
+
+  if (urls.length === 1) {
     return `
       <div class="image photo has-img">
-        <img src="${escapeAttr(item.image_url)}" alt="${escapeAttr(location)}" loading="lazy" referrerpolicy="no-referrer">
+        <img src="${escapeAttr(urls[0])}" alt="${escapeAttr(location)}" loading="lazy" referrerpolicy="no-referrer">
         <span>${location}</span>
       </div>
     `;
@@ -1141,6 +1184,65 @@ if (cancelPhoneBtn) {
 startVoiceAgentBtn.addEventListener("click", startRealtimeAgent);
 stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("Voice session stopped."));
 window.addEventListener("beforeunload", () => stopRealtimeAgent("Voice agent is off."));
+
+
+/* ============================================================
+   SAFE PROPERTY CARD IMAGE CAROUSEL
+   ------------------------------------------------------------
+   image_url = first/main image
+   gallery_urls = extra images separated by commas or line breaks
+   If gallery_urls is empty, old single-image cards stay unchanged.
+   ============================================================ */
+
+function updatePropertyCarousel(carousel, nextIndex) {
+  if (!carousel) return;
+
+  const slides = Array.from(carousel.querySelectorAll(".carousel-img"));
+  if (!slides.length) return;
+
+  const total = slides.length;
+  const safeIndex = ((Number(nextIndex || 0) % total) + total) % total;
+
+  carousel.dataset.carouselIndex = String(safeIndex);
+
+  slides.forEach((slide, index) => {
+    slide.classList.toggle("active", index === safeIndex);
+  });
+
+  carousel.querySelectorAll(".carousel-dot").forEach((dot, index) => {
+    dot.classList.toggle("active", index === safeIndex);
+  });
+
+  const counter = carousel.querySelector(".carousel-counter");
+  if (counter) counter.textContent = `${safeIndex + 1} / ${total}`;
+}
+
+document.addEventListener("click", function handlePropertyCarouselClick(event) {
+  const clicked = event.target;
+  if (!clicked || !clicked.closest) return;
+
+  const navButton = clicked.closest("[data-carousel-dir]");
+  const dotButton = clicked.closest("[data-carousel-dot]");
+
+  if (!navButton && !dotButton) return;
+
+  const carousel = clicked.closest(".image-carousel");
+  if (!carousel) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const currentIndex = Number(carousel.dataset.carouselIndex || 0);
+
+  if (navButton) {
+    const direction = Number(navButton.dataset.carouselDir || 1);
+    updatePropertyCarousel(carousel, currentIndex + direction);
+    return;
+  }
+
+  updatePropertyCarousel(carousel, Number(dotButton.dataset.carouselDot || 0));
+});
+
 
 loadData();
 
