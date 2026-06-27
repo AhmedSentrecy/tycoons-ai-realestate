@@ -196,8 +196,15 @@ function parseGalleryUrls(value) {
     .filter(Boolean);
 }
 
+function isExternalThumbnail(url) {
+  return /drive\.google\.com/i.test(String(url || ""));
+}
+
 function mediaUrls(item) {
-  const urls = [item.image_url, ...parseGalleryUrls(item.gallery_urls)]
+  const galleryUrls = parseGalleryUrls(item.gallery_urls);
+  const fallbackImage = item.image_url && !isExternalThumbnail(item.image_url) ? [item.image_url] : [];
+
+  const urls = [...galleryUrls, ...fallbackImage]
     .map(url => String(url || "").trim())
     .filter(Boolean);
 
