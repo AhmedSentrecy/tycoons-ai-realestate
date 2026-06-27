@@ -291,16 +291,34 @@ function dedupeUnitsForDisplay(list) {
 
 function enrichProjectsWithUnitMedia(projectList) {
   return (projectList || []).map((project) => {
-    if (project.image_url && project.brochure_url && project.video_url) return project;
-    const matchedUnit = (units || []).find((unit) => {
-      return normalize(unit.project_name) === normalize(project.name) && (unit.image_url || unit.brochure_url || unit.video_url);
-    });
-    if (!matchedUnit) return project;
+    const matchingUnits = (units || []).filter((unit) => normalize(unit.project_name) === normalize(project.name));
+
+    // Build a combined gallery from all matching units if the project
+    // itself has no gallery_urls of its own.
+    let gallery = project.gallery_urls;
+    if (!gallery || (Array.isArray(gallery) && !gallery.length) || (typeof gallery === "string" && !gallery.trim())) {
+      const combined = [];
+      matchingUnits.forEach((unit) => {
+        if (unit.image_url) combined.push(unit.image_url);
+        parseGalleryUrls(unit.gallery_urls).forEach((url) => combined.push(url));
+      });
+      const deduped = Array.from(new Set(combined.map((u) => String(u || "").trim()).filter(Boolean)));
+      if (deduped.length) gallery = deduped;
+    }
+
+    if (project.image_url && project.brochure_url && project.video_url && gallery) {
+      return { ...project, gallery_urls: gallery };
+    }
+
+    const matchedUnit = matchingUnits.find((unit) => unit.image_url || unit.brochure_url || unit.video_url);
+    if (!matchedUnit) return { ...project, gallery_urls: gallery };
+
     return {
       ...project,
       image_url: project.image_url || matchedUnit.image_url || null,
       brochure_url: project.brochure_url || matchedUnit.brochure_url || null,
-      video_url: project.video_url || matchedUnit.video_url || null
+      video_url: project.video_url || matchedUnit.video_url || null,
+      gallery_urls: gallery
     };
   });
 }
