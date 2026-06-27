@@ -63,6 +63,119 @@ function formatPrice(value) {
   return n.toLocaleString("en-US");
 }
 
+/* ------------------------------------------------------------
+   IMAGE GALLERY + CAROUSEL (for the right side of project pages)
+   ------------------------------------------------------------ */
+
+// Collect all usable images for a project: its own image_url and
+// gallery_urls, plus any images found on its units as a fallback.
+function collectProjectImages(project, units) {
+  const raw = [];
+
+  if (project.image_url) raw.push(project.image_url);
+
+  // gallery_urls may be a comma/newline separated string or an array
+  if (project.gallery_urls) {
+    if (Array.isArray(project.gallery_urls)) {
+      raw.push(...project.gallery_urls);
+    } else {
+      raw.push(...String(project.gallery_urls).split(/[\n,]+/));
+    }
+  }
+
+  // Fallback: pull images from units if the project itself has few
+  (units || []).forEach((u) => {
+    if (u.image_url) raw.push(u.image_url);
+    if (u.gallery_urls) {
+      if (Array.isArray(u.gallery_urls)) raw.push(...u.gallery_urls);
+      else raw.push(...String(u.gallery_urls).split(/[\n,]+/));
+    }
+  });
+
+  // Clean, trim, dedupe
+  const cleaned = raw.map((x) => String(x || "").trim()).filter(Boolean);
+  return Array.from(new Set(cleaned));
+}
+
+// Build the carousel HTML. If no images, returns a simple placeholder.
+function buildCarousel(images, altBase) {
+  if (!images.length) {
+    return `<div class="pp-gallery pp-gallery-empty"><span>${escapeHtml(altBase)}</span></div>`;
+  }
+
+  const slides = images
+    .map(
+      (url, i) =>
+        `<img class="pp-slide${i === 0 ? " active" : ""}" src="${escapeHtml(url)}" alt="${escapeHtml(altBase)} image ${i + 1}" loading="lazy" referrerpolicy="no-referrer">`
+    )
+    .join("");
+
+  const dots = images
+    .map(
+      (_, i) =>
+        `<button class="pp-dot${i === 0 ? " active" : ""}" type="button" data-pp-dot="${i}" aria-label="Show image ${i + 1}"></button>`
+    )
+    .join("");
+
+  const nav =
+    images.length > 1
+      ? `<button class="pp-nav pp-prev" type="button" data-pp-dir="-1" aria-label="Previous image">&lsaquo;</button>
+         <button class="pp-nav pp-next" type="button" data-pp-dir="1" aria-label="Next image">&rsaquo;</button>
+         <div class="pp-counter">1 / ${images.length}</div>
+         <div class="pp-dots">${dots}</div>`
+      : "";
+
+  return `<div class="pp-gallery" data-pp-index="0">
+  <div class="pp-track">${slides}</div>
+  ${nav}
+</div>`;
+}
+
+// A small search box that sends the visitor to the homepage search,
+// passing their query in the URL (?q=...#search). The homepage
+// script.js reads ?q= on load and runs the real AI search.
+function buildProjectSearchBox(prefillProject) {
+  const placeholder = prefillProject
+    ? `Search like &quot;${escapeHtml(prefillProject)} 3 bedrooms&quot;`
+    : "Search for an apartment, villa, or chalet...";
+
+  return `<div class="pp-search">
+  <h2>Search live inventory</h2>
+  <p>Type what you are looking for and the AI search will find matching units.</p>
+  <form class="pp-search-form" onsubmit="event.preventDefault(); var q=this.querySelector('input').value.trim(); window.location.href='/?q='+encodeURIComponent(q)+'#search';">
+    <input type="text" name="q" placeholder="${placeholder}" aria-label="Search live inventory">
+    <button type="submit">AI Search</button>
+  </form>
+</div>`;
+}
+
+// Tiny inline script that powers the carousel arrows/dots on the page.
+const CAROUSEL_SCRIPT = `<script>
+(function(){
+  function update(g, next){
+    var slides = g.querySelectorAll('.pp-slide');
+    if(!slides.length) return;
+    var total = slides.length;
+    var idx = ((next % total) + total) % total;
+    g.dataset.ppIndex = idx;
+    slides.forEach(function(s,i){ s.classList.toggle('active', i===idx); });
+    g.querySelectorAll('.pp-dot').forEach(function(d,i){ d.classList.toggle('active', i===idx); });
+    var c = g.querySelector('.pp-counter');
+    if(c) c.textContent = (idx+1) + ' / ' + total;
+  }
+  document.addEventListener('click', function(e){
+    var nav = e.target.closest('[data-pp-dir]');
+    var dot = e.target.closest('[data-pp-dot]');
+    if(!nav && !dot) return;
+    var g = e.target.closest('.pp-gallery');
+    if(!g) return;
+    var cur = Number(g.dataset.ppIndex || 0);
+    if(nav) update(g, cur + Number(nav.dataset.ppDir || 1));
+    else update(g, Number(dot.dataset.ppDot || 0));
+  });
+})();
+</script>`;
+
 /**
  * FIX FOR DUPLICATE UNIT DESCRIPTIONS
  * ------------------------------------
@@ -139,7 +252,7 @@ function groupBy(rows, key) {
 
 // ---------- page shell ----------
 
-function pageShell({ title, description, canonicalPath, ogImage, lang = "en", bodyHtml, jsonLd, breadcrumbJsonLd }) {
+function pageShell({ title, description, canonicalPath, ogImage, lang = "en", bodyHtml, jsonLd, breadcrumbJsonLd, extraScript = "" }) {
   const canonical = `${SITE_URL}${canonicalPath}`;
   return `<!doctype html>
 <html lang="${lang}">
@@ -187,6 +300,7 @@ ${bodyHtml}
   <span>AI real estate search &middot; Voice assistant &middot; Live inventory</span>
 </footer>
 <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
+${extraScript}
 </body>
 </html>`;
 }
@@ -255,6 +369,10 @@ function buildProjectPage(project, units) {
     )
     .join("\n");
 
+  const galleryImages = collectProjectImages(project, units);
+  const carouselHtml = buildCarousel(galleryImages, projectName);
+  const searchBoxHtml = buildProjectSearchBox(projectName);
+
   const bodyHtml = `
 <section class="section">
   <nav aria-label="Breadcrumb" class="breadcrumb">
@@ -262,13 +380,22 @@ function buildProjectPage(project, units) {
     <a href="/developers/${slugify(developer)}.html">${escapeHtml(developer)}</a> &rsaquo;
     <span>${escapeHtml(projectName)}</span>
   </nav>
-  <span class="eyebrow">${escapeHtml(developer)}</span>
-  <h1>${escapeHtml(projectName)}</h1>
-  <p class="location-line">${escapeHtml(location)}</p>
-  ${minPrice ? `<p class="hero-quote">Starting from ${formatPrice(minPrice)} EGP</p>` : ""}
-  ${project.description ? `<p>${escapeHtml(project.description)}</p>` : ""}
-  ${project.brochure_url ? `<a class="ghost" href="${escapeHtml(project.brochure_url)}" target="_blank" rel="noopener">Project Brochure</a>` : ""}
-  <a class="btn" href="/#search">Ask the AI Search about ${escapeHtml(projectName)}</a>
+
+  <div class="pp-hero">
+    <div class="pp-hero-text">
+      <span class="eyebrow">${escapeHtml(developer)}</span>
+      <h1>${escapeHtml(projectName)}</h1>
+      <p class="location-line">${escapeHtml(location)}</p>
+      ${minPrice ? `<p class="hero-quote">Starting from ${formatPrice(minPrice)} EGP</p>` : ""}
+      ${project.description ? `<p>${escapeHtml(project.description)}</p>` : ""}
+      ${project.brochure_url ? `<a class="ghost" href="${escapeHtml(project.brochure_url)}" target="_blank" rel="noopener">Project Brochure</a>` : ""}
+      <a class="btn" href="/#search">Ask the AI Search about ${escapeHtml(projectName)}</a>
+    </div>
+    <div class="pp-hero-media">
+      ${carouselHtml}
+      ${searchBoxHtml}
+    </div>
+  </div>
 </section>
 
 <section class="section">
@@ -359,6 +486,7 @@ ${faqHtml}
     bodyHtml,
     jsonLd: [jsonLd, faqJsonLd],
     breadcrumbJsonLd,
+    extraScript: CAROUSEL_SCRIPT,
   });
 
   return { url, html, lastmod: project.last_updated_at };
