@@ -243,7 +243,10 @@ function mediaImage(item) {
 
 function mediaLinks(item) {
   const links = [];
-  if (item.brochure_url) links.push(`<a href="${escapeAttr(item.brochure_url)}" target="_blank" rel="noopener">Brochure</a>`);
+  const projectLabel = item.project_name || item.name || "";
+  links.push(
+    `<button type="button" class="js-ask-brochure" data-project="${escapeAttr(projectLabel)}" data-source="card_brochure_request">Brochure</button>`
+  );
   if (item.video_url) links.push(`<a href="${escapeAttr(item.video_url)}" target="_blank" rel="noopener">Video</a>`);
   return links.length ? `<div class="card-links">${links.join("")}</div>` : "";
 }
@@ -325,9 +328,6 @@ function card(item, type = "unit") {
           </a>
           <div class="tags">${tags}</div>
           <div class="price-row"><span>Starting price</span><strong>${price(item.min_price)}</strong></div>
-          <div class="card-links">
-            <a href="${escapeAttr(projectUrl)}">View Project Page</a>
-          </div>
           ${mediaLinks(item)}
           ${whatsappButton("Ask on WhatsApp", projectWhatsappMessage(item), "project_card", {
             project_name: safe(item.name, ""),
@@ -361,9 +361,6 @@ function card(item, type = "unit") {
         <div class="tags">${tags}</div>
         <div class="price-row"><span>Starting price</span><strong>${price(item.starting_price)}</strong></div>
         <div class="card-metrics">${metrics}</div>
-        <div class="card-links">
-          <a href="${escapeAttr(unitProjectUrl)}">View Project Page</a>
-        </div>
         ${mediaLinks(item)}
         ${whatsappButton("Send WhatsApp Request", unitWhatsappMessage(item), "unit_card", {
           project_name: safe(item.project_name, ""),
@@ -1548,3 +1545,106 @@ document.addEventListener("click", (event) => {
   event.preventDefault();
   window.open(trackedUrl, "_blank", "noopener,noreferrer");
 });
+
+
+/* ============================================================
+   ASK FOR BROCHURE — lead capture popup
+   ------------------------------------------------------------
+   Replaces direct brochure downloads with a short popup asking
+   for name + WhatsApp number. On submit, the lead is saved to
+   Supabase (same "leads" table as the main contact form), then
+   the actual brochure opens automatically.
+
+   Triggered by any element with class "js-ask-brochure" and
+   data-project / data-brochure-url / data-source attributes.
+   This same widget is also used (with its own inline copy) on
+   the static project pages built by scripts/generate-pages.js.
+   ============================================================ */
+
+(function () {
+  function buildBrochureModal() {
+    if (document.getElementById("brochureModalBackdrop")) return;
+
+    const wrap = document.createElement("div");
+    wrap.id = "brochureModalBackdrop";
+    wrap.className = "brochure-modal-backdrop hidden";
+    wrap.innerHTML = `
+      <div class="brochure-modal" role="dialog" aria-modal="true">
+        <button type="button" class="brochure-modal-close" aria-label="Close">&times;</button>
+        <h3>Ask for Brochure</h3>
+        <p class="brochure-modal-project"></p>
+        <form class="brochure-modal-form">
+          <input type="text" name="name" placeholder="Your name" required>
+          <input type="tel" name="phone" placeholder="WhatsApp number" required>
+          <button type="submit">Send &amp; Get Brochure</button>
+        </form>
+        <div class="brochure-modal-status"></div>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+  }
+
+  function openBrochureModal(projectName, brochureUrl, source) {
+    buildBrochureModal();
+    const backdrop = document.getElementById("brochureModalBackdrop");
+    backdrop.classList.remove("hidden");
+    backdrop.dataset.brochureUrl = brochureUrl || "";
+    backdrop.dataset.projectName = projectName || "";
+    backdrop.dataset.source = source || "brochure_request";
+    backdrop.querySelector(".brochure-modal-project").textContent = projectName ? "For: " + projectName : "";
+    backdrop.querySelector(".brochure-modal-status").textContent = "";
+    backdrop.querySelector(".brochure-modal-form").reset();
+  }
+
+  function closeBrochureModal() {
+    const backdrop = document.getElementById("brochureModalBackdrop");
+    if (backdrop) backdrop.classList.add("hidden");
+  }
+
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest(".js-ask-brochure");
+    if (trigger) {
+      event.preventDefault();
+      openBrochureModal(trigger.dataset.project || "", trigger.dataset.brochureUrl || "", trigger.dataset.source || "brochure_request");
+      return;
+    }
+    if (event.target.closest(".brochure-modal-close") || event.target.id === "brochureModalBackdrop") {
+      closeBrochureModal();
+    }
+  });
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target.closest(".brochure-modal-form");
+    if (!form) return;
+    event.preventDefault();
+
+    const backdrop = document.getElementById("brochureModalBackdrop");
+    const statusEl = backdrop.querySelector(".brochure-modal-status");
+    const data = new FormData(form);
+    const name = String(data.get("name") || "").trim();
+    const phone = String(data.get("phone") || "").trim();
+    const projectName = backdrop.dataset.projectName;
+    const source = backdrop.dataset.source;
+
+    if (!name || !phone) {
+      statusEl.textContent = "Please fill in your name and number.";
+      return;
+    }
+
+    statusEl.textContent = "Opening WhatsApp...";
+
+    const message = [
+      "Hello Tycoons Investments,",
+      "I am requesting the brochure for:",
+      projectName,
+      "",
+      "Name: " + name,
+      "WhatsApp: " + phone
+    ].filter(Boolean).join("\n");
+
+    const waUrl = "https://wa.me/" + TYCOONS_WHATSAPP_NUMBER + "?text=" + encodeURIComponent(message);
+    window.open(waUrl, "_blank", "noopener");
+
+    setTimeout(closeBrochureModal, 600);
+  });
+})();
