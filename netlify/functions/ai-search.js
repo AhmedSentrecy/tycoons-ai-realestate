@@ -227,6 +227,81 @@ function expandSearchText(text) {
   return normalizeSearchText(q);
 }
 
+/* ============================================================
+   NUMERIC CONSTRAINT PARSING
+   ------------------------------------------------------------
+   The matching above is purely keyword-based, so a request like
+   "apartment under 5 million" or "شقة تحت 5 مليون" or "3 bedroom
+   villa" never actually used the number. These functions extract
+   real numeric meaning (a budget ceiling, an exact bedroom count,
+   a minimum area) so results can be filtered/boosted accordingly.
+   ============================================================ */
+
+function parseBudgetCap(query) {
+  const q = normalizeSearchText(query);
+
+  // English: "under/below/max/up to 5 million", "under 5m", "under 5000000"
+  // Arabic: "تحت 5 مليون", "اقل من 5 مليون", "حد اقصى 5 مليون"
+  const capTriggers = [
+    "under", "below", "max", "maximum", "up to", "less than", "no more than",
+    "تحت", "اقل من", "أقل من", "حد اقصى", "حداقصي", "اقصي", "في حدود", "بحد اقصى"
+  ];
+
+  const hasTrigger = capTriggers.some((t) => q.includes(normalizeSearchText(t)));
+  if (!hasTrigger) return null;
+
+  // Find a number near a budget trigger, in million or raw EGP form
+  const millionMatch = q.match(/(\d+(\.\d+)?)\s*(million|m|مليون)/);
+  if (millionMatch) {
+    return Math.round(parseFloat(millionMatch[1]) * 1000000);
+  }
+
+  // Raw number with 6+ digits (e.g. "5000000")
+  const rawMatch = q.match(/\b(\d{6,9})\b/);
+  if (rawMatch) {
+    return parseInt(rawMatch[1], 10);
+  }
+
+  // Plain small number near a budget trigger, assume millions
+  // (e.g. "under 5" almost always means 5 million in this market)
+  const smallMatch = q.match(/\b(\d{1,2}(\.\d+)?)\b/);
+  if (smallMatch) {
+    return Math.round(parseFloat(smallMatch[1]) * 1000000);
+  }
+
+  return null;
+}
+
+function parseBedroomCount(query) {
+  const q = normalizeSearchText(query);
+
+  // "3 bedroom", "3 bedrooms", "3 غرف", "3 غرفة", "غرفتين" (=2)
+  const numMatch = q.match(/\b(\d{1,2})\s*(bedroom|bedrooms|room|rooms|غرف|غرفه|غرفة)/);
+  if (numMatch) {
+    return parseInt(numMatch[1], 10);
+  }
+
+  if (q.includes("studio") || q.includes("استديو")) return 0;
+  if (q.includes("غرفتين")) return 2;
+  if (q.includes("غرفة واحدة") || q.includes("غرفه واحده")) return 1;
+
+  return null;
+}
+
+function parseMinArea(query) {
+  const q = normalizeSearchText(query);
+
+  // "above 150 sqm", "more than 150 meter", "اكبر من 150 متر"
+  const triggers = ["above", "more than", "bigger than", "larger than", "اكبر من", "أكبر من"];
+  const hasTrigger = triggers.some((t) => q.includes(normalizeSearchText(t)));
+  if (!hasTrigger) return null;
+
+  const match = q.match(/(\d{2,4})\s*(sqm|sq m|meter|meters|متر)/);
+  if (match) return parseInt(match[1], 10);
+
+  return null;
+}
+
 function detectLocationIntent(query) {
   const q = normalizeSearchText(query);
 
@@ -457,10 +532,50 @@ function scoreUnit(query, unit) {
   return score;
 }
 
+function applyNumericConstraints(query, units) {
+  const budgetCap = parseBudgetCap(query);
+  const bedroomCount = parseBedroomCount(query);
+  const minArea = parseMinArea(query);
+
+  let filtered = units;
+
+  if (budgetCap) {
+    const withinBudget = filtered.filter((unit) => {
+      const price = Number(unit.starting_price || 0);
+      return !price || price <= budgetCap;
+    });
+    // If the budget is so tight nothing matches, fall back to the
+    // closest cheaper options instead of returning nothing.
+    if (withinBudget.length) {
+      filtered = withinBudget;
+    } else {
+      filtered = [...filtered]
+        .sort((a, b) => Number(a.starting_price || Infinity) - Number(b.starting_price || Infinity))
+        .slice(0, 6);
+    }
+  }
+
+  if (bedroomCount !== null && bedroomCount !== undefined) {
+    const matchingBedrooms = filtered.filter((unit) => {
+      const text = normalizeSearchText(unit.bedrooms_text || "");
+      return text.includes(String(bedroomCount));
+    });
+    if (matchingBedrooms.length) filtered = matchingBedrooms;
+  }
+
+  if (minArea) {
+    const matchingArea = filtered.filter((unit) => Number(unit.area_sqm || 0) >= minArea);
+    if (matchingArea.length) filtered = matchingArea;
+  }
+
+  return filtered;
+}
+
 function rankUnits(query, units, limit = 6) {
   const locationFilteredUnits = applyLocationFilter(query, units);
+  const constrainedUnits = applyNumericConstraints(query, locationFilteredUnits);
 
-  const scored = locationFilteredUnits
+  const scored = constrainedUnits
     .map((unit) => ({ ...unit, _score: scoreUnit(query, unit) }))
     .filter((unit) => unit._score > 0)
     .sort((a, b) => {
@@ -468,7 +583,7 @@ function rankUnits(query, units, limit = 6) {
       return Number(a.starting_price || 0) - Number(b.starting_price || 0);
     });
 
-  return (scored.length ? scored : locationFilteredUnits).slice(0, limit);
+  return (scored.length ? scored : constrainedUnits).slice(0, limit);
 }
 
 function isAskingForPrice(query) {
@@ -775,6 +890,9 @@ exports.handler = async function (event) {
     const units = await getUnits();
     const userLanguage = hasArabic(query) ? "Egyptian Arabic" : "English";
     const expandedQuery = expandSearchText(query);
+    const detectedBudgetCap = parseBudgetCap(query);
+    const detectedBedroomCount = parseBedroomCount(query);
+    const detectedMinArea = parseMinArea(query);
     const candidateUnits = rankUnits(query, units, Math.max(units.length, 120));
     const totalMatches = candidateUnits.length;
     const matchedDevelopers = getUniqueDevelopers(candidateUnits, 6);
@@ -810,6 +928,9 @@ You are a real estate sales consultant helping the buyer narrow down suitable op
 USER_LANGUAGE: ${userLanguage}
 USER_QUERY: ${query}
 NORMALIZED_EXPANDED_QUERY: ${expandedQuery}
+DETECTED_BUDGET_CAP_EGP: ${detectedBudgetCap || "none"}
+DETECTED_BEDROOM_COUNT: ${detectedBedroomCount !== null && detectedBedroomCount !== undefined ? detectedBedroomCount : "none"}
+DETECTED_MIN_AREA_SQM: ${detectedMinArea || "none"}
 TOTAL_MATCHES: ${totalMatches}
 MATCHED_DEVELOPERS: ${matchedDevelopers.join(", ")}
 MATCHED_PROJECTS: ${matchedProjects.join(", ")}
@@ -859,6 +980,8 @@ Consultant behavior:
 25. If the user mentions New Cairo / التجمع, avoid Sheikh Zayed or North Coast unless there are no matching results there.
 26. If the user mentions Sheikh Zayed, avoid New Cairo or North Coast unless there are no matching results there.
 27. If the user mentions North Coast / الساحل, avoid New Cairo or Sheikh Zayed unless there are no matching results there.
+28. AVAILABLE_UNITS_JSON has already been filtered by DETECTED_BUDGET_CAP_EGP, DETECTED_BEDROOM_COUNT, and DETECTED_MIN_AREA_SQM if they are not "none" — every unit you see already fits those constraints (or is the closest available alternative if nothing fit exactly). Do not re-ask for a constraint that is already detected; instead briefly confirm it was used (e.g. "في حدود الميزانية دي" / "within that budget").
+29. If DETECTED_BUDGET_CAP_EGP is set but the cheapest unit shown actually exceeds it, that means nothing matched the exact budget — say so honestly and mention the closest available price instead of pretending it fits.
 
 Arabic style examples:
 Broad request:
