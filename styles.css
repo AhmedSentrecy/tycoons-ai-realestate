@@ -1094,3 +1094,115 @@ textarea:focus,input:focus{
   opacity:1;
   transform:translateX(0);
 }
+
+/* ============================================================
+   ASK FOR BROCHURE — popup modal
+   ------------------------------------------------------------
+   Matches the same light theme + existing .phone-confirm box
+   style used elsewhere on the site.
+   ============================================================ */
+.brochure-modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:80;
+  background:rgba(16,24,39,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+.brochure-modal-backdrop.hidden{display:none}
+
+.brochure-modal{
+  position:relative;
+  width:100%;
+  max-width:380px;
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:24px 22px;
+  box-shadow:var(--shadow-md);
+}
+
+.brochure-modal-close{
+  position:absolute;
+  top:12px;
+  right:12px;
+  width:30px;
+  height:30px;
+  border:0;
+  border-radius:999px;
+  background:var(--surface-soft);
+  color:var(--muted);
+  font-size:18px;
+  line-height:1;
+  cursor:pointer;
+}
+.brochure-modal-close:hover{background:var(--line);color:var(--navy)}
+
+.brochure-modal h3{
+  color:var(--navy);
+  font-size:19px;
+  margin:0 0 4px;
+}
+
+.brochure-modal-project{
+  color:var(--muted);
+  font-size:13px;
+  margin:0 0 14px;
+}
+
+.brochure-modal-form{
+  display:grid;
+  gap:10px;
+}
+.brochure-modal-form input{
+  width:100%;
+}
+.brochure-modal-form button{
+  border:0;
+  border-radius:14px;
+  padding:12px 16px;
+  font-size:14px;
+  font-weight:850;
+  cursor:pointer;
+  background:var(--navy);
+  color:#fff;
+  box-shadow:0 10px 22px rgba(16,24,39,.14);
+}
+.brochure-modal-form button:hover{background:#1b2638}
+
+.brochure-modal-status{
+  margin-top:10px;
+  font-size:13px;
+  color:var(--muted);
+  min-height:18px;
+}
+
+/* Brochure trigger button styled like the existing .card-links a / .ghost links */
+.card-links button.js-ask-brochure{
+  color:var(--gold);
+  border:1px solid #efdcb5;
+  background:#fff8e9;
+  border-radius:999px;
+  padding:8px 10px;
+  font-size:12.5px;
+  font-weight:900;
+  cursor:pointer;
+}
+.card-links button.js-ask-brochure:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
+
+button.ghost.js-ask-brochure{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--gold);
+  border:1px solid #efdcb5;
+  background:#fff8e9;
+  border-radius:999px;
+  padding:10px 16px;
+  font-size:13px;
+  font-weight:900;
+  cursor:pointer;
+}
+button.ghost.js-ask-brochure:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
