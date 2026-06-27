@@ -200,20 +200,39 @@ function isExternalThumbnail(url) {
   return /drive\.google\.com/i.test(String(url || ""));
 }
 
-function mediaUrls(item) {
+function findProjectForUnit(unit) {
+  return (projects || []).find((p) => normalize(p.name) === normalize(unit.project_name));
+}
+
+function mediaUrls(item, type = "unit") {
   const galleryUrls = parseGalleryUrls(item.gallery_urls);
   const fallbackImage = item.image_url && !isExternalThumbnail(item.image_url) ? [item.image_url] : [];
 
-  const urls = [...galleryUrls, ...fallbackImage]
+  let combined = [...galleryUrls, ...fallbackImage];
+
+  // Units with no images of their own borrow their project's gallery —
+  // since all listings are off-plan, the project's images ARE the unit's
+  // images in practice. This means you only need to manage photos once,
+  // on the project row in Supabase.
+  if (type === "unit" && !combined.length) {
+    const project = findProjectForUnit(item);
+    if (project) {
+      const projGallery = parseGalleryUrls(project.gallery_urls);
+      const projImage = project.image_url && !isExternalThumbnail(project.image_url) ? [project.image_url] : [];
+      combined = [...projGallery, ...projImage];
+    }
+  }
+
+  const urls = combined
     .map(url => String(url || "").trim())
     .filter(Boolean);
 
   return Array.from(new Set(urls));
 }
 
-function mediaImage(item) {
+function mediaImage(item, type = "unit") {
   const location = safe(item.location);
-  const urls = mediaUrls(item);
+  const urls = mediaUrls(item, type);
 
   if (urls.length > 1) {
     const slides = urls.map((url, index) => {
@@ -345,7 +364,7 @@ function card(item, type = "unit") {
 
     return `
       <article class="card project-card">
-        ${mediaImage(item)}
+        ${mediaImage(item, "project")}
         <div class="content">
           <div class="card-kicker">Project</div>
           <a class="card-title-link" href="${escapeAttr(projectUrl)}">
@@ -377,7 +396,7 @@ function card(item, type = "unit") {
 
   return `
     <article class="card unit-card">
-      ${mediaImage(item)}
+      ${mediaImage(item, "unit")}
       <div class="content">
         <div class="card-kicker">Available unit</div>
         <a class="card-title-link" href="${escapeAttr(unitProjectUrl)}">
