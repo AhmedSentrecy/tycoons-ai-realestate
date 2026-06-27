@@ -1297,6 +1297,19 @@ async function loadData() {
 
     statusBox.className = "status success";
     statusBox.textContent = "Connected to Supabase. Loaded " + units.length + " units and " + projects.length + " projects.";
+
+    // If the visitor arrived from a project page with a search query
+    // in the URL (e.g. /?q=villa#search), run that search automatically.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const incomingQuery = (params.get("q") || "").trim();
+      if (incomingQuery && searchInput) {
+        searchInput.value = incomingQuery;
+        const searchSection = document.getElementById("search");
+        if (searchSection) searchSection.scrollIntoView({ behavior: "smooth" });
+        runAISearch(incomingQuery);
+      }
+    } catch (_) {}
   } catch (err) {
     console.error(err);
     statusBox.className = "status error";
