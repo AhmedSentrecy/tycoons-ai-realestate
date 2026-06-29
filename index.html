@@ -123,7 +123,7 @@
   </a>
   <nav class="main-nav" aria-label="Main navigation">
     <a href="#search">Search</a>
-    <a href="#voice">Voice</a>
+    <a href="#search">Voice</a>
     <a href="#projects">Projects</a>
     <a href="#lead">Contact</a>
     <a class="header-whatsapp" data-wa-source="header_whatsapp" href="https://wa.me/201200704344?text=Hello%20Tycoons%20Investments%2C%20I%20want%20help%20finding%20a%20suitable%20property." target="_blank" rel="noopener">WhatsApp</a>
@@ -140,13 +140,13 @@
       <div id="search" class="search-card search-card-voice">
         <div class="search-label-row">
           <span>Search by voice or text</span>
-          <a href="#voice">Open voice agent</a>
+          <a href="#search">Talk to the assistant</a>
         </div>
 
         <div class="searchbar">
           <textarea id="searchInput" rows="3" placeholder="Example: كنت بدور على شاليه في الساحل أو iVilla in New Cairo"></textarea>
           <button id="searchBtn" class="btn btn-primary" type="button">Search</button>
-          <button id="voiceBtn" class="btn btn-secondary" type="button">Dictate</button>
+          <button id="voiceBtn" class="btn btn-secondary" type="button" hidden style="display:none">Dictate</button>
         </div>
 
         <div class="quick-chips" aria-label="Example searches">
@@ -156,9 +156,25 @@
           <span>Ready to move</span>
         </div>
 
-        <div class="hero-voice-cta">
-          <a class="btn btn-primary" href="#voice">Start Voice Agent</a>
-          <p>For a real conversation, use the voice agent below. For quick search, type or dictate here.</p>
+        <div class="hero-voice-cta hero-voice-live">
+          <p>Or talk to the assistant: tap <strong>Start Voice Agent</strong>, then hold <strong>Hold to Talk</strong> while you speak. &middot; <span dir="rtl">تحدّث مع المساعد مباشرة</span></p>
+          <div class="voice-controls">
+            <button id="startVoiceAgentBtn" class="btn btn-primary" type="button">Start Voice Agent</button>
+            <button id="holdToTalkBtn" class="talk-btn" type="button" disabled>Hold to Talk</button>
+            <button id="stopVoiceAgentBtn" class="btn btn-secondary" type="button" disabled>Stop Session</button>
+          </div>
+          <div id="voiceStatus" class="status">Voice agent is off.</div>
+          <div id="phoneConfirmBox" class="phone-confirm hidden">
+            <div>
+              <span class="eyebrow">Confirm WhatsApp Number</span>
+              <p>The voice agent heard this number. Check it before saving.</p>
+            </div>
+            <input id="detectedPhoneInput" placeholder="Detected WhatsApp number">
+            <div class="voice-controls">
+              <button id="confirmPhoneBtn" class="btn btn-primary" type="button">Confirm & Save Lead</button>
+              <button id="cancelPhoneBtn" class="btn btn-secondary" type="button">Cancel</button>
+            </div>
+          </div>
         </div>
 
         <div id="status" class="status">Loading property database...</div>
@@ -190,36 +206,6 @@
         </div>
       </div>
     </aside>
-  </section>
-
-  <section id="voice" class="section voice-section">
-    <div class="voice-card">
-      <div>
-        <span class="eyebrow">Voice agent</span>
-        <h2>Talk to the property assistant</h2>
-        <p>This is the full voice conversation mode connected to the same search box above. Start it, hold while speaking, then release for a short controlled answer.</p>
-      </div>
-
-      <div class="voice-controls">
-        <button id="startVoiceAgentBtn" class="btn btn-primary" type="button">Start Voice Agent</button>
-        <button id="holdToTalkBtn" class="talk-btn" type="button" disabled>Hold to Talk</button>
-        <button id="stopVoiceAgentBtn" class="btn btn-secondary" type="button" disabled>Stop Session</button>
-      </div>
-
-      <div id="voiceStatus" class="status">Voice agent is off.</div>
-
-      <div id="phoneConfirmBox" class="phone-confirm hidden">
-        <div>
-          <span class="eyebrow">Confirm WhatsApp Number</span>
-          <p>The voice agent heard this number. Check it before saving.</p>
-        </div>
-        <input id="detectedPhoneInput" placeholder="Detected WhatsApp number">
-        <div class="voice-controls">
-          <button id="confirmPhoneBtn" class="btn btn-primary" type="button">Confirm & Save Lead</button>
-          <button id="cancelPhoneBtn" class="btn btn-secondary" type="button">Cancel</button>
-        </div>
-      </div>
-    </div>
   </section>
 
   <section class="section results-section">
@@ -416,9 +402,9 @@ window.TYCOONS_SUPABASE_KEY = "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
           '<div style="position:relative;display:flex;align-items:center;gap:12px;height:62px;padding:0 12px 0 18px;border-radius:14px;background:#fff;border:1px solid rgba(16,24,39,.14);box-shadow:0 4px 16px rgba(16,24,39,.06);">' +
             '<div dir="rtl" style="display:flex;align-items:center;font-size:16px;color:var(--navy);white-space:nowrap;overflow:hidden;animation:tyc-typeLine 5s steps(20,end) infinite;">عايز شاليه في الساحل</div>' +
             '<span style="width:2px;height:22px;background:var(--gold);animation:tyc-caret 1s step-end infinite;"></span>' +
-            '<div style="margin-left:auto;width:40px;height:40px;border-radius:10px;background:var(--navy);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;">🎤</div>' +
+            '<div style="margin-left:auto;height:34px;padding:0 16px;border-radius:9px;background:var(--navy);display:flex;align-items:center;color:#fff;font-size:13px;font-weight:700;">Search</div>' +
           '</div>' +
-          '<div style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink);letter-spacing:.04em;">type it · or tap the mic to dictate</div>' +
+          '<div style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink);letter-spacing:.04em;">type your request in the search box</div>' +
           '<div style="display:flex;gap:8px;margin-top:14px;justify-content:center;flex-wrap:wrap;">' +
             '<span dir="rtl" style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:99px;background:#fff;border:1px solid rgba(16,24,39,.12);font-size:12px;color:var(--navy);">آي فيلا في التجمع</span>' +
             '<span style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:99px;background:#fff;border:1px solid rgba(16,24,39,.12);font-size:12px;color:var(--navy);">Under 9M</span>' +
