@@ -1,0 +1,95 @@
+Tycoons Language + UX Fix Validation
+Date: 2026-06-29
+Source used: /mnt/data/tycoons-ai-realestate-main (2).zip
+Scope: local clean merge only. No GitHub / Netlify / Supabase upload was performed.
+
+Changed files:
+- index.html
+- script.js
+- styles.css
+- scripts/generate-pages.js
+
+Implemented fixes:
+1) Arabic / English switch
+- Added a final language stabilizer layer.
+- English click changes html dir to ltr and updates hero, search, voice, card labels and active language button.
+- Arabic click changes html dir to rtl and updates the same areas back.
+- Language preference save is now safe even if localStorage is unavailable.
+
+2) Language button visual
+- Restored a premium gold active language pill style.
+- Added active/aria-pressed handling for the selected language.
+
+3) Mixed Arabic / English cleanup
+- Removed mixed English from Arabic search/voice text.
+- Dynamic cards now re-render after language change.
+- Quick chips now change with language.
+
+4) Horizontal scroll
+- Added final overflow lock.
+- Fixed the skip-link that was creating a hidden horizontal overflow.
+- Validation showed mobile and desktop horizontal scroll checks passed.
+
+5) Header
+- Added final glass header visual layer.
+- Header remains fixed and constrained to page width.
+
+6) Search area
+- Rebuilt final CSS layer for search area spacing.
+- Search button now has consistent height/shape.
+- Quick chips spacing and colors normalized.
+- RTL/LTR behavior preserved.
+
+7) Voice UI
+- Voice buttons normalized with the same button system.
+- Voice statuses sanitized to remove Realtime/API/internal wording.
+- Voice labels update with Arabic / English.
+
+8) Technical messages
+- Removed visible Supabase/API/RLS/database wording from client-facing status messages.
+- Loading/loaded/failure states now show client-friendly copy.
+
+9) Cards / carousel
+- Unit/project card labels update with language.
+- Carousel counter isolated as LTR so it stays as 1 / N.
+- Carousel arrows remain isolated from page RTL.
+
+10) WhatsApp / admin / floating
+- WhatsApp button styling unified with button system.
+- Floating WhatsApp shifted higher on mobile to avoid card overlap.
+- Public Admin panel link is hidden.
+
+11) How it works
+- Replaced intrusive modal/guide block with a simpler side panel.
+- Removed the persistent guide popup/pill from homepage.
+- Side panel text updates through the language system.
+
+12) Project pages
+- Updated generated project form copy.
+- Added language switch visual to generated page header.
+- Added safer generated file output helper for .html and directory index paths.
+
+Automated checks run:
+- node --check script.js: PASS
+- node --check scripts/generate-pages.js: PASS
+- Playwright inline UI test with mocked Supabase data: PASS
+
+Playwright evidence:
+- Arabic default dir: rtl
+- Arabic h1: قول للـ AI بتدور على إيه بالصوت أو بالكتابة.
+- Arabic search button: بحث
+- Arabic unit card kicker: وحدة متاحة
+- Carousel counter: 1 / 2
+- Status message: تم تحميل 1 وحدة و 1 مشروع بنجاح.
+- Admin link display: none
+- Mobile horizontal scroll check: true
+- English dir after clicking EN: ltr
+- English h1 after clicking EN: Tell the AI what you’re looking for, by voice or text.
+- English search button: Search
+- English unit card kicker: AVAILABLE UNIT
+- Desktop horizontal scroll check: true
+- Arabic dir after clicking Arabic: rtl
+- Guide modal count: 0
+
+Important note:
+This is a file-level validated patch. It has not been deployed to the live website yet.
