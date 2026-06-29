@@ -163,10 +163,26 @@
         <div class="hero-voice-cta hero-voice-live elevenlabs-voice-cta">
           <div class="elevenlabs-voice-copy">
             <strong data-el-voice-title>اتكلم مع Sarah</strong>
-            <p>اتكلم بصوتك مع Sarah من Tycoons Investments عشان تساعدك تحدد المنطقة ونوع الوحدة والميزانية المناسبة.</p>
+            <p>اتكلم بصوتك مع Sarah من Tycoons Investments. لما Sarah تبحث في المخزون، النتائج هتظهر في الكروت تحت تلقائيًا.</p>
+            <div id="elevenlabsToolStatus" class="elevenlabs-tool-status">جاهزة للبحث الصوتي المباشر.</div>
+            <div class="sarah-voice-controls" aria-label="Sarah voice controls">
+              <button id="sarahStartCallBtn" class="btn btn-primary" type="button">Start Voice Agent</button>
+              <button id="sarahHoldToTalkBtn" class="talk-btn sarah-talk-btn" type="button" disabled>Hold to Talk</button>
+              <button id="sarahStopCallBtn" class="btn btn-secondary" type="button" disabled>Stop</button>
+            </div>
+            <div id="sarahControlStatus" class="sarah-control-status">Press Start Voice Agent, then speak to Sarah. Search results will appear below.</div>
           </div>
           <div class="elevenlabs-widget-shell" aria-label="Sarah voice assistant">
-            <elevenlabs-convai agent-id="agent_2801kw5n6m9tewabcncnykc5w362"></elevenlabs-convai>
+            <elevenlabs-convai
+              id="sarahVoiceWidget"
+              agent-id="agent_2801kw5n6m9tewabcncnykc5w362"
+              variant="expanded"
+              action-text="Need help?"
+              start-call-text="Start Voice Agent"
+              end-call-text="Stop"
+              listening-text="Sarah is listening..."
+              speaking-text="Sarah is speaking...">
+            </elevenlabs-convai>
           </div>
 
           <div class="legacy-realtime-voice" hidden aria-hidden="true">
