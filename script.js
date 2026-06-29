@@ -47,6 +47,10 @@ function tr(key) {
   return (TYCOONS_I18N[siteLanguage] && TYCOONS_I18N[siteLanguage][key]) || TYCOONS_I18N.en[key] || key;
 }
 
+function ui(arText, enText) {
+  return siteLanguage === "ar" ? arText : enText;
+}
+
 function detectLanguageCommand(text) {
   const q = String(text || "").toLowerCase().trim();
   if (!q) return null;
@@ -353,10 +357,6 @@ function mediaUrls(item, type = "unit") {
 function mediaImage(item, type = "unit") {
   const location = safe(item.location);
   const urls = mediaUrls(item, type);
-  const isRTL = document.documentElement.dir === "rtl";
-  const prevArrow = isRTL ? "›" : "‹";
-  const nextArrow = isRTL ? "‹" : "›";
-
   if (urls.length > 1) {
     const slides = urls.map((url, index) => {
       return `<img class="carousel-img${index === 0 ? " active" : ""}" src="${escapeAttr(url)}" alt="${escapeAttr(location)} image ${index + 1}" loading="lazy" referrerpolicy="no-referrer">`;
@@ -369,8 +369,8 @@ function mediaImage(item, type = "unit") {
     return `
       <div class="image photo has-img image-carousel" data-carousel-index="0">
         <div class="carousel-track">${slides}</div>
-        <button class="carousel-nav carousel-prev" type="button" data-carousel-dir="-1" aria-label="Previous image">${prevArrow}</button>
-        <button class="carousel-nav carousel-next" type="button" data-carousel-dir="1" aria-label="Next image">${nextArrow}</button>
+        <button class="carousel-nav carousel-prev" type="button" data-carousel-dir="-1" aria-label="Previous image"></button>
+        <button class="carousel-nav carousel-next" type="button" data-carousel-dir="1" aria-label="Next image"></button>
         <div class="carousel-counter">1 / ${urls.length}</div>
         <div class="carousel-dots">${dots}</div>
         <span>${location}</span>
@@ -645,7 +645,7 @@ async function runAISearch(queryOverride = null) {
 
   if (!query) {
     statusBox.className = "status";
-    statusBox.textContent = siteLanguage === "ar" ? "اكتب طلبك أو استخدم المساعد الصوتي." : "Please type what you are looking for, or use Start Voice Agent for real voice.";
+    statusBox.textContent = ui("اكتب طلبك أو استخدم المساعد الصوتي.", "Please type what you are looking for, or use Start Voice Agent for real voice.");
     return null;
   }
 
@@ -661,7 +661,7 @@ async function runAISearch(queryOverride = null) {
 
   setSearchLoading(true);
   statusBox.className = "status";
-  statusBox.textContent = siteLanguage === "ar" ? "الـ AI بيبحث في المخزون المتاح..." : "AI is searching your live inventory...";
+  statusBox.textContent = ui("الـ AI بيبحث في المخزون المتاح...", "AI is searching your live inventory...");
 
   try {
     const res = await fetch("/api/ai-search", {
@@ -676,7 +676,7 @@ async function runAISearch(queryOverride = null) {
     render(data.results || [], results);
 
     statusBox.className = "status success";
-    statusBox.textContent = data.answer || "AI search completed.";
+    statusBox.textContent = data.answer || ui("تم البحث بنجاح.", "AI search completed.");
     return data;
   } catch (err) {
     console.warn("AI search failed, using local fallback:", err);
@@ -684,8 +684,8 @@ async function runAISearch(queryOverride = null) {
     render(matches, results);
     const best = matches[0];
     const answer = best
-      ? "AI function is not ready yet, so I used basic search. Closest match: " + best.project_name + ", " + price(best.starting_price) + "."
-      : "AI function is not ready yet, and I could not find a matching unit.";
+      ? ui("البحث الذكي مش جاهز دلوقتي، فاستخدمت البحث الأساسي. أقرب نتيجة: " + best.project_name + "، " + price(best.starting_price) + ".", "AI function is not ready yet, so I used basic search. Closest match: " + best.project_name + ", " + price(best.starting_price) + ".")
+      : ui("البحث الذكي مش جاهز دلوقتي، ومفيش نتيجة مطابقة.", "AI function is not ready yet, and I could not find a matching unit.");
 
     statusBox.className = "status error";
     statusBox.textContent = answer;
@@ -706,23 +706,23 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
   recognition.interimResults = false;
   recognition.continuous = false;
 
-  voiceBtn.textContent = "Dictate Search";
+  voiceBtn.textContent = ui("إملاء صوتي", "Dictate Search");
 
   voiceBtn.addEventListener("click", () => {
     if (isSearching) return;
     window.speechSynthesis?.cancel?.();
     voiceBtn.disabled = true;
-    voiceBtn.textContent = "Listening...";
+    voiceBtn.textContent = ui("بيسمع...", "Listening...");
     statusBox.className = "status";
-    statusBox.textContent = "Listening — free voice search. Speak now.";
+    statusBox.textContent = ui("بيسمع البحث الصوتي المجاني. اتكلم دلوقتي.", "Listening — free voice search. Speak now.");
 
     try {
       recognition.start();
     } catch (err) {
       voiceBtn.disabled = false;
-      voiceBtn.textContent = "Dictate Search";
+      voiceBtn.textContent = ui("إملاء صوتي", "Dictate Search");
       statusBox.className = "status error";
-      statusBox.textContent = "Microphone could not start. Try again or allow microphone permission.";
+      statusBox.textContent = ui("الميكروفون مشتغلش. اسمح بصلاحية الميكروفون وجرب تاني.", "Microphone could not start. Try again or allow microphone permission.");
     }
   });
 
@@ -730,7 +730,7 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
     const transcript = event.results[0][0].transcript;
     searchInput.value = transcript;
     statusBox.className = "status";
-    statusBox.textContent = "Heard: " + transcript + " — searching now...";
+    statusBox.textContent = ui("سمعت: " + transcript + " — بيدور دلوقتي...", "Heard: " + transcript + " — searching now...");
 
     const data = await runAISearch(transcript);
 
@@ -741,19 +741,19 @@ if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
 
   recognition.addEventListener("end", () => {
     voiceBtn.disabled = false;
-    voiceBtn.textContent = "Dictate Search";
+    voiceBtn.textContent = ui("إملاء صوتي", "Dictate Search");
   });
 
   recognition.addEventListener("error", (event) => {
     voiceBtn.disabled = false;
-    voiceBtn.textContent = "Dictate Search";
+    voiceBtn.textContent = ui("إملاء صوتي", "Dictate Search");
     statusBox.className = "status error";
-    statusBox.textContent = "Voice input error: " + event.error + ". You can type your search instead.";
+    statusBox.textContent = ui("حصل خطأ في الصوت: " + event.error + ". اكتب البحث بدل الصوت.", "Voice input error: " + event.error + ". You can type your search instead.");
   });
 } else {
   voiceBtn.addEventListener("click", () => {
     statusBox.className = "status error";
-    statusBox.textContent = "Voice input is not supported in this browser. Try Chrome on desktop.";
+    statusBox.textContent = ui("المتصفح ده مش بيدعم الإدخال الصوتي. جرّب Chrome.", "Voice input is not supported in this browser. Try Chrome on desktop.");
   });
 }
 
@@ -775,12 +775,12 @@ leadForm.addEventListener("submit", async (event) => {
   try {
     await insertRow("leads", row);
     leadStatus.className = "status success";
-    leadStatus.textContent = "Lead saved successfully in Supabase.";
+    leadStatus.textContent = ui("تم حفظ البيانات بنجاح.", "Lead saved successfully in Supabase.");
     leadForm.reset();
   } catch (err) {
     console.error(err);
     leadStatus.className = "status error";
-    leadStatus.textContent = "Lead was not saved. Check the leads insert policy.";
+    leadStatus.textContent = ui("البيانات متحفظتش. راجع إعدادات الحفظ.", "Lead was not saved. Check the leads insert policy.");
   }
 });
 
@@ -796,18 +796,19 @@ function setMicEnabled(enabled) {
 
   if (enabled) {
     holdToTalkBtn.classList.add("talking");
-    holdToTalkBtn.textContent = "Listening...";
-    setVoiceStatus("Listening. Release Push to Talk when you finish speaking.", "status success");
+    holdToTalkBtn.textContent = ui("بيسمع...", "Listening...");
+    setVoiceStatus(ui("بيسمع. سيب الزرار لما تخلص كلام.", "Listening. Release Push to Talk when you finish speaking."), "status success");
   } else {
     holdToTalkBtn.classList.remove("talking");
-    holdToTalkBtn.textContent = "Hold to Talk";
+    holdToTalkBtn.textContent = tr("holdToTalk");
     if (realtimeDc && realtimeDc.readyState === "open") {
-      setVoiceStatus("Mic muted. Waiting for AI response or hold to talk again.");
+      setVoiceStatus(ui("الميكروفون مقفول. مستني رد المساعد أو اضغط للتحدث تاني.", "Mic muted. Waiting for AI response or hold to talk again."));
     }
   }
 }
 
-function stopRealtimeAgent(message = "Voice agent is off.") {
+function stopRealtimeAgent(message = null) {
+  message = message || tr("voiceOff");
   handledFunctionCalls.clear();
 
   if (micTrack) {
@@ -839,7 +840,7 @@ function stopRealtimeAgent(message = "Voice agent is off.") {
   startVoiceAgentBtn.disabled = false;
   holdToTalkBtn.disabled = true;
   holdToTalkBtn.classList.remove("talking");
-  holdToTalkBtn.textContent = "Hold to Talk";
+  holdToTalkBtn.textContent = tr("holdToTalk");
   stopVoiceAgentBtn.disabled = true;
   setVoiceStatus(message);
 }
@@ -974,14 +975,14 @@ function showPhoneConfirmation(leadRow) {
 
 async function confirmPendingVoiceLead() {
   if (!pendingVoiceLead) {
-    setVoiceStatus("No pending voice lead to confirm.", "status error");
+    setVoiceStatus(ui("مفيش ليد صوتي مستني تأكيد.", "No pending voice lead to confirm."), "status error");
     return;
   }
 
   const confirmedPhone = normalizePhoneDisplay(detectedPhoneInput?.value || pendingVoiceLead.phone);
 
   if (!confirmedPhone || confirmedPhone.length < 8) {
-    setVoiceStatus("Please enter a valid phone number before saving.", "status error");
+    setVoiceStatus(ui("اكتب رقم واتساب صحيح قبل الحفظ.", "Please enter a valid phone number before saving."), "status error");
     return;
   }
 
@@ -1008,7 +1009,7 @@ async function confirmPendingVoiceLead() {
 function cancelPendingVoiceLead() {
   pendingVoiceLead = null;
   if (phoneConfirmBox) phoneConfirmBox.classList.add("hidden");
-  setVoiceStatus("Phone confirmation cancelled. Hold to Talk again to continue.");
+  setVoiceStatus(ui("اتلغى تأكيد الرقم. اضغط للتحدث تاني عشان تكمل.", "Phone confirmation cancelled. Hold to Talk again to continue."));
 }
 
 async function saveVoiceLeadFromArgs(args) {
@@ -1064,30 +1065,30 @@ async function handleRealtimeEvent(event) {
   console.log("Realtime event:", payload);
 
   if (payload.type === "error") {
-    setVoiceStatus("Realtime error: " + (payload.error?.message || "Unknown error"), "status error");
+    setVoiceStatus(ui("خطأ في المساعد الصوتي: ", "Realtime error: ") + (payload.error?.message || ui("خطأ غير معروف", "Unknown error")), "status error");
     return;
   }
 
   if (payload.type === "session.created") {
-    setVoiceStatus("Voice agent connected. Hold Push to Talk and ask for a property.", "status success");
+    setVoiceStatus(ui("المساعد الصوتي اتصل. اضغط للتحدث واسأل عن العقار.", "Voice agent connected. Hold Push to Talk and ask for a property."), "status success");
   }
 
   if (payload.type === "input_audio_buffer.speech_started") {
-    setVoiceStatus("Listening...");
+    setVoiceStatus(ui("بيسمع...", "Listening..."));
   }
 
   if (payload.type === "input_audio_buffer.speech_stopped") {
-    setVoiceStatus("Processing your request...");
+    setVoiceStatus(ui("بيعالج طلبك...", "Processing your request..."));
   }
 
   if (payload.type === "response.created") {
     setMicEnabled(false);
-    setVoiceStatus("AI is answering. Keep mic released.");
+    setVoiceStatus(ui("المساعد بيرد. سيب الميكروفون مقفول.", "AI is answering. Keep mic released."));
   }
 
   if (payload.type === "response.audio.done" || payload.type === "response.done") {
     setMicEnabled(false);
-    setVoiceStatus("AI finished. Hold Push to Talk again to continue.", "status success");
+    setVoiceStatus(ui("المساعد خلص. اضغط للتحدث تاني عشان تكمل.", "AI finished. Hold Push to Talk again to continue."), "status success");
   }
 
   if (payload.type === "conversation.item.input_audio_transcription.completed" && payload.transcript) {
@@ -1113,7 +1114,7 @@ async function handleRealtimeEvent(event) {
     const query = args.query || args.search_query || searchInput.value || "property search";
 
     searchInput.value = query;
-    setVoiceStatus("Searching live inventory for: " + query);
+    setVoiceStatus(ui("بيدور في المخزون عن: ", "Searching live inventory for: ") + query);
 
     const searchData = await runAISearch(query);
     const spokenSummary = buildSpokenSearchSummary(query, searchData);
@@ -1191,7 +1192,7 @@ After this response, wait for the user's next push-to-talk message.
   }
 
   if (payload.name === "save_voice_lead") {
-    setVoiceStatus("Preparing voice lead...");
+    setVoiceStatus(ui("بيجهز الليد الصوتي...", "Preparing voice lead..."));
 
     try {
       const savedLead = await saveVoiceLeadFromArgs(args);
@@ -1238,14 +1239,14 @@ Use the user's language, but if Arabic use Egyptian Arabic only.
 
       sendToolOutput(callId, {
         saved: false,
-        error: error.message || "Could not save voice lead"
+        error: error.message || ui("تعذر حفظ الليد الصوتي", "Could not save voice lead")
       });
 
       realtimeDc.send(JSON.stringify({
         type: "response.create",
         response: {
           output_modalities: ["audio"],
-          instructions: "The lead was not saved. Apologize briefly and ask the user to use the contact form."
+          instructions: ui("لم يتم حفظ الليد. اعتذر باختصار واطلب من المستخدم استخدام نموذج التواصل.", "The lead was not saved. Apologize briefly and ask the user to use the contact form.")
         }
       }));
     }
@@ -1260,7 +1261,7 @@ async function startRealtimeAgent() {
     stopVoiceAgentBtn.disabled = false;
     holdToTalkBtn.disabled = true;
     handledFunctionCalls.clear();
-    setVoiceStatus("Starting Realtime voice connection...");
+    setVoiceStatus(ui("بيبدأ اتصال المساعد الصوتي...", "Starting Realtime voice connection..."));
 
     window.speechSynthesis?.cancel?.();
 
@@ -1277,7 +1278,7 @@ async function startRealtimeAgent() {
     realtimePc.onconnectionstatechange = () => {
       console.log("WebRTC connection state:", realtimePc.connectionState);
       if (["failed", "disconnected", "closed"].includes(realtimePc.connectionState)) {
-        setVoiceStatus("Voice connection state: " + realtimePc.connectionState);
+        setVoiceStatus(ui("حالة اتصال الصوت: ", "Voice connection state: ") + realtimePc.connectionState);
       }
     };
 
@@ -1300,11 +1301,11 @@ async function startRealtimeAgent() {
 
     realtimeDc.addEventListener("open", () => {
       holdToTalkBtn.disabled = false;
-      setVoiceStatus("Realtime voice agent is live. Hold Push to Talk while speaking.", "status success");
+      setVoiceStatus(ui("المساعد الصوتي شغال. اضغط مطولًا للتحدث.", "Realtime voice agent is live. Hold Push to Talk while speaking."), "status success");
     });
 
     realtimeDc.addEventListener("close", () => {
-      setVoiceStatus("Realtime voice data channel closed.", "status error");
+      setVoiceStatus(ui("اتصال بيانات الصوت اتقفل.", "Realtime voice data channel closed."), "status error");
       holdToTalkBtn.disabled = true;
     });
 
@@ -1336,7 +1337,7 @@ async function startRealtimeAgent() {
     });
   } catch (err) {
     console.error(err);
-    stopRealtimeAgent("Could not start voice agent: " + err.message);
+    stopRealtimeAgent(ui("تعذر تشغيل المساعد الصوتي: ", "Could not start voice agent: ") + err.message);
     voiceStatus.className = "status error";
   }
 }
@@ -1379,7 +1380,7 @@ if (confirmPhoneBtn) {
       await confirmPendingVoiceLead();
     } catch (error) {
       console.error("Confirm phone save error:", error);
-      setVoiceStatus("Could not save confirmed lead: " + (error.message || "Unknown error"), "status error");
+      setVoiceStatus(ui("تعذر حفظ الليد بعد التأكيد: ", "Could not save confirmed lead: ") + (error.message || ui("خطأ غير معروف", "Unknown error")), "status error");
     } finally {
       confirmPhoneBtn.disabled = false;
     }
@@ -1391,8 +1392,8 @@ if (cancelPhoneBtn) {
 }
 
 startVoiceAgentBtn.addEventListener("click", startRealtimeAgent);
-stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent("Voice session stopped."));
-window.addEventListener("beforeunload", () => stopRealtimeAgent("Voice agent is off."));
+stopVoiceAgentBtn.addEventListener("click", () => stopRealtimeAgent(ui("تم إيقاف الجلسة الصوتية.", "Voice session stopped.")));
+window.addEventListener("beforeunload", () => stopRealtimeAgent(tr("voiceOff")));
 
 
 /* ============================================================
@@ -1486,7 +1487,7 @@ async function loadData() {
   } catch (err) {
     console.error(err);
     statusBox.className = "status error";
-    statusBox.textContent = "Could not load Supabase data. Check the API key, URL, and RLS policies.";
+    statusBox.textContent = ui("تعذر تحميل بيانات Supabase. راجع إعدادات API/RLS.", "Could not load Supabase data. Check the API key, URL, and RLS policies.");
   }
 }
 /* ============================================================
@@ -1517,7 +1518,7 @@ async function loadData() {
   if (!SpeechRecognitionImpl) {
     freeVoiceBtn.addEventListener("click", () => {
       voiceStatus.className = "status error";
-      voiceStatus.textContent = "Free voice search needs a browser with speech recognition support, like Chrome on desktop or Android.";
+      voiceStatus.textContent = ui("البحث الصوتي المجاني محتاج متصفح بيدعم Speech Recognition زي Chrome.", "Free voice search needs a browser with speech recognition support, like Chrome on desktop or Android.");
     });
     return;
   }
@@ -1551,18 +1552,18 @@ async function loadData() {
     window.speechSynthesis?.cancel?.();
     freeVoiceActive = true;
     freeVoiceBtn.disabled = true;
-    freeVoiceBtn.textContent = "Listening...";
+    freeVoiceBtn.textContent = ui("بيسمع...", "Listening...");
     voiceStatus.className = "status";
-    voiceStatus.textContent = "Listening for your free voice search...";
+    voiceStatus.textContent = ui("بيسمع بحثك الصوتي المجاني...", "Listening for your free voice search...");
 
     try {
       freeRecognition.start();
     } catch (err) {
       freeVoiceActive = false;
       freeVoiceBtn.disabled = false;
-      freeVoiceBtn.textContent = "Voice Search";
+      freeVoiceBtn.textContent = ui("بحث صوتي", "Voice Search");
       voiceStatus.className = "status error";
-      voiceStatus.textContent = "Microphone could not start. Check browser permissions and try again.";
+      voiceStatus.textContent = ui("الميكروفون مشتغلش. راجع صلاحيات المتصفح وجرب تاني.", "Microphone could not start. Check browser permissions and try again.");
     }
   });
 
@@ -1572,7 +1573,7 @@ async function loadData() {
 
     searchInput.value = transcript;
     voiceStatus.className = "status";
-    voiceStatus.textContent = "Heard: " + transcript + " — searching now...";
+    voiceStatus.textContent = ui("سمعت: " + transcript + " — بيدور دلوقتي...", "Heard: " + transcript + " — searching now...");
 
     const data = await runAISearch(transcript);
 
@@ -1582,22 +1583,22 @@ async function loadData() {
       speak(data.answer, arabic ? "ar-EG" : "en-US");
     } else {
       voiceStatus.className = "status error";
-      voiceStatus.textContent = "No spoken answer was returned. Check the results below instead.";
+      voiceStatus.textContent = ui("مفيش رد صوتي رجع. شوف النتائج تحت.", "No spoken answer was returned. Check the results below instead.");
     }
   });
 
   freeRecognition.addEventListener("end", () => {
     freeVoiceActive = false;
     freeVoiceBtn.disabled = false;
-    freeVoiceBtn.textContent = "Voice Search";
+    freeVoiceBtn.textContent = ui("بحث صوتي", "Voice Search");
   });
 
   freeRecognition.addEventListener("error", (event) => {
     freeVoiceActive = false;
     freeVoiceBtn.disabled = false;
-    freeVoiceBtn.textContent = "Voice Search";
+    freeVoiceBtn.textContent = ui("بحث صوتي", "Voice Search");
     voiceStatus.className = "status error";
-    voiceStatus.textContent = "Voice input error: " + event.error + ". You can type your search instead.";
+    voiceStatus.textContent = ui("خطأ في الصوت: " + event.error + ". اكتب البحث بدل الصوت.", "Voice input error: " + event.error + ". You can type your search instead.");
   });
 })();
 
@@ -1803,11 +1804,11 @@ document.addEventListener("click", (event) => {
     const source = backdrop.dataset.source;
 
     if (!name || !phone) {
-      statusEl.textContent = "Please fill in your name and number.";
+      statusEl.textContent = ui("اكتب اسمك ورقم واتساب.", "Please fill in your name and number.");
       return;
     }
 
-    statusEl.textContent = "Opening WhatsApp...";
+    statusEl.textContent = ui("بيفتح واتساب...", "Opening WhatsApp...");
 
     const message = [
       "Hello Tycoons Investments,",

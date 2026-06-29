@@ -1293,3 +1293,93 @@ html[dir="rtl"] .carousel-prev{right:10px;left:auto}
 html[dir="rtl"] .carousel-next{left:10px;right:auto}
 html[dir="rtl"] .pp-prev{right:10px;left:auto}
 html[dir="rtl"] .pp-next{left:10px;right:auto}
+
+
+/* RTL stabilization patch: keep animations unchanged, fix carousel controls, WhatsApp position, and horizontal overflow */
+html, body{
+  max-width:100%;
+  overflow-x:hidden;
+}
+
+.floating-whatsapp,
+html[dir="rtl"] .floating-whatsapp{
+  right:18px !important;
+  left:auto !important;
+}
+
+@media(max-width:720px){
+  .floating-whatsapp,
+  html[dir="rtl"] .floating-whatsapp{
+    right:12px !important;
+    left:auto !important;
+  }
+}
+
+@media(min-width:1021px){
+  html[dir="rtl"] .hero-market{
+    direction:ltr !important;
+  }
+  html[dir="rtl"] .hero-copy{
+    direction:rtl;
+    text-align:right;
+  }
+  html[dir="rtl"] .hero-side{
+    direction:ltr !important;
+  }
+}
+
+/* Keep the bilingual intro animations exactly as designed */
+#tyc-howpanel,
+#tyc-guide{
+  direction:ltr !important;
+  text-align:left !important;
+}
+#tyc-howpanel [dir="rtl"],
+#tyc-guide [dir="rtl"]{
+  direction:rtl !important;
+  text-align:right !important;
+}
+
+/* Carousel is visual media, so isolate it from page RTL */
+.image-carousel,
+.pp-gallery{
+  direction:ltr !important;
+  text-align:left !important;
+}
+
+/* CSS-owned arrow icons so language switching cannot leave wrong arrows behind */
+.carousel-nav,
+.pp-nav{
+  font-size:0 !important;
+  text-indent:0 !important;
+}
+.carousel-nav::before,
+.pp-nav::before{
+  display:block;
+  font-size:25px;
+  line-height:1;
+  font-weight:900;
+}
+.pp-nav::before{
+  font-size:22px;
+}
+
+.carousel-prev{left:10px !important;right:auto !important}
+.carousel-next{right:10px !important;left:auto !important}
+.carousel-prev::before{content:"‹"}
+.carousel-next::before{content:"›"}
+
+html[dir="rtl"] .carousel-prev{right:10px !important;left:auto !important}
+html[dir="rtl"] .carousel-next{left:10px !important;right:auto !important}
+html[dir="rtl"] .carousel-prev::before{content:"›"}
+html[dir="rtl"] .carousel-next::before{content:"‹"}
+
+.pp-prev{left:10px !important;right:auto !important}
+.pp-next{right:10px !important;left:auto !important}
+.pp-prev::before{content:"‹"}
+.pp-next::before{content:"›"}
+
+html[dir="rtl"] .pp-prev{right:10px !important;left:auto !important}
+html[dir="rtl"] .pp-next{left:10px !important;right:auto !important}
+html[dir="rtl"] .pp-prev::before{content:"›"}
+html[dir="rtl"] .pp-next::before{content:"‹"}
