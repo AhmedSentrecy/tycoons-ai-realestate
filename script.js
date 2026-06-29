@@ -353,6 +353,9 @@ function mediaUrls(item, type = "unit") {
 function mediaImage(item, type = "unit") {
   const location = safe(item.location);
   const urls = mediaUrls(item, type);
+  const isRTL = document.documentElement.dir === "rtl";
+  const prevArrow = isRTL ? "›" : "‹";
+  const nextArrow = isRTL ? "‹" : "›";
 
   if (urls.length > 1) {
     const slides = urls.map((url, index) => {
@@ -366,8 +369,8 @@ function mediaImage(item, type = "unit") {
     return `
       <div class="image photo has-img image-carousel" data-carousel-index="0">
         <div class="carousel-track">${slides}</div>
-        <button class="carousel-nav carousel-prev" type="button" data-carousel-dir="-1" aria-label="Previous image">‹</button>
-        <button class="carousel-nav carousel-next" type="button" data-carousel-dir="1" aria-label="Next image">›</button>
+        <button class="carousel-nav carousel-prev" type="button" data-carousel-dir="-1" aria-label="Previous image">${prevArrow}</button>
+        <button class="carousel-nav carousel-next" type="button" data-carousel-dir="1" aria-label="Next image">${nextArrow}</button>
         <div class="carousel-counter">1 / ${urls.length}</div>
         <div class="carousel-dots">${dots}</div>
         <span>${location}</span>

@@ -1288,3 +1288,8 @@ html[dir="rtl"] .floating-whatsapp{
   direction:rtl;
   text-align:right;
 }
+
+html[dir="rtl"] .carousel-prev{right:10px;left:auto}
+html[dir="rtl"] .carousel-next{left:10px;right:auto}
+html[dir="rtl"] .pp-prev{right:10px;left:auto}
+html[dir="rtl"] .pp-next{left:10px;right:auto}
