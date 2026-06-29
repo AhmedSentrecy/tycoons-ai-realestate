@@ -1,0 +1,17 @@
+Tycoons ElevenLabs Sarah Widget validation
+
+Static checks:
+- ElevenLabs custom element present: PASS
+- Correct Agent ID present: PASS
+- ElevenLabs embed script present: PASS
+- Legacy Realtime controls hidden: PASS
+- Old Start Voice Agent visible copy removed from visible panel: PASS
+- i18n title key added: PASS
+- Carousel code still present: PASS
+- WhatsApp tracking code still present: PASS
+
+Node syntax checks:
+- script.js: PASS
+- scripts/generate-pages.js: PASS
+
+Files changed intentionally: index.html, styles.css, script.js
