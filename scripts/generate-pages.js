@@ -421,6 +421,18 @@ function groupBy(rows, key) {
   return map;
 }
 
+// ---------- safe write helper ----------
+function writeHtmlFileFromUrl(url, html) {
+  const filePath = path.join(ROOT, url.slice(1));
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, html, "utf8");
+  if (url.endsWith(".html")) {
+    const dirPath = path.join(ROOT, url.slice(1, -5), "index.html");
+    fs.mkdirSync(path.dirname(dirPath), { recursive: true });
+    fs.writeFileSync(dirPath, html, "utf8");
+  }
+}
+
 // ---------- page shell ----------
 
 function pageShell({ title, description, canonicalPath, ogImage, lang = "ar-EG", bodyHtml, jsonLd, breadcrumbJsonLd, extraScript = "" }) {
@@ -462,6 +474,10 @@ ${breadcrumbJsonLd ? `<script type="application/ld+json">${JSON.stringify(breadc
     <a href="/#search">الصوت</a>
     <a href="/#projects">المشاريع</a>
     <a href="/#lead">تواصل</a>
+    <div class="language-switcher" aria-label="Language switcher">
+      <a class="lang-btn" href="/" title="English">EN</a>
+      <span class="lang-btn active">عربي</span>
+    </div>
     <a class="header-whatsapp" data-wa-source="header_whatsapp" href="${currentWhatsAppUrl}" target="_blank" rel="noopener">واتساب</a>
   </nav>
 </header>
@@ -487,7 +503,7 @@ function buildProjectLeadForm(projectName, developer, location) {
     <div>
       <span class="eyebrow">طلب تفاصيل المشروع</span>
       <h2>اطلب تفاصيل المشروع على واتساب</h2>
-      <p>املأ بياناتك وسيتم فتح واتساب برسالة جاهزة لفريق Tycoons Investments.</p>
+      <p>سيب بياناتك، وواتساب هيفتح برسالة جاهزة لفريق المبيعات عشان يبعتولك أحدث الوحدات وخطط الدفع.</p>
     </div>
     <form class="project-lead-form js-project-lead-form" data-project="${escapeHtml(projectName)}" data-developer="${escapeHtml(developer)}" data-location="${escapeHtml(location)}">
       <input name="name" placeholder="الاسم" required>
@@ -495,7 +511,7 @@ function buildProjectLeadForm(projectName, developer, location) {
       <input name="budget" placeholder="الميزانية المتوقعة">
       <input name="unit_type" placeholder="نوع الوحدة المطلوب">
       <textarea class="full" name="message" rows="3" placeholder="اكتب طلبك أو ملاحظاتك"></textarea>
-      <button class="btn btn-whatsapp" type="submit">ابعت الطلب على واتساب</button>
+      <button class="btn btn-whatsapp" type="submit">اطلب التفاصيل على واتساب</button>
     </form>
   </div>
 </section>`;
