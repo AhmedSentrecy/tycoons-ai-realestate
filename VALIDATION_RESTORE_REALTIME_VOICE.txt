@@ -1,0 +1,18 @@
+VALIDATION — Restore Realtime Voice
+
+Files in patch:
+- script.js
+- README_RESTORE_REALTIME_VOICE.txt
+- VALIDATION_RESTORE_REALTIME_VOICE.txt
+
+Checks:
+- script.js syntax: PASS
+- index.html touched: NO
+- styles.css touched: NO
+- Realtime endpoint kept: 1 occurrence(s)
+- Browser voice primary override present: 0 occurrence(s)
+- Browser fallback mode code present: 0 occurrence(s)
+- startRealtimeAgent function present: 1 occurrence(s)
+
+Result:
+This patch restores the pre-fallback Realtime Voice AI behavior and does not touch visual animation files.
