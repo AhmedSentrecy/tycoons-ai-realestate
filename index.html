@@ -156,32 +156,39 @@
         <div class="quick-chips" aria-label="Example searches">
           <span>عايز شاليه في الساحل</span>
           <span>آي فيلا في التجمع</span>
-          <span>شقة أقل من 9 مليون</span>
-          <span>استلام قريب</span>
+          <span>Apartment under 9M</span>
+          <span>Ready to move</span>
         </div>
 
-        <div class="hero-voice-cta hero-voice-live">
-          <p>استخدم البحث الصوتي لو تفضّل تتكلم. ابدأ المساعد، وبعدها اضغط مطولًا على زر التحدث وانت بتتكلم.</p>
-          <div class="voice-controls">
+        <div class="hero-voice-cta hero-voice-live elevenlabs-voice-cta">
+          <div class="elevenlabs-voice-copy">
+            <strong data-el-voice-title>اتكلم مع Sarah</strong>
+            <p>اتكلم بصوتك مع Sarah من Tycoons Investments عشان تساعدك تحدد المنطقة ونوع الوحدة والميزانية المناسبة.</p>
+          </div>
+          <div class="elevenlabs-widget-shell" aria-label="Sarah voice assistant">
+            <elevenlabs-convai agent-id="agent_2801kw5n6m9tewabcncnykc5w362"></elevenlabs-convai>
+          </div>
+
+          <div class="legacy-realtime-voice" hidden aria-hidden="true">
             <button id="startVoiceAgentBtn" class="btn btn-primary" type="button">ابدأ المساعد الصوتي</button>
             <button id="holdToTalkBtn" class="talk-btn" type="button" disabled>اضغط للتحدث</button>
             <button id="stopVoiceAgentBtn" class="btn btn-secondary" type="button" disabled>إيقاف الجلسة</button>
-          </div>
-          <div id="voiceStatus" class="status">المساعد الصوتي متوقف.</div>
-          <div id="phoneConfirmBox" class="phone-confirm hidden">
-            <div>
-              <span class="eyebrow">تأكيد رقم واتساب</span>
-              <p>المساعد سمع الرقم ده. راجعه قبل الحفظ.</p>
-            </div>
-            <input id="detectedPhoneInput" placeholder="رقم واتساب المكتشف">
-            <div class="voice-controls">
-              <button id="confirmPhoneBtn" class="btn btn-primary" type="button">تأكيد وحفظ الليد</button>
-              <button id="cancelPhoneBtn" class="btn btn-secondary" type="button">إلغاء</button>
+            <div id="voiceStatus" class="status">المساعد الصوتي متوقف.</div>
+            <div id="phoneConfirmBox" class="phone-confirm hidden">
+              <div>
+                <span class="eyebrow">تأكيد رقم واتساب</span>
+                <p>المساعد سمع الرقم ده. راجعه قبل الحفظ.</p>
+              </div>
+              <input id="detectedPhoneInput" placeholder="رقم واتساب المكتشف">
+              <div class="voice-controls">
+                <button id="confirmPhoneBtn" class="btn btn-primary" type="button">تأكيد وحفظ الليد</button>
+                <button id="cancelPhoneBtn" class="btn btn-secondary" type="button">إلغاء</button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div id="status" class="status">جاري تحميل الوحدات المتاحة...</div>
+        <div id="status" class="status">Loading property database...</div>
       </div>
     </div>
 
@@ -417,6 +424,7 @@
 window.TYCOONS_SUPABASE_URL = "https://coqnjymekrkoausiiytm.supabase.co";
 window.TYCOONS_SUPABASE_KEY = "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 </script>
+<script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 <script src="/script.js"></script>
 
 <!-- TYCOONS GUIDE: START  ===================================================
@@ -608,5 +616,6 @@ window.TYCOONS_SUPABASE_KEY = "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 })();
 </script>
 <!-- TYCOONS GUIDE: END ====================================================== -->
+
 </body>
 </html>

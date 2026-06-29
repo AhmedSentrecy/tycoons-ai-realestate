@@ -8,13 +8,7 @@ const WHATSAPP_UTM_MEDIUM = "whatsapp";
 const WHATSAPP_UTM_CAMPAIGN = "tycoons_lead";
 
 const TYCOONS_LANG_KEY = "tycoons_site_language";
-function getSavedSiteLanguage() {
-  try { return localStorage.getItem(TYCOONS_LANG_KEY); } catch (_) { return null; }
-}
-function saveSiteLanguagePreference(lang) {
-  try { localStorage.setItem(TYCOONS_LANG_KEY, lang); } catch (_) {}
-}
-let siteLanguage = getSavedSiteLanguage() || "ar";
+let siteLanguage = localStorage.getItem(TYCOONS_LANG_KEY) || "ar";
 
 const TYCOONS_I18N = {
   en: {
@@ -23,18 +17,19 @@ const TYCOONS_I18N = {
     heroLead: "Start with a normal request like “عايز شاليه في الساحل” or type it below. The assistant searches live Tycoons inventory and shows matching units instantly.",
     searchLabel: "Search by voice or text", talkAssistant: "Talk to the assistant", searchPlaceholder: "Example: كنت بدور على شاليه في الساحل أو iVilla in New Cairo",
     searchButton: "Search", aiSearch: "AI Search", searching: "Searching...",
-    voiceCta: "Or talk to the assistant: tap Start Voice Agent, then hold Hold to Talk while you speak. · تحدّث مع المساعد مباشرة",
+    voiceTitle: "Talk to Sarah",
+    voiceCta: "Speak with Sarah from Tycoons Investments to narrow down the area, unit type, budget and suitable options.",
     startVoice: "Start Voice Agent", holdToTalk: "Hold to Talk", stopSession: "Stop Session", voiceOff: "Voice agent is off.",
     confirmNumber: "Confirm WhatsApp Number", confirmText: "The voice agent heard this number. Check it before saving.", detectedPhone: "Detected WhatsApp number", confirmSave: "Confirm & Save Lead", cancel: "Cancel",
     resultsEyebrow: "Search results", recommendedUnits: "Recommended units", resultsText: "Cards show the essentials first: image, project, unit type, price, area, delivery, and media links.", adminPanel: "Admin panel",
-    projectsEyebrow: "Projects", browseCatalogue: "Browse the live catalogue", projectsText: "Project cards are loaded from the available catalogue and can inherit media from matching unit rows.",
+    projectsEyebrow: "Projects", browseCatalogue: "Browse the live catalogue", projectsText: "Project cards are loaded from Supabase and can inherit media from available unit rows.",
     seoEyebrow: "SEO-ready property guide", seoTitle: "Find real estate options in Egypt with AI-assisted search", seoText: "Tycoons Investments helps buyers compare developer inventory by location, unit type, budget, delivery date and payment plan, then continue directly on WhatsApp with the sales team.",
     seoCard1Title: "What can I search for?", seoCard1Text: "You can search for apartments, villas, iVilla units, chalets, New Cairo homes, North Coast vacation homes, Ain Sokhna units and selected developer projects.", seoCard1Link: "Ask on WhatsApp",
     seoCard2Title: "How does the AI search work?", seoCard2Text: "Type or dictate what you need. The website searches live inventory and returns matching cards with project, price, area, delivery, finishing and available media links.", seoCard2Link: "Try the search box",
     seoCard3Title: "Why WhatsApp-first?", seoCard3Text: "Real estate availability changes quickly. WhatsApp makes it easier to confirm the latest availability, payment details, delivery and recommended alternatives.", seoCard3Link: "Send WhatsApp request",
     faqEyebrow: "FAQs", faqTitle: "Questions buyers usually ask", faq1Q: "Can I contact Tycoons directly on WhatsApp?", faq1A: "Yes. Use any WhatsApp button on the website and your request will open directly in WhatsApp with a prepared message.", faq2Q: "Can I search in Arabic?", faq2A: "Yes. The search supports Arabic and English terms, including common real estate phrases like آي فيلا، شاليه، التجمع، الساحل and apartments.", faq3Q: "Are prices always final?", faq3A: "Prices and availability can change according to the developer, inventory release and payment plan. Confirm the latest details with the sales team on WhatsApp.", faq4Q: "What areas are available?", faq4A: "The website is prepared for New Cairo, North Coast, Ain Sokhna and developer-specific inventory pages.",
     leadEyebrow: "Lead capture", leadTitle: "Request suitable options", leadText: "Leave your details or send your request instantly on WhatsApp with the property context you need.", sendWa: "Send WhatsApp Request", submitLead: "Submit Lead", leadName: "Name", leadPhone: "Phone / WhatsApp", leadInterest: "Interested project or area", leadBudget: "Budget, example: 12000000",
-    project: "Project", availableUnit: "Available unit", startingPrice: "Starting price", area: "Area", delivery: "Delivery", finishing: "Finishing", brochure: "Brochure", askWa: "Ask on WhatsApp", priceOnRequest: "Price on request", from: "From", noMatches: "No matching items found.", loadingSupabase: "Loading available properties...", connectedPrefix: "Loaded ", unitsAnd: " units and ", projectsLoaded: " projects successfully.", languageChanged: "Website language changed to English."
+    project: "Project", availableUnit: "Available unit", startingPrice: "Starting price", area: "Area", delivery: "Delivery", finishing: "Finishing", brochure: "Brochure", askWa: "Ask on WhatsApp", priceOnRequest: "Price on request", from: "From", noMatches: "No matching items found.", loadingSupabase: "Loading live data from Supabase...", connectedPrefix: "Connected to Supabase. Loaded ", unitsAnd: " units and ", projectsLoaded: " projects.", languageChanged: "Website language changed to English."
   },
   ar: {
     navSearch: "البحث", navVoice: "الصوت", navProjects: "المشاريع", navContact: "تواصل", navWhatsapp: "واتساب",
@@ -42,18 +37,19 @@ const TYCOONS_I18N = {
     heroLead: "ابدأ بطلب طبيعي زي “عايز شاليه في الساحل” أو اكتب طلبك تحت. المساعد هيبحث في مخزون Tycoons ويعرض الوحدات المناسبة فورًا.",
     searchLabel: "ابحث بالصوت أو بالكتابة", talkAssistant: "اتكلم مع المساعد", searchPlaceholder: "مثال: عايز شاليه في الساحل أو iVilla in New Cairo",
     searchButton: "بحث", aiSearch: "بحث AI", searching: "بيبحث...",
-    voiceCta: "استخدم البحث الصوتي لو تفضّل تتكلم. ابدأ المساعد، وبعدها اضغط مطولًا على زر التحدث وانت بتتكلم.",
+    voiceTitle: "اتكلم مع Sarah",
+    voiceCta: "اتكلم بصوتك مع Sarah من Tycoons Investments عشان تساعدك تحدد المنطقة ونوع الوحدة والميزانية المناسبة.",
     startVoice: "ابدأ المساعد الصوتي", holdToTalk: "اضغط للتحدث", stopSession: "إيقاف الجلسة", voiceOff: "المساعد الصوتي متوقف.",
     confirmNumber: "تأكيد رقم واتساب", confirmText: "المساعد سمع الرقم ده. راجعه قبل الحفظ.", detectedPhone: "رقم واتساب المكتشف", confirmSave: "تأكيد وحفظ الليد", cancel: "إلغاء",
     resultsEyebrow: "نتائج البحث", recommendedUnits: "وحدات مقترحة", resultsText: "الكروت بتعرض الأهم أولًا: الصورة، المشروع، نوع الوحدة، السعر، المساحة، التسليم، والروابط.", adminPanel: "لوحة الإدارة",
-    projectsEyebrow: "المشاريع", browseCatalogue: "تصفح الكتالوج المتاح", projectsText: "كروت المشاريع بتظهر من الكتالوج المتاح وممكن تاخد الصور من الوحدات المناسبة.",
+    projectsEyebrow: "المشاريع", browseCatalogue: "تصفح الكتالوج المتاح", projectsText: "كروت المشاريع بتتحمل من Supabase وممكن تاخد الصور من الوحدات المتاحة.",
     seoEyebrow: "دليل عقاري جاهز للبحث", seoTitle: "اعثر على اختيارات عقارية في مصر بمساعدة AI", seoText: "Tycoons Investments بتساعدك تقارن مخزون المطورين حسب المنطقة، نوع الوحدة، الميزانية، التسليم وخطة الدفع، وبعدها تكمل مباشرة على واتساب مع فريق المبيعات.",
     seoCard1Title: "أقدر أبحث عن إيه؟", seoCard1Text: "تقدر تبحث عن شقق، فيلات، iVilla، شاليهات، وحدات في New Cairo، North Coast، Ain Sokhna، ومشاريع مختارة من المطورين.", seoCard1Link: "اسأل على واتساب",
     seoCard2Title: "بحث الـ AI بيشتغل إزاي؟", seoCard2Text: "اكتب أو قول اللي محتاجه. الموقع بيدور في المخزون المتاح ويعرض كروت مطابقة فيها المشروع، السعر، المساحة، التسليم، التشطيب والروابط.", seoCard2Link: "جرّب البحث",
     seoCard3Title: "ليه واتساب أولًا؟", seoCard3Text: "توفر الوحدات والأسعار بيتغير بسرعة. واتساب بيسهل تأكيد أحدث Availability، تفاصيل الدفع، التسليم والبدائل المناسبة.", seoCard3Link: "ابعت طلب واتساب",
     faqEyebrow: "أسئلة شائعة", faqTitle: "أسئلة العملاء المعتادة", faq1Q: "هل أقدر أتواصل مع Tycoons مباشرة على واتساب؟", faq1A: "أيوه. استخدم أي زر واتساب في الموقع، والطلب هيفتح مباشرة في واتساب برسالة جاهزة.", faq2Q: "هل أقدر أبحث بالعربي؟", faq2A: "أيوه. البحث بيدعم عربي وإنجليزي، ومن ضمنه كلمات زي آي فيلا، شاليه، التجمع، الساحل، وشقق.", faq3Q: "هل الأسعار نهائية؟", faq3A: "الأسعار والتوفر ممكن يتغيروا حسب المطور، طرح الوحدات وخطة الدفع. أكد أحدث التفاصيل مع فريق المبيعات على واتساب.", faq4Q: "إيه المناطق المتاحة؟", faq4A: "الموقع مجهز لـ New Cairo، North Coast، Ain Sokhna، وصفحات خاصة بالمشاريع والمطورين.",
     leadEyebrow: "تسجيل طلب", leadTitle: "اطلب اختيارات مناسبة", leadText: "سيب بياناتك أو ابعت طلبك على واتساب فورًا مع تفاصيل العقار اللي محتاجه.", sendWa: "ابعت طلب واتساب", submitLead: "إرسال البيانات", leadName: "الاسم", leadPhone: "رقم الموبايل / واتساب", leadInterest: "المشروع أو المنطقة المهتم بيها", leadBudget: "الميزانية، مثال: 12000000",
-    project: "مشروع", availableUnit: "وحدة متاحة", startingPrice: "السعر يبدأ من", area: "المساحة", delivery: "التسليم", finishing: "التشطيب", brochure: "البروشور", askWa: "اسأل على واتساب", priceOnRequest: "السعر عند الطلب", from: "من", noMatches: "مفيش نتائج مطابقة.", loadingSupabase: "جاري تحميل الوحدات المتاحة...", connectedPrefix: "تم تحميل ", unitsAnd: " وحدة و ", projectsLoaded: " مشروع بنجاح.", languageChanged: "تم تغيير لغة الموقع للعربي."
+    project: "مشروع", availableUnit: "وحدة متاحة", startingPrice: "السعر يبدأ من", area: "المساحة", delivery: "التسليم", finishing: "التشطيب", brochure: "البروشور", askWa: "اسأل على واتساب", priceOnRequest: "السعر عند الطلب", from: "من", noMatches: "مفيش نتائج مطابقة.", loadingSupabase: "جاري تحميل البيانات من Supabase...", connectedPrefix: "متصل بـ Supabase. تم تحميل ", unitsAnd: " وحدة و ", projectsLoaded: " مشروع.", languageChanged: "تم تغيير لغة الموقع للعربي."
   }
 };
 
@@ -75,7 +71,7 @@ function detectLanguageCommand(text) {
 
 function setSiteLanguage(lang, rerenderCards = true) {
   siteLanguage = lang === "ar" ? "ar" : "en";
-  saveSiteLanguagePreference(siteLanguage);
+  localStorage.setItem(TYCOONS_LANG_KEY, siteLanguage);
   applySiteLanguage();
   if (rerenderCards && units.length && results && projectGrid) {
     render(units.slice(0, 6), results);
@@ -111,6 +107,8 @@ function applySiteLanguage() {
   setText(".search-label-row a", "talkAssistant");
   if (searchInput) searchInput.placeholder = tr("searchPlaceholder");
   if (searchBtn && !isSearching) searchBtn.textContent = tr("searchButton");
+  const elVoiceTitle = document.querySelector("[data-el-voice-title]");
+  if (elVoiceTitle) elVoiceTitle.textContent = tr("voiceTitle");
   const cta = document.querySelector(".hero-voice-cta p");
   if (cta) cta.textContent = tr("voiceCta");
   if (startVoiceAgentBtn) startVoiceAgentBtn.textContent = tr("startVoice");
@@ -173,9 +171,6 @@ let realtimeStream = null;
 let remoteAudio = null;
 let micTrack = null;
 let pendingVoiceLead = null;
-let realtimeAgentReady = false;
-let realtimeStartInProgress = false;
-let realtimeManualStop = false;
 const handledFunctionCalls = new Set();
 
 const results = document.getElementById("results");
@@ -682,7 +677,7 @@ async function runAISearch(queryOverride = null) {
 
   if (!query) {
     statusBox.className = "status";
-    statusBox.textContent = ui("اكتب طلبك أو استخدم المساعد الصوتي.", "Please type what you are looking for, or use the voice assistant.");
+    statusBox.textContent = ui("اكتب طلبك أو استخدم المساعد الصوتي.", "Please type what you are looking for, or use Start Voice Agent for real voice.");
     return null;
   }
 
@@ -698,7 +693,7 @@ async function runAISearch(queryOverride = null) {
 
   setSearchLoading(true);
   statusBox.className = "status";
-  statusBox.textContent = ui("جاري البحث عن أفضل الاختيارات المناسبة...", "Searching for the best matching options...");
+  statusBox.textContent = ui("الـ AI بيبحث في المخزون المتاح...", "AI is searching your live inventory...");
 
   try {
     const res = await fetch("/api/ai-search", {
@@ -721,8 +716,8 @@ async function runAISearch(queryOverride = null) {
     render(matches, results);
     const best = matches[0];
     const answer = best
-      ? ui("استخدمت البحث السريع. أقرب نتيجة: " + best.project_name + "، " + price(best.starting_price) + ".", "Using quick matching. Closest match: " + best.project_name + ", " + price(best.starting_price) + ".")
-      : ui("مفيش نتيجة مطابقة حاليًا. جرّب تكتب المنطقة أو نوع الوحدة.", "No matching unit found yet. Try adding the location or unit type.");
+      ? ui("البحث الذكي مش جاهز دلوقتي، فاستخدمت البحث الأساسي. أقرب نتيجة: " + best.project_name + "، " + price(best.starting_price) + ".", "AI function is not ready yet, so I used basic search. Closest match: " + best.project_name + ", " + price(best.starting_price) + ".")
+      : ui("البحث الذكي مش جاهز دلوقتي، ومفيش نتيجة مطابقة.", "AI function is not ready yet, and I could not find a matching unit.");
 
     statusBox.className = "status error";
     statusBox.textContent = answer;
@@ -812,51 +807,14 @@ leadForm.addEventListener("submit", async (event) => {
   try {
     await insertRow("leads", row);
     leadStatus.className = "status success";
-    leadStatus.textContent = ui("تم استلام بياناتك بنجاح.", "Your details were received successfully.");
+    leadStatus.textContent = ui("تم حفظ البيانات بنجاح.", "Lead saved successfully in Supabase.");
     leadForm.reset();
   } catch (err) {
     console.error(err);
     leadStatus.className = "status error";
-    leadStatus.textContent = ui("تعذر إرسال البيانات دلوقتي. استخدم واتساب للتواصل السريع.", "Could not submit your details right now. Please use WhatsApp for the fastest response.");
+    leadStatus.textContent = ui("البيانات متحفظتش. راجع إعدادات الحفظ.", "Lead was not saved. Check the leads insert policy.");
   }
 });
-
-
-function friendlyRealtimeError(rawError) {
-  const text = String(rawError || "");
-  const lower = text.toLowerCase();
-
-  if (lower.includes("openai_api_key") || lower.includes("api key")) {
-    return ui("مفتاح OpenAI غير موجود أو غير صحيح في Netlify. راجع Environment Variables.", "OpenAI key is missing or invalid in Netlify Environment Variables.");
-  }
-
-  if (lower.includes("not found") || lower.includes("404")) {
-    return ui("دالة الصوت realtime-connect غير مرفوعة أو مسارها غير شغال على Netlify.", "The realtime-connect function is missing or its Netlify route is not working.");
-  }
-
-  if (lower.includes("invalid sdp")) {
-    return ui("المتصفح بدأ الصوت، لكن عرض الاتصال الصوتي اتبعت بشكل غير صحيح. جرب Hard Refresh.", "The browser started voice, but the realtime SDP offer was invalid. Try a hard refresh.");
-  }
-
-  if (lower.includes("model") || lower.includes("gpt-realtime") || lower.includes("access") || lower.includes("permission") || lower.includes("403") || lower.includes("401")) {
-    return ui("مشكلة في صلاحية موديل الصوت أو حساب OpenAI. راجع model access و billing.", "There is an OpenAI realtime model/access issue. Check model access and billing.");
-  }
-
-  if (lower.includes("microphone") || lower.includes("permission denied") || lower.includes("notallowederror")) {
-    return ui("المتصفح مانع الميكروفون. افتح صلاحية الميكروفون للموقع وجرب تاني.", "Microphone permission is blocked. Allow microphone access for this site and try again.");
-  }
-
-  return ui("تعذر تشغيل المساعد الصوتي. السبب ظهر في Console وNetlify function logs.", "Could not start the voice assistant. Check the browser console and Netlify function logs.");
-}
-
-async function realtimeResponseError(response) {
-  try {
-    const text = await response.text();
-    return text || ("HTTP " + response.status);
-  } catch (_) {
-    return "HTTP " + response.status;
-  }
-}
 
 function setVoiceStatus(text, className = "status") {
   voiceStatus.className = className;
@@ -871,21 +829,18 @@ function setMicEnabled(enabled) {
   if (enabled) {
     holdToTalkBtn.classList.add("talking");
     holdToTalkBtn.textContent = ui("بيسمع...", "Listening...");
-    setVoiceStatus(ui("جاري الاستماع. سيب الزرار لما تخلص كلام.", "Listening. Release the button when you finish speaking."), "status success");
+    setVoiceStatus(ui("بيسمع. سيب الزرار لما تخلص كلام.", "Listening. Release Push to Talk when you finish speaking."), "status success");
   } else {
     holdToTalkBtn.classList.remove("talking");
     holdToTalkBtn.textContent = tr("holdToTalk");
     if (realtimeDc && realtimeDc.readyState === "open") {
-      setVoiceStatus(ui("جاري تجهيز الرد أو اضغط للتحدث مرة تانية.", "Preparing the response, or hold to talk again."));
+      setVoiceStatus(ui("الميكروفون مقفول. مستني رد المساعد أو اضغط للتحدث تاني.", "Mic muted. Waiting for AI response or hold to talk again."));
     }
   }
 }
 
-function stopRealtimeAgent(message = null, manual = false) {
+function stopRealtimeAgent(message = null) {
   message = message || tr("voiceOff");
-  realtimeManualStop = manual;
-  realtimeStartInProgress = false;
-  realtimeAgentReady = false;
   handledFunctionCalls.clear();
 
   if (micTrack) {
@@ -1142,12 +1097,12 @@ async function handleRealtimeEvent(event) {
   console.log("Realtime event:", payload);
 
   if (payload.type === "error") {
-    setVoiceStatus(ui("حصلت مشكلة في المساعد الصوتي. جرب تاني.", "Voice assistant had an issue. Please try again."), "status error");
+    setVoiceStatus(ui("خطأ في المساعد الصوتي: ", "Realtime error: ") + (payload.error?.message || ui("خطأ غير معروف", "Unknown error")), "status error");
     return;
   }
 
   if (payload.type === "session.created") {
-    setVoiceStatus(ui("المساعد الصوتي جاهز. اضغط مطولًا للتحدث.", "Voice assistant is ready. Hold to talk."), "status success");
+    setVoiceStatus(ui("المساعد الصوتي اتصل. اضغط للتحدث واسأل عن العقار.", "Voice agent connected. Hold Push to Talk and ask for a property."), "status success");
   }
 
   if (payload.type === "input_audio_buffer.speech_started") {
@@ -1160,12 +1115,12 @@ async function handleRealtimeEvent(event) {
 
   if (payload.type === "response.created") {
     setMicEnabled(false);
-    setVoiceStatus(ui("جاري تجهيز الرد.", "Preparing the response."));
+    setVoiceStatus(ui("المساعد بيرد. سيب الميكروفون مقفول.", "AI is answering. Keep mic released."));
   }
 
   if (payload.type === "response.audio.done" || payload.type === "response.done") {
     setMicEnabled(false);
-    setVoiceStatus(ui("الرد خلص. اضغط مطولًا لو حابب تكمل.", "Response finished. Hold to talk again if you want to continue."), "status success");
+    setVoiceStatus(ui("المساعد خلص. اضغط للتحدث تاني عشان تكمل.", "AI finished. Hold Push to Talk again to continue."), "status success");
   }
 
   if (payload.type === "conversation.item.input_audio_transcription.completed" && payload.transcript) {
@@ -1191,7 +1146,7 @@ async function handleRealtimeEvent(event) {
     const query = args.query || args.search_query || searchInput.value || "property search";
 
     searchInput.value = query;
-    setVoiceStatus(ui("جاري البحث عن: ", "Searching for: ") + query);
+    setVoiceStatus(ui("بيدور في المخزون عن: ", "Searching live inventory for: ") + query);
 
     const searchData = await runAISearch(query);
     const spokenSummary = buildSpokenSearchSummary(query, searchData);
@@ -1269,7 +1224,7 @@ After this response, wait for the user's next push-to-talk message.
   }
 
   if (payload.name === "save_voice_lead") {
-    setVoiceStatus(ui("جاري تجهيز بيانات التواصل...", "Preparing contact details..."));
+    setVoiceStatus(ui("بيجهز الليد الصوتي...", "Preparing voice lead..."));
 
     try {
       const savedLead = await saveVoiceLeadFromArgs(args);
@@ -1334,14 +1289,11 @@ Use the user's language, but if Arabic use Egyptian Arabic only.
 
 async function startRealtimeAgent() {
   try {
-    realtimeManualStop = false;
-    realtimeAgentReady = false;
-    realtimeStartInProgress = true;
     startVoiceAgentBtn.disabled = true;
     stopVoiceAgentBtn.disabled = false;
     holdToTalkBtn.disabled = true;
     handledFunctionCalls.clear();
-    setVoiceStatus(ui("جاري تشغيل المساعد الصوتي...", "Starting voice assistant..."));
+    setVoiceStatus(ui("بيبدأ اتصال المساعد الصوتي...", "Starting Realtime voice connection..."));
 
     window.speechSynthesis?.cancel?.();
 
@@ -1357,11 +1309,8 @@ async function startRealtimeAgent() {
 
     realtimePc.onconnectionstatechange = () => {
       console.log("WebRTC connection state:", realtimePc.connectionState);
-      if (realtimeManualStop) return;
       if (["failed", "disconnected", "closed"].includes(realtimePc.connectionState)) {
-        if (realtimeAgentReady) {
-          setVoiceStatus(ui("اتصال الصوت اتقفل. شغّل المساعد تاني لو حابب تكمل.", "Voice connection closed. Start the assistant again to continue."), "status error");
-        }
+        setVoiceStatus(ui("حالة اتصال الصوت: ", "Voice connection state: ") + realtimePc.connectionState);
       }
     };
 
@@ -1383,19 +1332,13 @@ async function startRealtimeAgent() {
     realtimeDc.addEventListener("message", handleRealtimeEvent);
 
     realtimeDc.addEventListener("open", () => {
-      realtimeAgentReady = true;
-      realtimeStartInProgress = false;
       holdToTalkBtn.disabled = false;
-      setVoiceStatus(ui("المساعد الصوتي جاهز. اضغط مطولًا للتحدث.", "Voice assistant is ready. Hold to talk."), "status success");
+      setVoiceStatus(ui("المساعد الصوتي شغال. اضغط مطولًا للتحدث.", "Realtime voice agent is live. Hold Push to Talk while speaking."), "status success");
     });
 
     realtimeDc.addEventListener("close", () => {
+      setVoiceStatus(ui("اتصال بيانات الصوت اتقفل.", "Realtime voice data channel closed."), "status error");
       holdToTalkBtn.disabled = true;
-      if (realtimeManualStop) return;
-      if (realtimeStartInProgress && !realtimeAgentReady) return;
-      if (realtimeAgentReady) {
-        setVoiceStatus(ui("انتهت جلسة الصوت. جرب تشغيلها مرة تانية.", "Voice session ended. Please start it again."), "status error");
-      }
     });
 
     const offer = await realtimePc.createOffer();
@@ -1410,7 +1353,7 @@ async function startRealtimeAgent() {
     });
 
     if (!sdpRes.ok) {
-      const errorText = await realtimeResponseError(sdpRes);
+      const errorText = await sdpRes.text();
       throw new Error(errorText);
     }
 
@@ -1425,9 +1368,8 @@ async function startRealtimeAgent() {
       sdp: answerSdp
     });
   } catch (err) {
-    console.error("Realtime voice start failed:", err);
-    const message = friendlyRealtimeError(err && err.message ? err.message : err);
-    stopRealtimeAgent(message);
+    console.error(err);
+    stopRealtimeAgent(ui("تعذر تشغيل المساعد الصوتي: ", "Could not start voice agent: ") + err.message);
     voiceStatus.className = "status error";
   }
 }
@@ -1577,7 +1519,7 @@ async function loadData() {
   } catch (err) {
     console.error(err);
     statusBox.className = "status error";
-    statusBox.textContent = ui("تعذر تحميل الوحدات المتاحة حاليًا. جرب تحديث الصفحة أو تواصل على واتساب.", "Could not load available properties right now. Refresh the page or contact us on WhatsApp.");
+    statusBox.textContent = ui("تعذر تحميل بيانات Supabase. راجع إعدادات API/RLS.", "Could not load Supabase data. Check the API key, URL, and RLS policies.");
   }
 }
 /* ============================================================
@@ -1914,185 +1856,4 @@ document.addEventListener("click", (event) => {
 
     setTimeout(closeBrochureModal, 600);
   });
-})();
-
-
-/* ============================================================
-   TYCOONS UX/LANGUAGE STABILIZER — 2026-06-29
-   ------------------------------------------------------------
-   Final client-side safety layer:
-   - reliable Arabic / English switch
-   - no internal technical wording in visible status boxes
-   - consistent search + voice UI labels
-   - card text updates after language change
-   ============================================================ */
-(function(){
-  if (window.__TYCOONS_UX_LANGUAGE_STABILIZER__) return;
-  window.__TYCOONS_UX_LANGUAGE_STABILIZER__ = true;
-
-  Object.assign(TYCOONS_I18N.en, {
-    searchButton: "Search",
-    aiSearch: "Search",
-    searching: "Searching...",
-    voiceCta: "Use voice search when you prefer to speak. Start the assistant, then hold the talk button while speaking.",
-    startVoice: "Start voice assistant",
-    holdToTalk: "Hold to talk",
-    stopSession: "End session",
-    voiceOff: "Voice assistant is off.",
-    loadingSupabase: "Loading available properties...",
-    connectedPrefix: "Loaded ",
-    unitsAnd: " units and ",
-    projectsLoaded: " projects successfully.",
-    projectsText: "Project cards are loaded from the available catalogue and can inherit media from matching unit rows.",
-    quick1: "North Coast chalet",
-    quick2: "iVilla in New Cairo",
-    quick3: "Apartment under 9M",
-    quick4: "Ready to move",
-    loadedFriendly: "Available properties loaded successfully.",
-    emptySearch: "Please type what you are looking for, or use the voice assistant.",
-    voiceListening: "Listening...",
-    voiceReady: "Voice assistant is ready. Hold to talk.",
-    voicePreparing: "Preparing the response.",
-    voiceEnded: "Voice session ended. Please start it again.",
-    howTitle: "How it works",
-    howSmall: "Simple search flow",
-    how1Title: "Tell us what you need",
-    how1Text: "Location, unit type, budget, delivery, or project name.",
-    how2Title: "We search matching options",
-    how2Text: "Cards are matched from the available Tycoons catalogue.",
-    how3Title: "Continue on WhatsApp",
-    how3Text: "Confirm the latest availability and payment plan with the sales team."
-  });
-
-  Object.assign(TYCOONS_I18N.ar, {
-    searchButton: "بحث",
-    aiSearch: "بحث",
-    searching: "جاري البحث...",
-    voiceCta: "استخدم البحث الصوتي لو تفضّل تتكلم. ابدأ المساعد، وبعدها اضغط مطولًا على زر التحدث وانت بتتكلم.",
-    startVoice: "ابدأ المساعد الصوتي",
-    holdToTalk: "اضغط مطولًا للتحدث",
-    stopSession: "إنهاء الجلسة",
-    voiceOff: "المساعد الصوتي متوقف.",
-    loadingSupabase: "جاري تحميل الوحدات المتاحة...",
-    connectedPrefix: "تم تحميل ",
-    unitsAnd: " وحدة و ",
-    projectsLoaded: " مشروع بنجاح.",
-    projectsText: "كروت المشاريع بتظهر من الكتالوج المتاح وممكن تاخد الصور من الوحدات المناسبة.",
-    quick1: "شاليه في الساحل",
-    quick2: "آي فيلا في التجمع",
-    quick3: "شقة أقل من 9 مليون",
-    quick4: "استلام قريب",
-    loadedFriendly: "تم تحميل الوحدات المتاحة بنجاح.",
-    emptySearch: "اكتب طلبك أو استخدم المساعد الصوتي.",
-    voiceListening: "جاري الاستماع...",
-    voiceReady: "المساعد الصوتي جاهز. اضغط مطولًا للتحدث.",
-    voicePreparing: "جاري تجهيز الرد.",
-    voiceEnded: "انتهت جلسة الصوت. جرب تشغيلها مرة تانية.",
-    howTitle: "طريقة الاستخدام",
-    howSmall: "خطوات البحث ببساطة",
-    how1Title: "قول محتاج إيه",
-    how1Text: "المنطقة، نوع الوحدة، الميزانية، التسليم أو اسم المشروع.",
-    how2Title: "نرشح اختيارات مناسبة",
-    how2Text: "الكروت بتظهر من الكتالوج المتاح عند Tycoons.",
-    how3Title: "كمل على واتساب",
-    how3Text: "أكد أحدث التوفر وخطة الدفع مع فريق المبيعات."
-  });
-
-  const originalApplySiteLanguage = applySiteLanguage;
-  applySiteLanguage = function(){
-    if (typeof originalApplySiteLanguage === "function") originalApplySiteLanguage();
-
-    const html = document.documentElement;
-    html.lang = siteLanguage === "ar" ? "ar-EG" : "en";
-    html.dir = siteLanguage === "ar" ? "rtl" : "ltr";
-    document.body.classList.toggle("is-ar", siteLanguage === "ar");
-    document.body.classList.toggle("is-en", siteLanguage !== "ar");
-
-    document.querySelectorAll("[data-lang-switch]").forEach(function(btn){
-      btn.classList.toggle("active", btn.dataset.langSwitch === siteLanguage);
-      btn.setAttribute("aria-pressed", btn.dataset.langSwitch === siteLanguage ? "true" : "false");
-    });
-
-    const chips = document.querySelectorAll(".quick-chips span");
-    ["quick1", "quick2", "quick3", "quick4"].forEach(function(key, index){
-      if (chips[index]) chips[index].textContent = tr(key);
-    });
-
-    if (searchInput) searchInput.placeholder = tr("searchPlaceholder");
-    if (searchBtn && !isSearching) searchBtn.textContent = tr("searchButton");
-    if (voiceBtn) voiceBtn.textContent = siteLanguage === "ar" ? "إملاء صوتي" : "Voice search";
-    if (voiceStatus) voiceStatus.textContent = sanitizeClientStatus(voiceStatus.textContent);
-    if (statusBox) statusBox.textContent = sanitizeClientStatus(statusBox.textContent);
-
-    const howPanel = document.getElementById("tyc-howpanel");
-    if (howPanel) {
-      howPanel.setAttribute("data-ui-lang", siteLanguage);
-      const topLabel = howPanel.querySelector("[data-how-main]");
-      const subLabel = howPanel.querySelector("[data-how-sub]");
-      const titles = howPanel.querySelectorAll("[data-how-title]");
-      const texts = howPanel.querySelectorAll("[data-how-text]");
-      if (topLabel) topLabel.textContent = tr("howTitle");
-      if (subLabel) subLabel.textContent = tr("howSmall");
-      ["how1Title", "how2Title", "how3Title"].forEach(function(key, i){ if (titles[i]) titles[i].textContent = tr(key); });
-      ["how1Text", "how2Text", "how3Text"].forEach(function(key, i){ if (texts[i]) texts[i].textContent = tr(key); });
-    }
-  };
-
-  function sanitizeClientStatus(text){
-    let t = String(text || "").trim();
-    if (!t) return t;
-    const ar = siteLanguage === "ar";
-    const technical = /(Supabase|Realtime|API|RLS|database|function|data channel|SDP|WebRTC|AI is answering|AI function|Connected to Supabase|Loading live data)/i;
-    if (!technical.test(t)) return t;
-    if (/loading/i.test(t) || /جاري تحميل/i.test(t)) return tr("loadingSupabase");
-    if (/loaded|connected/i.test(t) || /تم تحميل|متصل/i.test(t)) return tr("loadedFriendly");
-    if (/voice|realtime|data channel|WebRTC|SDP/i.test(t)) return ar ? "حالة المساعد الصوتي اتغيرت. جرب تاني لو الصوت وقف." : "Voice assistant status changed. Try again if audio stopped.";
-    return ar ? "جاري تنفيذ طلبك..." : "Working on your request...";
-  }
-
-  const originalSetVoiceStatus = setVoiceStatus;
-  setVoiceStatus = function(text, className = "status"){
-    originalSetVoiceStatus(sanitizeClientStatus(text), className);
-  };
-
-  areaText = function(value){
-    const num = Number(value || 0);
-    if (!num) return "";
-    const formatted = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(num);
-    return siteLanguage === "ar" ? formatted + " متر" : formatted + " sqm";
-  };
-
-  price = function(value){
-    const num = Number(value || 0);
-    if (!num) return tr("priceOnRequest");
-    const formatted = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(num));
-    return siteLanguage === "ar" ? tr("from") + " " + formatted + " جنيه" : tr("from") + " " + formatted + " EGP";
-  };
-
-  setSearchLoading = function(isLoading){
-    isSearching = isLoading;
-    if (searchBtn) {
-      searchBtn.disabled = isLoading;
-      searchBtn.textContent = isLoading ? tr("searching") : tr("searchButton");
-    }
-  };
-
-  document.addEventListener("click", function(event){
-    const button = event.target.closest && event.target.closest("[data-lang-switch]");
-    if (!button) return;
-    event.preventDefault();
-    event.stopPropagation();
-    setSiteLanguage(button.dataset.langSwitch, true);
-    if (statusBox) {
-      statusBox.className = "status success";
-      statusBox.textContent = tr("languageChanged");
-    }
-  }, true);
-
-  // Keep the guide from opening as a big modal over the page after this patch.
-  try { localStorage.setItem("tycoonsGuideSeen", "1"); } catch (_) {}
-
-  applySiteLanguage();
-  if (units && units.length && results) render(units.slice(0, 6), results, "unit");
-  if (projects && projects.length && projectGrid) render(projects, projectGrid, "project");
 })();
