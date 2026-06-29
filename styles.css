@@ -46,7 +46,7 @@ img{max-width:100%;display:block}
   justify-content:space-between;
   gap:20px;
   padding:14px clamp(18px,4vw,64px);
-  background:rgba(255,255,255,.88);
+  background:rgba(255,255,255,.5);
   border-bottom:1px solid var(--line);
   backdrop-filter:blur(14px);
 }
@@ -161,7 +161,8 @@ textarea:focus,input:focus{
   transition:transform .16s ease,box-shadow .16s ease,background .16s ease;
   white-space:nowrap;
 }
-.btn:hover,.talk-btn:hover{transform:translateY(-1px)}
+.btn:hover{transform:translateY(-1px)}
+.talk-btn:hover{transform:none}
 .btn:disabled,.talk-btn:disabled{opacity:.55;cursor:not-allowed;transform:none}
 .btn-primary{
   background:var(--navy);
@@ -179,6 +180,10 @@ textarea:focus,input:focus{
   background:var(--surface-warm);
   color:var(--navy);
   border:1px solid var(--gold-soft);
+  min-width:148px;
+  user-select:none;
+  -webkit-user-select:none;
+  touch-action:none;
 }
 .talk-btn.talking{
   background:var(--gold);
@@ -1206,198 +1211,3 @@ button.ghost.js-ask-brochure{
   cursor:pointer;
 }
 button.ghost.js-ask-brochure:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
-
-
-/* ============================================================
-   CLEAN SITEWIDE UI LOCK — source truth patch
-   Purpose:
-   - one canonical fixed glass header
-   - one canonical RTL/floating WhatsApp rule
-   - preserve original bilingual intro animations
-   - keep project lead form styling
-   ============================================================ */
-
-/* Language switcher */
-.language-switcher{
-  display:inline-flex;
-  align-items:center;
-  gap:4px;
-  padding:4px;
-  border:1px solid var(--line);
-  background:var(--surface-soft);
-  border-radius:999px;
-}
-.lang-btn{
-  border:0;
-  border-radius:999px;
-  background:transparent;
-  color:var(--muted);
-  padding:6px 10px;
-  font-size:12px;
-  font-weight:900;
-  cursor:pointer;
-}
-.lang-btn.active{background:var(--navy);color:#fff}
-
-/* Fixed transparent glass header — final authority */
-html{scroll-padding-top:92px;overflow-x:clip}
-body{
-  padding-top:82px;
-  overflow-x:clip;
-}
-.site-header{
-  position:fixed !important;
-  top:0 !important;
-  left:0 !important;
-  right:0 !important;
-  width:100% !important;
-  z-index:999999 !important;
-  min-height:72px;
-  background:rgba(255,255,255,.64) !important;
-  border-bottom:1px solid rgba(228,231,236,.55) !important;
-  backdrop-filter:blur(22px) saturate(1.15) !important;
-  -webkit-backdrop-filter:blur(22px) saturate(1.15) !important;
-  box-shadow:0 10px 28px rgba(16,24,39,.055) !important;
-}
-.site-header .header-whatsapp{display:inline-flex !important}
-@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  .site-header{background:rgba(255,255,255,.94) !important}
-}
-@media(max-width:720px){
-  body{padding-top:112px}
-  html{scroll-padding-top:124px}
-  .site-header{
-    min-height:96px;
-    background:rgba(255,255,255,.78) !important;
-  }
-}
-
-/* Arabic / RTL UI */
-html[dir="rtl"] body{
-  font-family:"IBM Plex Sans Arabic",Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-}
-html[dir="rtl"] .main-nav,
-html[dir="rtl"] .quick-chips,
-html[dir="rtl"] .tags,
-html[dir="rtl"] .card-links,
-html[dir="rtl"] .voice-controls,
-html[dir="rtl"] .lead-whatsapp-actions{direction:rtl}
-html[dir="rtl"] .searchbar{direction:rtl}
-html[dir="rtl"] textarea,
-html[dir="rtl"] input{text-align:right}
-html[dir="rtl"] .card-title-link h3::after{content:"←"}
-
-/* Homepage hero: keep visual panel on the right in Arabic */
-@media(min-width:1021px){
-  html[dir="rtl"] .hero-market{direction:ltr !important}
-  html[dir="rtl"] .hero-copy{direction:rtl;text-align:right}
-  html[dir="rtl"] .hero-side{direction:ltr !important}
-}
-
-/* Keep original bilingual intro animations unchanged */
-#tyc-howpanel,
-#tyc-guide{direction:ltr !important;text-align:left !important}
-#tyc-howpanel [dir="rtl"],
-#tyc-guide [dir="rtl"]{direction:rtl !important;text-align:right !important}
-
-/* Floating WhatsApp — always visible on the right, all pages */
-.floating-whatsapp,
-html[dir="rtl"] .floating-whatsapp{
-  position:fixed !important;
-  right:18px !important;
-  left:auto !important;
-  bottom:18px !important;
-  z-index:999990 !important;
-}
-@media(max-width:720px){
-  .floating-whatsapp,
-  html[dir="rtl"] .floating-whatsapp{right:12px !important;left:auto !important;bottom:12px !important}
-}
-
-/* Carousels are visual media; isolate them from page RTL */
-.image-carousel,
-.pp-gallery{direction:ltr !important;text-align:left !important}
-.carousel-nav,
-.pp-nav{font-size:0 !important;text-indent:0 !important}
-.carousel-nav::before,
-.pp-nav::before{display:block;font-size:25px;line-height:1;font-weight:900}
-.pp-nav::before{font-size:22px}
-.carousel-prev{left:10px !important;right:auto !important}
-.carousel-next{right:10px !important;left:auto !important}
-.carousel-prev::before{content:"‹"}
-.carousel-next::before{content:"›"}
-html[dir="rtl"] .carousel-prev{right:10px !important;left:auto !important}
-html[dir="rtl"] .carousel-next{left:10px !important;right:auto !important}
-html[dir="rtl"] .carousel-prev::before{content:"›"}
-html[dir="rtl"] .carousel-next::before{content:"‹"}
-.pp-prev{left:10px !important;right:auto !important}
-.pp-next{right:10px !important;left:auto !important}
-.pp-prev::before{content:"‹"}
-.pp-next::before{content:"›"}
-html[dir="rtl"] .pp-prev{right:10px !important;left:auto !important}
-html[dir="rtl"] .pp-next{left:10px !important;right:auto !important}
-html[dir="rtl"] .pp-prev::before{content:"›"}
-html[dir="rtl"] .pp-next::before{content:"‹"}
-
-/* Project / generated pages cards */
-.breadcrumb{font-size:13px;color:var(--muted);margin-bottom:14px}
-.breadcrumb a{color:var(--gold);font-weight:900}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-.unit-detail-card{
-  display:block;
-  background:var(--surface);
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:18px;
-  box-shadow:var(--shadow-sm);
-  transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
-}
-.unit-detail-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--line-strong)}
-.unit-detail-card h3{margin:0 0 8px;color:var(--navy);font-size:18px;line-height:1.25}
-.unit-meta{margin:0 0 8px;color:var(--muted);font-size:13px}
-.unit-price{margin:0;color:var(--gold);font-weight:900}
-.unit-desc{font-size:14px;margin:8px 0 12px;color:var(--muted)}
-.hero-quote{color:var(--gold);font-weight:900;font-size:20px;margin-bottom:14px}
-.ghost{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  color:var(--gold);
-  border:1px solid #efdcb5;
-  background:#fff8e9;
-  border-radius:999px;
-  padding:10px 16px;
-  font-size:13px;
-  font-weight:900;
-  cursor:pointer;
-}
-.ghost:hover{background:var(--gold);color:#fff;border-color:var(--gold)}
-
-/* Project page lead form — client-facing copy, hidden tracking stays in WhatsApp message */
-.project-lead-section{
-  background:linear-gradient(135deg,#fff 0%,#fff 58%,#fbf7ef 100%);
-  border:1px solid var(--line);
-  border-radius:26px;
-  padding:24px;
-  box-shadow:var(--shadow-sm);
-  margin:24px 0;
-}
-.project-lead-grid{
-  display:grid;
-  grid-template-columns:minmax(0,.85fr) minmax(280px,1.15fr);
-  gap:22px;
-  align-items:start;
-}
-.project-lead-form{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-}
-.project-lead-form textarea,
-.project-lead-form .full{grid-column:1 / -1}
-.project-lead-form button{grid-column:1 / -1}
-html[dir="rtl"] .project-lead-form,
-html[dir="rtl"] .project-lead-section{direction:rtl;text-align:right}
-@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:780px){.project-lead-grid,.project-lead-form,.grid{grid-template-columns:1fr}}
-
