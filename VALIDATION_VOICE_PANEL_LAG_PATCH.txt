@@ -1,0 +1,21 @@
+Tycoons voice/search compact patch validation
+
+- script.js syntax: PASS — OK
+- index.html untouched: PASS — OK
+- compact CSS block present: PASS — OK
+- browser fallback functions present: PASS — OK
+- push-to-talk fallback hook present: PASS — OK
+- no carousel logic touched in patch scope note: PASS — Existing logic still present
+- search textarea resize disabled: PASS — OK
+- scroll performance CSS present: PASS — OK
+
+Changed files in patch:
+- styles.css
+- script.js
+
+Not changed intentionally:
+- index.html
+- scripts/generate-pages.js
+- carousel logic behavior
+- WhatsApp tracking/messages
+- Supabase data/gallery logic

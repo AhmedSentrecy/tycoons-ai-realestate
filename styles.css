@@ -1591,3 +1591,145 @@ html[dir="rtl"] .step-number{left:auto;right:14px}
   transform:translateY(-150%) !important;
 }
 .skip-link:focus{transform:translateY(0) !important}
+
+
+/* ============================================================
+   TYCOONS COMPACT SEARCH + VOICE + SCROLL PERFORMANCE PATCH
+   ------------------------------------------------------------
+   Scope: search area, voice panel size, fallback voice usability,
+   and scroll smoothness only. No header-overlap or language-system edits.
+   ============================================================ */
+.hero-market{
+  padding-top:34px !important;
+  padding-bottom:22px !important;
+}
+.hero-copy{
+  padding:clamp(18px,3vw,32px) !important;
+  border-radius:26px !important;
+}
+.voice-first-hero h1{
+  font-size:clamp(34px,4.35vw,58px) !important;
+  line-height:1.02 !important;
+  margin:10px 0 14px !important;
+}
+.lede{
+  font-size:15px !important;
+  line-height:1.6 !important;
+  margin-bottom:18px !important;
+}
+.search-card{
+  padding:14px !important;
+  border-radius:24px !important;
+  box-shadow:0 10px 26px rgba(16,24,39,.08) !important;
+}
+.search-label-row{
+  margin:0 2px 9px !important;
+}
+.searchbar{
+  grid-template-columns:minmax(0,1fr) 112px !important;
+  gap:10px !important;
+}
+.searchbar textarea{
+  min-height:66px !important;
+  max-height:124px !important;
+  resize:none !important;
+  border-radius:18px !important;
+  padding:13px 14px !important;
+}
+.searchbar .btn{
+  min-height:66px !important;
+  max-width:112px !important;
+  padding:0 14px !important;
+  border-radius:24px !important;
+  box-shadow:0 10px 20px rgba(16,24,39,.12) !important;
+}
+html[dir="rtl"] .searchbar textarea{
+  direction:rtl;
+  text-align:right;
+}
+html[dir="ltr"] .searchbar textarea{
+  direction:ltr;
+  text-align:left;
+}
+.quick-chips{
+  margin-top:10px !important;
+  gap:8px !important;
+}
+.quick-chips span{
+  padding:6px 10px !important;
+  font-size:12px !important;
+}
+.hero-voice-cta{
+  margin-top:12px !important;
+  padding:10px !important;
+  gap:9px !important;
+  border-radius:18px !important;
+  box-shadow:none !important;
+}
+.hero-voice-cta p{
+  font-size:12.8px !important;
+  line-height:1.5 !important;
+}
+.voice-controls{
+  margin-top:8px !important;
+  gap:8px !important;
+}
+.voice-controls .btn,
+.voice-controls .talk-btn{
+  min-height:38px !important;
+  padding:9px 13px !important;
+  font-size:12.5px !important;
+  flex:1 1 132px !important;
+}
+#voiceStatus.status,
+#status.status{
+  margin-top:8px !important;
+  padding:8px 10px !important;
+  font-size:12.5px !important;
+  line-height:1.45 !important;
+}
+.phone-confirm{
+  margin-top:10px !important;
+  padding:12px !important;
+  border-radius:16px !important;
+}
+.phone-confirm p{
+  font-size:12.5px !important;
+  margin-bottom:8px !important;
+}
+.phone-confirm input{
+  min-height:40px !important;
+  padding:10px 12px !important;
+}
+.hero-copy,
+.search-card,
+.hero-side,
+#tyc-howpanel,
+.card{
+  contain:layout paint;
+}
+.section,
+.seo-aio-section,
+.faq-section,
+.lead-section{
+  content-visibility:auto;
+  contain-intrinsic-size:1px 560px;
+}
+.card:hover{
+  transform:translateY(-2px) !important;
+}
+@media(max-width:720px){
+  .hero-market{padding-top:22px !important}
+  .hero-copy{padding:18px !important;border-radius:22px !important}
+  .voice-first-hero h1{font-size:clamp(32px,10vw,44px) !important}
+  .searchbar{grid-template-columns:1fr !important}
+  .searchbar .btn{
+    max-width:none !important;
+    min-height:48px !important;
+    width:100% !important;
+  }
+  .voice-controls .btn,
+  .voice-controls .talk-btn{
+    flex-basis:auto !important;
+  }
+}

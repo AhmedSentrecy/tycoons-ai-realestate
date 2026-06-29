@@ -175,6 +175,10 @@ let micTrack = null;
 let pendingVoiceLead = null;
 const handledFunctionCalls = new Set();
 
+let browserVoiceFallbackMode = false;
+let browserVoiceRecognition = null;
+let browserVoiceListening = false;
+
 const results = document.getElementById("results");
 const projectGrid = document.getElementById("projectGrid");
 const searchInput = document.getElementById("searchInput");
@@ -844,6 +848,11 @@ function setMicEnabled(enabled) {
 function stopRealtimeAgent(message = null) {
   message = message || tr("voiceOff");
   handledFunctionCalls.clear();
+  browserVoiceFallbackMode = false;
+  browserVoiceListening = false;
+  if (browserVoiceRecognition) {
+    try { browserVoiceRecognition.stop(); } catch (_) {}
+  }
 
   if (micTrack) {
     micTrack.enabled = false;
@@ -1289,6 +1298,119 @@ Use the user's language, but if Arabic use Egyptian Arabic only.
   }
 }
 
+
+function getBrowserSpeechRecognitionImpl() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function ensureBrowserVoiceRecognition() {
+  const SpeechRecognitionImpl = getBrowserSpeechRecognitionImpl();
+  if (!SpeechRecognitionImpl) return null;
+
+  if (browserVoiceRecognition) return browserVoiceRecognition;
+
+  const recognition = new SpeechRecognitionImpl();
+  recognition.lang = siteLanguage === "ar" ? "ar-EG" : "en-US";
+  recognition.interimResults = false;
+  recognition.continuous = false;
+
+  recognition.addEventListener("result", async (event) => {
+    const transcript = event.results && event.results[0] && event.results[0][0]
+      ? event.results[0][0].transcript
+      : "";
+
+    if (!transcript) return;
+
+    searchInput.value = transcript;
+    setVoiceStatus(ui("سمعت: ", "Heard: ") + transcript + ui(" — جاري البحث...", " — searching..."));
+
+    const data = await runAISearch(transcript);
+    if (data && data.answer) {
+      setVoiceStatus(data.answer, "status success");
+      speak(data.answer, transcript);
+    }
+  });
+
+  recognition.addEventListener("end", () => {
+    browserVoiceListening = false;
+    if (holdToTalkBtn) {
+      holdToTalkBtn.classList.remove("talking");
+      holdToTalkBtn.textContent = tr("holdToTalk");
+    }
+    if (browserVoiceFallbackMode) {
+      setVoiceStatus(ui("اضغط مطولًا للتحدث مرة تانية.", "Hold to talk again."), "status success");
+    }
+  });
+
+  recognition.addEventListener("error", (event) => {
+    browserVoiceListening = false;
+    if (holdToTalkBtn) {
+      holdToTalkBtn.classList.remove("talking");
+      holdToTalkBtn.textContent = tr("holdToTalk");
+    }
+    const permissionError = event && (event.error === "not-allowed" || event.error === "service-not-allowed");
+    setVoiceStatus(
+      permissionError
+        ? ui("اسمح للمايك من المتصفح وجرب تاني.", "Allow microphone access in the browser and try again.")
+        : ui("الصوت ما اشتغلش. جرب تاني أو اكتب طلبك.", "Voice did not start. Try again or type your request."),
+      "status error"
+    );
+  });
+
+  browserVoiceRecognition = recognition;
+  return browserVoiceRecognition;
+}
+
+function startBrowserVoiceFallback(reason) {
+  const SpeechRecognitionImpl = getBrowserSpeechRecognitionImpl();
+  browserVoiceFallbackMode = true;
+
+  if (!SpeechRecognitionImpl) {
+    startVoiceAgentBtn.disabled = false;
+    stopVoiceAgentBtn.disabled = true;
+    holdToTalkBtn.disabled = true;
+    setVoiceStatus(ui("المتصفح ده مش بيدعم البحث الصوتي. اكتب طلبك في مربع البحث.", "This browser does not support voice search. Type your request in the search box."), "status error");
+    return;
+  }
+
+  startVoiceAgentBtn.disabled = true;
+  stopVoiceAgentBtn.disabled = false;
+  holdToTalkBtn.disabled = false;
+  holdToTalkBtn.textContent = tr("holdToTalk");
+
+  setVoiceStatus(ui("المساعد الصوتي جاهز كبحث صوتي. اضغط مطولًا للتحدث.", "Voice search is ready. Hold to talk."), "status success");
+}
+
+function beginBrowserVoiceFallback(event) {
+  event.preventDefault();
+  if (!browserVoiceFallbackMode || browserVoiceListening || isSearching) return;
+
+  const recognition = ensureBrowserVoiceRecognition();
+  if (!recognition) {
+    startBrowserVoiceFallback();
+    return;
+  }
+
+  try {
+    recognition.lang = siteLanguage === "ar" ? "ar-EG" : "en-US";
+    window.speechSynthesis?.cancel?.();
+    browserVoiceListening = true;
+    holdToTalkBtn.classList.add("talking");
+    holdToTalkBtn.textContent = ui("بيسمع...", "Listening...");
+    setVoiceStatus(ui("جاري الاستماع...", "Listening..."), "status success");
+    recognition.start();
+  } catch (error) {
+    browserVoiceListening = false;
+    setVoiceStatus(ui("الصوت شغال بالفعل أو محتاج إذن المايك.", "Voice is already running or microphone permission is needed."), "status error");
+  }
+}
+
+function endBrowserVoiceFallback(event) {
+  event.preventDefault();
+  if (!browserVoiceFallbackMode || !browserVoiceRecognition || !browserVoiceListening) return;
+  try { browserVoiceRecognition.stop(); } catch (_) {}
+}
+
 async function startRealtimeAgent() {
   try {
     startVoiceAgentBtn.disabled = true;
@@ -1371,13 +1493,17 @@ async function startRealtimeAgent() {
     });
   } catch (err) {
     console.error(err);
-    stopRealtimeAgent(ui("تعذر تشغيل المساعد الصوتي. جرب تاني أو استخدم البحث الكتابي.", "Could not start the voice assistant. Please try again or use text search."));
-    voiceStatus.className = "status error";
+    stopRealtimeAgent(ui("", ""));
+    startBrowserVoiceFallback(err);
   }
 }
 
 function beginPushToTalk(event) {
   event.preventDefault();
+  if (browserVoiceFallbackMode) {
+    beginBrowserVoiceFallback(event);
+    return;
+  }
   if (!realtimeDc || realtimeDc.readyState !== "open" || !micTrack) return;
   window.speechSynthesis?.cancel?.();
   setMicEnabled(true);
@@ -1385,6 +1511,10 @@ function beginPushToTalk(event) {
 
 function endPushToTalk(event) {
   event.preventDefault();
+  if (browserVoiceFallbackMode) {
+    endBrowserVoiceFallback(event);
+    return;
+  }
   setMicEnabled(false);
 }
 
