@@ -18,7 +18,7 @@ const TYCOONS_I18N = {
     searchLabel: "Search by voice or text", talkAssistant: "Talk to the assistant", searchPlaceholder: "Example: كنت بدور على شاليه في الساحل أو iVilla in New Cairo",
     searchButton: "Search", aiSearch: "AI Search", searching: "Searching...",
     voiceTitle: "Talk to Sarah",
-    voiceCta: "Speak with Sarah from Tycoons Investments to narrow down the area, unit type, budget and suitable options.",
+    voiceCta: "Speak with Sarah from Tycoons Investments. When Sarah searches the inventory, matching cards will appear below automatically.",
     startVoice: "Start Voice Agent", holdToTalk: "Hold to Talk", stopSession: "Stop Session", voiceOff: "Voice agent is off.",
     confirmNumber: "Confirm WhatsApp Number", confirmText: "The voice agent heard this number. Check it before saving.", detectedPhone: "Detected WhatsApp number", confirmSave: "Confirm & Save Lead", cancel: "Cancel",
     resultsEyebrow: "Search results", recommendedUnits: "Recommended units", resultsText: "Cards show the essentials first: image, project, unit type, price, area, delivery, and media links.", adminPanel: "Admin panel",
@@ -38,7 +38,7 @@ const TYCOONS_I18N = {
     searchLabel: "ابحث بالصوت أو بالكتابة", talkAssistant: "اتكلم مع المساعد", searchPlaceholder: "مثال: عايز شاليه في الساحل أو iVilla in New Cairo",
     searchButton: "بحث", aiSearch: "بحث AI", searching: "بيبحث...",
     voiceTitle: "اتكلم مع Sarah",
-    voiceCta: "اتكلم بصوتك مع Sarah من Tycoons Investments عشان تساعدك تحدد المنطقة ونوع الوحدة والميزانية المناسبة.",
+    voiceCta: "اتكلم بصوتك مع Sarah من Tycoons Investments. لما Sarah تبحث في المخزون، النتائج هتظهر في الكروت تحت تلقائيًا.",
     startVoice: "ابدأ المساعد الصوتي", holdToTalk: "اضغط للتحدث", stopSession: "إيقاف الجلسة", voiceOff: "المساعد الصوتي متوقف.",
     confirmNumber: "تأكيد رقم واتساب", confirmText: "المساعد سمع الرقم ده. راجعه قبل الحفظ.", detectedPhone: "رقم واتساب المكتشف", confirmSave: "تأكيد وحفظ الليد", cancel: "إلغاء",
     resultsEyebrow: "نتائج البحث", recommendedUnits: "وحدات مقترحة", resultsText: "الكروت بتعرض الأهم أولًا: الصورة، المشروع، نوع الوحدة، السعر، المساحة، التسليم، والروابط.", adminPanel: "لوحة الإدارة",
@@ -113,6 +113,9 @@ function applySiteLanguage() {
   if (cta) cta.textContent = tr("voiceCta");
   if (startVoiceAgentBtn) startVoiceAgentBtn.textContent = tr("startVoice");
   if (holdToTalkBtn && !holdToTalkBtn.classList.contains("talking")) holdToTalkBtn.textContent = tr("holdToTalk");
+  if (sarahStartCallBtn) sarahStartCallBtn.textContent = tr("startVoice");
+  if (sarahHoldToTalkBtn && !sarahHoldToTalkBtn.classList.contains("talking")) sarahHoldToTalkBtn.textContent = tr("holdToTalk");
+  if (sarahStopCallBtn) sarahStopCallBtn.textContent = ui("إيقاف", "Stop");
   if (stopVoiceAgentBtn) stopVoiceAgentBtn.textContent = tr("stopSession");
   if (voiceStatus && voiceStatus.textContent === "Voice agent is off.") voiceStatus.textContent = tr("voiceOff");
   setText("#phoneConfirmBox .eyebrow", "confirmNumber");
@@ -189,6 +192,201 @@ const phoneConfirmBox = document.getElementById("phoneConfirmBox");
 const detectedPhoneInput = document.getElementById("detectedPhoneInput");
 const confirmPhoneBtn = document.getElementById("confirmPhoneBtn");
 const cancelPhoneBtn = document.getElementById("cancelPhoneBtn");
+const elevenlabsToolStatus = document.getElementById("elevenlabsToolStatus");
+const sarahStartCallBtn = document.getElementById("sarahStartCallBtn");
+const sarahHoldToTalkBtn = document.getElementById("sarahHoldToTalkBtn");
+const sarahStopCallBtn = document.getElementById("sarahStopCallBtn");
+const sarahControlStatus = document.getElementById("sarahControlStatus");
+const sarahSdkState = document.getElementById("sarahSdkState");
+const sarahSdkHint = document.getElementById("sarahSdkHint");
+const sarahSdkOrb = document.getElementById("sarahSdkOrb");
+const ELEVENLABS_AGENT_ID = "agent_2801kw5n6m9tewabcncnykc5w362";
+const ELEVENLABS_CLIENT_SDK_URL = window.TYCOONS_ELEVENLABS_CLIENT_SDK_URL || "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm";
+let sarahConversation = null;
+let sarahConversationSdk = null;
+let sarahSessionState = "idle";
+let sarahMicHeld = false;
+
+function setElevenLabsStatus(message, className = "") {
+  if (!elevenlabsToolStatus) return;
+  elevenlabsToolStatus.className = "elevenlabs-tool-status" + (className ? " " + className : "");
+  elevenlabsToolStatus.textContent = message;
+}
+
+function setSarahControlStatus(message, className = "") {
+  if (!sarahControlStatus) return;
+  sarahControlStatus.className = "sarah-control-status" + (className ? " " + className : "");
+  sarahControlStatus.textContent = message;
+}
+
+function setSarahSdkPanel(stateText, hintText = "", className = "") {
+  if (sarahSdkState) sarahSdkState.textContent = stateText;
+  if (sarahSdkHint) sarahSdkHint.textContent = hintText;
+  if (sarahSdkOrb) sarahSdkOrb.className = "sarah-sdk-orb" + (className ? " " + className : "");
+}
+
+function syncSarahButtons(state = sarahSessionState) {
+  const active = state === "connected" || state === "listening" || state === "speaking";
+  const connecting = state === "connecting";
+  if (sarahStartCallBtn) sarahStartCallBtn.disabled = active || connecting;
+  if (sarahHoldToTalkBtn) sarahHoldToTalkBtn.disabled = !active;
+  if (sarahStopCallBtn) sarahStopCallBtn.disabled = !active && !connecting;
+}
+
+async function loadElevenLabsSdk() {
+  if (sarahConversationSdk) return sarahConversationSdk;
+  const mod = await import(ELEVENLABS_CLIENT_SDK_URL);
+  const Conversation = mod.Conversation || mod.default?.Conversation;
+  if (!Conversation || typeof Conversation.startSession !== "function") {
+    throw new Error("ElevenLabs JavaScript SDK did not load correctly.");
+  }
+  sarahConversationSdk = Conversation;
+  return sarahConversationSdk;
+}
+
+async function requestSarahMicrophonePermission() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error(ui("المتصفح مش بيدعم تشغيل الميكروفون.", "This browser does not support microphone access."));
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  stream.getTracks().forEach(track => track.stop());
+}
+
+function setSarahConnectedUi() {
+  sarahSessionState = "connected";
+  syncSarahButtons("connected");
+  setElevenLabsStatus(ui("Sarah متصلة. اضغط مطوّلًا على زر الميكروفون واتكلم.", "Sarah is connected. Hold the microphone button while speaking."), "success");
+  setSarahControlStatus(ui("اضغط مطوّلًا على اضغط للتحدث. لما Sarah تبحث، الكروت هتظهر تحت.", "Hold the Hold to Talk button. When Sarah searches, cards will appear below."), "success");
+  setSarahSdkPanel(ui("Sarah متصلة", "Sarah connected"), ui("الميكروفون مقفول لحد ما تضغط مطوّلًا للتحدث.", "Microphone is muted until you hold to talk."), "connected");
+}
+
+function setSarahIdleUi(message) {
+  sarahSessionState = "idle";
+  sarahMicHeld = false;
+  sarahConversation = null;
+  if (sarahHoldToTalkBtn) {
+    sarahHoldToTalkBtn.classList.remove("talking", "is-active");
+    sarahHoldToTalkBtn.textContent = tr("holdToTalk") || "Hold to Talk";
+  }
+  syncSarahButtons("idle");
+  setSarahSdkPanel(ui("Sarah جاهزة", "Sarah ready"), ui("ابدأ الجلسة، وبعدها اضغط مطوّلًا للتحدث.", "Start the session, then hold to talk."));
+  setSarahControlStatus(message || ui("اضغط ابدأ المساعد الصوتي.", "Press Start Voice Agent."));
+}
+
+async function startSarahSdkCall() {
+  if (sarahConversation || sarahSessionState === "connecting") return;
+  try {
+    sarahSessionState = "connecting";
+    syncSarahButtons("connecting");
+    setElevenLabsStatus(ui("جاري تشغيل Sarah وطلب إذن الميكروفون...", "Starting Sarah and requesting microphone permission..."));
+    setSarahControlStatus(ui("لو المتصفح طلب إذن الميكروفون اختار Allow.", "If the browser asks for microphone access, choose Allow."));
+    setSarahSdkPanel(ui("جاري الاتصال", "Connecting"), ui("استنى ثواني قليلة.", "Please wait a few seconds."), "connecting");
+
+    await requestSarahMicrophonePermission();
+    const Conversation = await loadElevenLabsSdk();
+
+    sarahConversation = await Conversation.startSession({
+      agentId: ELEVENLABS_AGENT_ID,
+      connectionType: "webrtc",
+      clientTools: {
+        search_properties: elevenlabsSearchProperties,
+        save_lead: elevenlabsSaveLead,
+        show_results_on_page: async (args = {}) => elevenlabsSearchProperties(args)
+      },
+      onConnect: async () => {
+        try { await sarahConversation?.setMicMuted?.(true); } catch (_) {}
+        setSarahConnectedUi();
+      },
+      onDisconnect: () => {
+        setSarahIdleUi(ui("تم إنهاء جلسة Sarah.", "Sarah session ended."));
+      },
+      onError: (error) => {
+        console.error("ElevenLabs Sarah error", error);
+        setElevenLabsStatus(ui("حصل خطأ في تشغيل Sarah. راجع إعدادات ElevenLabs والميكروفون.", "Sarah could not start. Check ElevenLabs and microphone settings."), "warning");
+        setSarahControlStatus((error && error.message) ? error.message : ui("تعذر تشغيل Sarah.", "Could not start Sarah."), "warning");
+      },
+      onStatusChange: (status) => {
+        const safeStatus = String(status || "").toLowerCase();
+        if (safeStatus.includes("connected")) setSarahConnectedUi();
+        if (safeStatus.includes("disconnected")) setSarahIdleUi(ui("الجلسة متوقفة.", "Session stopped."));
+      },
+      onModeChange: (mode) => {
+        const value = String(mode?.mode || mode?.status || mode || "").toLowerCase();
+        if (!sarahConversation) return;
+        if (value.includes("speaking")) {
+          sarahSessionState = "speaking";
+          syncSarahButtons("speaking");
+          setSarahSdkPanel(ui("Sarah بترد", "Sarah speaking"), ui("استنى الرد أو اضغط مطوّلًا لو عايز تقاطعها.", "Wait for the reply, or hold to interrupt."), "speaking");
+        } else if (value.includes("listening")) {
+          sarahSessionState = sarahMicHeld ? "listening" : "connected";
+          syncSarahButtons(sarahSessionState);
+          setSarahSdkPanel(sarahMicHeld ? ui("Sarah بتسمعك", "Sarah listening") : ui("Sarah متصلة", "Sarah connected"), sarahMicHeld ? ui("اتكلم دلوقتي.", "Speak now.") : ui("اضغط مطوّلًا للتحدث.", "Hold to talk."), sarahMicHeld ? "listening" : "connected");
+        }
+      }
+    });
+
+    try { await sarahConversation?.setMicMuted?.(true); } catch (_) {}
+    setSarahConnectedUi();
+  } catch (err) {
+    console.error("Could not start ElevenLabs Sarah", err);
+    setElevenLabsStatus(ui("تعذر تشغيل Sarah: ", "Could not start Sarah: ") + (err?.message || err), "warning");
+    setSarahIdleUi(ui("راجع إذن الميكروفون أو إعدادات ElevenLabs وجرب تاني.", "Check microphone permission or ElevenLabs settings and try again."));
+  }
+}
+
+async function stopSarahSdkCall() {
+  try {
+    if (sarahConversation?.endSession) await sarahConversation.endSession();
+  } catch (err) {
+    console.warn("Could not end Sarah session", err);
+  }
+  setSarahIdleUi(ui("تم إيقاف مكالمة Sarah.", "Sarah call stopped."));
+  setElevenLabsStatus(ui("تم إيقاف مكالمة Sarah.", "Sarah call stopped."));
+}
+
+async function beginSarahHoldUi(event) {
+  event.preventDefault();
+  if (!sarahConversation) {
+    await startSarahSdkCall();
+  }
+  if (!sarahConversation || !sarahHoldToTalkBtn || sarahHoldToTalkBtn.disabled) return;
+  try {
+    sarahMicHeld = true;
+    await sarahConversation.setMicMuted?.(false);
+    sarahSessionState = "listening";
+    syncSarahButtons("listening");
+    sarahHoldToTalkBtn.classList.add("talking", "is-active");
+    sarahHoldToTalkBtn.textContent = ui("بيسمعك...", "Listening...");
+    setSarahControlStatus(ui("اتكلم دلوقتي مع Sarah. سيب الزرار لما تخلص.", "Speak now. Release the button when you finish."), "success");
+    setSarahSdkPanel(ui("Sarah بتسمعك", "Sarah listening"), ui("اتكلم دلوقتي.", "Speak now."), "listening");
+  } catch (err) {
+    setSarahControlStatus(ui("مش قادر أفتح الميكروفون دلوقتي.", "Could not unmute the microphone."), "warning");
+  }
+}
+
+async function endSarahHoldUi(event) {
+  event.preventDefault();
+  if (!sarahConversation || !sarahHoldToTalkBtn) return;
+  try { await sarahConversation.setMicMuted?.(true); } catch (_) {}
+  sarahMicHeld = false;
+  sarahSessionState = "connected";
+  syncSarahButtons("connected");
+  sarahHoldToTalkBtn.classList.remove("talking", "is-active");
+  sarahHoldToTalkBtn.textContent = tr("holdToTalk") || "Hold to Talk";
+  setSarahControlStatus(ui("الميكروفون اتقفل. Sarah هترد أو تقدر تضغط تاني للتحدث.", "Microphone muted. Sarah will reply, or hold again to speak."));
+  setSarahSdkPanel(ui("Sarah متصلة", "Sarah connected"), ui("الميكروفون مقفول لحد ما تضغط مطوّلًا للتحدث.", "Microphone is muted until you hold to talk."), "connected");
+}
+
+if (sarahStartCallBtn) sarahStartCallBtn.addEventListener("click", startSarahSdkCall);
+if (sarahStopCallBtn) sarahStopCallBtn.addEventListener("click", stopSarahSdkCall);
+if (sarahHoldToTalkBtn) {
+  sarahHoldToTalkBtn.addEventListener("mousedown", beginSarahHoldUi);
+  sarahHoldToTalkBtn.addEventListener("mouseup", endSarahHoldUi);
+  sarahHoldToTalkBtn.addEventListener("mouseleave", endSarahHoldUi);
+  sarahHoldToTalkBtn.addEventListener("touchstart", beginSarahHoldUi, { passive: false });
+  sarahHoldToTalkBtn.addEventListener("touchend", endSarahHoldUi, { passive: false });
+  sarahHoldToTalkBtn.addEventListener("touchcancel", endSarahHoldUi, { passive: false });
+}
 
 if (document.getElementById("year")) document.getElementById("year").textContent = new Date().getFullYear();
 applySiteLanguage();
@@ -1485,6 +1683,133 @@ document.addEventListener("click", function handlePropertyCarouselClick(event) {
   updatePropertyCarousel(carousel, Number(dotButton.dataset.carouselDot || 0));
 });
 
+
+/* ============================================================
+   ELEVENLABS SARAH CLIENT TOOLS
+   ------------------------------------------------------------
+   These tools let the ElevenLabs widget search Tycoons live
+   inventory and update the same cards under the search area.
+   Required matching client tools in ElevenLabs dashboard:
+   - search_properties
+   - save_lead
+   ============================================================ */
+
+function compactElevenLabsUnit(unit) {
+  return {
+    project_name: unit.project_name || unit.name || "",
+    developer: unit.developer || "",
+    location: unit.location || "",
+    unit_type: unit.unit_type || "",
+    bedrooms_text: unit.bedrooms_text || "",
+    area: areaText(unit.area_sqm),
+    starting_price: price(unit.starting_price || unit.min_price),
+    delivery: unit.delivery_text || "",
+    finishing: unit.finishing || "",
+    brochure_url: unit.brochure_url || "",
+    page_url: projectPageUrl(unit.project_name || unit.name, unit.location)
+  };
+}
+
+function buildElevenLabsSearchQuery(args = {}) {
+  const parts = [
+    args.query,
+    args.location,
+    args.area,
+    args.unit_type,
+    args.budget,
+    args.budget_range,
+    args.purpose,
+    args.delivery_timing
+  ];
+  return parts.map(value => String(value || "").trim()).filter(Boolean).join(" ").trim();
+}
+
+async function elevenlabsSearchProperties(args = {}) {
+  const query = buildElevenLabsSearchQuery(args);
+
+  if (!query) {
+    return {
+      success: false,
+      message: ui("اسأل العميل عن المنطقة أو نوع الوحدة الأول.", "Ask the client for the area or unit type first.")
+    };
+  }
+
+  if (searchInput) searchInput.value = query;
+  setElevenLabsStatus(ui("Sarah بتدور في المخزون وبتعرض النتائج تحت...", "Sarah is searching the inventory and showing results below..."));
+
+  const data = await runAISearch(query);
+  const shownResults = (data?.results || []).slice(0, 3).map(compactElevenLabsUnit);
+
+  try {
+    const resultsSection = document.querySelector(".results-section");
+    if (resultsSection) resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (_) {}
+
+  if (!shownResults.length) {
+    setElevenLabsStatus(ui("مفيش نتيجة مطابقة ظهرت، Sarah تقدر تطلب بيانات العميل للمتابعة.", "No matching cards appeared. Sarah can collect details for follow-up."), "warning");
+    return {
+      success: true,
+      query,
+      shown_on_page: true,
+      results_count: 0,
+      message: ui("مش لاقية اختيار مطابق 100% للمعايير دي دلوقتي.", "I am not seeing a perfect match for those criteria right now."),
+      results: []
+    };
+  }
+
+  setElevenLabsStatus(ui("ظهرت نتائج البحث تحت. Sarah تقدر تلخص أول 2 أو 3 اختيارات.", "Search results appeared below. Sarah can summarize the first 2 or 3 options."), "success");
+
+  return {
+    success: true,
+    query,
+    shown_on_page: true,
+    results_count: shownResults.length,
+    message: ui("النتائج ظهرت في الكروت تحت.", "The results are now shown in the cards below."),
+    results: shownResults
+  };
+}
+
+async function elevenlabsSaveLead(args = {}) {
+  const name = String(args.name || args.full_name || "").trim();
+  const phone = normalizePhoneDisplay(args.phone || args.whatsapp || args.whatsapp_number || "");
+
+  if (!name || !phone) {
+    return {
+      success: false,
+      missing: !name ? "name" : "phone",
+      message: ui("اطلب الاسم ورقم الواتساب قبل حفظ الليد.", "Ask for the name and WhatsApp number before saving the lead.")
+    };
+  }
+
+  const row = {
+    name,
+    phone,
+    message: args.notes || args.message || "Lead captured by ElevenLabs Sarah voice agent",
+    preferred_location: args.preferred_location || args.location || args.area || null,
+    budget: parseBudgetNumber(args.budget || args.budget_range),
+    unit_type: args.unit_type || null,
+    project_interest: args.project_interest || args.project || null,
+    source: "website_elevenlabs_voice_agent"
+  };
+
+  await insertRow("leads", row);
+
+  if (leadStatus) {
+    leadStatus.classList.remove("hidden");
+    leadStatus.className = "status success";
+    leadStatus.textContent = ui("تم حفظ بيانات العميل من Sarah.", "Lead saved from Sarah.");
+  }
+
+  setElevenLabsStatus(ui("تم حفظ بيانات العميل، وفريق المبيعات يقدر يتابع على واتساب.", "Lead saved. The sales team can follow up on WhatsApp."), "success");
+
+  return {
+    success: true,
+    saved: true,
+    name,
+    phone,
+    message: ui(`شكراً يا ${name}. هنبعتلك التفاصيل على واتساب.`, `Thank you, ${name}. The team will send you the details on WhatsApp.`)
+  };
+}
 
 loadData();
 

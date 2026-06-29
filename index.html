@@ -172,17 +172,14 @@
             </div>
             <div id="sarahControlStatus" class="sarah-control-status">Press Start Voice Agent, then speak to Sarah. Search results will appear below.</div>
           </div>
-          <div class="elevenlabs-widget-shell" aria-label="Sarah voice assistant">
-            <elevenlabs-convai
-              id="sarahVoiceWidget"
-              agent-id="agent_2801kw5n6m9tewabcncnykc5w362"
-              variant="expanded"
-              action-text="Need help?"
-              start-call-text="Start Voice Agent"
-              end-call-text="Stop"
-              listening-text="Sarah is listening..."
-              speaking-text="Sarah is speaking...">
-            </elevenlabs-convai>
+          <div class="sarah-sdk-panel" aria-label="Sarah voice assistant status">
+            <div class="sarah-sdk-orb" id="sarahSdkOrb" aria-hidden="true">
+              <span></span>
+            </div>
+            <div class="sarah-sdk-copy">
+              <strong id="sarahSdkState">Sarah ready</strong>
+              <small id="sarahSdkHint">Start the voice session, then hold the mic button while speaking.</small>
+            </div>
           </div>
 
           <div class="legacy-realtime-voice" hidden aria-hidden="true">
@@ -440,7 +437,6 @@
 window.TYCOONS_SUPABASE_URL = "https://coqnjymekrkoausiiytm.supabase.co";
 window.TYCOONS_SUPABASE_KEY = "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 </script>
-<script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
 <script src="/script.js"></script>
 
 <!-- TYCOONS GUIDE: START  ===================================================

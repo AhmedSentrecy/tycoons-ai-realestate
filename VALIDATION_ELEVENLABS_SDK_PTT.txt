@@ -1,0 +1,24 @@
+ElevenLabs SDK Push-to-Talk Patch Validation
+
+Changed files:
+- index.html
+- styles.css
+- script.js
+
+What changed:
+- Removed the visible ElevenLabs embed widget from the voice card.
+- Replaced it with a clean native Sarah status panel.
+- Start Voice Agent now uses ElevenLabs JavaScript SDK via dynamic import.
+- Hold to Talk now controls the ElevenLabs microphone with setMicMuted(false) while pressed and setMicMuted(true) on release.
+- Stop ends the ElevenLabs conversation session.
+- search_properties, save_lead, and show_results_on_page client tools are still wired to the same website search/results flow.
+- Carousel, WhatsApp messages, animations, Supabase data loading, and generated pages were not intentionally changed.
+
+Manual dashboard requirements:
+- ElevenLabs agent must be public or authentication disabled for direct agentId start.
+- Client tool `search_properties` must exist in ElevenLabs dashboard, expects response ON, timeout 8+ seconds.
+- Client tool `save_lead` is optional for lead saving.
+
+Validation:
+- script.js syntax checked with node --check.
+- scripts/generate-pages.js syntax checked with node --check when present.
