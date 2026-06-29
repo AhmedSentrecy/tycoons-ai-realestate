@@ -186,30 +186,114 @@
     </div>
 
     <aside class="hero-side hero-side-compact">
-      <div id="tyc-howpanel" class="hero-panel voice-journey-panel">
-        <div class="how-panel-head">
-          <span class="eyebrow" data-how-main>طريقة الاستخدام</span>
-          <span class="how-subtitle" data-how-sub>خطوات البحث ببساطة</span>
+      <!-- TYCOONS ANIMATED "HOW IT WORKS" PANEL -->
+      <style>
+        #tyc-howpanel, #tyc-howpanel * { box-sizing:border-box; }
+        #tyc-howpanel { --navy:#101827; --gold:#a8822f; --wa:#1faf5a; --ink:#5b6473;
+          font-family:'Sora','IBM Plex Sans Arabic',system-ui,sans-serif; }
+        @keyframes hp-caret { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+        @keyframes hp-type { 0%{width:0} 60%{width:172px} 100%{width:172px} }
+        @keyframes hp-bar { 0%,100%{transform:scaleY(.28)} 50%{transform:scaleY(1)} }
+        @keyframes hp-cardUp { 0%{opacity:0;transform:translateY(14px)} 18%,100%{opacity:1;transform:translateY(0)} }
+        @keyframes hp-scan { 0%{transform:translateY(-30px);opacity:0} 18%{opacity:1} 82%{opacity:1} 100%{transform:translateY(150px);opacity:0} }
+        @keyframes hp-stageIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes hp-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(168,130,47,.4)} 50%{box-shadow:0 0 0 7px rgba(168,130,47,0)} }
+        @keyframes hp-dot { 0%,100%{opacity:.35} 50%{opacity:1} }
+      </style>
+
+      <div id="tyc-howpanel" style="background:#fff;border-radius:22px;padding:22px 20px 20px;box-shadow:0 10px 40px rgba(16,24,39,.1);border:1px solid rgba(16,24,39,.05);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:11px;letter-spacing:.16em;color:var(--gold);text-transform:uppercase;">
+            <span style="width:7px;height:7px;border-radius:50%;background:var(--gold);animation:hp-dot 2s ease-in-out infinite;"></span>How it works
+          </div>
+          <div dir="rtl" style="font-size:12px;color:var(--ink);">كيف يعمل</div>
         </div>
-        <div class="hero-points voice-journey">
-          <div class="hero-point">
-            <span class="step-number">01</span>
-            <strong data-how-title>قول محتاج إيه</strong>
-            <span data-how-text>المنطقة، نوع الوحدة، الميزانية، التسليم أو اسم المشروع.</span>
-          </div>
-          <div class="hero-point">
-            <span class="step-number">02</span>
-            <strong data-how-title>نرشح اختيارات مناسبة</strong>
-            <span data-how-text>الكروت بتظهر من الكتالوج المتاح عند Tycoons.</span>
-          </div>
-          <div class="hero-point">
-            <span class="step-number">03</span>
-            <strong data-how-title>كمل على واتساب</strong>
-            <span data-how-text>أكد أحدث التوفر وخطة الدفع مع فريق المبيعات.</span>
-          </div>
+
+        <div id="tyc-hp-stage" style="position:relative;height:158px;margin-top:16px;border-radius:16px;background:#f5f6fa;border:1px solid rgba(16,24,39,.05);overflow:hidden;display:flex;align-items:center;justify-content:center;"></div>
+
+        <div id="tyc-hp-steps" style="position:relative;margin-top:18px;padding-left:4px;"></div>
+
+        <div style="display:flex;align-items:center;gap:9px;margin-top:14px;padding:12px 14px;border-radius:13px;background:#f5f6fa;border:1px solid rgba(16,24,39,.05);">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--wa);animation:hp-dot 1.6s ease-in-out infinite;"></span>
+          <span style="font-size:12px;color:var(--navy);font-weight:600;">Live inventory</span>
+          <span style="margin-left:auto;font-size:12px;color:var(--ink);">456 units &middot; 66 projects</span>
         </div>
-        <div class="how-live-chip">456 units · 66 projects</div>
       </div>
+
+      <script>
+      (function () {
+        var stageEl = document.getElementById('tyc-hp-stage');
+        var stepsEl = document.getElementById('tyc-hp-steps');
+        if (!stageEl || !stepsEl) return;
+        var active = 0;
+
+        var bars = '';
+        for (var i = 0; i < 7; i++) {
+          bars += '<span style="width:5px;height:24px;border-radius:99px;background:var(--gold);transform-origin:bottom;animation:hp-bar ' +
+            (0.7 + (i % 3) * 0.22) + 's ease-in-out ' + (i * 0.08) + 's infinite;"></span>';
+        }
+
+        var cards = [
+          ['EGP 8.4M', 'Chalet · North Coast · 120 m²'],
+          ['EGP 12.9M', 'iVilla · New Cairo · ready']
+        ].map(function (c, i) {
+          return '<div style="display:flex;gap:10px;align-items:center;padding:9px 11px;border-radius:11px;background:#fff;border:1px solid rgba(16,24,39,.08);box-shadow:0 2px 8px rgba(16,24,39,.04);margin-bottom:9px;animation:hp-cardUp .5s ease ' + (i * 0.12) + 's both;">' +
+            '<div style="width:46px;height:40px;border-radius:8px;background:repeating-linear-gradient(45deg,#e7eaf2,#e7eaf2 7px,#dde1ec 7px,#dde1ec 14px);flex:0 0 auto;"></div>' +
+            '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:700;color:var(--navy);">' + c[0] + '</div>' +
+            '<div style="font-size:10px;color:var(--ink);margin-top:2px;">' + c[1] + '</div></div></div>';
+        }).join('');
+
+        var stages = [
+          '<div style="width:240px;animation:hp-stageIn .4s ease both;">' +
+            '<div style="position:relative;display:flex;align-items:center;gap:9px;height:50px;padding:0 10px 0 14px;border-radius:12px;background:#fff;border:1px solid rgba(16,24,39,.12);box-shadow:0 4px 14px rgba(16,24,39,.06);">' +
+              '<div dir="rtl" style="font-size:14px;color:var(--navy);white-space:nowrap;overflow:hidden;animation:hp-type 2.6s steps(18,end) infinite alternate;">عايز شاليه في الساحل</div>' +
+              '<span style="width:2px;height:18px;background:var(--gold);animation:hp-caret 1s step-end infinite;"></span>' +
+              '<div style="margin-left:auto;height:30px;padding:0 13px;border-radius:8px;background:var(--navy);color:#fff;display:flex;align-items:center;font-size:12px;font-weight:700;">Search</div>' +
+            '</div>' +
+            '<div style="text-align:center;margin-top:13px;font-size:11px;color:var(--ink);letter-spacing:.03em;">type it in the search box</div>' +
+          '</div>',
+
+          '<div style="display:flex;flex-direction:column;align-items:center;animation:hp-stageIn .4s ease both;">' +
+            '<div style="position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;">' +
+              '<div style="position:absolute;width:64px;height:64px;border-radius:50%;background:var(--navy);animation:hp-pulse 1.8s ease-in-out infinite;"></div>' +
+              '<div style="position:relative;width:64px;height:64px;border-radius:50%;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;">🔍</div>' +
+            '</div>' +
+            '<div style="display:flex;align-items:flex-end;gap:4px;height:24px;margin-top:14px;">' + bars + '</div>' +
+            '<div style="margin-top:10px;font-size:11px;color:var(--navy);font-weight:600;">Searching 456 units…</div>' +
+          '</div>',
+
+          '<div style="position:relative;width:240px;">' +
+            '<div style="position:absolute;left:0;right:0;top:0;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:hp-scan 2.4s ease-in-out infinite;"></div>' +
+            cards +
+          '</div>'
+        ];
+
+        var stepData = [
+          ['01', 'Say what you want', 'Location, unit type, budget, delivery, or project name.'],
+          ['02', 'AI searches live stock', 'Results come from the Tycoons database, not generic ads.'],
+          ['03', 'See matching cards', 'Price, area, delivery, image, brochure, and next action.']
+        ];
+
+        function paintSteps() {
+          stepsEl.innerHTML = stepData.map(function (s, i) {
+            var on = i === active;
+            var node = 'width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex:0 0 auto;transition:all .35s;' +
+              (on ? 'background:var(--gold);color:var(--navy);transform:scale(1.08);box-shadow:0 4px 12px rgba(168,130,47,.35);'
+                  : 'background:var(--navy);color:#fff;opacity:.55;');
+            var title = 'font-size:14px;font-weight:700;transition:color .35s;' + (on ? 'color:var(--navy);' : 'color:#9aa1ad;');
+            var connector = i < 2 ? '<div style="width:2px;flex:1;min-height:26px;background:rgba(16,24,39,.1);margin-top:3px;"></div>' : '';
+            return '<div style="display:flex;gap:13px;padding:7px 0;">' +
+              '<div style="display:flex;flex-direction:column;align-items:center;"><div style="' + node + '">' + s[0] + '</div>' + connector + '</div>' +
+              '<div style="padding-bottom:4px;"><div style="' + title + '">' + s[1] + '</div>' +
+              '<div style="font-size:12px;color:var(--ink);margin-top:3px;line-height:1.45;">' + s[2] + '</div></div></div>';
+          }).join('');
+        }
+
+        function paint() { stageEl.innerHTML = stages[active]; paintSteps(); }
+        paint();
+        setInterval(function () { active = (active + 1) % 3; paint(); }, 2800);
+      })();
+      </script>
     </aside>
   </section>
 
@@ -334,5 +418,195 @@ window.TYCOONS_SUPABASE_URL = "https://coqnjymekrkoausiiytm.supabase.co";
 window.TYCOONS_SUPABASE_KEY = "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 </script>
 <script src="/script.js"></script>
+
+<!-- TYCOONS GUIDE: START  ===================================================
+     Animated "How it works" walkthrough. Self-contained: no libraries, no build.
+     - Shows automatically on every visit.
+     - "X" dismisses it; the "How it works" pill (bottom-left) reopens it.
+     - To show only ONCE per device, set SHOW_EVERY_VISIT = false below.
+============================================================================ -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style id="tyc-guide-style">
+  #tyc-guide, #tyc-guide * { box-sizing:border-box; }
+  #tyc-guide { --navy:#101827; --gold:#a8822f; --wa:#1faf5a; --ink:#5b6473;
+    font-family:'Sora','IBM Plex Sans Arabic',system-ui,sans-serif; }
+  @keyframes tyc-caret { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+  @keyframes tyc-typeLine { 0%{width:0} 36%{width:200px} 74%{width:200px} 82%,100%{width:0} }
+  @keyframes tyc-bar { 0%,100%{transform:scaleY(.3)} 50%{transform:scaleY(1)} }
+  @keyframes tyc-cardIn { 0%,8%{opacity:0;transform:translateY(16px)} 24%,92%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-8px)} }
+  @keyframes tyc-scanline { 0%{transform:translateY(-40px);opacity:0} 20%{opacity:1} 80%{opacity:1} 100%{transform:translateY(300px);opacity:0} }
+  @keyframes tyc-waTap { 0%,44%{transform:scale(1)} 54%{transform:scale(.94)} 66%,100%{transform:scale(1)} }
+  @keyframes tyc-waRipple { 0%,44%{transform:scale(.6);opacity:.5} 80%{transform:scale(1.5);opacity:0} 100%{opacity:0} }
+  @keyframes tyc-flyIn { 0%,40%{transform:translateY(28px);opacity:0} 60%,100%{transform:translateY(0);opacity:1} }
+  @keyframes tyc-cursorTapXY { 0%,40%{transform:scale(1)} 50%{transform:scale(.78)} 62%,100%{transform:scale(1)} }
+  @keyframes tyc-fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes tyc-pillIn { from{opacity:0;transform:translateY(12px) scale(.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes tyc-vcMove { 0%,22%{left:96px} 38%,100%{left:250px} }
+  @keyframes tyc-vcTap { 0%,8%{transform:translateX(-50%) scale(1)} 14%{transform:translateX(-50%) scale(.72)} 20%,32%{transform:translateX(-50%) scale(1)} 40%{transform:translateX(-50%) scale(.8)} 84%{transform:translateX(-50%) scale(.8)} 92%,100%{transform:translateX(-50%) scale(1)} }
+  @keyframes tyc-startGlow { 0%,8%{box-shadow:0 0 0 0 rgba(168,130,47,0)} 14%{box-shadow:0 0 0 5px rgba(168,130,47,.45)} 24%,100%{box-shadow:0 0 0 0 rgba(168,130,47,0)} }
+  @keyframes tyc-holdActive { 0%,38%{background:transparent;color:var(--navy)} 44%,84%{background:var(--navy);color:#fff} 90%,100%{background:transparent;color:var(--navy)} }
+  @keyframes tyc-waveShow { 0%,40%{opacity:0} 48%,82%{opacity:1} 90%,100%{opacity:0} }
+  @keyframes tyc-offText { 0%,34%{opacity:1} 42%,100%{opacity:0} }
+  @keyframes tyc-onText { 0%,38%{opacity:0} 46%,84%{opacity:1} 92%,100%{opacity:0} }
+</style>
+
+<div id="tyc-guide"></div>
+
+<script>
+(function () {
+  // ---- Behavior flag --------------------------------------------------------
+  // true  = show on every visit (default).
+  // false = show only the first time on this device (uses localStorage).
+  var SHOW_EVERY_VISIT = true;
+  // ---------------------------------------------------------------------------
+
+  var root = document.getElementById('tyc-guide');
+  if (!root) return;
+  var slide = 0;
+
+  var bars = '';
+  for (var i = 0; i < 7; i++) {
+    bars += '<span style="width:6px;height:46px;border-radius:99px;background:var(--gold);transform-origin:bottom;animation:tyc-bar ' +
+      (0.8 + (i % 3) * 0.25) + 's ease-in-out ' + (i * 0.09) + 's infinite;"></span>';
+  }
+
+  var resultRows = [
+    ['EGP 8.4M', 'Chalet · North Coast', '120 m² · 2027 delivery'],
+    ['EGP 12.9M', 'iVilla · New Cairo', '210 m² · ready to move'],
+    ['EGP 6.2M', 'Apartment · Ain Sokhna', '95 m² · sea view']
+  ].map(function (r, i) {
+    return '<div style="display:flex;gap:12px;align-items:center;padding:11px 13px;border-radius:12px;background:#fff;border:1px solid rgba(16,24,39,.08);box-shadow:0 2px 8px rgba(16,24,39,.04);margin-bottom:10px;animation:tyc-cardIn 4.2s ease-in-out ' + (i * 0.5) + 's infinite both;">' +
+      '<div style="width:64px;height:54px;border-radius:9px;background:repeating-linear-gradient(45deg,#e7eaf2,#e7eaf2 9px,#dde1ec 9px,#dde1ec 18px);flex:0 0 auto;"></div>' +
+      '<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:700;color:var(--navy);">' + r[0] + '</div>' +
+      '<div style="font-size:12px;color:var(--navy);margin-top:3px;opacity:.85;">' + r[1] + '</div>' +
+      '<div style="font-size:11px;color:var(--ink);margin-top:4px;">' + r[2] + '</div></div></div>';
+  }).join('');
+
+  var slides = [
+    { // 0 — type or say
+      stage:
+        '<div style="width:336px;">' +
+          '<div style="position:relative;display:flex;align-items:center;gap:12px;height:62px;padding:0 12px 0 18px;border-radius:14px;background:#fff;border:1px solid rgba(16,24,39,.14);box-shadow:0 4px 16px rgba(16,24,39,.06);">' +
+            '<div dir="rtl" style="display:flex;align-items:center;font-size:16px;color:var(--navy);white-space:nowrap;overflow:hidden;animation:tyc-typeLine 5s steps(20,end) infinite;">عايز شاليه في الساحل</div>' +
+            '<span style="width:2px;height:22px;background:var(--gold);animation:tyc-caret 1s step-end infinite;"></span>' +
+            '<div style="margin-left:auto;height:34px;padding:0 16px;border-radius:9px;background:var(--navy);display:flex;align-items:center;color:#fff;font-size:13px;font-weight:700;">Search</div>' +
+          '</div>' +
+          '<div style="text-align:center;margin-top:18px;font-size:12px;color:var(--ink);letter-spacing:.04em;">type your request in the search box</div>' +
+          '<div style="display:flex;gap:8px;margin-top:14px;justify-content:center;flex-wrap:wrap;">' +
+            '<span dir="rtl" style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:99px;background:#fff;border:1px solid rgba(16,24,39,.12);font-size:12px;color:var(--navy);">آي فيلا في التجمع</span>' +
+            '<span style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:99px;background:#fff;border:1px solid rgba(16,24,39,.12);font-size:12px;color:var(--navy);">Under 9M</span>' +
+          '</div>' +
+        '</div>',
+      title: 'Say what you want', titleAr: 'قل ما تريد',
+      desc: 'Type or dictate a request — location, type, budget or project.<br><span dir="rtl" style="font-family:\'IBM Plex Sans Arabic\';">اكتب أو أملِ طلبك — الموقع، النوع، الميزانية أو المشروع.</span>'
+    },
+    { // 1 — start then hold
+      stage:
+        '<div style="width:354px;">' +
+          '<div style="display:flex;align-items:flex-end;justify-content:center;gap:5px;height:40px;margin-bottom:24px;animation:tyc-waveShow 5.5s ease-in-out infinite;">' + bars + '</div>' +
+          '<div style="position:relative;display:flex;align-items:center;justify-content:center;gap:12px;">' +
+            '<div style="display:flex;align-items:center;gap:8px;height:46px;padding:0 16px;border-radius:12px;background:var(--navy);color:#fff;font-size:13px;font-weight:700;animation:tyc-startGlow 5.5s ease-in-out infinite;">' +
+              '<span style="width:18px;height:18px;border-radius:50%;background:var(--gold);color:var(--navy);font-size:11px;display:flex;align-items:center;justify-content:center;">1</span>Start Voice Agent</div>' +
+            '<div style="display:flex;align-items:center;gap:8px;height:46px;padding:0 16px;border-radius:12px;border:1px solid rgba(16,24,39,.16);font-size:13px;font-weight:700;animation:tyc-holdActive 5.5s ease-in-out infinite;">' +
+              '<span style="width:18px;height:18px;border-radius:50%;background:var(--gold);color:var(--navy);font-size:11px;display:flex;align-items:center;justify-content:center;">2</span>Hold to Talk</div>' +
+            '<div style="position:absolute;bottom:-15px;left:96px;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid var(--navy);box-shadow:0 6px 16px rgba(16,24,39,.25);animation:tyc-vcMove 5.5s ease-in-out infinite,tyc-vcTap 5.5s ease-in-out infinite;"></div>' +
+          '</div>' +
+          '<div style="position:relative;height:22px;margin-top:30px;text-align:center;">' +
+            '<span style="position:absolute;left:0;right:0;font-size:12px;color:var(--ink);animation:tyc-offText 5.5s ease-in-out infinite;">Voice agent is off.</span>' +
+            '<span style="position:absolute;left:0;right:0;font-size:12px;color:var(--wa);font-weight:600;animation:tyc-onText 5.5s ease-in-out infinite;">● Listening…</span>' +
+          '</div>' +
+        '</div>',
+      title: 'Start, then hold to talk', titleAr: 'ابدأ المساعد، ثم اضغط مطوّلاً للتحدّث',
+      desc: 'Tap <b style="color:var(--navy);">Start Voice Agent</b>, then hold <b style="color:var(--navy);">Hold to Talk</b> while you speak.<br><span dir="rtl" style="font-family:\'IBM Plex Sans Arabic\';">اضغط «ابدأ المساعد الصوتي»، ثم اضغط مطوّلاً على «اضغط للتحدّث» أثناء الكلام.</span>'
+    },
+    { // 2 — matching units
+      stage:
+        '<div style="position:relative;width:304px;">' +
+          '<div style="position:absolute;left:0;right:0;top:0;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:tyc-scanline 2.6s ease-in-out infinite;"></div>' +
+          resultRows +
+        '</div>',
+      title: 'See matching units', titleAr: 'شاهد الوحدات المطابقة',
+      desc: 'Live inventory cards: price, area, delivery and media.<br><span dir="rtl" style="font-family:\'IBM Plex Sans Arabic\';">بطاقات من المخزون الحي: السعر، المساحة، التسليم والوسائط.</span>'
+    },
+    { // 3 — whatsapp
+      stage:
+        '<div style="display:flex;flex-direction:column;align-items:center;width:300px;">' +
+          '<div style="width:100%;background:#fff;border:1px solid rgba(16,24,39,.1);border-radius:14px;padding:14px 16px;box-shadow:0 4px 16px rgba(16,24,39,.05);animation:tyc-flyIn 2.8s ease-in-out infinite;">' +
+            '<div style="font-size:14px;font-weight:700;color:var(--navy);">Chalet · North Coast</div>' +
+            '<div style="font-size:12px;color:var(--ink);margin-top:4px;">EGP 8.4M · 120 m² · 2027 delivery</div></div>' +
+          '<div style="position:relative;margin-top:30px;width:100%;display:flex;align-items:center;justify-content:center;">' +
+            '<div style="position:absolute;width:236px;height:54px;border-radius:99px;border:2px solid var(--wa);animation:tyc-waRipple 2.8s ease-in-out infinite;"></div>' +
+            '<div style="position:relative;display:flex;align-items:center;gap:10px;height:54px;padding:0 26px;border-radius:99px;background:var(--wa);color:#fff;font-weight:700;font-size:15px;animation:tyc-waTap 2.8s ease-in-out infinite;"><span style="font-size:18px;">☎</span> Continue on WhatsApp</div>' +
+            '<div style="position:absolute;right:36px;bottom:-6px;width:30px;height:30px;border-radius:50%;background:#fff;border:2px solid var(--wa);box-shadow:0 6px 16px rgba(16,24,39,.25);animation:tyc-cursorTapXY 2.8s ease-in-out infinite;"></div>' +
+          '</div>' +
+          '<div dir="rtl" style="margin-top:24px;font-size:12px;color:var(--ink);">تابع مع فريق المبيعات مباشرة</div>' +
+        '</div>',
+      title: 'Continue on WhatsApp', titleAr: 'تابع عبر واتساب',
+      desc: 'Tap to reach the sales team with your unit ready.<br><span dir="rtl" style="font-family:\'IBM Plex Sans Arabic\';">اضغط للتواصل مع فريق المبيعات مع تفاصيل الوحدة.</span>'
+    }
+  ];
+
+  function render() {
+    var s = slides[slide];
+    var last = slide === slides.length - 1;
+    var dots = slides.map(function (_, i) {
+      return '<button data-go="' + i + '" style="height:8px;border-radius:99px;cursor:pointer;border:none;padding:0;transition:width .3s,background .3s;' +
+        (i === slide ? 'width:24px;background:var(--gold);' : 'width:8px;background:#cdd2dd;') + '"></button>';
+    }).join('');
+
+    root.innerHTML =
+      '<div style="position:fixed;inset:0;z-index:2147483000;background:rgba(16,24,39,.42);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:24px;">' +
+        '<div style="width:466px;max-width:100%;background:#fff;border-radius:24px;box-shadow:0 30px 80px rgba(16,24,39,.32);padding:24px 26px 22px;animation:tyc-fadeUp .4s ease both;">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+            '<div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:11px;letter-spacing:.16em;color:var(--gold);"><span style="width:6px;height:6px;border-radius:50%;background:var(--gold);"></span>HOW IT WORKS · <span dir="rtl" style="font-family:\'IBM Plex Sans Arabic\';">كيف يعمل</span></div>' +
+            '<button data-close style="width:32px;height:32px;border-radius:50%;border:none;background:#eef0f7;color:var(--ink);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;">×</button>' +
+          '</div>' +
+          '<div style="height:318px;border-radius:18px;background:#f1f3f9;border:1px solid rgba(16,24,39,.06);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;">' + s.stage + '</div>' +
+          '<div style="text-align:center;padding:18px 6px 4px;min-height:98px;animation:tyc-fadeUp .35s ease both;">' +
+            '<div style="font-size:24px;font-weight:800;color:var(--navy);">' + s.title + '</div>' +
+            '<div dir="rtl" style="font-size:18px;font-weight:700;color:var(--gold);margin-top:3px;font-family:\'IBM Plex Sans Arabic\';">' + s.titleAr + '</div>' +
+            '<div style="font-size:13px;color:var(--ink);margin-top:9px;line-height:1.55;">' + s.desc + '</div>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;">' +
+            '<div style="display:flex;gap:7px;align-items:center;">' + dots + '</div>' +
+            '<div style="display:flex;gap:10px;align-items:center;">' +
+              (slide > 0 ? '<button data-back style="height:42px;padding:0 18px;border-radius:99px;border:1px solid rgba(16,24,39,.16);background:#fff;color:var(--navy);font:600 14px Sora;cursor:pointer;">Back</button>' : '') +
+              '<button data-next style="height:42px;padding:0 24px;border-radius:99px;border:none;background:var(--navy);color:#fff;font:700 14px Sora;cursor:pointer;">' + (last ? 'Got it · تمام' : 'Next · التالي') + '</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    root.querySelector('[data-close]').onclick = closeGuide;
+    var nx = root.querySelector('[data-next]');
+    nx.onclick = function () { last ? closeGuide() : go(slide + 1); };
+    var bk = root.querySelector('[data-back]'); if (bk) bk.onclick = function () { go(slide - 1); };
+    root.querySelectorAll('[data-go]').forEach(function (b) { b.onclick = function () { go(+b.getAttribute('data-go')); }; });
+  }
+
+  function go(i) { slide = Math.max(0, Math.min(slides.length - 1, i)); render(); }
+
+  function showPill() {
+    root.innerHTML =
+      '<button data-reopen style="position:fixed;left:26px;bottom:26px;z-index:2147483000;height:52px;padding:0 22px 0 18px;border-radius:99px;border:none;background:var(--navy);color:#fff;display:flex;align-items:center;gap:11px;cursor:pointer;box-shadow:0 12px 30px rgba(16,24,39,.28);animation:tyc-pillIn .35s ease both;">' +
+        '<span style="width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:var(--gold);">?</span>' +
+        '<span style="display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;"><span style="font:700 13px Sora;">How it works</span><span dir="rtl" style="font:400 12px \'IBM Plex Sans Arabic\';opacity:.8;">كيف يعمل</span></span>' +
+      '</button>';
+    root.querySelector('[data-reopen]').onclick = function () { slide = 0; render(); };
+  }
+
+  function closeGuide() {
+    if (!SHOW_EVERY_VISIT) { try { localStorage.setItem('tycoonsGuideSeen', '1'); } catch (e) {} }
+    showPill();
+  }
+
+  var seen = false;
+  if (!SHOW_EVERY_VISIT) { try { seen = localStorage.getItem('tycoonsGuideSeen') === '1'; } catch (e) {} }
+  if (seen) { showPill(); } else { render(); }
+})();
+</script>
+<!-- TYCOONS GUIDE: END ====================================================== -->
 </body>
 </html>
