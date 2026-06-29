@@ -1,0 +1,23 @@
+Validation — Realtime Voice Diagnostic Patch
+
+Scope:
+- index.html untouched.
+- styles.css untouched.
+- animations untouched.
+- carousel untouched.
+- WhatsApp logic untouched.
+- Supabase data logic untouched.
+
+Changed/Included:
+- script.js: Realtime voice startup diagnostics and status handling.
+- netlify.toml: Ensures /api/realtime-connect redirects to /.netlify/functions/realtime-connect.
+- netlify/functions/realtime-connect.js: Unified WebRTC realtime endpoint.
+
+Checks:
+- node --check script.js: PASS
+- node --check netlify/functions/realtime-connect.js: PASS
+
+Important:
+- This patch does not switch to browser-only voice search.
+- It keeps /api/realtime-connect as the Realtime Voice Agent path.
+- It prevents the data-channel close event from overwriting the real startup error.

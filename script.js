@@ -173,6 +173,9 @@ let realtimeStream = null;
 let remoteAudio = null;
 let micTrack = null;
 let pendingVoiceLead = null;
+let realtimeAgentReady = false;
+let realtimeStartInProgress = false;
+let realtimeManualStop = false;
 const handledFunctionCalls = new Set();
 
 const results = document.getElementById("results");
@@ -818,6 +821,43 @@ leadForm.addEventListener("submit", async (event) => {
   }
 });
 
+
+function friendlyRealtimeError(rawError) {
+  const text = String(rawError || "");
+  const lower = text.toLowerCase();
+
+  if (lower.includes("openai_api_key") || lower.includes("api key")) {
+    return ui("مفتاح OpenAI غير موجود أو غير صحيح في Netlify. راجع Environment Variables.", "OpenAI key is missing or invalid in Netlify Environment Variables.");
+  }
+
+  if (lower.includes("not found") || lower.includes("404")) {
+    return ui("دالة الصوت realtime-connect غير مرفوعة أو مسارها غير شغال على Netlify.", "The realtime-connect function is missing or its Netlify route is not working.");
+  }
+
+  if (lower.includes("invalid sdp")) {
+    return ui("المتصفح بدأ الصوت، لكن عرض الاتصال الصوتي اتبعت بشكل غير صحيح. جرب Hard Refresh.", "The browser started voice, but the realtime SDP offer was invalid. Try a hard refresh.");
+  }
+
+  if (lower.includes("model") || lower.includes("gpt-realtime") || lower.includes("access") || lower.includes("permission") || lower.includes("403") || lower.includes("401")) {
+    return ui("مشكلة في صلاحية موديل الصوت أو حساب OpenAI. راجع model access و billing.", "There is an OpenAI realtime model/access issue. Check model access and billing.");
+  }
+
+  if (lower.includes("microphone") || lower.includes("permission denied") || lower.includes("notallowederror")) {
+    return ui("المتصفح مانع الميكروفون. افتح صلاحية الميكروفون للموقع وجرب تاني.", "Microphone permission is blocked. Allow microphone access for this site and try again.");
+  }
+
+  return ui("تعذر تشغيل المساعد الصوتي. السبب ظهر في Console وNetlify function logs.", "Could not start the voice assistant. Check the browser console and Netlify function logs.");
+}
+
+async function realtimeResponseError(response) {
+  try {
+    const text = await response.text();
+    return text || ("HTTP " + response.status);
+  } catch (_) {
+    return "HTTP " + response.status;
+  }
+}
+
 function setVoiceStatus(text, className = "status") {
   voiceStatus.className = className;
   voiceStatus.textContent = text;
@@ -841,8 +881,11 @@ function setMicEnabled(enabled) {
   }
 }
 
-function stopRealtimeAgent(message = null) {
+function stopRealtimeAgent(message = null, manual = false) {
   message = message || tr("voiceOff");
+  realtimeManualStop = manual;
+  realtimeStartInProgress = false;
+  realtimeAgentReady = false;
   handledFunctionCalls.clear();
 
   if (micTrack) {
@@ -1291,6 +1334,9 @@ Use the user's language, but if Arabic use Egyptian Arabic only.
 
 async function startRealtimeAgent() {
   try {
+    realtimeManualStop = false;
+    realtimeAgentReady = false;
+    realtimeStartInProgress = true;
     startVoiceAgentBtn.disabled = true;
     stopVoiceAgentBtn.disabled = false;
     holdToTalkBtn.disabled = true;
@@ -1311,8 +1357,11 @@ async function startRealtimeAgent() {
 
     realtimePc.onconnectionstatechange = () => {
       console.log("WebRTC connection state:", realtimePc.connectionState);
+      if (realtimeManualStop) return;
       if (["failed", "disconnected", "closed"].includes(realtimePc.connectionState)) {
-        setVoiceStatus(ui("اتصال الصوت اتغير. جرب تاني لو الصوت وقف.", "Voice connection changed. Try again if audio stopped."));
+        if (realtimeAgentReady) {
+          setVoiceStatus(ui("اتصال الصوت اتقفل. شغّل المساعد تاني لو حابب تكمل.", "Voice connection closed. Start the assistant again to continue."), "status error");
+        }
       }
     };
 
@@ -1334,13 +1383,19 @@ async function startRealtimeAgent() {
     realtimeDc.addEventListener("message", handleRealtimeEvent);
 
     realtimeDc.addEventListener("open", () => {
+      realtimeAgentReady = true;
+      realtimeStartInProgress = false;
       holdToTalkBtn.disabled = false;
       setVoiceStatus(ui("المساعد الصوتي جاهز. اضغط مطولًا للتحدث.", "Voice assistant is ready. Hold to talk."), "status success");
     });
 
     realtimeDc.addEventListener("close", () => {
-      setVoiceStatus(ui("انتهت جلسة الصوت. جرب تشغيلها مرة تانية.", "Voice session ended. Please start it again."), "status error");
       holdToTalkBtn.disabled = true;
+      if (realtimeManualStop) return;
+      if (realtimeStartInProgress && !realtimeAgentReady) return;
+      if (realtimeAgentReady) {
+        setVoiceStatus(ui("انتهت جلسة الصوت. جرب تشغيلها مرة تانية.", "Voice session ended. Please start it again."), "status error");
+      }
     });
 
     const offer = await realtimePc.createOffer();
@@ -1355,7 +1410,7 @@ async function startRealtimeAgent() {
     });
 
     if (!sdpRes.ok) {
-      const errorText = await sdpRes.text();
+      const errorText = await realtimeResponseError(sdpRes);
       throw new Error(errorText);
     }
 
@@ -1370,8 +1425,9 @@ async function startRealtimeAgent() {
       sdp: answerSdp
     });
   } catch (err) {
-    console.error(err);
-    stopRealtimeAgent(ui("تعذر تشغيل المساعد الصوتي. جرب تاني أو استخدم البحث الكتابي.", "Could not start the voice assistant. Please try again or use text search."));
+    console.error("Realtime voice start failed:", err);
+    const message = friendlyRealtimeError(err && err.message ? err.message : err);
+    stopRealtimeAgent(message);
     voiceStatus.className = "status error";
   }
 }
