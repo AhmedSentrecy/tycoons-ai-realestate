@@ -145,14 +145,14 @@ function buildCarousel(images, altBase) {
 function buildProjectSearchBox(prefillProject) {
   const placeholder = prefillProject
     ? `Search like &quot;${escapeHtml(prefillProject)} 3 bedrooms&quot;`
-    : "Search for an apartment, villa, or chalet...";
+    : "ابحث عن شقة، فيلا أو شاليه...";
 
   return `<div class="pp-search">
-  <h2>Search live inventory</h2>
-  <p>Type what you are looking for and the AI search will find matching units.</p>
+  <h2>ابحث في المخزون المتاح</h2>
+  <p>اكتب اللي بتدور عليه والبحث الذكي هيعرض الوحدات المناسبة.</p>
   <form class="pp-search-form" onsubmit="event.preventDefault(); var q=this.querySelector('input').value.trim(); window.location.href='/?q='+encodeURIComponent(q)+'#search';">
-    <input type="text" name="q" placeholder="${placeholder}" aria-label="Search live inventory">
-    <button type="submit">AI Search</button>
+    <input type="text" name="q" placeholder="${placeholder}" aria-label="ابحث في المخزون المتاح">
+    <button type="submit">بحث AI</button>
   </form>
 </div>`;
 }
@@ -200,12 +200,12 @@ const BROCHURE_WIDGET_SCRIPT = `<script>
     wrap.innerHTML =
       '<div class="brochure-modal" role="dialog" aria-modal="true">' +
         '<button type="button" class="brochure-modal-close" aria-label="Close">&times;</button>' +
-        '<h3>Ask for Brochure</h3>' +
+        '<h3>اطلب البروشور</h3>' +
         '<p class="brochure-modal-project"></p>' +
         '<form class="brochure-modal-form">' +
-          '<input type="text" name="name" placeholder="Your name" required>' +
-          '<input type="tel" name="phone" placeholder="WhatsApp number" required>' +
-          '<button type="submit">Send &amp; Get Brochure</button>' +
+          '<input type="text" name="name" placeholder="اسمك" required>' +
+          '<input type="tel" name="phone" placeholder="رقم واتساب" required>' +
+          '<button type="submit">ابعت وافتح واتساب</button>' +
         '</form>' +
         '<div class="brochure-modal-status"></div>' +
       '</div>';
@@ -219,7 +219,7 @@ const BROCHURE_WIDGET_SCRIPT = `<script>
     backdrop.dataset.brochureUrl = brochureUrl || '';
     backdrop.dataset.projectName = projectName || '';
     backdrop.dataset.source = source || 'brochure_request';
-    backdrop.querySelector('.brochure-modal-project').textContent = projectName ? ('For: ' + projectName) : '';
+    backdrop.querySelector('.brochure-modal-project').textContent = projectName ? ('المشروع: ' + projectName) : '';
     backdrop.querySelector('.brochure-modal-status').textContent = '';
     backdrop.querySelector('.brochure-modal-form').reset();
   }
@@ -255,11 +255,11 @@ const BROCHURE_WIDGET_SCRIPT = `<script>
     var source = backdrop.dataset.source;
 
     if (!name || !phone){
-      statusEl.textContent = 'Please fill in your name and number.';
+      statusEl.textContent = 'من فضلك اكتب الاسم ورقم واتساب.';
       return;
     }
 
-    statusEl.textContent = 'Opening WhatsApp...';
+    statusEl.textContent = 'جاري فتح واتساب...';
 
     var message = [
       'Hello Tycoons Investments,',
@@ -294,7 +294,7 @@ const BROCHURE_WIDGET_SCRIPT = `<script>
 function buildUnitDescription(project, unit) {
   const parts = [];
 
-  const type = unit.unit_type || "Unit";
+  const type = unit.unit_type || "وحدة";
   const bedrooms = unit.bedrooms_text;
   const area = unit.area_sqm;
   const location = project.location || unit.location;
@@ -303,18 +303,16 @@ function buildUnitDescription(project, unit) {
   const delivery = unit.delivery_text;
   const finishing = unit.finishing;
 
-  // Sentence 1: the basics — unique because area/price/type rarely repeat together
   let sentence1 = `${type}`;
-  if (bedrooms) sentence1 += ` with ${bedrooms}`;
-  if (area) sentence1 += ` and ${area} sqm built-up area`;
-  sentence1 += ` in ${projectName}${location ? `, ${location}` : ""}.`;
+  if (bedrooms) sentence1 += ` - ${bedrooms}`;
+  if (area) sentence1 += ` بمساحة ${area} متر`;
+  sentence1 += ` في ${projectName}${location ? `، ${location}` : ""}.`;
   parts.push(sentence1);
 
-  // Sentence 2: commercial details
   let sentence2 = "";
-  if (price) sentence2 += `Priced from ${price} EGP`;
-  if (finishing) sentence2 += `${sentence2 ? ", with" : "Comes with"} ${finishing} finishing`;
-  if (delivery) sentence2 += `${sentence2 ? "," : ""} delivery ${delivery}`;
+  if (price) sentence2 += `السعر يبدأ من ${price} جنيه`;
+  if (finishing) sentence2 += `${sentence2 ? "، مع" : "التشطيب"} ${finishing}`;
+  if (delivery) sentence2 += `${sentence2 ? "،" : ""} التسليم ${delivery}`;
   if (sentence2) parts.push(sentence2.trim() + ".");
 
   return parts.join(" ");
@@ -354,10 +352,10 @@ function groupBy(rows, key) {
 
 // ---------- page shell ----------
 
-function pageShell({ title, description, canonicalPath, ogImage, lang = "en", bodyHtml, jsonLd, breadcrumbJsonLd, extraScript = "" }) {
+function pageShell({ title, description, canonicalPath, ogImage, lang = "ar-EG", bodyHtml, jsonLd, breadcrumbJsonLd, extraScript = "" }) {
   const canonical = `${SITE_URL}${canonicalPath}`;
   return `<!doctype html>
-<html lang="${lang}">
+<html lang="${lang}" dir="${lang === "ar-EG" || lang === "ar" ? "rtl" : "ltr"}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -384,14 +382,14 @@ ${breadcrumbJsonLd ? `<script type="application/ld+json">${JSON.stringify(breadc
 <body>
 <div class="site-bg"></div>
 <header class="site-header">
-  <a class="brand" href="/" aria-label="${SITE_NAME} home">
+  <a class="brand" href="/" aria-label="الصفحة الرئيسية لـ ${SITE_NAME}">
     <img class="brand-logo" src="/assets/tycoons-logo-header.svg" alt="${SITE_NAME}">
   </a>
-  <nav class="main-nav" aria-label="Main navigation">
-    <a href="/#search">AI Search</a>
-    <a href="/#voice">Voice Agent</a>
-    <a href="/#projects">Projects</a>
-    <a href="/#lead">Contact</a>
+  <nav class="main-nav" aria-label="القائمة الرئيسية">
+    <a href="/#search">البحث</a>
+    <a href="/#search">الصوت</a>
+    <a href="/#projects">المشاريع</a>
+    <a href="/#lead">تواصل</a>
   </nav>
 </header>
 <main>
@@ -399,7 +397,7 @@ ${bodyHtml}
 </main>
 <footer class="site-footer">
   <span>&copy; <span id="year"></span> ${SITE_NAME}</span>
-  <span>AI real estate search &middot; Voice assistant &middot; Live inventory</span>
+  <span>بحث عقاري بالذكاء الاصطناعي &middot; مساعد صوتي &middot; مخزون متاح</span>
 </footer>
 <script>document.getElementById("year").textContent = new Date().getFullYear();</script>
 ${extraScript}
@@ -423,10 +421,10 @@ function buildProjectPage(project, units) {
     minPrice = unitPrices.length ? Math.min(...unitPrices) : null;
   }
 
-  const title = `${projectName} by ${developer} in ${location} | Prices & Units | ${SITE_NAME}`;
-  const description = `${projectName} by ${developer} in ${location}. ${
-    minPrice ? `Starting from ${formatPrice(minPrice)} EGP.` : ""
-  } Unit types, payment plans, and delivery dates — updated live.`;
+  const title = `${projectName} من ${developer} في ${location} | الأسعار والوحدات | ${SITE_NAME}`;
+  const description = `${projectName} من ${developer} في ${location}. ${
+    minPrice ? `الأسعار تبدأ من ${formatPrice(minPrice)} جنيه.` : ""
+  } أنواع الوحدات، خطط الدفع ومواعيد التسليم — محدثة حسب المخزون المتاح.`;
 
   const unitCards = units
     .map((u) => {
@@ -434,31 +432,31 @@ function buildProjectPage(project, units) {
       return `<article class="unit-detail-card" itemscope itemtype="https://schema.org/Apartment">
   <h3 itemprop="name">${escapeHtml(u.unit_type)} &mdash; ${escapeHtml(u.bedrooms_text)}</h3>
   <p class="unit-meta">${escapeHtml(u.area_sqm)} sqm &middot; ${escapeHtml(u.finishing)} &middot; ${escapeHtml(u.availability_status)}</p>
-  ${price ? `<p class="unit-price">Starting from <strong>${price} EGP</strong></p>` : ""}
+  ${price ? `<p class="unit-price">السعر يبدأ من <strong>${price} جنيه</strong></p>` : ""}
   <p class="unit-terms">${escapeHtml(u.down_payment_text)} &middot; ${escapeHtml(u.installments_text)}</p>
   <p class="unit-delivery">${escapeHtml(u.delivery_text)}</p>
   <p class="unit-desc">${escapeHtml(buildUnitDescription(project, u))}</p>
-  <button type="button" class="ghost js-ask-brochure" data-project="${escapeHtml(projectName)}" data-source="unit_page_brochure_request">Brochure</button>
+  <button type="button" class="ghost js-ask-brochure" data-project="${escapeHtml(projectName)}" data-source="unit_page_brochure_request">البروشور</button>
 </article>`;
     })
     .join("\n");
 
   const faqItems = [
     {
-      q: `What is the starting price for units in ${projectName}?`,
+      q: `ما هو سعر البداية للوحدات في ${projectName}؟`,
       a: minPrice
-        ? `${projectName} by ${developer} starts from ${formatPrice(minPrice)} EGP, depending on unit type and area.`
-        : `Pricing for ${projectName} varies by unit type. Contact us for current availability.`,
+        ? `الأسعار في ${projectName} من ${developer} تبدأ من ${formatPrice(minPrice)} جنيه حسب نوع الوحدة والمساحة.`
+        : `أسعار ${projectName} تختلف حسب نوع الوحدة. تواصل معنا لتأكيد المتاح حاليًا.`,
     },
     {
-      q: `What payment plans are available in ${projectName}?`,
+      q: `ما هي خطط الدفع المتاحة في ${projectName}؟`,
       a: project.down_payment_text
-        ? `Typical terms include ${project.down_payment_text} with ${project.installments_text}.`
-        : `Payment plans vary by unit. Contact our team for current options.`,
+        ? `الشروط المعتادة تشمل ${project.down_payment_text} مع ${project.installments_text}.`
+        : `خطط الدفع تختلف حسب الوحدة. تواصل مع فريقنا لمعرفة الخيارات الحالية.`,
     },
     {
-      q: `When is ${projectName} delivered?`,
-      a: project.delivery_text || `Delivery dates vary by unit type. Contact us for the latest schedule.`,
+      q: `ما هو موعد تسليم ${projectName}؟`,
+      a: project.delivery_text || `مواعيد التسليم تختلف حسب نوع الوحدة. تواصل معنا لمعرفة أحدث جدول تسليم.`,
     },
   ];
 
@@ -478,7 +476,7 @@ function buildProjectPage(project, units) {
   const bodyHtml = `
 <section class="section">
   <nav aria-label="Breadcrumb" class="breadcrumb">
-    <a href="/">Home</a> &rsaquo;
+    <a href="/">الرئيسية</a> &rsaquo;
     <a href="/developers/${slugify(developer)}.html">${escapeHtml(developer)}</a> &rsaquo;
     <span>${escapeHtml(projectName)}</span>
   </nav>
@@ -488,10 +486,10 @@ function buildProjectPage(project, units) {
       <span class="eyebrow">${escapeHtml(developer)}</span>
       <h1>${escapeHtml(projectName)}</h1>
       <p class="location-line">${escapeHtml(location)}</p>
-      ${minPrice ? `<p class="hero-quote">Starting from ${formatPrice(minPrice)} EGP</p>` : ""}
+      ${minPrice ? `<p class="hero-quote">السعر يبدأ من ${formatPrice(minPrice)} جنيه</p>` : ""}
       ${project.description ? `<p>${escapeHtml(project.description)}</p>` : ""}
-      <button type="button" class="ghost js-ask-brochure" data-project="${escapeHtml(projectName)}" data-source="project_page_brochure_request">Brochure</button>
-      <a class="btn" href="/#search">Ask the AI Search about ${escapeHtml(projectName)}</a>
+      <button type="button" class="ghost js-ask-brochure" data-project="${escapeHtml(projectName)}" data-source="project_page_brochure_request">البروشور</button>
+      <a class="btn" href="/#search">اسأل البحث الذكي عن ${escapeHtml(projectName)}</a>
     </div>
     <div class="pp-hero-media">
       ${carouselHtml}
@@ -501,14 +499,14 @@ function buildProjectPage(project, units) {
 </section>
 
 <section class="section">
-  <h2>Available Units${units.length ? ` (${units.length})` : ""}</h2>
+  <h2>الوحدات المتاحة${units.length ? ` (${units.length})` : ""}</h2>
   <div class="grid">
-${unitCards || "<p>No live units listed for this project right now. Contact us for availability.</p>"}
+${unitCards || "<p>لا توجد وحدات معروضة حاليًا لهذا المشروع. تواصل معنا لتأكيد المتاح.</p>"}
   </div>
 </section>
 
 <section class="section">
-  <h2>Frequently Asked Questions</h2>
+  <h2>أسئلة شائعة</h2>
 ${faqHtml}
 </section>
 `;
@@ -569,7 +567,7 @@ ${faqHtml}
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 1, name: "الرئيسية", item: SITE_URL },
       {
         "@type": "ListItem",
         position: 2,
@@ -601,8 +599,8 @@ function buildDeveloperPage(developer, units) {
   const url = `/developers/${slug}.html`;
   const projectsMap = groupBy(units, "project_id");
 
-  const title = `${developer} Projects in Egypt — Prices, Units & Payment Plans | ${SITE_NAME}`;
-  const description = `Browse all current ${developer} projects and unit availability in Egypt. Live prices, payment plans, and delivery dates updated automatically.`;
+  const title = `مشاريع ${developer} في مصر — الأسعار والوحدات وخطط الدفع | ${SITE_NAME}`;
+  const description = `تصفح مشاريع ${developer} والوحدات المتاحة في مصر. أسعار وخطط دفع ومواعيد تسليم محدثة حسب المخزون.`;
 
   const projectCards = [...projectsMap.entries()]
     .map(([pid, rows]) => {
@@ -613,7 +611,7 @@ function buildDeveloperPage(developer, units) {
       return `<a class="unit-detail-card" href="/projects/${pSlug}.html">
   <h3>${escapeHtml(p.project_name)}</h3>
   <p class="unit-meta">${escapeHtml(p.location)}</p>
-  ${minPrice ? `<p class="unit-price">From ${formatPrice(minPrice)} EGP</p>` : ""}
+  ${minPrice ? `<p class="unit-price">من ${formatPrice(minPrice)} جنيه</p>` : ""}
 </a>`;
     })
     .join("\n");
@@ -621,14 +619,14 @@ function buildDeveloperPage(developer, units) {
   const bodyHtml = `
 <section class="section">
   <nav aria-label="Breadcrumb" class="breadcrumb">
-    <a href="/">Home</a> &rsaquo; <span>${escapeHtml(developer)}</span>
+    <a href="/">الرئيسية</a> &rsaquo; <span>${escapeHtml(developer)}</span>
   </nav>
-  <span class="eyebrow">Developer</span>
+  <span class="eyebrow">المطور</span>
   <h1>${escapeHtml(developer)}</h1>
-  <p>All current projects and live unit availability for ${escapeHtml(developer)} in Egypt.</p>
+  <p>كل المشاريع الحالية والوحدات المتاحة من ${escapeHtml(developer)} في مصر.</p>
 </section>
 <section class="section">
-  <h2>Projects</h2>
+  <h2>المشاريع</h2>
   <div class="grid">
 ${projectCards}
   </div>
