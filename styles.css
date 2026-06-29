@@ -1383,3 +1383,58 @@ html[dir="rtl"] .pp-prev{right:10px !important;left:auto !important}
 html[dir="rtl"] .pp-next{left:10px !important;right:auto !important}
 html[dir="rtl"] .pp-prev::before{content:"›"}
 html[dir="rtl"] .pp-next::before{content:"‹"}
+
+
+/* Project/static pages polish: keep the sticky glass header and add project lead form */
+.site-header{
+  position:sticky !important;
+  top:0 !important;
+  z-index:100 !important;
+  background:rgba(255,255,255,.78) !important;
+  border-bottom:1px solid rgba(228,231,236,.72) !important;
+  backdrop-filter:blur(18px) saturate(1.08) !important;
+  -webkit-backdrop-filter:blur(18px) saturate(1.08) !important;
+  box-shadow:0 6px 24px rgba(16,24,39,.045);
+}
+
+.project-lead-section{
+  background:linear-gradient(135deg,#fff 0%,#fff 58%,#fbf7ef 100%);
+  border:1px solid var(--line);
+  border-radius:26px;
+  padding:24px;
+  box-shadow:var(--shadow-sm);
+  margin:24px 0;
+}
+.project-lead-grid{
+  display:grid;
+  grid-template-columns:minmax(0,.85fr) minmax(280px,1.15fr);
+  gap:22px;
+  align-items:start;
+}
+.project-lead-form{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.project-lead-form textarea,
+.project-lead-form .full{
+  grid-column:1 / -1;
+}
+.project-lead-form button{
+  grid-column:1 / -1;
+}
+.project-lead-note{
+  margin-top:10px;
+  font-size:13px;
+  color:var(--muted);
+  line-height:1.6;
+}
+html[dir="rtl"] .project-lead-form,
+html[dir="rtl"] .project-lead-section{
+  direction:rtl;
+  text-align:right;
+}
+@media(max-width:780px){
+  .project-lead-grid,
+  .project-lead-form{grid-template-columns:1fr;}
+}
