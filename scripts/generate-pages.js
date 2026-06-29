@@ -327,7 +327,7 @@ const PROJECT_LEAD_FORM_SCRIPT = `<script>
 
     var message = [
       'Hello Tycoons Investments,',
-      'I am interested in this project page:',
+      'I am interested in this project:',
       '',
       'Project: ' + projectName,
       'Developer: ' + developer,
@@ -487,7 +487,7 @@ function buildProjectLeadForm(projectName, developer, location) {
     <div>
       <span class="eyebrow">طلب تفاصيل المشروع</span>
       <h2>اطلب تفاصيل المشروع على واتساب</h2>
-      <p>املأ بياناتك وسيتم فتح واتساب لإرسال طلبك مباشرة لفريق Tycoons Investments.</p>
+      <p>املأ بياناتك وسيتم فتح واتساب برسالة جاهزة لفريق Tycoons Investments.</p>
     </div>
     <form class="project-lead-form js-project-lead-form" data-project="${escapeHtml(projectName)}" data-developer="${escapeHtml(developer)}" data-location="${escapeHtml(location)}">
       <input name="name" placeholder="الاسم" required>
