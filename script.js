@@ -7,6 +7,125 @@ const WHATSAPP_UTM_SOURCE = "website";
 const WHATSAPP_UTM_MEDIUM = "whatsapp";
 const WHATSAPP_UTM_CAMPAIGN = "tycoons_lead";
 
+const TYCOONS_LANG_KEY = "tycoons_site_language";
+let siteLanguage = localStorage.getItem(TYCOONS_LANG_KEY) || "ar";
+
+const TYCOONS_I18N = {
+  en: {
+    navSearch: "Search", navVoice: "Voice", navProjects: "Projects", navContact: "Contact", navWhatsapp: "WhatsApp",
+    eyebrowHero: "Voice-first property search", heroTitle: "Tell the AI what you’re looking for, by voice or text.",
+    heroLead: "Start with a normal request like “عايز شاليه في الساحل” or type it below. The assistant searches live Tycoons inventory and shows matching units instantly.",
+    searchLabel: "Search by voice or text", talkAssistant: "Talk to the assistant", searchPlaceholder: "Example: كنت بدور على شاليه في الساحل أو iVilla in New Cairo",
+    searchButton: "Search", aiSearch: "AI Search", searching: "Searching...",
+    voiceCta: "Or talk to the assistant: tap Start Voice Agent, then hold Hold to Talk while you speak. · تحدّث مع المساعد مباشرة",
+    startVoice: "Start Voice Agent", holdToTalk: "Hold to Talk", stopSession: "Stop Session", voiceOff: "Voice agent is off.",
+    confirmNumber: "Confirm WhatsApp Number", confirmText: "The voice agent heard this number. Check it before saving.", detectedPhone: "Detected WhatsApp number", confirmSave: "Confirm & Save Lead", cancel: "Cancel",
+    resultsEyebrow: "Search results", recommendedUnits: "Recommended units", resultsText: "Cards show the essentials first: image, project, unit type, price, area, delivery, and media links.", adminPanel: "Admin panel",
+    projectsEyebrow: "Projects", browseCatalogue: "Browse the live catalogue", projectsText: "Project cards are loaded from Supabase and can inherit media from available unit rows.",
+    seoEyebrow: "SEO-ready property guide", seoTitle: "Find real estate options in Egypt with AI-assisted search", seoText: "Tycoons Investments helps buyers compare developer inventory by location, unit type, budget, delivery date and payment plan, then continue directly on WhatsApp with the sales team.",
+    faqEyebrow: "FAQs", faqTitle: "Questions buyers usually ask", leadEyebrow: "Lead capture", leadTitle: "Request suitable options", leadText: "Leave your details or send your request instantly on WhatsApp with the property context you need.", sendWa: "Send WhatsApp Request", submitLead: "Submit Lead",
+    project: "Project", availableUnit: "Available unit", startingPrice: "Starting price", area: "Area", delivery: "Delivery", finishing: "Finishing", brochure: "Brochure", askWa: "Ask on WhatsApp", priceOnRequest: "Price on request", from: "From", noMatches: "No matching items found.", loadingSupabase: "Loading live data from Supabase...", connectedPrefix: "Connected to Supabase. Loaded ", unitsAnd: " units and ", projectsLoaded: " projects.", languageChanged: "Website language changed to English."
+  },
+  ar: {
+    navSearch: "البحث", navVoice: "الصوت", navProjects: "المشاريع", navContact: "تواصل", navWhatsapp: "واتساب",
+    eyebrowHero: "بحث عقاري بالصوت والكتابة", heroTitle: "قول للـ AI بتدور على إيه بالصوت أو بالكتابة.",
+    heroLead: "ابدأ بطلب طبيعي زي “عايز شاليه في الساحل” أو اكتب طلبك تحت. المساعد هيبحث في مخزون Tycoons ويعرض الوحدات المناسبة فورًا.",
+    searchLabel: "ابحث بالصوت أو بالكتابة", talkAssistant: "اتكلم مع المساعد", searchPlaceholder: "مثال: عايز شاليه في الساحل أو iVilla in New Cairo",
+    searchButton: "بحث", aiSearch: "بحث AI", searching: "بيبحث...",
+    voiceCta: "أو اتكلم مع المساعد: اضغط Start Voice Agent وبعدها اضغط مطوّلًا على Hold to Talk وانت بتتكلم.",
+    startVoice: "ابدأ المساعد الصوتي", holdToTalk: "اضغط للتحدث", stopSession: "إيقاف الجلسة", voiceOff: "المساعد الصوتي متوقف.",
+    confirmNumber: "تأكيد رقم واتساب", confirmText: "المساعد سمع الرقم ده. راجعه قبل الحفظ.", detectedPhone: "رقم واتساب المكتشف", confirmSave: "تأكيد وحفظ الليد", cancel: "إلغاء",
+    resultsEyebrow: "نتائج البحث", recommendedUnits: "وحدات مقترحة", resultsText: "الكروت بتعرض الأهم أولًا: الصورة، المشروع، نوع الوحدة، السعر، المساحة، التسليم، والروابط.", adminPanel: "لوحة الإدارة",
+    projectsEyebrow: "المشاريع", browseCatalogue: "تصفح الكتالوج المتاح", projectsText: "كروت المشاريع بتتحمل من Supabase وممكن تاخد الصور من الوحدات المتاحة.",
+    seoEyebrow: "دليل عقاري جاهز للبحث", seoTitle: "اعثر على اختيارات عقارية في مصر بمساعدة AI", seoText: "Tycoons Investments بتساعدك تقارن مخزون المطورين حسب المنطقة، نوع الوحدة، الميزانية، التسليم وخطة الدفع، وبعدها تكمل مباشرة على واتساب مع فريق المبيعات.",
+    faqEyebrow: "أسئلة شائعة", faqTitle: "أسئلة العملاء المعتادة", leadEyebrow: "تسجيل طلب", leadTitle: "اطلب اختيارات مناسبة", leadText: "سيب بياناتك أو ابعت طلبك على واتساب فورًا مع تفاصيل العقار اللي محتاجه.", sendWa: "ابعت طلب واتساب", submitLead: "إرسال البيانات",
+    project: "مشروع", availableUnit: "وحدة متاحة", startingPrice: "السعر يبدأ من", area: "المساحة", delivery: "التسليم", finishing: "التشطيب", brochure: "البروشور", askWa: "اسأل على واتساب", priceOnRequest: "السعر عند الطلب", from: "من", noMatches: "مفيش نتائج مطابقة.", loadingSupabase: "جاري تحميل البيانات من Supabase...", connectedPrefix: "متصل بـ Supabase. تم تحميل ", unitsAnd: " وحدة و ", projectsLoaded: " مشروع.", languageChanged: "تم تغيير لغة الموقع للعربي."
+  }
+};
+
+function tr(key) {
+  return (TYCOONS_I18N[siteLanguage] && TYCOONS_I18N[siteLanguage][key]) || TYCOONS_I18N.en[key] || key;
+}
+
+function detectLanguageCommand(text) {
+  const q = String(text || "").toLowerCase().trim();
+  if (!q) return null;
+  if (/خلي|حوّل|حول|غير|غيّر|switch|change|english|انجليزي|إنجليزي|انجلش|english/i.test(q) && /(english|انجليزي|إنجليزي|انجلش)/i.test(q)) return "en";
+  if (/خلي|حوّل|حول|غير|غيّر|switch|change|arabic|عربي|العربي/i.test(q) && /(arabic|عربي|العربي)/i.test(q)) return "ar";
+  return null;
+}
+
+function setSiteLanguage(lang, rerenderCards = true) {
+  siteLanguage = lang === "ar" ? "ar" : "en";
+  localStorage.setItem(TYCOONS_LANG_KEY, siteLanguage);
+  applySiteLanguage();
+  if (rerenderCards && units.length && results && projectGrid) {
+    render(units.slice(0, 6), results);
+    render(projects, projectGrid, "project");
+  }
+}
+
+function setText(selector, key) {
+  const el = document.querySelector(selector);
+  if (el) el.textContent = tr(key);
+}
+
+function applySiteLanguage() {
+  const html = document.documentElement;
+  html.lang = siteLanguage === "ar" ? "ar-EG" : "en";
+  html.dir = siteLanguage === "ar" ? "rtl" : "ltr";
+
+  document.querySelectorAll("[data-lang-switch]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.langSwitch === siteLanguage);
+  });
+
+  const navLinks = document.querySelectorAll(".main-nav > a:not(.header-whatsapp)");
+  if (navLinks[0]) navLinks[0].textContent = tr("navSearch");
+  if (navLinks[1]) navLinks[1].textContent = tr("navVoice");
+  if (navLinks[2]) navLinks[2].textContent = tr("navProjects");
+  if (navLinks[3]) navLinks[3].textContent = tr("navContact");
+  setText(".header-whatsapp", "navWhatsapp");
+
+  setText(".voice-first-hero .eyebrow", "eyebrowHero");
+  setText(".voice-first-hero h1", "heroTitle");
+  setText(".voice-first-hero .lede", "heroLead");
+  setText(".search-label-row span", "searchLabel");
+  setText(".search-label-row a", "talkAssistant");
+  if (searchInput) searchInput.placeholder = tr("searchPlaceholder");
+  if (searchBtn && !isSearching) searchBtn.textContent = tr("searchButton");
+  const cta = document.querySelector(".hero-voice-cta p");
+  if (cta) cta.textContent = tr("voiceCta");
+  if (startVoiceAgentBtn) startVoiceAgentBtn.textContent = tr("startVoice");
+  if (holdToTalkBtn && !holdToTalkBtn.classList.contains("talking")) holdToTalkBtn.textContent = tr("holdToTalk");
+  if (stopVoiceAgentBtn) stopVoiceAgentBtn.textContent = tr("stopSession");
+  if (voiceStatus && voiceStatus.textContent === "Voice agent is off.") voiceStatus.textContent = tr("voiceOff");
+  setText("#phoneConfirmBox .eyebrow", "confirmNumber");
+  setText("#phoneConfirmBox p", "confirmText");
+  if (detectedPhoneInput) detectedPhoneInput.placeholder = tr("detectedPhone");
+  if (confirmPhoneBtn) confirmPhoneBtn.textContent = tr("confirmSave");
+  if (cancelPhoneBtn) cancelPhoneBtn.textContent = tr("cancel");
+
+  const sections = document.querySelectorAll(".section-head");
+  if (sections[0]) { sections[0].querySelector(".eyebrow").textContent = tr("resultsEyebrow"); sections[0].querySelector("h2").textContent = tr("recommendedUnits"); sections[0].querySelector("p").textContent = tr("resultsText"); }
+  setText(".admin-link", "adminPanel");
+  if (sections[1]) { sections[1].querySelector(".eyebrow").textContent = tr("projectsEyebrow"); sections[1].querySelector("h2").textContent = tr("browseCatalogue"); sections[1].querySelector("p").textContent = tr("projectsText"); }
+  if (sections[2]) { sections[2].querySelector(".eyebrow").textContent = tr("seoEyebrow"); sections[2].querySelector("h2").textContent = tr("seoTitle"); sections[2].querySelector("p").textContent = tr("seoText"); }
+  if (sections[3]) { sections[3].querySelector(".eyebrow").textContent = tr("faqEyebrow"); sections[3].querySelector("h2").textContent = tr("faqTitle"); }
+  setText(".lead-copy .eyebrow", "leadEyebrow");
+  setText(".lead-copy h2", "leadTitle");
+  setText(".lead-copy p", "leadText");
+  setText(".lead-whatsapp-actions .btn-whatsapp", "sendWa");
+  const leadBtn = document.querySelector("#leadForm button");
+  if (leadBtn) leadBtn.textContent = tr("submitLead");
+}
+
+document.addEventListener("click", function (event) {
+  const button = event.target.closest("[data-lang-switch]");
+  if (!button) return;
+  setSiteLanguage(button.dataset.langSwitch);
+});
+
+
 let units = [];
 let projects = [];
 let isSearching = false;
@@ -36,6 +155,7 @@ const confirmPhoneBtn = document.getElementById("confirmPhoneBtn");
 const cancelPhoneBtn = document.getElementById("cancelPhoneBtn");
 
 if (document.getElementById("year")) document.getElementById("year").textContent = new Date().getFullYear();
+applySiteLanguage();
 
 function headers(extra = {}) {
   return { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json", ...extra };
@@ -271,7 +391,7 @@ function mediaLinks(item) {
   const links = [];
   const projectLabel = item.project_name || item.name || "";
   links.push(
-    `<button type="button" class="js-ask-brochure" data-project="${escapeAttr(projectLabel)}" data-source="card_brochure_request">Brochure</button>`
+    `<button type="button" class="js-ask-brochure" data-project="${escapeAttr(projectLabel)}" data-source="card_brochure_request">${tr("brochure")}</button>`
   );
   if (item.video_url) links.push(`<a href="${escapeAttr(item.video_url)}" target="_blank" rel="noopener">Video</a>`);
   return links.length ? `<div class="card-links">${links.join("")}</div>` : "";
@@ -351,8 +471,8 @@ function enrichProjectsWithUnitMedia(projectList) {
 
 function price(value) {
   const num = Number(value || 0);
-  if (!num) return "Price on request";
-  return "From " + new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(num)) + " EGP";
+  if (!num) return tr("priceOnRequest");
+  return tr("from") + " " + new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(Math.round(num)) + " EGP";
 }
 
 function card(item, type = "unit") {
@@ -366,14 +486,14 @@ function card(item, type = "unit") {
       <article class="card project-card">
         ${mediaImage(item, "project")}
         <div class="content">
-          <div class="card-kicker">Project</div>
+          <div class="card-kicker">${tr("project")}</div>
           <a class="card-title-link" href="${escapeAttr(projectUrl)}">
             <h3>${safe(item.name)}</h3>
           </a>
           <div class="tags">${tags}</div>
-          <div class="price-row"><span>Starting price</span><strong>${price(item.min_price)}</strong></div>
+          <div class="price-row"><span>${tr("startingPrice")}</span><strong>${price(item.min_price)}</strong></div>
           ${mediaLinks(item)}
-          ${whatsappButton("Ask on WhatsApp", projectWhatsappMessage(item), "project_card", {
+          ${whatsappButton(tr("askWa"), projectWhatsappMessage(item), "project_card", {
             project_name: safe(item.name, ""),
             starting_price: item.min_price || "",
             url: itemDisplayUrl(item)
@@ -387,9 +507,9 @@ function card(item, type = "unit") {
     .filter(Boolean).map(value => `<span class="tag">${value}</span>`).join("");
 
   const metrics = [
-    cardMetric("Area", areaText(item.area_sqm)),
-    cardMetric("Delivery", item.delivery_text),
-    cardMetric("Finishing", item.finishing)
+    cardMetric(tr("area"), areaText(item.area_sqm)),
+    cardMetric(tr("delivery"), item.delivery_text),
+    cardMetric(tr("finishing"), item.finishing)
   ].filter(Boolean).join("");
 
   const unitProjectUrl = projectPageUrl(item.project_name, item.location);
@@ -398,15 +518,15 @@ function card(item, type = "unit") {
     <article class="card unit-card">
       ${mediaImage(item, "unit")}
       <div class="content">
-        <div class="card-kicker">Available unit</div>
+        <div class="card-kicker">${tr("availableUnit")}</div>
         <a class="card-title-link" href="${escapeAttr(unitProjectUrl)}">
           <h3>${safe(item.project_name)}</h3>
         </a>
         <div class="tags">${tags}</div>
-        <div class="price-row"><span>Starting price</span><strong>${price(item.starting_price)}</strong></div>
+        <div class="price-row"><span>${tr("startingPrice")}</span><strong>${price(item.starting_price)}</strong></div>
         <div class="card-metrics">${metrics}</div>
         ${mediaLinks(item)}
-        ${whatsappButton("Send WhatsApp Request", unitWhatsappMessage(item), "unit_card", {
+        ${whatsappButton(tr("sendWa"), unitWhatsappMessage(item), "unit_card", {
           project_name: safe(item.project_name, ""),
           unit_type: safe(item.unit_type, ""),
           bedrooms_text: safe(item.bedrooms_text, ""),
@@ -420,7 +540,7 @@ function card(item, type = "unit") {
 
 function render(list, target, type = "unit") {
   const displayList = type === "unit" ? dedupeUnitsForDisplay(list) : list;
-  target.innerHTML = displayList.length ? displayList.map(item => card(item, type)).join("") : '<div class="status">No matching items found.</div>';
+  target.innerHTML = displayList.length ? displayList.map(item => card(item, type)).join("") : `<div class="status">${tr("noMatches")}</div>`;
 }
 
 function normalize(text) {
@@ -514,7 +634,7 @@ function speak(text, sourceTextForLanguage) {
 function setSearchLoading(isLoading) {
   isSearching = isLoading;
   searchBtn.disabled = isLoading;
-  searchBtn.textContent = isLoading ? "Searching..." : "AI Search";
+  searchBtn.textContent = isLoading ? tr("searching") : tr("aiSearch");
 }
 
 async function runAISearch(queryOverride = null) {
@@ -522,15 +642,23 @@ async function runAISearch(queryOverride = null) {
 
   if (!query) {
     statusBox.className = "status";
-    statusBox.textContent = "Please type what you are looking for, or use Start Voice Agent for real voice.";
+    statusBox.textContent = siteLanguage === "ar" ? "اكتب طلبك أو استخدم المساعد الصوتي." : "Please type what you are looking for, or use Start Voice Agent for real voice.";
     return null;
+  }
+
+  const requestedLanguage = detectLanguageCommand(query);
+  if (requestedLanguage) {
+    setSiteLanguage(requestedLanguage);
+    statusBox.className = "status success";
+    statusBox.textContent = tr("languageChanged");
+    return { mode: "language-switch", language: requestedLanguage };
   }
 
   if (isSearching) return null;
 
   setSearchLoading(true);
   statusBox.className = "status";
-  statusBox.textContent = "AI is searching your live inventory...";
+  statusBox.textContent = siteLanguage === "ar" ? "الـ AI بيبحث في المخزون المتاح..." : "AI is searching your live inventory...";
 
   try {
     const res = await fetch("/api/ai-search", {
@@ -1327,7 +1455,7 @@ loadData();
 async function loadData() {
   try {
     statusBox.className = "status";
-    statusBox.textContent = "Loading live data from Supabase...";
+    statusBox.textContent = tr("loadingSupabase");
 
     units = await getRows("units", "?select=*&availability_status=eq.available&order=starting_price.asc");
     projects = await getRows("projects", "?select=*&order=min_price.asc");
@@ -1335,9 +1463,10 @@ async function loadData() {
 
     render(units.slice(0, 6), results);
     render(projects, projectGrid, "project");
+    applySiteLanguage();
 
     statusBox.className = "status success";
-    statusBox.textContent = "Connected to Supabase. Loaded " + units.length + " units and " + projects.length + " projects.";
+    statusBox.textContent = tr("connectedPrefix") + units.length + tr("unitsAnd") + projects.length + tr("projectsLoaded");
 
     // If the visitor arrived from a project page with a search query
     // in the URL (e.g. /?q=villa#search), run that search automatically.
