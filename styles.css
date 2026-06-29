@@ -1438,3 +1438,24 @@ html[dir="rtl"] .project-lead-section{
   .project-lead-grid,
   .project-lead-form{grid-template-columns:1fr;}
 }
+
+
+/* Final glass sticky header restore */
+.site-header{
+  position:sticky !important;
+  top:0 !important;
+  z-index:9999 !important;
+  background:rgba(255,255,255,.62) !important;
+  border-bottom:1px solid rgba(228,231,236,.58) !important;
+  backdrop-filter:blur(22px) saturate(1.12) !important;
+  -webkit-backdrop-filter:blur(22px) saturate(1.12) !important;
+  box-shadow:0 10px 30px rgba(16,24,39,.06) !important;
+}
+.site-header .header-whatsapp{display:inline-flex !important;}
+@media(max-width:720px){
+  .site-header{
+    position:sticky !important;
+    top:0 !important;
+    background:rgba(255,255,255,.72) !important;
+  }
+}
