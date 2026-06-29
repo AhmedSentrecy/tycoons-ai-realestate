@@ -486,9 +486,8 @@ function buildProjectLeadForm(projectName, developer, location) {
   <div class="project-lead-grid">
     <div>
       <span class="eyebrow">طلب تفاصيل المشروع</span>
-      <h2>سيب بياناتك أو افتح واتساب بتفاصيل الصفحة</h2>
-      <p>الفورم ده بيبعت رسالة واتساب فيها اسم المشروع والصفحة اللي العميل كان عليها، عشان تعرف الليد جاي منين.</p>
-      <p class="project-lead-note"><strong>المشروع:</strong> ${escapeHtml(projectName)}<br><strong>المطور:</strong> ${escapeHtml(developer)}<br><strong>الموقع:</strong> ${escapeHtml(location)}</p>
+      <h2>اطلب تفاصيل المشروع على واتساب</h2>
+      <p>املأ بياناتك وسيتم فتح واتساب لإرسال طلبك مباشرة لفريق Tycoons Investments.</p>
     </div>
     <form class="project-lead-form js-project-lead-form" data-project="${escapeHtml(projectName)}" data-developer="${escapeHtml(developer)}" data-location="${escapeHtml(location)}">
       <input name="name" placeholder="الاسم" required>
