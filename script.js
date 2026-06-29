@@ -23,7 +23,11 @@ const TYCOONS_I18N = {
     resultsEyebrow: "Search results", recommendedUnits: "Recommended units", resultsText: "Cards show the essentials first: image, project, unit type, price, area, delivery, and media links.", adminPanel: "Admin panel",
     projectsEyebrow: "Projects", browseCatalogue: "Browse the live catalogue", projectsText: "Project cards are loaded from Supabase and can inherit media from available unit rows.",
     seoEyebrow: "SEO-ready property guide", seoTitle: "Find real estate options in Egypt with AI-assisted search", seoText: "Tycoons Investments helps buyers compare developer inventory by location, unit type, budget, delivery date and payment plan, then continue directly on WhatsApp with the sales team.",
-    faqEyebrow: "FAQs", faqTitle: "Questions buyers usually ask", leadEyebrow: "Lead capture", leadTitle: "Request suitable options", leadText: "Leave your details or send your request instantly on WhatsApp with the property context you need.", sendWa: "Send WhatsApp Request", submitLead: "Submit Lead",
+    seoCard1Title: "What can I search for?", seoCard1Text: "You can search for apartments, villas, iVilla units, chalets, New Cairo homes, North Coast vacation homes, Ain Sokhna units and selected developer projects.", seoCard1Link: "Ask on WhatsApp",
+    seoCard2Title: "How does the AI search work?", seoCard2Text: "Type or dictate what you need. The website searches live inventory and returns matching cards with project, price, area, delivery, finishing and available media links.", seoCard2Link: "Try the search box",
+    seoCard3Title: "Why WhatsApp-first?", seoCard3Text: "Real estate availability changes quickly. WhatsApp makes it easier to confirm the latest availability, payment details, delivery and recommended alternatives.", seoCard3Link: "Send WhatsApp request",
+    faqEyebrow: "FAQs", faqTitle: "Questions buyers usually ask", faq1Q: "Can I contact Tycoons directly on WhatsApp?", faq1A: "Yes. Use any WhatsApp button on the website and your request will open directly in WhatsApp with a prepared message.", faq2Q: "Can I search in Arabic?", faq2A: "Yes. The search supports Arabic and English terms, including common real estate phrases like آي فيلا، شاليه، التجمع، الساحل and apartments.", faq3Q: "Are prices always final?", faq3A: "Prices and availability can change according to the developer, inventory release and payment plan. Confirm the latest details with the sales team on WhatsApp.", faq4Q: "What areas are available?", faq4A: "The website is prepared for New Cairo, North Coast, Ain Sokhna and developer-specific inventory pages.",
+    leadEyebrow: "Lead capture", leadTitle: "Request suitable options", leadText: "Leave your details or send your request instantly on WhatsApp with the property context you need.", sendWa: "Send WhatsApp Request", submitLead: "Submit Lead", leadName: "Name", leadPhone: "Phone / WhatsApp", leadInterest: "Interested project or area", leadBudget: "Budget, example: 12000000",
     project: "Project", availableUnit: "Available unit", startingPrice: "Starting price", area: "Area", delivery: "Delivery", finishing: "Finishing", brochure: "Brochure", askWa: "Ask on WhatsApp", priceOnRequest: "Price on request", from: "From", noMatches: "No matching items found.", loadingSupabase: "Loading live data from Supabase...", connectedPrefix: "Connected to Supabase. Loaded ", unitsAnd: " units and ", projectsLoaded: " projects.", languageChanged: "Website language changed to English."
   },
   ar: {
@@ -38,7 +42,11 @@ const TYCOONS_I18N = {
     resultsEyebrow: "نتائج البحث", recommendedUnits: "وحدات مقترحة", resultsText: "الكروت بتعرض الأهم أولًا: الصورة، المشروع، نوع الوحدة، السعر، المساحة، التسليم، والروابط.", adminPanel: "لوحة الإدارة",
     projectsEyebrow: "المشاريع", browseCatalogue: "تصفح الكتالوج المتاح", projectsText: "كروت المشاريع بتتحمل من Supabase وممكن تاخد الصور من الوحدات المتاحة.",
     seoEyebrow: "دليل عقاري جاهز للبحث", seoTitle: "اعثر على اختيارات عقارية في مصر بمساعدة AI", seoText: "Tycoons Investments بتساعدك تقارن مخزون المطورين حسب المنطقة، نوع الوحدة، الميزانية، التسليم وخطة الدفع، وبعدها تكمل مباشرة على واتساب مع فريق المبيعات.",
-    faqEyebrow: "أسئلة شائعة", faqTitle: "أسئلة العملاء المعتادة", leadEyebrow: "تسجيل طلب", leadTitle: "اطلب اختيارات مناسبة", leadText: "سيب بياناتك أو ابعت طلبك على واتساب فورًا مع تفاصيل العقار اللي محتاجه.", sendWa: "ابعت طلب واتساب", submitLead: "إرسال البيانات",
+    seoCard1Title: "أقدر أبحث عن إيه؟", seoCard1Text: "تقدر تبحث عن شقق، فيلات، iVilla، شاليهات، وحدات في New Cairo، North Coast، Ain Sokhna، ومشاريع مختارة من المطورين.", seoCard1Link: "اسأل على واتساب",
+    seoCard2Title: "بحث الـ AI بيشتغل إزاي؟", seoCard2Text: "اكتب أو قول اللي محتاجه. الموقع بيدور في المخزون المتاح ويعرض كروت مطابقة فيها المشروع، السعر، المساحة، التسليم، التشطيب والروابط.", seoCard2Link: "جرّب البحث",
+    seoCard3Title: "ليه واتساب أولًا؟", seoCard3Text: "توفر الوحدات والأسعار بيتغير بسرعة. واتساب بيسهل تأكيد أحدث Availability، تفاصيل الدفع، التسليم والبدائل المناسبة.", seoCard3Link: "ابعت طلب واتساب",
+    faqEyebrow: "أسئلة شائعة", faqTitle: "أسئلة العملاء المعتادة", faq1Q: "هل أقدر أتواصل مع Tycoons مباشرة على واتساب؟", faq1A: "أيوه. استخدم أي زر واتساب في الموقع، والطلب هيفتح مباشرة في واتساب برسالة جاهزة.", faq2Q: "هل أقدر أبحث بالعربي؟", faq2A: "أيوه. البحث بيدعم عربي وإنجليزي، ومن ضمنه كلمات زي آي فيلا، شاليه، التجمع، الساحل، وشقق.", faq3Q: "هل الأسعار نهائية؟", faq3A: "الأسعار والتوفر ممكن يتغيروا حسب المطور، طرح الوحدات وخطة الدفع. أكد أحدث التفاصيل مع فريق المبيعات على واتساب.", faq4Q: "إيه المناطق المتاحة؟", faq4A: "الموقع مجهز لـ New Cairo، North Coast، Ain Sokhna، وصفحات خاصة بالمشاريع والمطورين.",
+    leadEyebrow: "تسجيل طلب", leadTitle: "اطلب اختيارات مناسبة", leadText: "سيب بياناتك أو ابعت طلبك على واتساب فورًا مع تفاصيل العقار اللي محتاجه.", sendWa: "ابعت طلب واتساب", submitLead: "إرسال البيانات", leadName: "الاسم", leadPhone: "رقم الموبايل / واتساب", leadInterest: "المشروع أو المنطقة المهتم بيها", leadBudget: "الميزانية، مثال: 12000000",
     project: "مشروع", availableUnit: "وحدة متاحة", startingPrice: "السعر يبدأ من", area: "المساحة", delivery: "التسليم", finishing: "التشطيب", brochure: "البروشور", askWa: "اسأل على واتساب", priceOnRequest: "السعر عند الطلب", from: "من", noMatches: "مفيش نتائج مطابقة.", loadingSupabase: "جاري تحميل البيانات من Supabase...", connectedPrefix: "متصل بـ Supabase. تم تحميل ", unitsAnd: " وحدة و ", projectsLoaded: " مشروع.", languageChanged: "تم تغيير لغة الموقع للعربي."
   }
 };
@@ -115,12 +123,32 @@ function applySiteLanguage() {
   if (sections[1]) { sections[1].querySelector(".eyebrow").textContent = tr("projectsEyebrow"); sections[1].querySelector("h2").textContent = tr("browseCatalogue"); sections[1].querySelector("p").textContent = tr("projectsText"); }
   if (sections[2]) { sections[2].querySelector(".eyebrow").textContent = tr("seoEyebrow"); sections[2].querySelector("h2").textContent = tr("seoTitle"); sections[2].querySelector("p").textContent = tr("seoText"); }
   if (sections[3]) { sections[3].querySelector(".eyebrow").textContent = tr("faqEyebrow"); sections[3].querySelector("h2").textContent = tr("faqTitle"); }
+
+  const aioCards = document.querySelectorAll(".aio-answer-card");
+  if (aioCards[0]) { aioCards[0].querySelector("h3").textContent = tr("seoCard1Title"); aioCards[0].querySelector("p").textContent = tr("seoCard1Text"); aioCards[0].querySelector("a").textContent = tr("seoCard1Link"); }
+  if (aioCards[1]) { aioCards[1].querySelector("h3").textContent = tr("seoCard2Title"); aioCards[1].querySelector("p").textContent = tr("seoCard2Text"); aioCards[1].querySelector("a").textContent = tr("seoCard2Link"); }
+  if (aioCards[2]) { aioCards[2].querySelector("h3").textContent = tr("seoCard3Title"); aioCards[2].querySelector("p").textContent = tr("seoCard3Text"); aioCards[2].querySelector("a").textContent = tr("seoCard3Link"); }
+
+  const faqItems = document.querySelectorAll("#faq .faq-list details");
+  if (faqItems[0]) { faqItems[0].querySelector("summary").textContent = tr("faq1Q"); faqItems[0].querySelector("p").textContent = tr("faq1A"); }
+  if (faqItems[1]) { faqItems[1].querySelector("summary").textContent = tr("faq2Q"); faqItems[1].querySelector("p").textContent = tr("faq2A"); }
+  if (faqItems[2]) { faqItems[2].querySelector("summary").textContent = tr("faq3Q"); faqItems[2].querySelector("p").textContent = tr("faq3A"); }
+  if (faqItems[3]) { faqItems[3].querySelector("summary").textContent = tr("faq4Q"); faqItems[3].querySelector("p").textContent = tr("faq4A"); }
+
   setText(".lead-copy .eyebrow", "leadEyebrow");
   setText(".lead-copy h2", "leadTitle");
   setText(".lead-copy p", "leadText");
   setText(".lead-whatsapp-actions .btn-whatsapp", "sendWa");
   const leadBtn = document.querySelector("#leadForm button");
   if (leadBtn) leadBtn.textContent = tr("submitLead");
+  const leadNameInput = document.querySelector('#leadForm input[name="name"]');
+  const leadPhoneInput = document.querySelector('#leadForm input[name="phone"]');
+  const leadInterestInput = document.querySelector('#leadForm input[name="interest"]');
+  const leadBudgetInput = document.querySelector('#leadForm input[name="budget"]');
+  if (leadNameInput) leadNameInput.placeholder = tr("leadName");
+  if (leadPhoneInput) leadPhoneInput.placeholder = tr("leadPhone");
+  if (leadInterestInput) leadInterestInput.placeholder = tr("leadInterest");
+  if (leadBudgetInput) leadBudgetInput.placeholder = tr("leadBudget");
 }
 
 document.addEventListener("click", function (event) {
@@ -1748,12 +1776,12 @@ document.addEventListener("click", (event) => {
     wrap.innerHTML = `
       <div class="brochure-modal" role="dialog" aria-modal="true">
         <button type="button" class="brochure-modal-close" aria-label="Close">&times;</button>
-        <h3>Ask for Brochure</h3>
+        <h3>${ui("اطلب البروشور", "Ask for Brochure")}</h3>
         <p class="brochure-modal-project"></p>
         <form class="brochure-modal-form">
-          <input type="text" name="name" placeholder="Your name" required>
-          <input type="tel" name="phone" placeholder="WhatsApp number" required>
-          <button type="submit">Send &amp; Get Brochure</button>
+          <input type="text" name="name" placeholder="${ui("اسمك", "Your name")}" required>
+          <input type="tel" name="phone" placeholder="${ui("رقم واتساب", "WhatsApp number")}" required>
+          <button type="submit">${ui("ابعت وافتح واتساب", "Send &amp; Get Brochure")}</button>
         </form>
         <div class="brochure-modal-status"></div>
       </div>
@@ -1768,7 +1796,7 @@ document.addEventListener("click", (event) => {
     backdrop.dataset.brochureUrl = brochureUrl || "";
     backdrop.dataset.projectName = projectName || "";
     backdrop.dataset.source = source || "brochure_request";
-    backdrop.querySelector(".brochure-modal-project").textContent = projectName ? "For: " + projectName : "";
+    backdrop.querySelector(".brochure-modal-project").textContent = projectName ? ui("المشروع: ", "For: ") + projectName : "";
     backdrop.querySelector(".brochure-modal-status").textContent = "";
     backdrop.querySelector(".brochure-modal-form").reset();
   }
