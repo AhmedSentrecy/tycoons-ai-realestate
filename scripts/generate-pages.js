@@ -63,6 +63,22 @@ function formatPrice(value) {
   return n.toLocaleString("en-US");
 }
 
+function whatsappHref(lines) {
+  const message = (Array.isArray(lines) ? lines : [String(lines || "")]).filter(Boolean).join("\n");
+  return `https://wa.me/201200704344?text=${encodeURIComponent(message)}`;
+}
+
+function pageWhatsAppUrl(canonicalPath, source = "static_project_page") {
+  return whatsappHref([
+    "Hello Tycoons Investments,",
+    "I want help with this property page.",
+    "",
+    `Source: ${source}`,
+    `Page: ${SITE_URL}${canonicalPath}`,
+    `Tracking ID: wa_static_${Date.now().toString(36)}`
+  ]);
+}
+
 /* ------------------------------------------------------------
    IMAGE GALLERY + CAROUSEL (for the right side of project pages)
    ------------------------------------------------------------ */
@@ -261,19 +277,74 @@ const BROCHURE_WIDGET_SCRIPT = `<script>
 
     statusEl.textContent = 'جاري فتح واتساب...';
 
+    var trackingId = 'wa_brochure_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
     var message = [
       'Hello Tycoons Investments,',
       'I am requesting the brochure for:',
       projectName,
       '',
       'Name: ' + name,
-      'WhatsApp: ' + phone
+      'WhatsApp: ' + phone,
+      '',
+      'Source: ' + source,
+      'Page: ' + window.location.href.split('#')[0],
+      'Tracking ID: ' + trackingId
     ].filter(Boolean).join('\\n');
 
     var waUrl = 'https://wa.me/' + TYCOONS_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message);
     window.open(waUrl, '_blank', 'noopener');
 
     setTimeout(closeModal, 600);
+  });
+})();
+</script>`;
+
+
+
+const PROJECT_LEAD_FORM_SCRIPT = `<script>
+(function(){
+  var TYCOONS_WHATSAPP_NUMBER = "201200704344";
+  function trackingId(){ return 'wa_project_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); }
+  document.addEventListener('submit', function(e){
+    var form = e.target.closest('.js-project-lead-form');
+    if(!form) return;
+    e.preventDefault();
+    var data = new FormData(form);
+    var name = String(data.get('name') || '').trim();
+    var phone = String(data.get('phone') || '').trim();
+    var budget = String(data.get('budget') || '').trim();
+    var unitType = String(data.get('unit_type') || '').trim();
+    var notes = String(data.get('message') || '').trim();
+    var projectName = form.dataset.project || '';
+    var developer = form.dataset.developer || '';
+    var locationName = form.dataset.location || '';
+    var tid = trackingId();
+
+    if(!name || !phone){
+      alert('من فضلك اكتب الاسم ورقم واتساب.');
+      return;
+    }
+
+    var message = [
+      'Hello Tycoons Investments,',
+      'I am interested in this project page:',
+      '',
+      'Project: ' + projectName,
+      'Developer: ' + developer,
+      'Location: ' + locationName,
+      '',
+      'Name: ' + name,
+      'WhatsApp: ' + phone,
+      budget ? 'Budget: ' + budget : '',
+      unitType ? 'Unit type: ' + unitType : '',
+      notes ? 'Notes: ' + notes : '',
+      '',
+      'Source: project_page_form',
+      'Page: ' + window.location.href.split('#')[0],
+      'Tracking ID: ' + tid
+    ].filter(Boolean).join('\\n');
+
+    window.open('https://wa.me/' + TYCOONS_WHATSAPP_NUMBER + '?text=' + encodeURIComponent(message), '_blank', 'noopener');
   });
 })();
 </script>`;
@@ -354,6 +425,7 @@ function groupBy(rows, key) {
 
 function pageShell({ title, description, canonicalPath, ogImage, lang = "ar-EG", bodyHtml, jsonLd, breadcrumbJsonLd, extraScript = "" }) {
   const canonical = `${SITE_URL}${canonicalPath}`;
+  const currentWhatsAppUrl = pageWhatsAppUrl(canonicalPath, canonicalPath.startsWith("/projects/") ? "project_page_header" : "static_page_header");
   return `<!doctype html>
 <html lang="${lang}" dir="${lang === "ar-EG" || lang === "ar" ? "rtl" : "ltr"}">
 <head>
@@ -390,11 +462,13 @@ ${breadcrumbJsonLd ? `<script type="application/ld+json">${JSON.stringify(breadc
     <a href="/#search">الصوت</a>
     <a href="/#projects">المشاريع</a>
     <a href="/#lead">تواصل</a>
+    <a class="header-whatsapp" data-wa-source="header_whatsapp" href="${currentWhatsAppUrl}" target="_blank" rel="noopener">واتساب</a>
   </nav>
 </header>
 <main>
 ${bodyHtml}
 </main>
+<a class="floating-whatsapp" data-wa-source="floating_whatsapp" href="${currentWhatsAppUrl}" target="_blank" rel="noopener" aria-label="تواصل مع Tycoons Investments على واتساب">واتساب</a>
 <footer class="site-footer">
   <span>&copy; <span id="year"></span> ${SITE_NAME}</span>
   <span>بحث عقاري بالذكاء الاصطناعي &middot; مساعد صوتي &middot; مخزون متاح</span>
@@ -403,6 +477,29 @@ ${bodyHtml}
 ${extraScript}
 </body>
 </html>`;
+}
+
+// ---------- project lead form ----------
+
+function buildProjectLeadForm(projectName, developer, location) {
+  return `<section class="section project-lead-section" id="project-lead">
+  <div class="project-lead-grid">
+    <div>
+      <span class="eyebrow">طلب تفاصيل المشروع</span>
+      <h2>سيب بياناتك أو افتح واتساب بتفاصيل الصفحة</h2>
+      <p>الفورم ده بيبعت رسالة واتساب فيها اسم المشروع والصفحة اللي العميل كان عليها، عشان تعرف الليد جاي منين.</p>
+      <p class="project-lead-note"><strong>المشروع:</strong> ${escapeHtml(projectName)}<br><strong>المطور:</strong> ${escapeHtml(developer)}<br><strong>الموقع:</strong> ${escapeHtml(location)}</p>
+    </div>
+    <form class="project-lead-form js-project-lead-form" data-project="${escapeHtml(projectName)}" data-developer="${escapeHtml(developer)}" data-location="${escapeHtml(location)}">
+      <input name="name" placeholder="الاسم" required>
+      <input name="phone" placeholder="رقم واتساب" required>
+      <input name="budget" placeholder="الميزانية المتوقعة">
+      <input name="unit_type" placeholder="نوع الوحدة المطلوب">
+      <textarea class="full" name="message" rows="3" placeholder="اكتب طلبك أو ملاحظاتك"></textarea>
+      <button class="btn btn-whatsapp" type="submit">ابعت الطلب على واتساب</button>
+    </form>
+  </div>
+</section>`;
 }
 
 // ---------- project page ----------
@@ -498,6 +595,8 @@ function buildProjectPage(project, units) {
   </div>
 </section>
 
+${buildProjectLeadForm(projectName, developer, location)}
+
 <section class="section">
   <h2>الوحدات المتاحة${units.length ? ` (${units.length})` : ""}</h2>
   <div class="grid">
@@ -586,7 +685,7 @@ ${faqHtml}
     bodyHtml,
     jsonLd: [jsonLd, faqJsonLd],
     breadcrumbJsonLd,
-    extraScript: CAROUSEL_SCRIPT + BROCHURE_WIDGET_SCRIPT,
+    extraScript: CAROUSEL_SCRIPT + BROCHURE_WIDGET_SCRIPT + PROJECT_LEAD_FORM_SCRIPT,
   });
 
   return { url, html, lastmod: project.last_updated_at };
