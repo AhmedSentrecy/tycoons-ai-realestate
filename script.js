@@ -18,18 +18,18 @@ const TYCOONS_I18N = {
     searchLabel: "Search by voice or text", talkAssistant: "Talk to the assistant", searchPlaceholder: "Example: كنت بدور على شاليه في الساحل أو iVilla in New Cairo",
     searchButton: "Search", aiSearch: "AI Search", searching: "Searching...",
     voiceTitle: "Talk to Sarah",
-    voiceCta: "Use voice search if you prefer speaking. Start Sarah, then hold Hold to Talk while you speak. Search results will appear below automatically.",
+    voiceCta: "Speak with Sarah from Tycoons Investments. When Sarah searches the inventory, matching cards will appear below automatically.",
     startVoice: "Start Voice Agent", holdToTalk: "Hold to Talk", stopSession: "Stop Session", voiceOff: "Voice agent is off.",
     confirmNumber: "Confirm WhatsApp Number", confirmText: "The voice agent heard this number. Check it before saving.", detectedPhone: "Detected WhatsApp number", confirmSave: "Confirm & Save Lead", cancel: "Cancel",
     resultsEyebrow: "Search results", recommendedUnits: "Recommended units", resultsText: "Cards show the essentials first: image, project, unit type, price, area, delivery, and media links.", adminPanel: "Admin panel",
-    projectsEyebrow: "Projects", browseCatalogue: "Browse the live catalogue", projectsText: "Project cards load from the live catalogue and can inherit media from available unit rows.",
+    projectsEyebrow: "Projects", browseCatalogue: "Browse the live catalogue", projectsText: "Project cards are loaded from Supabase and can inherit media from available unit rows.",
     seoEyebrow: "SEO-ready property guide", seoTitle: "Find real estate options in Egypt with AI-assisted search", seoText: "Tycoons Investments helps buyers compare developer inventory by location, unit type, budget, delivery date and payment plan, then continue directly on WhatsApp with the sales team.",
     seoCard1Title: "What can I search for?", seoCard1Text: "You can search for apartments, villas, iVilla units, chalets, New Cairo homes, North Coast vacation homes, Ain Sokhna units and selected developer projects.", seoCard1Link: "Ask on WhatsApp",
     seoCard2Title: "How does the AI search work?", seoCard2Text: "Type or dictate what you need. The website searches live inventory and returns matching cards with project, price, area, delivery, finishing and available media links.", seoCard2Link: "Try the search box",
     seoCard3Title: "Why WhatsApp-first?", seoCard3Text: "Real estate availability changes quickly. WhatsApp makes it easier to confirm the latest availability, payment details, delivery and recommended alternatives.", seoCard3Link: "Send WhatsApp request",
     faqEyebrow: "FAQs", faqTitle: "Questions buyers usually ask", faq1Q: "Can I contact Tycoons directly on WhatsApp?", faq1A: "Yes. Use any WhatsApp button on the website and your request will open directly in WhatsApp with a prepared message.", faq2Q: "Can I search in Arabic?", faq2A: "Yes. The search supports Arabic and English terms, including common real estate phrases like آي فيلا، شاليه، التجمع، الساحل and apartments.", faq3Q: "Are prices always final?", faq3A: "Prices and availability can change according to the developer, inventory release and payment plan. Confirm the latest details with the sales team on WhatsApp.", faq4Q: "What areas are available?", faq4A: "The website is prepared for New Cairo, North Coast, Ain Sokhna and developer-specific inventory pages.",
     leadEyebrow: "Lead capture", leadTitle: "Request suitable options", leadText: "Leave your details or send your request instantly on WhatsApp with the property context you need.", sendWa: "Send WhatsApp Request", submitLead: "Submit Lead", leadName: "Name", leadPhone: "Phone / WhatsApp", leadInterest: "Interested project or area", leadBudget: "Budget, example: 12000000",
-    project: "Project", availableUnit: "Available unit", startingPrice: "Starting price", area: "Area", delivery: "Delivery", finishing: "Finishing", brochure: "Brochure", askWa: "Ask on WhatsApp", priceOnRequest: "Price on request", from: "From", noMatches: "No matching items found.", loadingSupabase: "Loading live inventory...", connectedPrefix: "Live inventory ready. Loaded ", unitsAnd: " units and ", projectsLoaded: " projects.", languageChanged: "Website language changed to English."
+    project: "Project", availableUnit: "Available unit", startingPrice: "Starting price", area: "Area", delivery: "Delivery", finishing: "Finishing", brochure: "Brochure", askWa: "Ask on WhatsApp", priceOnRequest: "Price on request", from: "From", noMatches: "No matching items found.", loadingSupabase: "Loading live data from Supabase...", connectedPrefix: "Connected to Supabase. Loaded ", unitsAnd: " units and ", projectsLoaded: " projects.", languageChanged: "Website language changed to English."
   },
   ar: {
     navSearch: "البحث", navVoice: "الصوت", navProjects: "المشاريع", navContact: "تواصل", navWhatsapp: "واتساب",
@@ -38,18 +38,18 @@ const TYCOONS_I18N = {
     searchLabel: "ابحث بالصوت أو بالكتابة", talkAssistant: "اتكلم مع المساعد", searchPlaceholder: "مثال: عايز شاليه في الساحل أو iVilla in New Cairo",
     searchButton: "بحث", aiSearch: "بحث AI", searching: "بيبحث...",
     voiceTitle: "اتكلم مع Sarah",
-    voiceCta: "استخدم البحث الصوتي لو تفضّل تتكلم. ابدأ Sarah، وبعدها اضغط مطولًا على زر التحدث وانت بتتكلم. النتائج هتظهر تحت تلقائيًا.",
+    voiceCta: "اتكلم بصوتك مع Sarah من Tycoons Investments. لما Sarah تبحث في المخزون، النتائج هتظهر في الكروت تحت تلقائيًا.",
     startVoice: "ابدأ المساعد الصوتي", holdToTalk: "اضغط للتحدث", stopSession: "إيقاف الجلسة", voiceOff: "المساعد الصوتي متوقف.",
     confirmNumber: "تأكيد رقم واتساب", confirmText: "المساعد سمع الرقم ده. راجعه قبل الحفظ.", detectedPhone: "رقم واتساب المكتشف", confirmSave: "تأكيد وحفظ الليد", cancel: "إلغاء",
     resultsEyebrow: "نتائج البحث", recommendedUnits: "وحدات مقترحة", resultsText: "الكروت بتعرض الأهم أولًا: الصورة، المشروع، نوع الوحدة، السعر، المساحة، التسليم، والروابط.", adminPanel: "لوحة الإدارة",
-    projectsEyebrow: "المشاريع", browseCatalogue: "تصفح الكتالوج المتاح", projectsText: "كروت المشاريع بتتحمل من المخزون المباشر وممكن تاخد الصور من الوحدات المتاحة.",
+    projectsEyebrow: "المشاريع", browseCatalogue: "تصفح الكتالوج المتاح", projectsText: "كروت المشاريع بتتحمل من Supabase وممكن تاخد الصور من الوحدات المتاحة.",
     seoEyebrow: "دليل عقاري جاهز للبحث", seoTitle: "اعثر على اختيارات عقارية في مصر بمساعدة AI", seoText: "Tycoons Investments بتساعدك تقارن مخزون المطورين حسب المنطقة، نوع الوحدة، الميزانية، التسليم وخطة الدفع، وبعدها تكمل مباشرة على واتساب مع فريق المبيعات.",
     seoCard1Title: "أقدر أبحث عن إيه؟", seoCard1Text: "تقدر تبحث عن شقق، فيلات، iVilla، شاليهات، وحدات في New Cairo، North Coast، Ain Sokhna، ومشاريع مختارة من المطورين.", seoCard1Link: "اسأل على واتساب",
     seoCard2Title: "بحث الـ AI بيشتغل إزاي؟", seoCard2Text: "اكتب أو قول اللي محتاجه. الموقع بيدور في المخزون المتاح ويعرض كروت مطابقة فيها المشروع، السعر، المساحة، التسليم، التشطيب والروابط.", seoCard2Link: "جرّب البحث",
     seoCard3Title: "ليه واتساب أولًا؟", seoCard3Text: "توفر الوحدات والأسعار بيتغير بسرعة. واتساب بيسهل تأكيد أحدث Availability، تفاصيل الدفع، التسليم والبدائل المناسبة.", seoCard3Link: "ابعت طلب واتساب",
     faqEyebrow: "أسئلة شائعة", faqTitle: "أسئلة العملاء المعتادة", faq1Q: "هل أقدر أتواصل مع Tycoons مباشرة على واتساب؟", faq1A: "أيوه. استخدم أي زر واتساب في الموقع، والطلب هيفتح مباشرة في واتساب برسالة جاهزة.", faq2Q: "هل أقدر أبحث بالعربي؟", faq2A: "أيوه. البحث بيدعم عربي وإنجليزي، ومن ضمنه كلمات زي آي فيلا، شاليه، التجمع، الساحل، وشقق.", faq3Q: "هل الأسعار نهائية؟", faq3A: "الأسعار والتوفر ممكن يتغيروا حسب المطور، طرح الوحدات وخطة الدفع. أكد أحدث التفاصيل مع فريق المبيعات على واتساب.", faq4Q: "إيه المناطق المتاحة؟", faq4A: "الموقع مجهز لـ New Cairo، North Coast، Ain Sokhna، وصفحات خاصة بالمشاريع والمطورين.",
     leadEyebrow: "تسجيل طلب", leadTitle: "اطلب اختيارات مناسبة", leadText: "سيب بياناتك أو ابعت طلبك على واتساب فورًا مع تفاصيل العقار اللي محتاجه.", sendWa: "ابعت طلب واتساب", submitLead: "إرسال البيانات", leadName: "الاسم", leadPhone: "رقم الموبايل / واتساب", leadInterest: "المشروع أو المنطقة المهتم بيها", leadBudget: "الميزانية، مثال: 12000000",
-    project: "مشروع", availableUnit: "وحدة متاحة", startingPrice: "السعر يبدأ من", area: "المساحة", delivery: "التسليم", finishing: "التشطيب", brochure: "البروشور", askWa: "اسأل على واتساب", priceOnRequest: "السعر عند الطلب", from: "من", noMatches: "مفيش نتائج مطابقة.", loadingSupabase: "جاري تجهيز المخزون المباشر...", connectedPrefix: "المخزون جاهز. تم تحميل ", unitsAnd: " وحدة و ", projectsLoaded: " مشروع.", languageChanged: "تم تغيير لغة الموقع للعربي."
+    project: "مشروع", availableUnit: "وحدة متاحة", startingPrice: "السعر يبدأ من", area: "المساحة", delivery: "التسليم", finishing: "التشطيب", brochure: "البروشور", askWa: "اسأل على واتساب", priceOnRequest: "السعر عند الطلب", from: "من", noMatches: "مفيش نتائج مطابقة.", loadingSupabase: "جاري تحميل البيانات من Supabase...", connectedPrefix: "متصل بـ Supabase. تم تحميل ", unitsAnd: " وحدة و ", projectsLoaded: " مشروع.", languageChanged: "تم تغيير لغة الموقع للعربي."
   }
 };
 
@@ -206,8 +206,7 @@ const ELEVENLABS_CLIENT_SDK_URLS = Array.isArray(window.TYCOONS_ELEVENLABS_CLIEN
   : [
       window.TYCOONS_ELEVENLABS_CLIENT_SDK_URL || "/assets/elevenlabs-client.js",
       "https://esm.sh/@elevenlabs/client?bundle",
-      "https://esm.sh/@elevenlabs/client@1.12.0?bundle",
-      "https://cdn.jsdelivr.net/npm/@elevenlabs/client@1.12.0/+esm",
+      "https://esm.sh/@elevenlabs/client@latest?bundle",
       "https://cdn.jsdelivr.net/npm/@elevenlabs/client/+esm"
     ];
 let sarahConversation = null;
@@ -217,14 +216,13 @@ let sarahMicHeld = false;
 
 function setElevenLabsStatus(message, className = "") {
   if (!elevenlabsToolStatus) return;
-  // Keep technical tool updates quiet in the UI. The main Sarah status line stays visible.
-  elevenlabsToolStatus.className = "status elevenlabs-tool-status hidden" + (className ? " " + className : "");
+  elevenlabsToolStatus.className = "elevenlabs-tool-status" + (className ? " " + className : "");
   elevenlabsToolStatus.textContent = message;
 }
 
 function setSarahControlStatus(message, className = "") {
   if (!sarahControlStatus) return;
-  sarahControlStatus.className = "status sarah-control-status" + (className ? " " + className : "");
+  sarahControlStatus.className = "sarah-control-status" + (className ? " " + className : "");
   sarahControlStatus.textContent = message;
 }
 
@@ -254,16 +252,16 @@ async function loadElevenLabsSdk() {
         sarahConversationSdk = Conversation;
         return sarahConversationSdk;
       }
-      lastError = new Error("Conversation.startSession was not found in " + url);
+      lastError = new Error("Conversation.startSession was not found.");
     } catch (error) {
       lastError = error;
       console.warn("ElevenLabs SDK source failed", url, error);
     }
   }
   throw new Error(ui(
-    "تعذر تشغيل Sarah دلوقتي. اعمل Hard Refresh وافتح الموقع من Chrome أو Safari واسمح للميكروفون.",
-    "Sarah could not start right now. Hard refresh, use Chrome or Safari, and allow microphone access."
-  ));
+    "تعذر تحميل ElevenLabs SDK. اعمل Hard Refresh وجرب تاني، ولو استمرت المشكلة جرّب Chrome.",
+    "ElevenLabs SDK could not load. Hard refresh and try again, or try Chrome."
+  ) + (lastError?.message ? " " + lastError.message : ""));
 }
 
 async function requestSarahMicrophonePermission() {
@@ -324,8 +322,8 @@ async function startSarahSdkCall() {
       },
       onError: (error) => {
         console.error("ElevenLabs Sarah error", error);
-        setElevenLabsStatus(ui("تعذر تشغيل Sarah دلوقتي. اعمل Refresh واسمح للميكروفون.", "Sarah could not start right now. Refresh and allow microphone access."), "warning");
-        setSarahControlStatus(ui("Sarah مش جاهزة دلوقتي. اعمل Refresh واسمح للميكروفون، وبعدها جرّب تاني.", "Sarah is not ready right now. Refresh, allow microphone access, then try again."), "warning");
+        setElevenLabsStatus(ui("حصل خطأ في تشغيل Sarah. راجع إعدادات ElevenLabs والميكروفون.", "Sarah could not start. Check ElevenLabs and microphone settings."), "warning");
+        setSarahControlStatus((error && error.message) ? error.message : ui("تعذر تشغيل Sarah.", "Could not start Sarah."), "warning");
       },
       onStatusChange: (status) => {
         const safeStatus = String(status || "").toLowerCase();
@@ -351,9 +349,12 @@ async function startSarahSdkCall() {
     setSarahConnectedUi();
   } catch (err) {
     console.error("Could not start ElevenLabs Sarah", err);
-    const details = err?.message || String(err || "");
-    setElevenLabsStatus(ui("تعذر تشغيل Sarah دلوقتي. اعمل Refresh واسمح للميكروفون.", "Sarah could not start right now. Refresh and allow microphone access."), "warning");
-    setSarahIdleUi(ui("Sarah مش جاهزة دلوقتي. اعمل Refresh واسمح للميكروفون، وبعدها جرّب تاني.", "Sarah is not ready right now. Refresh, allow microphone access, then try again."));
+    const safeMessage = ui(
+      "تعذر تشغيل Sarah. اعمل Hard Refresh واسمح للمايك، ولو استمرت المشكلة جرّب Chrome.",
+      "Could not start Sarah. Hard refresh, allow microphone access, and try Chrome if it continues."
+    );
+    setElevenLabsStatus(safeMessage, "warning");
+    setSarahIdleUi(safeMessage);
   }
 }
 
@@ -1028,7 +1029,7 @@ leadForm.addEventListener("submit", async (event) => {
   try {
     await insertRow("leads", row);
     leadStatus.className = "status success";
-    leadStatus.textContent = ui("تم حفظ البيانات بنجاح.", "Lead saved successfully.");
+    leadStatus.textContent = ui("تم حفظ البيانات بنجاح.", "Lead saved successfully in Supabase.");
     leadForm.reset();
   } catch (err) {
     console.error(err);
@@ -1459,7 +1460,7 @@ After this response, wait for the user's next push-to-talk message.
       sendToolOutput(callId, {
         saved: savedLead.saved === true,
         pending_confirmation: savedLead.pending_confirmation === true,
-        saved_to: savedLead.saved === true ? "lead_saved" : "waiting_for_user_phone_confirmation",
+        saved_to: savedLead.saved === true ? "Supabase leads table" : "waiting_for_user_phone_confirmation",
         phone_status: savedLead.phone === "voice-not-provided" ? "phone_not_provided" : "phone_pending_confirmation",
         lead: savedLead
       });
@@ -1849,7 +1850,7 @@ async function loadData() {
     render(projects, projectGrid, "project");
     applySiteLanguage();
 
-    statusBox.className = "status hidden";
+    statusBox.className = "status success";
     statusBox.textContent = tr("connectedPrefix") + units.length + tr("unitsAnd") + projects.length + tr("projectsLoaded");
 
     // If the visitor arrived from a project page with a search query
@@ -1867,7 +1868,7 @@ async function loadData() {
   } catch (err) {
     console.error(err);
     statusBox.className = "status error";
-    statusBox.textContent = ui("تعذر تجهيز المخزون دلوقتي. اعمل Refresh وجرب تاني.", "Could not prepare the live inventory. Refresh and try again.");
+    statusBox.textContent = ui("تعذر تحميل بيانات Supabase. راجع إعدادات API/RLS.", "Could not load Supabase data. Check the API key, URL, and RLS policies.");
   }
 }
 /* ============================================================
