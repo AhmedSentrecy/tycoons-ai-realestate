@@ -381,6 +381,8 @@ async function startSarahSdkCall(options = {}) {
         sarahLastConnectedAt = Date.now();
         if (sarahMicHeld) {
           await setSarahMicMuted(false);
+        } else {
+          await setSarahMicMuted(true);
         }
         setSarahConnectedUi();
       },
@@ -426,6 +428,8 @@ async function startSarahSdkCall(options = {}) {
 
     if (sarahMicHeld) {
       await setSarahMicMuted(false);
+    } else {
+      await setSarahMicMuted(true);
     }
 
     // Only onConnect should mark the session as connected. If startSession returns
