@@ -218,6 +218,7 @@ let sarahLastConnectedAt = 0;
 let sarahHoldPointerId = null;
 let sarahActiveHoldEventType = "";
 let sarahAutoListenTimer = null;
+let sarahStartRequestId = 0;
 
 function clearSarahAutoListenTimer() {
   if (sarahAutoListenTimer) {
@@ -257,7 +258,9 @@ function syncSarahButtons(state = sarahSessionState) {
   const active = state === "connected" || state === "listening" || state === "speaking";
   const connecting = state === "connecting";
   if (sarahStartCallBtn) sarahStartCallBtn.disabled = active || connecting;
-  if (sarahHoldToTalkBtn) sarahHoldToTalkBtn.disabled = !active;
+  // Keep Hold to Talk enabled while idle so one press can start Sarah and open the mic.
+  // Disable it only during the short connection handshake.
+  if (sarahHoldToTalkBtn) sarahHoldToTalkBtn.disabled = connecting;
   if (sarahStopCallBtn) sarahStopCallBtn.disabled = !active && !connecting;
 }
 
@@ -334,6 +337,11 @@ async function startSarahSdkCall(options = {}) {
     }
     return;
   }
+
+  const requestId = ++sarahStartRequestId;
+  let disconnectedDuringStart = false;
+  let connectedBySdk = false;
+
   try {
     sarahIsStoppingManually = false;
     sarahSessionState = "connecting";
@@ -344,9 +352,12 @@ async function startSarahSdkCall(options = {}) {
     setSarahSdkPanel(ui("جاري الاتصال", "Connecting"), ui("استنى ثواني قليلة.", "Please wait a few seconds."), "connecting");
 
     await requestSarahMicrophonePermission();
-    const Conversation = await loadElevenLabsSdk();
+    if (requestId !== sarahStartRequestId) return;
 
-    sarahConversation = await Conversation.startSession({
+    const Conversation = await loadElevenLabsSdk();
+    if (requestId !== sarahStartRequestId) return;
+
+    const conversation = await Conversation.startSession({
       agentId: ELEVENLABS_AGENT_ID,
       connectionType: "webrtc",
       clientTools: {
@@ -355,35 +366,35 @@ async function startSarahSdkCall(options = {}) {
         show_results_on_page: async (args = {}) => elevenlabsSearchProperties(args)
       },
       onConnect: async () => {
+        if (requestId !== sarahStartRequestId) return;
+        connectedBySdk = true;
         sarahLastConnectedAt = Date.now();
-        // Important: do not mute immediately on connect. Some mobile/browser sessions close
-        // before the user gets a chance to press Hold to Talk. Keep the session alive,
-        // then let the Hold button control the mic.
         if (sarahMicHeld) {
           await setSarahMicMuted(false);
         }
         setSarahConnectedUi();
       },
-      onDisconnect: () => {
+      onDisconnect: (event) => {
+        if (requestId !== sarahStartRequestId) return;
+        disconnectedDuringStart = true;
+        console.warn("ElevenLabs Sarah disconnected", event || "");
         const fastDisconnect = !sarahIsStoppingManually && sarahLastConnectedAt && (Date.now() - sarahLastConnectedAt < 8000);
         setSarahIdleUi(fastDisconnect
-          ? ui("جلسة Sarah فصلت بسرعة. جرّب تضغط مطوّلًا على Hold to Talk مباشرة بعد Start، وراجع إعدادات ElevenLabs لو اتكرر.", "Sarah disconnected quickly. Hold the Hold to Talk button right after Start, and check ElevenLabs settings if it repeats.")
+          ? ui("Sarah فصلت بسرعة. جرّب Preview جوه ElevenLabs، ولو اشتغل ابعتلي Console error من الموقع.", "Sarah disconnected quickly. Test Preview inside ElevenLabs; if it works, send the site Console error.")
           : ui("تم إنهاء جلسة Sarah.", "Sarah session ended.")
         );
         sarahIsStoppingManually = false;
       },
       onError: (error) => {
+        if (requestId !== sarahStartRequestId) return;
         console.error("ElevenLabs Sarah error", error);
         setElevenLabsStatus(ui("حصل خطأ في تشغيل Sarah. راجع إعدادات ElevenLabs والميكروفون.", "Sarah could not start. Check ElevenLabs and microphone settings."), "warning");
         setSarahControlStatus((error && error.message) ? error.message : ui("تعذر تشغيل Sarah.", "Could not start Sarah."), "warning");
       },
       onStatusChange: (status) => {
-        const safeStatus = String(status?.status || status || "").toLowerCase();
-        if (safeStatus.includes("connected")) setSarahConnectedUi();
-        // Ignore early SDK status noise while connecting. The real close is handled by onDisconnect.
-        if (safeStatus.includes("disconnected") && sarahSessionState !== "connecting") {
-          setSarahIdleUi(ui("الجلسة متوقفة.", "Session stopped."));
-        }
+        // Do not move UI state from generic status changes. Some browsers emit
+        // transitional disconnected/connected statuses during WebRTC startup.
+        console.info("ElevenLabs Sarah status", status);
       },
       onModeChange: (mode) => {
         const value = String(mode?.mode || mode?.status || mode || "").toLowerCase();
@@ -400,11 +411,24 @@ async function startSarahSdkCall(options = {}) {
       }
     });
 
+    if (requestId !== sarahStartRequestId || disconnectedDuringStart) return;
+    sarahConversation = conversation;
+
     if (sarahMicHeld) {
       await setSarahMicMuted(false);
     }
-    setSarahConnectedUi();
+
+    // Only onConnect should mark the session as connected. If startSession returns
+    // before onConnect, keep the UI in a safe connecting state instead of showing
+    // a false connected message.
+    if (!connectedBySdk) {
+      sarahSessionState = "connecting";
+      syncSarahButtons("connecting");
+      setSarahControlStatus(ui("Sarah بتتصل... استنى لحد ما زر Hold يتفعل.", "Sarah is connecting... wait until Hold becomes active."));
+      setSarahSdkPanel(ui("جاري الاتصال", "Connecting"), ui("استنى تأكيد الاتصال.", "Waiting for connection confirmation."), "connecting");
+    }
   } catch (err) {
+    if (requestId !== sarahStartRequestId) return;
     console.error("Could not start ElevenLabs Sarah", err);
     const safeMessage = ui(
       "تعذر تشغيل Sarah. اعمل Hard Refresh واسمح للمايك، ولو استمرت المشكلة جرّب Chrome.",
@@ -416,6 +440,7 @@ async function startSarahSdkCall(options = {}) {
 }
 
 async function stopSarahSdkCall() {
+  sarahStartRequestId += 1;
   sarahIsStoppingManually = true;
   clearSarahAutoListenTimer();
   try {
@@ -485,7 +510,6 @@ if (sarahHoldToTalkBtn) {
   sarahHoldToTalkBtn.addEventListener("pointerdown", beginSarahHoldUi);
   sarahHoldToTalkBtn.addEventListener("pointerup", endSarahHoldUi);
   sarahHoldToTalkBtn.addEventListener("pointercancel", cancelSarahHoldUi);
-  sarahHoldToTalkBtn.addEventListener("lostpointercapture", cancelSarahHoldUi);
 }
 
 if (document.getElementById("year")) document.getElementById("year").textContent = new Date().getFullYear();
