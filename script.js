@@ -218,6 +218,8 @@ let sarahLastConnectedAt = 0;
 let sarahHoldPointerId = null;
 let sarahActiveHoldEventType = "";
 let sarahAutoListenTimer = null;
+let sarahTeardownGuardUntil = 0;
+const SARAH_TEARDOWN_COOLDOWN_MS = 700;
 let sarahStartRequestId = 0;
 
 function clearSarahAutoListenTimer() {
@@ -318,6 +320,7 @@ function setSarahIdleUi(message) {
   sarahHoldPointerId = null;
   sarahActiveHoldEventType = "";
   sarahConversation = null;
+  sarahTeardownGuardUntil = Date.now() + SARAH_TEARDOWN_COOLDOWN_MS;
   if (sarahHoldToTalkBtn) {
     sarahHoldToTalkBtn.classList.remove("talking", "is-active");
     sarahHoldToTalkBtn.textContent = tr("holdToTalk") || "Hold to Talk";
@@ -336,6 +339,13 @@ async function startSarahSdkCall(options = {}) {
       setSarahConnectedUi();
     }
     return;
+  }
+
+  const remainingCooldown = sarahTeardownGuardUntil - Date.now();
+  if (remainingCooldown > 0) {
+    setSarahControlStatus(ui("لحظة، بنقفل الجلسة القديمة الأول...", "One moment, finishing cleanup from the last session..."));
+    await new Promise(resolve => setTimeout(resolve, remainingCooldown));
+    if (sarahConversation || sarahSessionState === "connecting") return;
   }
 
   const requestId = ++sarahStartRequestId;
