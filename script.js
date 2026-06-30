@@ -283,11 +283,11 @@ async function requestSarahMicrophonePermission() {
 }
 
 function setSarahConnectedUi() {
-  sarahSessionState = "listening";
+  sarahSessionState = "speaking";
   syncSarahButtons(sarahSessionState);
-  setElevenLabsStatus(ui("Sarah متصلة وبتسمعك. اتكلم عادي.", "Sarah is connected and listening. Just speak naturally."), "success");
+  setElevenLabsStatus(ui("Sarah متصلة. استنى ترحب بيك وبعدين اتكلم عادي.", "Sarah is connected. Wait for her to greet you, then speak naturally."), "success");
   setSarahControlStatus(ui("اتكلم مع Sarah عادي. لما تبحث، الكروت هتظهر تحت.", "Talk to Sarah naturally. When she searches, cards will appear below."), "success");
-  setSarahSdkPanel(ui("Sarah بتسمعك", "Sarah listening"), ui("اتكلم دلوقتي.", "Speak now."), "listening");
+  setSarahSdkPanel(ui("Sarah بترحب بيك", "Sarah greeting you"), ui("استنى لحد ما تخلص.", "Wait until she finishes."), "speaking");
 }
 
 function setSarahIdleUi(message) {
@@ -297,6 +297,7 @@ function setSarahIdleUi(message) {
   syncSarahButtons("idle");
   setSarahSdkPanel(ui("Sarah جاهزة", "Sarah ready"), ui("اضغط ابدأ Sarah للحديث معاها.", "Press Start Sarah to begin talking."));
   setSarahControlStatus(message || ui("اضغط ابدأ المساعد الصوتي.", "Press Start Voice Agent."));
+  setElevenLabsStatus(message || ui("Sarah جاهزة. اضغط ابدأ Sarah.", "Sarah is ready. Press Start Sarah."));
 }
 
 async function startSarahSdkCall() {
@@ -339,7 +340,10 @@ async function startSarahSdkCall() {
         if (requestId !== sarahStartRequestId) return;
         connectedBySdk = true;
         sarahLastConnectedAt = Date.now();
-        await setSarahMicMuted(false);
+        // Keep the mic muted until Sarah finishes her first message. With laptop/PC
+        // speakers (no headphones), an open mic picks up her own voice and the
+        // server treats it as the user interrupting, cutting her off mid-sentence.
+        await setSarahMicMuted(true);
         setSarahConnectedUi();
       },
       onDisconnect: (event) => {
@@ -362,14 +366,16 @@ async function startSarahSdkCall() {
       onStatusChange: (status) => {
         console.info("ElevenLabs Sarah status", status);
       },
-      onModeChange: (mode) => {
+      onModeChange: async (mode) => {
         const value = String(mode?.mode || mode?.status || mode || "").toLowerCase();
         if (!sarahConversation) return;
         if (value.includes("speaking")) {
+          await setSarahMicMuted(true);
           sarahSessionState = "speaking";
           syncSarahButtons("speaking");
           setSarahSdkPanel(ui("Sarah بترد", "Sarah speaking"), ui("استنى الرد.", "Wait for the reply."), "speaking");
         } else if (value.includes("listening")) {
+          await setSarahMicMuted(false);
           sarahSessionState = "listening";
           syncSarahButtons("listening");
           setSarahSdkPanel(ui("Sarah بتسمعك", "Sarah listening"), ui("اتكلم دلوقتي.", "Speak now."), "listening");
@@ -379,7 +385,7 @@ async function startSarahSdkCall() {
 
     if (requestId !== sarahStartRequestId || disconnectedDuringStart) return;
     sarahConversation = conversation;
-    await setSarahMicMuted(false);
+    await setSarahMicMuted(true);
 
     // Only onConnect should mark the session as connected. If startSession returns
     // before onConnect, keep the UI in a safe connecting state instead of showing
