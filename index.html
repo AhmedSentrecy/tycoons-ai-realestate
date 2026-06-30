@@ -160,22 +160,18 @@
           <span>Ready to move</span>
         </div>
 
-        <div class="hero-voice-cta hero-voice-live elevenlabs-voice-cta">
-          <div class="elevenlabs-voice-copy">
-            <strong data-el-voice-title>اتكلم مع Sarah</strong>
-            <p>اتكلم بصوتك مع Sarah من Tycoons Investments. لما Sarah تبحث في المخزون، النتائج هتظهر في الكروت تحت تلقائيًا.</p>
-            <div id="elevenlabsToolStatus" class="elevenlabs-tool-status">جاهزة للبحث الصوتي المباشر.</div>
-            <div class="sarah-voice-controls" aria-label="Sarah voice controls">
-              <button id="sarahStartCallBtn" class="btn btn-primary" type="button">Start Voice Agent</button>
-              <button id="sarahHoldToTalkBtn" class="talk-btn sarah-talk-btn" type="button" disabled>Hold to Talk</button>
-              <button id="sarahStopCallBtn" class="btn btn-secondary" type="button" disabled>Stop</button>
-            </div>
-            <div id="sarahControlStatus" class="sarah-control-status">Press Start Voice Agent, then speak to Sarah. Search results will appear below.</div>
+        <div class="hero-voice-cta hero-voice-live elevenlabs-voice-cta elevenlabs-voice-cta-classic">
+          <p>استخدم البحث الصوتي لو تفضّل تتكلم. ابدأ Sarah، وبعدها اضغط مطوّلًا على زر التحدث. النتائج هتظهر تحت تلقائيًا.</p>
+          <div class="voice-controls sarah-voice-controls" aria-label="Sarah voice controls">
+            <button id="sarahStartCallBtn" class="btn btn-primary" type="button">ابدأ Sarah</button>
+            <button id="sarahHoldToTalkBtn" class="talk-btn sarah-talk-btn" type="button" disabled>اضغط للتحدث</button>
+            <button id="sarahStopCallBtn" class="btn btn-secondary" type="button" disabled>إيقاف الجلسة</button>
           </div>
-          <div class="sarah-sdk-panel" aria-label="Sarah voice assistant status">
-            <div class="sarah-sdk-orb" id="sarahSdkOrb" aria-hidden="true">
-              <span></span>
-            </div>
+          <div id="sarahControlStatus" class="status sarah-control-status">اضغط ابدأ Sarah، وبعد الاتصال اضغط مطوّلًا للتحدث.</div>
+          <div id="elevenlabsToolStatus" class="status elevenlabs-tool-status hidden" aria-live="polite">جاهزة للبحث الصوتي المباشر.</div>
+
+          <div class="sarah-sdk-panel" hidden aria-hidden="true">
+            <div class="sarah-sdk-orb" id="sarahSdkOrb" aria-hidden="true"><span></span></div>
             <div class="sarah-sdk-copy">
               <strong id="sarahSdkState">Sarah ready</strong>
               <small id="sarahSdkHint">Start the voice session, then hold the mic button while speaking.</small>
@@ -201,7 +197,7 @@
           </div>
         </div>
 
-        <div id="status" class="status">Loading property database...</div>
+        <div id="status" class="status">جاري تجهيز المخزون...</div>
       </div>
     </div>
 

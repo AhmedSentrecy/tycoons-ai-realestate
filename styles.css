@@ -1678,3 +1678,53 @@ html[dir="rtl"] .project-lead-section{direction:rtl;text-align:right}
   .sarah-voice-controls .btn,
   .sarah-voice-controls .talk-btn{width:100% !important;}
 }
+
+/* ElevenLabs SDK import fix + classic voice controls restoration */
+.elevenlabs-voice-cta-classic{
+  display:block !important;
+  margin:14px 2px 0 !important;
+  padding:12px !important;
+  border-radius:16px !important;
+  background:linear-gradient(135deg,#fff8e9,#ffffff) !important;
+  border:1px solid #f0dfbf !important;
+  box-shadow:none !important;
+}
+.elevenlabs-voice-cta-classic p{
+  margin:0 0 10px !important;
+  color:var(--muted) !important;
+  font-size:13px !important;
+  line-height:1.45 !important;
+  max-width:none !important;
+}
+.elevenlabs-voice-cta-classic .sarah-voice-controls{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  gap:10px !important;
+  align-items:center !important;
+  margin:0 !important;
+}
+.elevenlabs-voice-cta-classic .sarah-voice-controls .btn,
+.elevenlabs-voice-cta-classic .sarah-voice-controls .talk-btn{
+  min-height:46px !important;
+  border-radius:999px !important;
+  font-size:13px !important;
+  font-weight:900 !important;
+  padding:0 18px !important;
+  width:auto !important;
+  white-space:nowrap !important;
+}
+.elevenlabs-voice-cta-classic .sarah-talk-btn::before{content:"🎙";font-size:14px;}
+.elevenlabs-voice-cta-classic .sarah-control-status{
+  margin-top:10px !important;
+}
+.elevenlabs-voice-cta-classic .elevenlabs-tool-status.hidden,
+.elevenlabs-voice-cta-classic .sarah-sdk-panel,
+.elevenlabs-voice-cta-classic .elevenlabs-widget-shell,
+.elevenlabs-voice-cta-classic .elevenlabs-widget-shell elevenlabs-convai{
+  display:none !important;
+}
+@media (max-width:640px){
+  .elevenlabs-voice-cta-classic .sarah-voice-controls{display:grid !important;grid-template-columns:1fr !important;}
+  .elevenlabs-voice-cta-classic .sarah-voice-controls .btn,
+  .elevenlabs-voice-cta-classic .sarah-voice-controls .talk-btn{width:100% !important;justify-content:center !important;}
+}
