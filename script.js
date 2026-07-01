@@ -177,6 +177,8 @@ const handledFunctionCalls = new Set();
 
 const results = document.getElementById("results");
 const projectGrid = document.getElementById("projectGrid");
+const newLaunchesSection = document.getElementById("newLaunchesSection");
+const newLaunchGrid = document.getElementById("newLaunchGrid");
 const searchInput = document.getElementById("searchInput");
 const statusBox = document.getElementById("status");
 const leadForm = document.getElementById("leadForm");
@@ -625,8 +627,14 @@ function mediaUrls(item, type = "unit") {
   return Array.from(new Set(urls));
 }
 
+function newLaunchBadge(item) {
+  if (!item || !item.is_new_launch) return "";
+  return `<span class="new-launch-badge">${ui("إطلاق جديد", "New Launch")}</span>`;
+}
+
 function mediaImage(item, type = "unit") {
   const location = safe(item.location);
+  const badge = newLaunchBadge(item);
   const urls = mediaUrls(item, type);
   if (urls.length > 1) {
     const slides = urls.map((url, index) => {
@@ -639,6 +647,7 @@ function mediaImage(item, type = "unit") {
 
     return `
       <div class="image photo has-img image-carousel" data-carousel-index="0">
+        ${badge}
         <div class="carousel-track">${slides}</div>
         <button class="carousel-nav carousel-prev" type="button" data-carousel-dir="-1" aria-label="Previous image"></button>
         <button class="carousel-nav carousel-next" type="button" data-carousel-dir="1" aria-label="Next image"></button>
@@ -652,13 +661,14 @@ function mediaImage(item, type = "unit") {
   if (urls.length === 1) {
     return `
       <div class="image photo has-img">
+        ${badge}
         <img src="${escapeAttr(urls[0])}" alt="${escapeAttr(location)}" loading="lazy" referrerpolicy="no-referrer">
         <span>${location}</span>
       </div>
     `;
   }
 
-  return `<div class="image">${location}</div>`;
+  return `<div class="image">${badge}${location}</div>`;
 }
 
 function mediaLinks(item) {
@@ -1901,6 +1911,56 @@ if (sarahLeadCancelBtn) sarahLeadCancelBtn.addEventListener("click", cancelEleve
 
 loadData();
 
+let newLaunchAnnounceAttempted = false;
+
+async function announceNewLaunchesOnLoad(newLaunchProjects) {
+  if (newLaunchAnnounceAttempted || !newLaunchProjects || !newLaunchProjects.length) return;
+  newLaunchAnnounceAttempted = true;
+
+  const names = newLaunchProjects.slice(0, 3).map(p => safe(p.name)).filter(Boolean);
+  if (!names.length) return;
+
+  const text = ui(
+    `أهلاً بيك في Tycoons Investments. عندنا إطلاق جديد دلوقتي: ${names.join("، ")}. اضغط ابدأ Sarah لو حابب تعرف تفاصيل أكتر بصوتك.`,
+    `Welcome to Tycoons Investments. We just launched: ${names.join(", ")}. Press Start Sarah if you would like to hear more.`
+  );
+
+  try {
+    const res = await fetch("/api/announce-new-launches", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text })
+    });
+    if (!res.ok) return;
+
+    const blob = await res.blob();
+    const audioUrl = URL.createObjectURL(blob);
+    const announceAudio = new Audio(audioUrl);
+
+    const playNow = () => announceAudio.play().catch(() => {});
+
+    // Most browsers block audio-with-sound autoplay until the visitor has
+    // interacted with the page. If the initial play() attempt is silently
+    // rejected, fall back to playing on the visitor's first interaction.
+    const tryPlay = announceAudio.play();
+    if (tryPlay && typeof tryPlay.catch === "function") {
+      tryPlay.catch(() => {
+        const resumeOnInteraction = () => {
+          playNow();
+          ["click", "touchstart", "scroll", "keydown"].forEach(evt =>
+            window.removeEventListener(evt, resumeOnInteraction)
+          );
+        };
+        ["click", "touchstart", "scroll", "keydown"].forEach(evt =>
+          window.addEventListener(evt, resumeOnInteraction, { once: true })
+        );
+      });
+    }
+  } catch (err) {
+    console.warn("New launch announcement failed", err);
+  }
+}
+
 async function loadData() {
   try {
     statusBox.className = "status";
@@ -1912,7 +1972,19 @@ async function loadData() {
 
     render(units.slice(0, 6), results);
     render(projects, projectGrid, "project");
+
+    const newLaunchProjects = projects.filter(p => p.is_new_launch);
+    if (newLaunchesSection && newLaunchGrid) {
+      if (newLaunchProjects.length) {
+        render(newLaunchProjects, newLaunchGrid, "project");
+        newLaunchesSection.classList.remove("hidden");
+      } else {
+        newLaunchesSection.classList.add("hidden");
+      }
+    }
+
     applySiteLanguage();
+    announceNewLaunchesOnLoad(newLaunchProjects);
 
     statusBox.className = "status success";
     statusBox.textContent = tr("connectedPrefix") + units.length + tr("unitsAnd") + projects.length + tr("projectsLoaded");

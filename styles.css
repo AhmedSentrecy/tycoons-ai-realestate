@@ -324,6 +324,48 @@ textarea:focus,input:focus{
   text-transform:uppercase;
   backdrop-filter:blur(8px);
 }
+.new-launch-badge{
+  position:absolute;
+  top:12px;
+  left:12px;
+  z-index:3;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:linear-gradient(135deg,#d4a94a,var(--gold));
+  color:#fff;
+  border:1px solid rgba(255,255,255,.4);
+  border-radius:999px;
+  padding:6px 12px;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  box-shadow:0 8px 18px rgba(184,137,57,.4);
+  animation:new-launch-pulse 2.2s ease-in-out infinite;
+}
+.new-launch-badge::before{
+  content:"";
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#fff;
+}
+@keyframes new-launch-pulse{
+  0%,100%{box-shadow:0 8px 18px rgba(184,137,57,.4)}
+  50%{box-shadow:0 8px 24px rgba(184,137,57,.7)}
+}
+
+.new-launches-section{
+  background:linear-gradient(135deg,#fffaf0 0%,#fff 55%,#fef6e6 100%);
+  border:1px solid var(--gold-soft);
+  border-radius:28px;
+  padding:28px clamp(18px,4vw,32px);
+  margin:8px 0 28px;
+}
+.new-launches-section .eyebrow{color:var(--gold)}
+.new-launches-section .property-grid{margin-top:6px}
+
 .content{
   padding:17px;
   display:flex;
