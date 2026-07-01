@@ -169,6 +169,19 @@
           <div id="sarahControlStatus" class="status sarah-control-status">اضغط ابدأ Sarah، وبعد الاتصال اتكلم عادي.</div>
           <div id="elevenlabsToolStatus" class="status elevenlabs-tool-status hidden" aria-live="polite">جاهزة للبحث الصوتي المباشر.</div>
 
+          <div id="sarahLeadConfirmBox" class="phone-confirm hidden">
+            <div>
+              <span class="eyebrow">تأكيد بيانات العميل</span>
+              <p>Sarah سمعت البيانات دي. راجعها أو عدّلها قبل الحفظ.</p>
+            </div>
+            <input id="sarahLeadConfirmName" placeholder="الاسم">
+            <input id="sarahLeadConfirmPhone" placeholder="رقم واتساب">
+            <div class="voice-controls">
+              <button id="sarahLeadConfirmBtn" class="btn btn-primary" type="button">تأكيد وحفظ</button>
+              <button id="sarahLeadCancelBtn" class="btn btn-secondary" type="button">إلغاء</button>
+            </div>
+          </div>
+
           <div class="sarah-sdk-panel" hidden aria-hidden="true">
             <div class="sarah-sdk-orb" id="sarahSdkOrb" aria-hidden="true"><span></span></div>
             <div class="sarah-sdk-copy">

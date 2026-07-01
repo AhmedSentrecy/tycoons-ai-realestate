@@ -198,6 +198,12 @@ const sarahControlStatus = document.getElementById("sarahControlStatus");
 const sarahSdkState = document.getElementById("sarahSdkState");
 const sarahSdkHint = document.getElementById("sarahSdkHint");
 const sarahSdkOrb = document.getElementById("sarahSdkOrb");
+const sarahLeadConfirmBox = document.getElementById("sarahLeadConfirmBox");
+const sarahLeadConfirmName = document.getElementById("sarahLeadConfirmName");
+const sarahLeadConfirmPhone = document.getElementById("sarahLeadConfirmPhone");
+const sarahLeadConfirmBtn = document.getElementById("sarahLeadConfirmBtn");
+const sarahLeadCancelBtn = document.getElementById("sarahLeadCancelBtn");
+let pendingElevenLabsLead = null;
 const ELEVENLABS_AGENT_ID = "agent_2801kw5n6m9tewabcncnykc5w362";
 const ELEVENLABS_CLIENT_SDK_URLS = Array.isArray(window.TYCOONS_ELEVENLABS_CLIENT_SDK_URLS)
   ? window.TYCOONS_ELEVENLABS_CLIENT_SDK_URLS
@@ -1816,7 +1822,7 @@ async function elevenlabsSaveLead(args = {}) {
     };
   }
 
-  const row = {
+  pendingElevenLabsLead = {
     name,
     phone,
     message: args.notes || args.message || "Lead captured by ElevenLabs Sarah voice agent",
@@ -1827,24 +1833,71 @@ async function elevenlabsSaveLead(args = {}) {
     source: "website_elevenlabs_voice_agent"
   };
 
-  await insertRow("leads", row);
+  if (sarahLeadConfirmName) sarahLeadConfirmName.value = name;
+  if (sarahLeadConfirmPhone) sarahLeadConfirmPhone.value = phone;
+  if (sarahLeadConfirmBox) sarahLeadConfirmBox.classList.remove("hidden");
 
-  if (leadStatus) {
-    leadStatus.classList.remove("hidden");
-    leadStatus.className = "status success";
-    leadStatus.textContent = ui("تم حفظ بيانات العميل من Sarah.", "Lead saved from Sarah.");
-  }
-
-  setElevenLabsStatus(ui("تم حفظ بيانات العميل، وفريق المبيعات يقدر يتابع على واتساب.", "Lead saved. The sales team can follow up on WhatsApp."), "success");
+  setElevenLabsStatus(ui("البيانات ظاهرة على الشاشة. راجعها واضغط تأكيد وحفظ.", "Details are shown on screen. Review them and press Confirm & Save."), "warning");
 
   return {
     success: true,
-    saved: true,
+    saved: false,
+    pending_confirmation: true,
     name,
     phone,
-    message: ui(`شكراً يا ${name}. هنبعتلك التفاصيل على واتساب.`, `Thank you, ${name}. The team will send you the details on WhatsApp.`)
+    message: ui(
+      `اسمك ورقمك ظاهرين على الشاشة دلوقتي. لو صح، اضغط تأكيد وحفظ.`,
+      `Your name and number are shown on screen now. If they are correct, press Confirm & Save.`
+    )
   };
 }
+
+async function confirmElevenLabsLead() {
+  if (!pendingElevenLabsLead) return;
+  const name = String(sarahLeadConfirmName?.value || pendingElevenLabsLead.name || "").trim();
+  const phone = normalizePhoneDisplay(sarahLeadConfirmPhone?.value || pendingElevenLabsLead.phone || "");
+
+  if (!name || !phone) {
+    setElevenLabsStatus(ui("محتاجين الاسم ورقم الواتساب قبل الحفظ.", "Name and WhatsApp number are required before saving."), "warning");
+    return;
+  }
+
+  try {
+    if (sarahLeadConfirmBtn) sarahLeadConfirmBtn.disabled = true;
+    const row = { ...pendingElevenLabsLead, name, phone };
+    await insertRow("leads", row);
+
+    if (leadStatus) {
+      leadStatus.classList.remove("hidden");
+      leadStatus.className = "status success";
+      leadStatus.textContent = ui("تم حفظ بيانات العميل من Sarah.", "Lead saved from Sarah.");
+    }
+
+    setElevenLabsStatus(ui("تم حفظ بيانات العميل، وفريق المبيعات يقدر يتابع على واتساب.", "Lead saved. The sales team can follow up on WhatsApp."), "success");
+    setSarahControlStatus(ui("تم الحفظ. بتقفل الجلسة دلوقتي.", "Saved. Ending the session now."), "success");
+
+    pendingElevenLabsLead = null;
+    if (sarahLeadConfirmBox) sarahLeadConfirmBox.classList.add("hidden");
+
+    // Lead is confirmed and saved, so the voice call is done. Hang up automatically
+    // instead of leaving the mic session open indefinitely.
+    await stopSarahSdkCall();
+  } catch (err) {
+    console.error("Lead confirm save error:", err);
+    setElevenLabsStatus(ui("تعذر حفظ بيانات العميل. جرب تاني.", "Could not save the lead. Try again."), "warning");
+  } finally {
+    if (sarahLeadConfirmBtn) sarahLeadConfirmBtn.disabled = false;
+  }
+}
+
+function cancelElevenLabsLead() {
+  pendingElevenLabsLead = null;
+  if (sarahLeadConfirmBox) sarahLeadConfirmBox.classList.add("hidden");
+  setElevenLabsStatus(ui("اتلغى الحفظ. Sarah تقدر تسأل تاني لو محتاج.", "Save cancelled. Sarah can ask again if needed."), "");
+}
+
+if (sarahLeadConfirmBtn) sarahLeadConfirmBtn.addEventListener("click", confirmElevenLabsLead);
+if (sarahLeadCancelBtn) sarahLeadCancelBtn.addEventListener("click", cancelElevenLabsLead);
 
 loadData();
 

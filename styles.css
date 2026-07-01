@@ -448,7 +448,9 @@ textarea:focus,input:focus{
   max-width:480px;
 }
 .phone-confirm p{margin-bottom:12px}
-.phone-confirm input{width:100%}
+.phone-confirm input{width:100%;margin-bottom:10px}
+.phone-confirm input:last-of-type{margin-bottom:0}
+.phone-confirm .voice-controls{margin-top:14px}
 
 .lead-section{
   display:grid;
