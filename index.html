@@ -52,6 +52,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     d.textContent = (d.textContent ? d.textContent + String.fromCharCode(10) : '') + '[' + label + '] ' + msg;
   }
   window.addEventListener('error', function(e) {
+    // ResizeObserver loop notifications fire as content-less window error
+    // events in Safari/WebKit (no message, no filename, no stack) — they
+    // are a benign browser warning, not an app failure. Swallow only that
+    // exact signature; anything with real detail still surfaces below.
+    var blank = !e.message && !e.filename && !(e.error && e.error.stack);
+    if (blank) return;
     __bundlerLog('bundle',
       (e.message || e.type || 'unknown') +
       (e.filename ? ' (' + e.filename.slice(0, 80) + ':' + e.lineno + ':' + e.colno + ')' : ' (no filename)') +
