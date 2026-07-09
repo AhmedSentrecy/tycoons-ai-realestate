@@ -13,9 +13,15 @@ s = p.read_text()
 
 direct_agent = f'''
 
-  // ---- Tycoons ElevenLabs Conversational AI direct agent, hidden UI ----
+  // ---- Tycoons ElevenLabs Conversational AI direct agent, hidden UI with stop ----
   const TYCOONS_ELEVEN_AGENT_ID = '{AGENT_ID}';
   const TYCOONS_ELEVEN_WIDGET_SRC = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+  let tycoonsElevenActive = false;
+
+  function setTycoonsElevenActive(active) {{
+    tycoonsElevenActive = !!active;
+    window.dispatchEvent(new CustomEvent('tycoons:voice-state', {{ detail: {{ active: tycoonsElevenActive }} }}));
+  }}
 
   function injectTycoonsElevenHideCss() {{
     if (document.getElementById('tycoons-eleven-hide-css')) return;
@@ -70,19 +76,40 @@ direct_agent = f'''
 
   function clickTycoonsElevenWidget(widget) {{
     if (!widget) return false;
-    const methods = ['open', 'show', 'toggle', 'start', 'startConversation', 'beginConversation', 'connect'];
+    const methods = ['open', 'show', 'start', 'startConversation', 'beginConversation', 'connect'];
     for (const method of methods) {{
       if (typeof widget[method] === 'function') {{
-        try {{ widget[method](); return true; }} catch (_) {{}}
+        try {{ widget[method](); setTycoonsElevenActive(true); return true; }} catch (_) {{}}
       }}
     }}
     try {{
       const root = widget.shadowRoot;
       const btn = root && root.querySelector('button,[role="button"],.button');
-      if (btn) {{ btn.click(); return true; }}
+      if (btn) {{ btn.click(); setTycoonsElevenActive(true); return true; }}
     }} catch (_) {{}}
-    try {{ widget.click(); return true; }} catch (_) {{}}
+    try {{ widget.click(); setTycoonsElevenActive(true); return true; }} catch (_) {{}}
+    setTycoonsElevenActive(true);
     return false;
+  }}
+
+  function stopTycoonsElevenAgent() {{
+    const widget = document.querySelector(`elevenlabs-convai[agent-id="${{TYCOONS_ELEVEN_AGENT_ID}}"]`);
+    if (widget) {{
+      const methods = ['endCall', 'endConversation', 'stopConversation', 'stop', 'disconnect', 'close', 'hide'];
+      for (const method of methods) {{
+        if (typeof widget[method] === 'function') {{
+          try {{ widget[method](); }} catch (_) {{}}
+        }}
+      }}
+      try {{
+        const root = widget.shadowRoot;
+        const endBtn = root && root.querySelector('[aria-label*="End"],[aria-label*="end"],[aria-label*="Stop"],[aria-label*="stop"],button');
+        if (endBtn) endBtn.click();
+      }} catch (_) {{}}
+      try {{ widget.remove(); }} catch (_) {{}}
+    }}
+    setTycoonsElevenActive(false);
+    return true;
   }}
 
   function openTycoonsElevenAgent() {{
@@ -97,24 +124,31 @@ direct_agent = f'''
     }}
     setTimeout(attempt, 350);
     setTimeout(attempt, 1200);
+    setTycoonsElevenActive(true);
     return true;
+  }}
+
+  function toggleTycoonsElevenAgent() {{
+    return tycoonsElevenActive ? stopTycoonsElevenAgent() : openTycoonsElevenAgent();
   }}
 
   window.TC_ELEVEN = {{
     agentId: TYCOONS_ELEVEN_AGENT_ID,
     ensureWidget: ensureTycoonsElevenWidget,
-    openAgent: openTycoonsElevenAgent
+    openAgent: openTycoonsElevenAgent,
+    stopAgent: stopTycoonsElevenAgent,
+    toggleAgent: toggleTycoonsElevenAgent,
+    isActive: () => tycoonsElevenActive
   }};
 '''
 
-# Replace prior direct-agent block if present, otherwise insert before TC_VOICE export.
 s = re.sub(r"\n\n  // ---- Tycoons ElevenLabs Conversational AI direct agent.*?\n  window\.TC_ELEVEN = \{.*?\n  \};\n", direct_agent + "\n", s, flags=re.S)
 if 'TYCOONS_ELEVEN_AGENT_ID' not in s:
     s = s.replace('\n  window.TC_VOICE = {', direct_agent + '\n\n  window.TC_VOICE = {')
 
 s = re.sub(
     r"window\.TC_VOICE = \{([^}]*?)\};",
-    lambda m: 'window.TC_VOICE = {' + (m.group(1) if 'openAgent:' in m.group(1) else m.group(1).rstrip() + ', openAgent: openTycoonsElevenAgent') + '};',
+    lambda m: 'window.TC_VOICE = {' + (m.group(1) if 'openAgent:' in m.group(1) else m.group(1).rstrip() + ', openAgent: openTycoonsElevenAgent, stopAgent: stopTycoonsElevenAgent, toggleAgent: toggleTycoonsElevenAgent') + '};',
     s,
     count=1
 )
@@ -126,20 +160,28 @@ old = """  function onMic() {
     if (voiceState === 'listening') { stopListen.current && stopListen.current(); setVoiceState('idle'); return; }
     window.TC_VOICE.stopSpeaking();"""
 new = """  function onMic() {
-    if (voiceState === 'listening') { stopListen.current && stopListen.current(); setVoiceState('idle'); return; }
+    if (voiceState === 'listening' || voiceState === 'agent') {
+      stopListen.current && stopListen.current();
+      if (window.TC_ELEVEN && typeof window.TC_ELEVEN.stopAgent === 'function') window.TC_ELEVEN.stopAgent();
+      else if (window.TC_VOICE && typeof window.TC_VOICE.stopAgent === 'function') window.TC_VOICE.stopAgent();
+      setVoiceState('idle');
+      return;
+    }
     if (window.TC_ELEVEN && typeof window.TC_ELEVEN.openAgent === 'function') {
       window.TC_ELEVEN.openAgent();
-      setVoiceState('idle');
+      setVoiceState('agent');
       return;
     }
     if (window.TC_VOICE && typeof window.TC_VOICE.openAgent === 'function') {
       window.TC_VOICE.openAgent();
-      setVoiceState('idle');
+      setVoiceState('agent');
       return;
     }
     window.TC_VOICE.stopSpeaking();"""
-if 'window.TC_ELEVEN.openAgent()' not in s:
-    s = s.replace(old, new)
+s = re.sub(r"  function onMic\(\) \{.*?\n    window\.TC_VOICE\.stopSpeaking\(\);", new, s, flags=re.S)
+s = s.replace(old, new)
+s = s.replace("{voiceState === 'listening' ? 'Listening…' : L.hero.mic}", "{voiceState === 'listening' ? 'Listening…' : voiceState === 'agent' ? (lang === 'ar' ? 'إيقاف' : 'Stop') : L.hero.mic}")
+s = s.replace("voiceState === 'listening' ?", "(voiceState === 'listening' || voiceState === 'agent') ?")
 p.write_text(s)
 
 for asset, hashed in asset_map.items():
@@ -166,4 +208,4 @@ def patch_manifest(html_path):
 
 patch_manifest(root / 'index.html')
 patch_manifest(root / 'demos/tycoons-site/netlify/index.html')
-print('Tycoons voice patch applied: hidden ElevenLabs direct agent via mic', AGENT_ID)
+print('Tycoons voice patch applied: mic starts/stops hidden ElevenLabs agent', AGENT_ID)
