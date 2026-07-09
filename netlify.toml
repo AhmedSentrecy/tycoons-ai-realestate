@@ -1,0 +1,3 @@
+[build]
+  command = "python3 patch_tycoons_build.py"
+  publish = "."
