@@ -8,18 +8,42 @@ asset_map = {
     'asset_5.js': '57de0e87-3a9d-4599-a85c-63b2c907cffe',
 }
 
-# Patch voice layer: add ElevenLabs direct agent launcher and expose it on TC_VOICE/TC_ELEVEN.
 p = root / 'asset_9.js'
 s = p.read_text()
 
-# Remove any old proxy constant usage by overriding the public voice launch path.
 direct_agent = f'''
 
-  // ---- Tycoons ElevenLabs Conversational AI direct agent ----
+  // ---- Tycoons ElevenLabs Conversational AI direct agent, hidden UI ----
   const TYCOONS_ELEVEN_AGENT_ID = '{AGENT_ID}';
   const TYCOONS_ELEVEN_WIDGET_SRC = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
 
+  function injectTycoonsElevenHideCss() {{
+    if (document.getElementById('tycoons-eleven-hide-css')) return;
+    const style = document.createElement('style');
+    style.id = 'tycoons-eleven-hide-css';
+    style.textContent = `
+      elevenlabs-convai[data-tycoons-voice-agent="true"] {{
+        position: fixed !important;
+        left: -9999px !important;
+        bottom: -9999px !important;
+        width: 1px !important;
+        height: 1px !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
+        z-index: -1 !important;
+      }}
+      elevenlabs-convai[data-tycoons-voice-agent="true"] * {{
+        opacity: 0 !important;
+        pointer-events: none !important;
+        visibility: hidden !important;
+      }}
+    `;
+    document.head.appendChild(style);
+  }}
+
   function ensureTycoonsElevenWidget() {{
+    injectTycoonsElevenHideCss();
     let script = document.querySelector('script[data-tycoons-elevenlabs="convai"]');
     if (!script) {{
       script = document.createElement('script');
@@ -35,8 +59,11 @@ direct_agent = f'''
       widget = document.createElement('elevenlabs-convai');
       widget.setAttribute('agent-id', TYCOONS_ELEVEN_AGENT_ID);
       widget.setAttribute('data-tycoons-voice-agent', 'true');
-      widget.style.zIndex = '2147483647';
+      widget.setAttribute('style', 'position:fixed!important;left:-9999px!important;bottom:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;visibility:hidden!important;z-index:-1!important;');
       document.body.appendChild(widget);
+    }} else {{
+      widget.setAttribute('data-tycoons-voice-agent', 'true');
+      widget.setAttribute('style', 'position:fixed!important;left:-9999px!important;bottom:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important;visibility:hidden!important;z-index:-1!important;');
     }}
     return widget;
   }}
@@ -80,20 +107,19 @@ direct_agent = f'''
   }};
 '''
 
+# Replace prior direct-agent block if present, otherwise insert before TC_VOICE export.
+s = re.sub(r"\n\n  // ---- Tycoons ElevenLabs Conversational AI direct agent.*?\n  window\.TC_ELEVEN = \{.*?\n  \};\n", direct_agent + "\n", s, flags=re.S)
 if 'TYCOONS_ELEVEN_AGENT_ID' not in s:
     s = s.replace('\n  window.TC_VOICE = {', direct_agent + '\n\n  window.TC_VOICE = {')
 
-s = s.replace(
-    'window.TC_VOICE = { sttSupported, ttsSupported, unsupportedReason, listen, speak, stopSpeaking, setSpeaker };',
-    'window.TC_VOICE = { sttSupported, ttsSupported, unsupportedReason, listen, speak, stopSpeaking, setSpeaker, openAgent: openTycoonsElevenAgent };'
-)
-s = s.replace(
-    'window.TC_VOICE = { sttSupported, ttsSupported, listen, speak, stopSpeaking, setSpeaker };',
-    'window.TC_VOICE = { sttSupported, ttsSupported, listen, speak, stopSpeaking, setSpeaker, openAgent: openTycoonsElevenAgent };'
+s = re.sub(
+    r"window\.TC_VOICE = \{([^}]*?)\};",
+    lambda m: 'window.TC_VOICE = {' + (m.group(1) if 'openAgent:' in m.group(1) else m.group(1).rstrip() + ', openAgent: openTycoonsElevenAgent') + '};',
+    s,
+    count=1
 )
 p.write_text(s)
 
-# Patch app mic button: launch ElevenLabs agent directly before browser STT fallback.
 p = root / 'asset_5.js'
 s = p.read_text()
 old = """  function onMic() {
@@ -116,13 +142,11 @@ if 'window.TC_ELEVEN.openAgent()' not in s:
     s = s.replace(old, new)
 p.write_text(s)
 
-# Mirror patched assets into Netlify hashed bundle files if present.
 for asset, hashed in asset_map.items():
     dst = root / 'demos/tycoons-site/netlify' / hashed
     if dst.exists():
         dst.write_text((root / asset).read_text())
 
-# Repack modified assets into embedded index.html manifests.
 def patch_manifest(html_path):
     if not html_path.exists():
         return
@@ -142,4 +166,4 @@ def patch_manifest(html_path):
 
 patch_manifest(root / 'index.html')
 patch_manifest(root / 'demos/tycoons-site/netlify/index.html')
-print('Tycoons voice patch applied: ElevenLabs direct agent', AGENT_ID)
+print('Tycoons voice patch applied: hidden ElevenLabs direct agent via mic', AGENT_ID)
