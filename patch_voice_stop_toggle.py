@@ -11,7 +11,6 @@ asset_map = {
 p = root / 'asset_9.js'
 s = p.read_text()
 
-# Add captured media/WebRTC holders after the SDK state vars.
 s = s.replace(
     "  let tycoonsElevenConnecting = false;",
     """  let tycoonsElevenConnecting = false;
@@ -77,13 +76,10 @@ capture_helpers = r'''
 if 'installTycoonsVoiceCaptures' not in s:
     s = s.replace("\n  async function loadTycoonsElevenSdk() {", capture_helpers + "\n  async function loadTycoonsElevenSdk() {")
 
-# Install capture before asking for mic.
 s = s.replace(
     "  async function requestTycoonsMicPermission() {\n    if (!navigator.mediaDevices",
     "  async function requestTycoonsMicPermission() {\n    installTycoonsVoiceCaptures();\n    if (!navigator.mediaDevices"
 )
-
-# Make start token-aware so a late start cannot turn UI back on after Stop.
 s = s.replace(
     "    tycoonsElevenConnecting = true;\n    tycoonsVoiceDispatch('connecting');",
     "    tycoonsElevenConnecting = true;\n    const startToken = ++tycoonsElevenStartToken;\n    tycoonsVoiceDispatch('connecting');"
@@ -96,8 +92,6 @@ s = s.replace(
     "      tycoonsElevenActive = true;\n      tycoonsElevenConnecting = false;\n      tycoonsVoiceDispatch('agent');",
     "      if (startToken !== tycoonsElevenStartToken) { await stopTycoonsElevenAgent(); return false; }\n      tycoonsElevenActive = true;\n      tycoonsElevenConnecting = false;\n      tycoonsVoiceDispatch('agent');"
 )
-
-# Replace stop body with stronger shutdown.
 s = re.sub(
     r"  async function stopTycoonsElevenAgent\(\) \{.*?\n  \}\n\n  async function toggleTycoonsElevenAgent",
     """  async function stopTycoonsElevenAgent() {
@@ -130,7 +124,7 @@ s = re.sub(
 )
 p.write_text(s)
 
-# ---------- Sync React voiceState with SDK events and use toggleAgent directly ----------
+# ---------- Sync React voiceState, reliable toggle, and prevent duplicate TTS voice ----------
 p = root / 'asset_5.js'
 s = p.read_text()
 
@@ -154,7 +148,20 @@ if 'tycoons:voice-state' not in s:
   }, [lang]);"""
     s = s.replace(anchor, anchor + state_effect)
 
-# Replace onMic with reliable toggle: if SDK says active, stop even if React state is stale.
+# If the query was triggered by ElevenLabs SDK, do NOT call the old TTS proxy voice_id.
+s = s.replace(
+    """      setMessages((m) => [...m, { role: 'assistant', text: reply, items: res.items }]);
+      setVoiceState('speaking');
+      window.TC_VOICE.speak(reply, lang, () => setVoiceState('idle'));""",
+    """      setMessages((m) => [...m, { role: 'assistant', text: reply, items: res.items }]);
+      if (o.voiceSource === 'elevenlabs_sdk') {
+        setVoiceState((window.TC_ELEVEN && window.TC_ELEVEN.isActive && window.TC_ELEVEN.isActive()) ? 'agent' : 'idle');
+      } else {
+        setVoiceState('speaking');
+        window.TC_VOICE.speak(reply, lang, () => setVoiceState('idle'));
+      }"""
+)
+
 new_onmic = r'''  function onMic() {
     const isSdkActive = !!(window.TC_ELEVEN && typeof window.TC_ELEVEN.isActive === 'function' && window.TC_ELEVEN.isActive());
     if (voiceState === 'listening' || voiceState === 'agent' || voiceState === 'connecting' || isSdkActive) {
@@ -184,13 +191,11 @@ new_onmic = r'''  function onMic() {
 s = re.sub(r"  function onMic\(\) \{.*?\n    window\.TC_VOICE\.stopSpeaking\(\);", new_onmic, s, flags=re.S)
 p.write_text(s)
 
-# Mirror patched assets into Netlify hashed bundle files if present.
 for asset, hashed in asset_map.items():
     dst = root / 'demos/tycoons-site/netlify' / hashed
     if dst.exists():
         dst.write_text((root / asset).read_text())
 
-# Repack modified assets into embedded index.html manifests.
 def patch_manifest(html_path):
     if not html_path.exists():
         return
@@ -210,4 +215,4 @@ def patch_manifest(html_path):
 
 patch_manifest(root / 'index.html')
 patch_manifest(root / 'demos/tycoons-site/netlify/index.html')
-print('Tycoons voice stop-toggle hardening patch applied')
+print('Tycoons voice stop-toggle + duplicate TTS prevention patch applied')
