@@ -8,6 +8,9 @@
 
   function sttSupported() { return !!SR; }
   function ttsSupported() { return true; }
+  function unsupportedReason() {
+    return SR ? '' : 'SpeechRecognition is not available in this browser.';
+  }
   function langCode(lang) { return lang === 'ar' ? 'ar-EG' : 'en-US'; }
 
   function listen(opts) {
@@ -58,5 +61,5 @@
     try { synth && synth.cancel(); } catch (_) {}
   }
 
-  window.TC_VOICE = { sttSupported, ttsSupported, listen, speak, stopSpeaking, setSpeaker };
+  window.TC_VOICE = { sttSupported, ttsSupported, unsupportedReason, listen, speak, stopSpeaking, setSpeaker };
 })();
