@@ -91,13 +91,27 @@ openai_bridge = r'''
       const pc = new RTCPeerConnection();
       const audio = document.createElement('audio');
       audio.autoplay = true;
+      audio.preload = 'auto';
       audio.setAttribute('playsinline', '');
       audio.style.display = 'none';
       document.body.appendChild(audio);
-      pc.ontrack = function (e) { audio.srcObject = e.streams[0]; };
+      pc.ontrack = function (e) {
+        audio.srcObject = e.streams[0];
+        var playPromise = audio.play();
+        if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(function () {});
+      };
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(function (track) { pc.addTrack(track, stream); });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1
+        }
+      });
+      const audioTrack = stream.getAudioTracks()[0];
+      if (!audioTrack) throw new Error('No microphone audio track was created.');
+      pc.addTrack(audioTrack, stream);
 
       const dc = pc.createDataChannel('oai-events');
       dc.addEventListener('open', function () {
@@ -157,7 +171,7 @@ openai_bridge = r'''
     try { stream && stream.getTracks().forEach(function (track) { track.stop(); }); } catch (_) {}
     try { pc && pc.getSenders().forEach(function (sender) { if (sender.track) sender.track.stop(); }); } catch (_) {}
     try { pc && pc.close(); } catch (_) {}
-    try { if (audio) { audio.pause(); audio.remove(); } } catch (_) {}
+    try { if (audio) { audio.pause(); audio.srcObject = null; audio.remove(); } } catch (_) {}
     tycoonsOpenAIDispatch('idle');
     return true;
   }
