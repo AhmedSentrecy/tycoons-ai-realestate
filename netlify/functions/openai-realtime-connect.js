@@ -1,3 +1,37 @@
+function corsHeaders(contentType) {
+  return {
+    'Content-Type': contentType,
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'no-store'
+  };
+}
+
+function normalizeSdp(event) {
+  let body = event.body || '';
+
+  if (event.isBase64Encoded) {
+    body = Buffer.from(body, 'base64').toString('utf8');
+  }
+
+  const contentType = String(event.headers?.['content-type'] || event.headers?.['Content-Type'] || '').toLowerCase();
+  const trimmed = String(body).trim();
+
+  if (contentType.includes('application/json') || trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      body = parsed.sdp || parsed.offer?.sdp || parsed.body || '';
+    } catch (_) {}
+  } else if (trimmed.startsWith('"')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (typeof parsed === 'string') body = parsed;
+    } catch (_) {}
+  }
+
+  body = String(body || '').replace(/^\uFEFF/, '').trim();
+  return body;
+}
+
 exports.handler = async function (event) {
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -19,14 +53,27 @@ exports.handler = async function (event) {
   if (!apiKey) {
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: corsHeaders('application/json'),
       body: JSON.stringify({ error: 'OPENAI_API_KEY is not configured in Netlify.' })
+    };
+  }
+
+  const sdp = normalizeSdp(event);
+  if (!sdp.startsWith('v=0')) {
+    return {
+      statusCode: 400,
+      headers: corsHeaders('application/json'),
+      body: JSON.stringify({
+        error: 'Invalid SDP received by Netlify function.',
+        received_prefix: sdp.slice(0, 24),
+        is_base64: !!event.isBase64Encoded
+      })
     };
   }
 
   const session = {
     type: 'realtime',
-    model: 'gpt-realtime-2.1',
+    model: process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2.1',
     output_modalities: ['audio'],
     instructions: [
       'You are the voice property assistant for Tycoons Investments in Egypt.',
@@ -46,7 +93,7 @@ exports.handler = async function (event) {
           interrupt_response: true
         }
       },
-      output: { voice: 'marin' }
+      output: { voice: process.env.OPENAI_REALTIME_VOICE || 'marin' }
     },
     tools: [
       {
@@ -84,7 +131,7 @@ exports.handler = async function (event) {
 
   try {
     const form = new FormData();
-    form.set('sdp', event.body || '');
+    form.set('sdp', sdp);
     form.set('session', JSON.stringify(session));
 
     const response = await fetch('https://api.openai.com/v1/realtime/calls', {
@@ -99,18 +146,14 @@ exports.handler = async function (event) {
     const text = await response.text();
     return {
       statusCode: response.status,
-      headers: {
-        'Content-Type': response.ok ? 'application/sdp' : 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-store'
-      },
+      headers: corsHeaders(response.ok ? 'application/sdp' : 'application/json'),
       body: text
     };
   } catch (error) {
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: error && error.message ? error.message : 'Realtime connection failed.' })
+      headers: corsHeaders('application/json'),
+      body: JSON.stringify({ error: error?.message || 'Realtime connection failed.' })
     };
   }
 };
