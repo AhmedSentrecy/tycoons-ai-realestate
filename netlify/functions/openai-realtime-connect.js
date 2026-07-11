@@ -28,7 +28,11 @@ function normalizeSdp(event) {
     } catch (_) {}
   }
 
-  return String(body || '').replace(/^\uFEFF/, '').trim();
+  let sdp = String(body || '').replace(/^\uFEFF/, '');
+  // Preserve SDP framing. OpenAI's SDP parser expects CRLF line endings and a final CRLF.
+  sdp = sdp.replace(/\r?\n/g, '\r\n').replace(/^[\t ]+|[\t ]+$/g, '');
+  if (sdp && !sdp.endsWith('\r\n')) sdp += '\r\n';
+  return sdp;
 }
 
 exports.handler = async function (event) {
