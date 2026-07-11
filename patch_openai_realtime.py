@@ -111,10 +111,11 @@ openai_bridge = r'''
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      const sdp = pc.localDescription && pc.localDescription.sdp ? pc.localDescription.sdp : offer.sdp;
       const response = await fetch(TYCOONS_OPENAI_SESSION_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/sdp' },
-        body: offer.sdp
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sdp })
       });
       if (!response.ok) {
         const message = await response.text();
