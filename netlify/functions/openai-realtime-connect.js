@@ -27,18 +27,24 @@ exports.handler = async function (event) {
   const session = {
     type: 'realtime',
     model: 'gpt-realtime-2.1',
+    output_modalities: ['audio'],
     instructions: [
       'You are the voice property assistant for Tycoons Investments in Egypt.',
       'Speak naturally in Egyptian Arabic when the user speaks Arabic, otherwise use English.',
-      'Keep replies concise and useful.',
-      'When the user describes a property need, call search_properties with the clearest complete query you can infer.',
-      'When the user provides a phone number, repeat it back and ask for confirmation before calling save_lead.',
-      'Do not invent prices, availability, projects, or payment plans.'
+      'Keep replies short and practical.',
+      'The conversation is full duplex: stop speaking immediately when the user interrupts and listen to the new request.',
+      'When the user describes a property need, call search_properties with one clear complete query.',
+      'When the user provides a phone number, repeat it clearly and ask for confirmation before calling save_lead.',
+      'Never invent prices, availability, projects, payment plans, or delivery dates.'
     ].join(' '),
     audio: {
       input: {
-        transcription: { model: 'gpt-4o-mini-transcribe', language: 'ar' },
-        turn_detection: { type: 'server_vad', create_response: true, interrupt_response: true }
+        transcription: { model: 'gpt-4o-mini-transcribe' },
+        turn_detection: {
+          type: 'semantic_vad',
+          create_response: true,
+          interrupt_response: true
+        }
       },
       output: { voice: 'marin' }
     },
