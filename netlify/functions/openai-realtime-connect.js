@@ -59,13 +59,14 @@ exports.handler = async function (event) {
   }
 
   const sdp = normalizeSdp(event);
-  if (!sdp.startsWith('v=0')) {
+  if (!sdp.startsWith('v=0') || sdp.length < 100) {
     return {
       statusCode: 400,
       headers: corsHeaders('application/json'),
       body: JSON.stringify({
-        error: 'Invalid SDP received by Netlify function.',
+        error: 'Invalid or incomplete SDP received by Netlify function.',
         received_prefix: sdp.slice(0, 24),
+        received_length: sdp.length,
         is_base64: !!event.isBase64Encoded
       })
     };
@@ -131,8 +132,8 @@ exports.handler = async function (event) {
 
   try {
     const form = new FormData();
-    form.set('sdp', sdp);
-    form.set('session', JSON.stringify(session));
+    form.set('sdp', new Blob([sdp], { type: 'application/sdp' }), 'offer.sdp');
+    form.set('session', new Blob([JSON.stringify(session)], { type: 'application/json' }), 'session.json');
 
     const response = await fetch('https://api.openai.com/v1/realtime/calls', {
       method: 'POST',
