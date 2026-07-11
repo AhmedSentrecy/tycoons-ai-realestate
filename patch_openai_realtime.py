@@ -180,12 +180,6 @@ openai_bridge = r'''
     window.TC_VOICE.startAgent = startTycoonsOpenAI;
     window.TC_VOICE.stopAgent = stopTycoonsOpenAI;
     window.TC_VOICE.toggleAgent = toggleTycoonsOpenAI;
-    // OpenAI Realtime is the only allowed website voice output. This prevents
-    // old ElevenLabs/browser TTS from speaking after search results appear.
-    window.TC_VOICE.speak = function (_text, _lang, onEnd) { if (onEnd) onEnd(); };
-    window.TC_VOICE.stopSpeaking = function () {
-      try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (_) {}
-    };
   }
 '''
 
@@ -215,7 +209,7 @@ if 'tycoons:voice-transcript' not in s:
   }, [lang]);"""
     s = s.replace(anchor, anchor + transcript_effect)
 
-# Avoid any old TTS path when OpenAI Realtime initiated the query.
+# Avoid old ElevenLabs TTS when OpenAI Realtime initiated the query.
 s = s.replace("o.voiceSource === 'elevenlabs_sdk'", "(o.voiceSource === 'elevenlabs_sdk' || o.voiceSource === 'openai_realtime')")
 
 new_onmic = r'''  function onMic() {
