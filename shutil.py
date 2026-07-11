@@ -10,6 +10,10 @@ def apply_voice_patch_after_build():
         import patch_voice_stop_toggle  # noqa: F401
     except Exception as exc:
         print('[Tycoons] voice stop-toggle patch skipped:', exc)
+    try:
+        import patch_openai_realtime  # noqa: F401
+    except Exception as exc:
+        print('[Tycoons] OpenAI Realtime patch skipped:', exc)
 
 
 atexit.register(apply_voice_patch_after_build)
