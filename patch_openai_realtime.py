@@ -23,9 +23,8 @@ openai_bridge = r'''
   let tycoonsOpenAIConnecting = false;
 
   function tycoonsOpenAIDispatch(state, extra) {
-    window.dispatchEvent(new CustomEvent('tycoons:voice-state', {
-      detail: { state, active: state !== 'idle', provider: 'openai', ...(extra || {}) }
-    }));
+    const detail = Object.assign({ state: state, active: state !== 'idle', provider: 'openai' }, extra || {});
+    window.dispatchEvent(new CustomEvent('tycoons:voice-state', { detail: detail }));
   }
 
   function tycoonsOpenAISend(event) {
@@ -45,7 +44,7 @@ openai_bridge = r'''
         const query = String(args.query || '').trim();
         window.dispatchEvent(new CustomEvent('tycoons:voice-transcript', { detail: { text: query } }));
         output = typeof window.TC_RUN_VOICE_SEARCH === 'function'
-          ? await window.TC_RUN_VOICE_SEARCH(query, { source: 'openai_realtime', args })
+          ? await window.TC_RUN_VOICE_SEARCH(query, { source: 'openai_realtime', args: args })
           : { success: false, message: 'Website search bridge is not ready.' };
       } else if (name === 'save_lead') {
         output = typeof window.TC_SAVE_VOICE_LEAD === 'function'
@@ -73,7 +72,7 @@ openai_bridge = r'''
     try { event = JSON.parse(raw); } catch (_) { return; }
     if (event.type === 'conversation.item.input_audio_transcription.completed') {
       const text = String(event.transcript || '').trim();
-      if (text) window.dispatchEvent(new CustomEvent('tycoons:voice-transcript', { detail: { text } }));
+      if (text) window.dispatchEvent(new CustomEvent('tycoons:voice-transcript', { detail: { text: text } }));
     }
     if (event.type === 'response.function_call_arguments.done') {
       tycoonsOpenAIToolResult(event);
@@ -95,19 +94,19 @@ openai_bridge = r'''
       audio.setAttribute('playsinline', '');
       audio.style.display = 'none';
       document.body.appendChild(audio);
-      pc.ontrack = (e) => { audio.srcObject = e.streams[0]; };
+      pc.ontrack = function (e) { audio.srcObject = e.streams[0]; };
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+      stream.getTracks().forEach(function (track) { pc.addTrack(track, stream); });
 
       const dc = pc.createDataChannel('oai-events');
-      dc.addEventListener('open', () => {
+      dc.addEventListener('open', function () {
         tycoonsOpenAIConnecting = false;
         tycoonsOpenAIActive = true;
         tycoonsOpenAIDispatch('agent');
       });
-      dc.addEventListener('message', (e) => handleTycoonsOpenAIEvent(e.data));
-      dc.addEventListener('close', () => stopTycoonsOpenAI());
+      dc.addEventListener('message', function (e) { handleTycoonsOpenAIEvent(e.data); });
+      dc.addEventListener('close', function () { stopTycoonsOpenAI(); });
 
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
@@ -115,7 +114,7 @@ openai_bridge = r'''
       const response = await fetch(TYCOONS_OPENAI_SESSION_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sdp })
+        body: JSON.stringify({ sdp: sdp })
       });
       if (!response.ok) {
         const message = await response.text();
@@ -131,7 +130,7 @@ openai_bridge = r'''
     } catch (error) {
       tycoonsOpenAIConnecting = false;
       tycoonsOpenAIActive = false;
-      try { tycoonsOpenAIStream && tycoonsOpenAIStream.getTracks().forEach((t) => t.stop()); } catch (_) {}
+      try { tycoonsOpenAIStream && tycoonsOpenAIStream.getTracks().forEach(function (t) { t.stop(); }); } catch (_) {}
       try { tycoonsOpenAIPeer && tycoonsOpenAIPeer.close(); } catch (_) {}
       try { tycoonsOpenAIAudio && tycoonsOpenAIAudio.remove(); } catch (_) {}
       tycoonsOpenAIPeer = null;
@@ -155,10 +154,10 @@ openai_bridge = r'''
     tycoonsOpenAIConnecting = false;
     tycoonsOpenAIActive = false;
     try { dc && dc.close(); } catch (_) {}
-    try { stream && stream.getTracks().forEach((track) => track.stop()); } catch (_) {}
-    try { pc && pc.getSenders().forEach((sender) => sender.track && sender.track.stop()); } catch (_) {}
+    try { stream && stream.getTracks().forEach(function (track) { track.stop(); }); } catch (_) {}
+    try { pc && pc.getSenders().forEach(function (sender) { if (sender.track) sender.track.stop(); }); } catch (_) {}
     try { pc && pc.close(); } catch (_) {}
-    try { audio && audio.pause(); audio && audio.remove(); } catch (_) {}
+    try { if (audio) { audio.pause(); audio.remove(); } } catch (_) {}
     tycoonsOpenAIDispatch('idle');
     return true;
   }
@@ -173,7 +172,7 @@ openai_bridge = r'''
     startAgent: startTycoonsOpenAI,
     stopAgent: stopTycoonsOpenAI,
     toggleAgent: toggleTycoonsOpenAI,
-    isActive: () => tycoonsOpenAIActive || tycoonsOpenAIConnecting
+    isActive: function () { return tycoonsOpenAIActive || tycoonsOpenAIConnecting; }
   };
 
   if (window.TC_VOICE) {
