@@ -28,8 +28,7 @@ function normalizeSdp(event) {
     } catch (_) {}
   }
 
-  body = String(body || '').replace(/^\uFEFF/, '').trim();
-  return body;
+  return String(body || '').replace(/^\uFEFF/, '').trim();
 }
 
 exports.handler = async function (event) {
@@ -132,8 +131,9 @@ exports.handler = async function (event) {
 
   try {
     const form = new FormData();
-    form.set('sdp', new Blob([sdp], { type: 'application/sdp' }), 'offer.sdp');
-    form.set('session', new Blob([JSON.stringify(session)], { type: 'application/json' }), 'session.json');
+    // OpenAI's unified Realtime WebRTC endpoint expects normal text fields here.
+    form.set('sdp', sdp);
+    form.set('session', JSON.stringify(session));
 
     const response = await fetch('https://api.openai.com/v1/realtime/calls', {
       method: 'POST',
