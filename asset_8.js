@@ -264,8 +264,8 @@ function TCPopular({ lang, t, onSearch, onSeeMore, forceAll }) {
 function TCFooter({ lang }) {
   const ar = lang === 'ar';
   const cols = ar
-    ? [['المنصة', ['البحث الذكي', 'البحث الصوتي', 'الطرح الجديد', 'الحاسبة']], ['المناطق', ['الساحل', 'التجمع', 'السخنة', 'زايد']], ['Tycoons', ['من نحن', 'المطوّرون', 'تواصل معنا', 'الوظائف']]]
-    : [['Platform', ['AI search', 'Voice search', 'New launches', 'Calculator']], ['Areas', ['North Coast', 'New Cairo', 'Ain Sokhna', 'Zayed']], ['Tycoons', ['About', 'Developers', 'Contact', 'Careers']]];
+    ? [['المنصة', [['البحث الذكي', '/#tc-console'], ['البحث الصوتي', '/#tc-console'], ['الطرح الجديد', '/#tc-launches'], ['الحاسبة', '/#tc-calc']]], ['المناطق', [['الساحل', '/ar/areas/north-coast'], ['التجمع', '/ar/areas/new-cairo'], ['السخنة', '/ar/areas/ain-sokhna'], ['زايد', '/ar/areas/sheikh-zayed']]], ['Tycoons', [['دليل المشاريع', '/ar/'], ['المطوّرون', '/ar/'], ['تواصل معنا', 'https://wa.me/201200704344']]]]
+    : [['Platform', [['AI search', '/#tc-console'], ['Voice search', '/#tc-console'], ['New launches', '/#tc-launches'], ['Calculator', '/#tc-calc']]], ['Areas', [['North Coast', '/en/areas/north-coast'], ['New Cairo', '/en/areas/new-cairo'], ['Ain Sokhna', '/en/areas/ain-sokhna'], ['Zayed', '/en/areas/sheikh-zayed']]], ['Tycoons', [['Project directory', '/en/'], ['Developers', '/en/'], ['Contact', 'https://wa.me/201200704344']]]];
   return (
     <footer style={{ marginTop: 30, background: 'var(--navy)', color: '#fff', borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0' }}>
       <div style={{ width: 'min(1240px,calc(100% - 32px))', margin: '0 auto', padding: '40px 0 26px', display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) repeat(3,minmax(0,1fr))', gap: 24 }} className="tc-foot">
@@ -276,7 +276,7 @@ function TCFooter({ lang }) {
         {cols.map(([head, links], i) => (
           <div key={i}>
             <span style={{ display: 'block', fontFamily: ar ? 'var(--font-arabic)' : 'var(--font-display)', fontWeight: 900, fontSize: 13, color: 'var(--gold-light)', marginBottom: 12 }}>{head}</span>
-            {links.map((l, j) => <a key={j} href="#" style={{ display: 'block', color: 'rgba(255,255,255,.72)', textDecoration: 'none', fontFamily: ar ? 'var(--font-arabic)' : 'var(--font-body)', fontSize: 13.5, padding: '5px 0' }}>{l}</a>)}
+            {links.map(([label, href], j) => <a key={j} href={href} style={{ display: 'block', color: 'rgba(255,255,255,.72)', textDecoration: 'none', fontFamily: ar ? 'var(--font-arabic)' : 'var(--font-body)', fontSize: 13.5, padding: '5px 0' }}>{label}</a>)}
           </div>
         ))}
       </div>

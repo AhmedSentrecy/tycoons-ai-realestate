@@ -1,3 +1,58 @@
 [build]
   command = "python3 patch_tycoons_build.py"
   publish = "."
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/sitemap"
+  status = 200
+
+[[redirects]]
+  from = "/ar"
+  to = "/ar/"
+  status = 301
+
+[[redirects]]
+  from = "/en"
+  to = "/en/"
+  status = 301
+
+[[redirects]]
+  from = "/ar/"
+  to = "/.netlify/functions/seo-page?lang=ar&type=home"
+  status = 200
+
+[[redirects]]
+  from = "/en/"
+  to = "/.netlify/functions/seo-page?lang=en&type=home"
+  status = 200
+
+[[redirects]]
+  from = "/ar/projects/*"
+  to = "/.netlify/functions/seo-page?lang=ar&type=project&slug=:splat"
+  status = 200
+
+[[redirects]]
+  from = "/en/projects/*"
+  to = "/.netlify/functions/seo-page?lang=en&type=project&slug=:splat"
+  status = 200
+
+[[redirects]]
+  from = "/ar/areas/*"
+  to = "/.netlify/functions/seo-page?lang=ar&type=area&slug=:splat"
+  status = 200
+
+[[redirects]]
+  from = "/en/areas/*"
+  to = "/.netlify/functions/seo-page?lang=en&type=area&slug=:splat"
+  status = 200
+
+[[redirects]]
+  from = "/ar/developers/*"
+  to = "/.netlify/functions/seo-page?lang=ar&type=developer&slug=:splat"
+  status = 200
+
+[[redirects]]
+  from = "/en/developers/*"
+  to = "/.netlify/functions/seo-page?lang=en&type=developer&slug=:splat"
+  status = 200

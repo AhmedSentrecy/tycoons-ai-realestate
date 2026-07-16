@@ -4,7 +4,7 @@
 
 // Small swipeable image carousel — used by both the card and the project
 // hero. Falls back to a single striped placeholder when there's no photo.
-function TCImageCarousel({ images, height, ar }) {
+function TCImageCarousel({ images, height, ar, alt }) {
   const [idx, setIdx] = React.useState(0);
   const imgs = images && images.length ? images : [];
   const has = imgs.length > 0;
@@ -14,7 +14,7 @@ function TCImageCarousel({ images, height, ar }) {
     <div style={{ position: 'relative', height, overflow: 'hidden',
       background: has ? '#eef1f5' : 'repeating-linear-gradient(135deg,#edf0f5,#edf0f5 11px,#f5eede 11px,#f5eede 22px)' }}>
       {has ? (
-        <img src={imgs[idx]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <img src={imgs[idx]} alt={alt || ''} loading="lazy" decoding="async" width="800" height="450" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : null}
       {many && (
         <>
@@ -39,6 +39,26 @@ function TCImageCarousel({ images, height, ar }) {
   );
 }
 window.TCImageCarousel = TCImageCarousel;
+
+function TCSeoSlug(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+    .toLowerCase().trim()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9\u0600-\u06ff]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-') || 'property';
+}
+function TCProjectPath(p, lang) {
+  const name = TCSeoSlug(p && p.compound);
+  const developer = TCSeoSlug(p && p.developer);
+  const slug = developer && developer !== 'property' ? `${name}--${developer}` : name;
+  return `/${lang === 'en' ? 'en' : 'ar'}/projects/${slug}`;
+}
+window.TCSeoSlug = TCSeoSlug;
+window.TCProjectPath = TCProjectPath;
 
 function TCResultCard({ project: p, lang, variant = 'big', onOpen, style }) {
   const { Badge, Tag, WhatsAppButton, Button } = window.TycoonsInvestmentsDesignSystem_8890c9;
@@ -85,7 +105,7 @@ function TCResultCard({ project: p, lang, variant = 'big', onOpen, style }) {
       <div role="button" tabIndex={0} onClick={() => onOpen && onOpen(p)}
         onKeyDown={(e) => { if (e.key === 'Enter') onOpen && onOpen(p); }}
         style={{ position: 'relative', height: imgH, cursor: 'pointer', width: '100%', overflow: 'hidden' }}>
-        <TCImageCarousel images={p.gallery && p.gallery.length ? p.gallery : (p.image_url ? [p.image_url] : [])} height={imgH} ar={ar} />
+        <TCImageCarousel images={p.gallery && p.gallery.length ? p.gallery : (p.image_url ? [p.image_url] : [])} height={imgH} ar={ar} alt={`${title} — ${p.compound}`} />
         {(!p.gallery || !p.gallery.length) && !p.image_url && (
           <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--faint)', letterSpacing: '.08em', textTransform: 'uppercase', background: 'rgba(255,255,255,.72)', padding: '4px 9px', borderRadius: 999 }}>{p.compound}</span>
@@ -116,11 +136,11 @@ function TCResultCard({ project: p, lang, variant = 'big', onOpen, style }) {
           <Badge tone={p.status === 'available' ? 'available' : p.status === 'sold_out' ? 'soldout' : 'gold'} style={ar ? { fontFamily: 'var(--font-arabic)', letterSpacing: 0, textTransform: 'none' } : null}>{t.status[p.status]}</Badge>
         </div>
 
-        <button type="button" onClick={() => onOpen && onOpen(p)} style={{
+        <a href={TCProjectPath(p, lang)} style={{
           textAlign: ar ? 'right' : 'left', border: 'none', background: 'none', padding: 0, cursor: 'pointer',
           color: 'var(--navy)', fontFamily: ar ? 'var(--font-arabic)' : 'var(--font-display)', fontWeight: 700,
-          fontSize: variant === 'big' ? 17 : 15.5, lineHeight: ar ? 1.35 : 1.22, letterSpacing: ar ? 0 : '-.02em',
-        }}>{title}</button>
+          fontSize: variant === 'big' ? 17 : 15.5, lineHeight: ar ? 1.35 : 1.22, letterSpacing: ar ? 0 : '-.02em', textDecoration: 'none',
+        }}>{title}</a>
 
         {/* price row */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'var(--surface-warm)', border: '1px solid var(--line-gold)' }}>
