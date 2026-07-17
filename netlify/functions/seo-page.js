@@ -16,10 +16,18 @@ exports.handler = async function handler(event) {
     .replace(/^\/+|\/+$/g, "")
     .split("/")
     .filter(Boolean);
-  const lang = (route[0] || params.lang) === "en" ? "en" : "ar";
-  const requestedType = route[1] || params.type;
+  let requestPath = "";
+  try {
+    requestPath = decodeURIComponent(new URL(event.rawUrl || event.path || "/", "https://tycoons-inv.de").pathname);
+  } catch (_) {
+    requestPath = decodeURIComponent(String(event.path || ""));
+  }
+  const pathMatch = requestPath.match(/^\/(ar|en)(?:\/(projects|areas|developers)\/([^?#]+))?\/?$/i);
+  const pathType = pathMatch && ({ projects: "project", areas: "area", developers: "developer" }[pathMatch[2]] || "home");
+  const lang = (route[0] || params.lang || (pathMatch && pathMatch[1])) === "en" ? "en" : "ar";
+  const requestedType = route[1] || params.type || pathType;
   const type = ["home", "project", "area", "developer"].includes(requestedType) ? requestedType : "home";
-  const slug = decodeURIComponent(String(route.slice(2).join("/") || params.slug || "").replace(/^\/+|\/+$/g, ""));
+  const slug = decodeURIComponent(String(route.slice(2).join("/") || params.slug || (pathMatch && pathMatch[3]) || "").replace(/^\/+|\/+$/g, ""));
 
   try {
     const units = await fetchUnits();
