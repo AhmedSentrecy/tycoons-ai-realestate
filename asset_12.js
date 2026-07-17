@@ -37,7 +37,7 @@ function TCProjectPage({ lang, t, project: p, onBack, onOpenProject, onSeeMore }
 
       {/* Hero image */}
       <div style={{ position: 'relative', height: 'clamp(220px,38vw,380px)', borderRadius: 'var(--radius-2xl)', overflow: 'hidden' }}>
-        <window.TCImageCarousel images={p.gallery && p.gallery.length ? p.gallery : (p.image_url ? [p.image_url] : [])} height={'100%'} ar={ar} />
+        <window.TCImageCarousel images={p.gallery && p.gallery.length ? p.gallery : (p.image_url ? [p.image_url] : [])} height={'100%'} ar={ar} alt={`${title} — ${p.compound}`} />
         {(!p.gallery || !p.gallery.length) && !p.image_url && (
           <span style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', pointerEvents: 'none' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--faint)', letterSpacing: '.1em', textTransform: 'uppercase', background: 'rgba(255,255,255,.75)', padding: '6px 12px', borderRadius: 999 }}>{p.compound} — {t.galleryNote}</span>

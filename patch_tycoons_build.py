@@ -9,6 +9,7 @@ asset_map = {
  'asset_12.js':'ede3cccd-57e2-4efe-b2e0-581e7d8f396f',
  'asset_9.js':'c774c742-6bc9-4360-b251-c48efef58e73',
  'asset_5.js':'57de0e87-3a9d-4599-a85c-63b2c907cffe',
+ 'asset_8.js':'2791094e-7373-49ab-a4db-86fe34f99651',
 }
 
 # ---------- Supabase adapter patch ----------
@@ -269,6 +270,77 @@ def patch_manifest(html_path):
     text2 = text[:m.start(1)] + new_json + text[m.end(1):]
     html_path.write_text(text2)
 
+def patch_template(html_path):
+    text = html_path.read_text()
+    m = re.search(r'<script type="__bundler/template">(.*?)</script>', text, re.S)
+    if not m:
+        return
+    # The template is stored inside a <script> tag. Escape every closing
+    # script sequence so the outer HTML parser does not terminate the bundle
+    # block when the runtime template contains JSON-LD or application scripts.
+    template_json = json.dumps((root/'template.html').read_text()).replace('</script>', '<\\/script>')
+    html_path.write_text(text[:m.start(1)] + template_json + text[m.end(1):])
+
+def patch_outer_shell(html_path):
+    text = html_path.read_text()
+    if '<!-- SEO_GEO_HEAD -->' not in text:
+        head = '''<!-- SEO_GEO_HEAD -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tycoons Investments | ابحث عن عقارك في مصر بالذكاء الاصطناعي</title>
+  <meta name="description" content="ابحث عن شقق وفلل وشاليهات في مصر بالذكاء الاصطناعي. قارن الأسعار والمساحات وخطط السداد والاستلام من المطورين مباشرة.">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <meta name="theme-color" content="#11213f">
+  <link rel="canonical" href="https://tycoons-inv.de/">
+  <link rel="alternate" hreflang="ar-EG" href="https://tycoons-inv.de/ar/">
+  <link rel="alternate" hreflang="en" href="https://tycoons-inv.de/en/">
+  <link rel="alternate" hreflang="x-default" href="https://tycoons-inv.de/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Tycoons Investments">
+  <meta property="og:locale" content="ar_EG">
+  <meta property="og:title" content="Tycoons Investments | بحث عقاري بالذكاء الاصطناعي">
+  <meta property="og:description" content="قارن أحدث أسعار ومساحات وخطط سداد المشاريع العقارية في مصر، وابحث بصوتك عن الوحدة المناسبة.">
+  <meta property="og:url" content="https://tycoons-inv.de/">
+  <meta name="twitter:card" content="summary">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":["Organization","RealEstateAgent"],"name":"Tycoons Investments","url":"https://tycoons-inv.de/","telephone":"+201200704344","areaServed":{"@type":"Country","name":"Egypt"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Tycoons Investments","url":"https://tycoons-inv.de/","inLanguage":["ar-EG","en"]}</script>'''
+        text = re.sub(r'<title>.*?</title>', head, text, count=1, flags=re.S)
+        text = re.sub(r'<html(?:\s[^>]*)?>', '<html lang="ar" dir="rtl">', text, count=1)
+        text = text.replace(
+            '    #__bundler_loading {',
+            '''    #seo-fallback { width: min(980px, calc(100% - 32px)); margin: 32px auto; padding: clamp(24px, 5vw, 54px); color: #17233d; background: #fff; border: 1px solid #e1e5ec; border-radius: 24px; box-shadow: 0 18px 44px rgba(17,33,63,.08); line-height: 1.7; }
+    #seo-fallback h1 { margin: 0 0 12px; font-size: clamp(30px, 5vw, 52px); line-height: 1.2; }
+    #seo-fallback p { color: #5f6878; font-size: 18px; }
+    #seo-fallback nav { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+    #seo-fallback a { color: #11213f; background: #f6f2e9; border: 1px solid #e4d4ae; border-radius: 999px; padding: 9px 15px; text-decoration: none; font-weight: 700; }
+    #__bundler_loading {''',
+            1,
+        )
+        text = text.replace(
+            '<style>#__bundler_loading { display: none; }</style>',
+            '<style>#__bundler_loading, #__bundler_thumbnail { display: none; }</style>',
+            1,
+        )
+    if '<!-- SEO_GEO_FALLBACK -->' not in text:
+        fallback = '''<!-- SEO_GEO_FALLBACK -->
+  <main id="seo-fallback">
+    <strong>Tycoons Investments</strong>
+    <h1>ابحث عن عقارك في مصر بالذكاء الاصطناعي والصوت</h1>
+    <p>قارن الوحدات المؤكدة من المطورين مباشرة حسب السعر والمساحة والموقع وخطة السداد والاستلام. استكشف مشاريع القاهرة الجديدة والساحل الشمالي والشيخ زايد والعين السخنة والعاصمة الإدارية.</p>
+    <nav aria-label="روابط عقارية رئيسية">
+      <a href="/ar/">دليل المشاريع</a>
+      <a href="/ar/areas/new-cairo">مشاريع التجمع والقاهرة الجديدة</a>
+      <a href="/ar/areas/north-coast">مشاريع الساحل الشمالي</a>
+      <a href="/ar/areas/sheikh-zayed">مشاريع الشيخ زايد</a>
+      <a href="/en/" lang="en" dir="ltr">English property directory</a>
+    </nav>
+  </main>'''
+        text = text.replace('<body>', f'<body>\n  {fallback}', 1)
+    html_path.write_text(text)
+
+patch_outer_shell(root/'index.html')
+patch_outer_shell(root/'demos/tycoons-site/netlify/index.html')
+patch_template(root/'index.html')
+patch_template(root/'demos/tycoons-site/netlify/index.html')
 patch_manifest(root/'index.html')
 patch_manifest(root/'demos/tycoons-site/netlify/index.html')
 

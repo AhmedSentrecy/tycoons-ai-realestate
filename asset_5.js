@@ -75,6 +75,22 @@ function App() {
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    const ar = lang === 'ar';
+    const title = ar
+      ? 'Tycoons Investments | ابحث عن عقارك في مصر بالذكاء الاصطناعي'
+      : 'Tycoons Investments | AI Property Search in Egypt';
+    const description = ar
+      ? 'ابحث عن شقق وفلل وشاليهات في مصر بالذكاء الاصطناعي. قارن الأسعار والمساحات وخطط السداد والاستلام من المطورين مباشرة.'
+      : 'Search apartments, villas and chalets in Egypt with AI. Compare updated prices, areas, payment plans and delivery details.';
+    document.title = title;
+    const descriptionMeta = document.querySelector('meta[name="description"]');
+    if (descriptionMeta) descriptionMeta.setAttribute('content', description);
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    const ogDescription = document.querySelector('meta[property="og:description"]');
+    const ogLocale = document.querySelector('meta[property="og:locale"]');
+    if (ogTitle) ogTitle.setAttribute('content', title);
+    if (ogDescription) ogDescription.setAttribute('content', description);
+    if (ogLocale) ogLocale.setAttribute('content', ar ? 'ar_EG' : 'en_US');
   }, [lang]);
 
   function scrollToConsole() {
