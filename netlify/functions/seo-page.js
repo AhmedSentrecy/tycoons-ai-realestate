@@ -12,9 +12,14 @@ const {
 
 exports.handler = async function handler(event) {
   const params = event.queryStringParameters || {};
-  const lang = params.lang === "en" ? "en" : "ar";
-  const type = ["home", "project", "area", "developer"].includes(params.type) ? params.type : "home";
-  const slug = decodeURIComponent(String(params.slug || "").replace(/^\/+|\/+$/g, ""));
+  const route = decodeURIComponent(String(params.route || ""))
+    .replace(/^\/+|\/+$/g, "")
+    .split("/")
+    .filter(Boolean);
+  const lang = (route[0] || params.lang) === "en" ? "en" : "ar";
+  const requestedType = route[1] || params.type;
+  const type = ["home", "project", "area", "developer"].includes(requestedType) ? requestedType : "home";
+  const slug = decodeURIComponent(String(route.slice(2).join("/") || params.slug || "").replace(/^\/+|\/+$/g, ""));
 
   try {
     const units = await fetchUnits();

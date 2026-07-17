@@ -19,40 +19,40 @@
 
 [[redirects]]
   from = "/ar/"
-  to = "/.netlify/functions/seo-page?lang=ar&type=home"
+  to = "/.netlify/functions/seo-page?route=ar/home"
   status = 200
 
 [[redirects]]
   from = "/en/"
-  to = "/.netlify/functions/seo-page?lang=en&type=home"
+  to = "/.netlify/functions/seo-page?route=en/home"
   status = 200
 
 [[redirects]]
   from = "/ar/projects/*"
-  to = "/.netlify/functions/seo-page?lang=ar&type=project&slug=:splat"
+  to = "/.netlify/functions/seo-page?route=ar/project/:splat"
   status = 200
 
 [[redirects]]
   from = "/en/projects/*"
-  to = "/.netlify/functions/seo-page?lang=en&type=project&slug=:splat"
+  to = "/.netlify/functions/seo-page?route=en/project/:splat"
   status = 200
 
 [[redirects]]
   from = "/ar/areas/*"
-  to = "/.netlify/functions/seo-page?lang=ar&type=area&slug=:splat"
+  to = "/.netlify/functions/seo-page?route=ar/area/:splat"
   status = 200
 
 [[redirects]]
   from = "/en/areas/*"
-  to = "/.netlify/functions/seo-page?lang=en&type=area&slug=:splat"
+  to = "/.netlify/functions/seo-page?route=en/area/:splat"
   status = 200
 
 [[redirects]]
   from = "/ar/developers/*"
-  to = "/.netlify/functions/seo-page?lang=ar&type=developer&slug=:splat"
+  to = "/.netlify/functions/seo-page?route=ar/developer/:splat"
   status = 200
 
 [[redirects]]
   from = "/en/developers/*"
-  to = "/.netlify/functions/seo-page?lang=en&type=developer&slug=:splat"
+  to = "/.netlify/functions/seo-page?route=en/developer/:splat"
   status = 200
