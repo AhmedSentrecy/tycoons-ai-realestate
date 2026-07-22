@@ -1,9 +1,12 @@
 User-agent: *
 Allow: /
 Disallow: /.netlify/functions/
+Disallow: /admin.html
+Disallow: /admin/
 
 User-agent: OAI-SearchBot
 Allow: /
+Disallow: /admin.html
+Disallow: /admin/
 
 Sitemap: https://tycoons-inv.de/sitemap.xml
-
