@@ -28,6 +28,15 @@ exports.handler = async function handler() {
     addUrl(urls, "/ar/");
     addUrl(urls, "/en/");
 
+    for (const path of [
+      "/about/",
+      "/contact/",
+      "/data-sources/",
+      "/editorial-policy/",
+      "/privacy/",
+      "/compare/aliva-vs-bloomfields/",
+    ]) addUrl(urls, path, "2026-07-22");
+
     for (const project of projects) {
       const lastmod = projectLastUpdated(project);
       for (const lang of ["ar", "en"]) {
@@ -59,4 +68,3 @@ ${[...urls.entries()].map(([loc, lastmod]) => `  <url>
     };
   }
 };
-
