@@ -1,0 +1,27 @@
+# Tycoons Investments
+
+Tycoons Investments is an Egyptian real estate brokerage and AI-assisted property search platform.
+
+Primary website: https://tycoons-inv.de/
+Arabic directory: https://tycoons-inv.de/ar/
+English directory: https://tycoons-inv.de/en/
+
+## Main services
+- Search confirmed property inventory in Egypt.
+- Compare projects and units by price, area, location, delivery, finishing, and payment plan.
+- Help buyers understand which property fits their residential or investment goals.
+- Continue with the Tycoons sales team through WhatsApp.
+
+## Main locations
+- New Cairo
+- Mostakbal City
+- North Coast
+- Sheikh Zayed
+- Ain Sokhna
+- New Administrative Capital
+
+## Data notes
+Property availability, prices, payment plans, and delivery details may change. Visitors should confirm the latest information with Tycoons Investments through WhatsApp.
+
+## Contact
+WhatsApp: https://wa.me/201200704344
