@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <title>Tycoons Admin</title>
+  <style>
+    :root{--bg:#0b0d0f;--panel:#15191d;--line:#2a3036;--text:#f5f7f8;--muted:#9aa4ad;--accent:#d4af37;--danger:#ef4444}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1400px;margin:auto;padding:24px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:18px}
+    h1,h2{margin:0 0 14px}.muted{color:var(--muted)}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    input,select,textarea,button{font:inherit}input,select,textarea{width:100%;background:#0f1215;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px}
+    textarea{min-height:88px;resize:vertical}.grid{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:12px}
+    button{border:0;border-radius:10px;padding:10px 14px;cursor:pointer;font-weight:700;background:var(--accent);color:#111}
+    button.secondary{background:#252b31;color:var(--text)}button.danger{background:var(--danger);color:white}button:disabled{opacity:.55;cursor:not-allowed}
+    .hidden{display:none!important}.status{padding:10px 12px;border-radius:10px;background:#10151a;border:1px solid var(--line);margin-top:12px;white-space:pre-wrap}
+    .table-wrap{overflow:auto;max-height:62vh;border:1px solid var(--line);border-radius:12px}table{border-collapse:collapse;width:100%;min-width:1300px;background:#101316}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-size:13px}th{position:sticky;top:0;background:#1b2025;z-index:1}
+    td.actions{white-space:nowrap}.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+    .pill{display:inline-block;padding:5px 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:600px){.grid{grid-template-columns:1fr}.wrap{padding:14px}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar"><div><h1>Tycoons Admin</h1><div class="muted">Inventory management</div></div><button id="logoutBtn" class="secondary hidden">Log out</button></div>
+
+  <section id="loginCard" class="card">
+    <h2>Admin login</h2>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <input id="email" type="email" placeholder="Admin email" autocomplete="username" />
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+    </div>
+    <div class="row" style="margin-top:12px"><button id="loginBtn">Sign in</button></div>
+    <div id="loginStatus" class="status hidden"></div>
+  </section>
+
+  <main id="adminApp" class="hidden">
+    <section class="card">
+      <div class="row" style="justify-content:space-between"><div><h2 id="formTitle">Add unit</h2><span class="pill" id="sessionEmail"></span></div><div class="row"><button id="clearBtn" class="secondary">Clear</button><button id="saveBtn">Save unit</button></div></div>
+      <input id="rowId" type="hidden" />
+      <div id="formGrid" class="grid"></div>
+      <div id="saveStatus" class="status hidden"></div>
+    </section>
+
+    <section class="card">
+      <div class="row" style="justify-content:space-between"><div><h2>Units</h2><span id="count" class="muted"></span></div><div class="row"><input id="search" style="width:280px" placeholder="Search project, developer, location…"/><button id="refreshBtn" class="secondary">Refresh</button></div></div>
+      <div id="loadStatus" class="status hidden"></div>
+      <div class="table-wrap"><table><thead><tr id="headRow"></tr></thead><tbody id="unitsBody"></tbody></table></div>
+    </section>
+  </main>
+</div>
+<script>
+(() => {
+  'use strict';
+  const SUPABASE_URL='https://coqnjymekrkoausiiytm.supabase.co';
+  const ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcW5qeW1la3Jrb2F1c2lpeXRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4MDg3NjYsImV4cCI6MjA5NzM4NDc2Nn0.EIaGjkVORMuHelyUuMIA8EinAIlyY84sqQpgnEjPxEY';
+  const FIELDS=['project_name','developer','location','unit_type','bedrooms_text','area_sqm','starting_price','down_payment_text','installments_text','delivery_text','finishing','availability_status','description','image_url','gallery_urls','brochure_url','video_url','last_updated_at','source_type','source_reference','internal_notes'];
+  const TABLE_FIELDS=['project_name','developer','location','unit_type','bedrooms_text','area_sqm','starting_price','availability_status','last_updated_at'];
+  let session=null, rows=[];
+  const $=id=>document.getElementById(id);
+  const show=(id,msg,isError=false)=>{const el=$(id);el.textContent=msg;el.classList.remove('hidden');el.style.borderColor=isError?'#ef4444':'#2a3036'};
+  const hide=id=>$(id).classList.add('hidden');
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const token=()=>session?.access_token||localStorage.getItem('tycoons_admin_access_token')||'';
+  const authHeaders=()=>({apikey:ANON_KEY,Authorization:`Bearer ${token()}`,'Content-Type':'application/json'});
+
+  function buildForm(){
+    $('formGrid').innerHTML=FIELDS.map(f=>{
+      const big=['description','gallery_urls','internal_notes'].includes(f);
+      const type=['area_sqm','starting_price'].includes(f)?'number':(f==='last_updated_at'?'datetime-local':'text');
+      return `<label><span class="muted">${esc(f)}</span>${big?`<textarea id="f_${f}"></textarea>`:`<input id="f_${f}" type="${type}" />`}</label>`;
+    }).join('');
+  }
+  function clearForm(){ $('rowId').value=''; FIELDS.forEach(f=>{const el=$('f_'+f);if(el)el.value=''}); $('formTitle').textContent='Add unit'; hide('saveStatus'); }
+  function fillForm(r){ $('rowId').value=r.id||'';FIELDS.forEach(f=>{const el=$('f_'+f);if(!el)return;let v=r[f]??'';if(f==='last_updated_at'&&v)v=String(v).slice(0,16);el.value=v});$('formTitle').textContent='Edit unit';window.scrollTo({top:0,behavior:'smooth'}); }
+  function payload(){const p={};FIELDS.forEach(f=>{let v=$('f_'+f).value.trim();if(['area_sqm','starting_price'].includes(f))v=v===''?null:Number(v);else if(v==='')v=null;p[f]=v});return p;}
+
+  async function login(){
+    hide('loginStatus');$('loginBtn').disabled=true;
+    try{
+      const res=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`,{method:'POST',headers:{apikey:ANON_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:$('email').value.trim(),password:$('password').value})});
+      const data=await res.json();if(!res.ok)throw new Error(data.error_description||data.msg||'Login failed');
+      session=data;localStorage.setItem('tycoons_admin_access_token',data.access_token);localStorage.setItem('tycoons_admin_refresh_token',data.refresh_token||'');localStorage.setItem('tycoons_admin_email',data.user?.email||$('email').value.trim());openApp();await loadUnits();
+    }catch(e){show('loginStatus',e.message,true)}finally{$('loginBtn').disabled=false}
+  }
+  async function validateSession(){
+    const t=token();if(!t)return false;
+    const res=await fetch(`${SUPABASE_URL}/auth/v1/user`,{headers:{apikey:ANON_KEY,Authorization:`Bearer ${t}`}});
+    if(!res.ok)return false;const u=await res.json();session={access_token:t,user:u};return true;
+  }
+  function openApp(){$('loginCard').classList.add('hidden');$('adminApp').classList.remove('hidden');$('logoutBtn').classList.remove('hidden');$('sessionEmail').textContent=session?.user?.email||localStorage.getItem('tycoons_admin_email')||'Authenticated';}
+  function logout(){localStorage.removeItem('tycoons_admin_access_token');localStorage.removeItem('tycoons_admin_refresh_token');localStorage.removeItem('tycoons_admin_email');location.reload();}
+
+  async function loadUnits(){
+    show('loadStatus','Loading units…');
+    try{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/units?select=*&order=last_updated_at.desc.nullslast&limit=1000`,{headers:authHeaders()});
+      if(!res.ok)throw new Error(await res.text());rows=await res.json();renderRows();hide('loadStatus');
+    }catch(e){show('loadStatus','Could not load units. Check Supabase login/RLS permissions.\n'+e.message,true)}
+  }
+  function renderRows(){
+    const q=$('search').value.trim().toLowerCase();const filtered=rows.filter(r=>!q||FIELDS.some(f=>String(r[f]??'').toLowerCase().includes(q)));
+    $('count').textContent=`${filtered.length} of ${rows.length}`;
+    $('headRow').innerHTML=TABLE_FIELDS.map(f=>`<th>${esc(f)}</th>`).join('')+'<th>Actions</th>';
+    $('unitsBody').innerHTML=filtered.map(r=>`<tr>${TABLE_FIELDS.map(f=>`<td>${esc(r[f])}</td>`).join('')}<td class="actions"><button class="secondary" data-edit="${esc(r.id)}">Edit</button> <button class="danger" data-delete="${esc(r.id)}">Delete</button></td></tr>`).join('');
+  }
+  async function saveUnit(){
+    hide('saveStatus');$('saveBtn').disabled=true;const id=$('rowId').value;const body=payload();
+    try{
+      const url=id?`${SUPABASE_URL}/rest/v1/units?id=eq.${encodeURIComponent(id)}`:`${SUPABASE_URL}/rest/v1/units`;
+      const res=await fetch(url,{method:id?'PATCH':'POST',headers:{...authHeaders(),Prefer:'return=representation'},body:JSON.stringify(body)});
+      const text=await res.text();if(!res.ok)throw new Error(text||'Save failed');show('saveStatus',id?'Unit updated.':'Unit created.');clearForm();await loadUnits();
+    }catch(e){show('saveStatus','Save failed. Check required columns and Supabase RLS permissions.\n'+e.message,true)}finally{$('saveBtn').disabled=false}
+  }
+  async function deleteUnit(id){
+    if(!confirm('Delete this unit permanently?'))return;
+    const res=await fetch(`${SUPABASE_URL}/rest/v1/units?id=eq.${encodeURIComponent(id)}`,{method:'DELETE',headers:{...authHeaders(),Prefer:'return=representation'}});
+    if(!res.ok){alert('Delete failed: '+await res.text());return}await loadUnits();
+  }
+
+  $('loginBtn').addEventListener('click',login);$('password').addEventListener('keydown',e=>{if(e.key==='Enter')login()});$('logoutBtn').addEventListener('click',logout);
+  $('clearBtn').addEventListener('click',clearForm);$('saveBtn').addEventListener('click',saveUnit);$('refreshBtn').addEventListener('click',loadUnits);$('search').addEventListener('input',renderRows);
+  $('unitsBody').addEventListener('click',e=>{const edit=e.target.dataset.edit,del=e.target.dataset.delete;if(edit)fillForm(rows.find(r=>String(r.id)===String(edit)));if(del)deleteUnit(del)});
+  buildForm();validateSession().then(ok=>{if(ok){openApp();loadUnits();}});
+})();
+</script>
+</body>
+</html>
