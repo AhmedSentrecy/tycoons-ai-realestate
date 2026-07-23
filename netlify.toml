@@ -7,15 +7,16 @@
   to = "/.netlify/functions/sitemap"
   status = 200
 
+# /ar and /en serve the directory directly (no 301 hop — prevents redirect loops)
 [[redirects]]
   from = "/ar"
-  to = "/ar/"
-  status = 301
+  to = "/.netlify/functions/seo-page?route=ar/home"
+  status = 200
 
 [[redirects]]
   from = "/en"
-  to = "/en/"
-  status = 301
+  to = "/.netlify/functions/seo-page?route=en/home"
+  status = 200
 
 [[redirects]]
   from = "/ar/"
