@@ -417,6 +417,23 @@ function renderProjectPage(projects, slug, lang) {
   return renderPage({ lang, title: `${project.name} | ${project.developer} | Tycoons Investments`, description, path, alternatePath, body, schemas, image });
 }
 
+const AREA_INTROS_AR = {
+  "new-cairo": "القاهرة الجديدة هي أنشط سوق عقاري في مصر: 76 مشروعًا مؤكدًا لدينا بين شقق بيت الوطن الاقتصادية وفلل المربع الذهبي الفاخرة. ارتفعت أسعار المنطقة بين 100% و140% خلال الفترة الأخيرة وفق رصد مايو 2026، ومتوسط المتر يتراوح بين 23 ألف جنيه في المناطق الاقتصادية و67 ألفًا في المستقبل سيتي. للتحليل الكامل اقرأ <a href=\"/guides/new-cairo-prices-2026/\">دليل أسعار القاهرة الجديدة 2026</a>.",
+  "north-coast": "الساحل الشمالي أصبح سوقًا عالميًا بطلب من المصريين بالخارج والخليج، خاصة بعد طفرة رأس الحكمة. لدينا 31 مشروعًا مؤكدًا من القرى الكبرى مثل هاسيندا وسوديك. قبل الشراء راجع <a href=\"/guides/north-coast-buying-guide/\">دليل شراء شاليه في الساحل 2026</a> وقارن <a href=\"/compare/hacienda-blue-vs-june/\">هاسيندا بلو ضد سوديك جون</a>.",
+  "sheikh-zayed": "الشيخ زايد مدينة ناضجة بخدمات كاملة وكثافة سكانية منخفضة، وأسعارها وصلت لمرحلة تشبع نسبي — ميزتها الاستقرار والسيولة، بينما الامتدادات (زايد الجديدة) تقدم سعر دخول أقل. لدينا 9 مشاريع مؤكدة في زايد القديمة والجديدة.",
+  "new-capital": "العاصمة الإدارية تقدم أيسر أنظمة سداد في مصر (مقدم يبدأ من 3-5% وتقسيط حتى 15 سنة) وسعر متر بين 32 و65 ألف جنيه في R7 وR8. لدينا 16 مشروعًا مؤكدًا. حائر بينها وبين التجمع؟ اقرأ <a href=\"/guides/new-capital-vs-new-cairo/\">مقارنة العاصمة والقاهرة الجديدة</a>.",
+  "mostakbal-city": "مدينة المستقبل سجلت أعلى متوسط سعر متر في شرق القاهرة (~67 ألف جنيه في رصد مايو 2026) بفضل موقعها بين التجمع والعاصمة الإدارية. أبرز مشاريعها لدينا: ماونتن فيو أليفا وسوديك إيست فيل — <a href=\"/compare/aliva-vs-eastvale-mostakbal/\">قارن بينهما هنا</a>.",
+  "ain-sokhna": "العين السخنة أقرب مصيف للقاهرة (ساعة بالسيارة) وتتحول لمدينة إقامة دائمة بعد المونوريل والجالا سيتي. لدينا 5 مشاريع مؤكدة تبدأ من 1.8 مليون جنيه — أقل سعر دخول بين المناطق الساحلية.",
+};
+const AREA_INTROS_EN = {
+  "new-cairo": "New Cairo is Egypt's most active property market, with 76 confirmed projects in our inventory. Prices rose 100-140% recently, with the meter ranging from EGP 23k in budget districts to EGP 67k in Mostakbal City.",
+  "north-coast": "The North Coast is now a global resort market driven by expat and Gulf demand. We list 31 confirmed projects. See our <a href=\"/guides/north-coast-buying-guide/\">2026 buying guide</a>.",
+  "sheikh-zayed": "Sheikh Zayed is a mature, low-density city with full services — stability and liquidity are its edge, while New Zayed offers lower entry prices.",
+  "new-capital": "The New Capital offers Egypt's easiest payment plans (from 3-5% down, up to 15 years) with the meter at EGP 32-65k in R7/R8 across our 16 confirmed projects.",
+  "mostakbal-city": "Mostakbal City recorded East Cairo's highest meter price (~EGP 67k, May 2026 survey) thanks to its position between New Cairo and the New Capital.",
+  "ain-sokhna": "Ain Sokhna is Cairo's closest beach escape (one hour by car), turning into a year-round city. Our confirmed projects start from EGP 1.8M.",
+};
+
 function renderCollectionPage(projects, kind, slug, lang) {
   const ar = lang === "ar";
   let matches = [];
@@ -467,6 +484,7 @@ function renderCollectionPage(projects, kind, slug, lang) {
       <p class="lead">${escapeHtml(description)}</p>
       <p class="updated">${ar ? "الصفحة تعرض الوحدات المؤكدة فقط من قاعدة بيانات Tycoons Investments." : "This page shows confirmed inventory only from the Tycoons Investments database."}</p>
       <p class="lead" style="margin-top:10px">${escapeHtml(priceSummary)}</p>
+      ${kind === "area" && (ar ? AREA_INTROS_AR[slug] : AREA_INTROS_EN[slug]) ? `<p class="lead" style="margin-top:10px">${(ar ? AREA_INTROS_AR : AREA_INTROS_EN)[slug]}</p>` : ""}
     </section>
     <h2>${ar ? "المشاريع المتاحة" : "Available projects"}</h2>
     ${projectCards(matches, lang)}
@@ -526,6 +544,22 @@ function renderDirectoryPage(projects, lang) {
     <div class="grid">${availableAreas.map((area) => `<a class="card" href="/${lang}/areas/${area.slug}"><h3>${escapeHtml(ar ? area.ar : area.en)}</h3><p>${ar ? "اعرض المشاريع والأسعار" : "View projects and prices"}</p></a>`).join("")}</div>
     <h2>${ar ? "أحدث المشاريع المحدثة" : "Recently updated projects"}</h2>
     ${projectCards(newest, lang)}
+    <h2>${ar ? "أدلة وتحليلات السوق" : "Market guides and analysis"}</h2>
+    <div class="grid">
+      <a class="card" href="/guides/egypt-real-estate-investment-2026/"><h3>${ar ? "دليل الاستثمار العقاري في مصر 2026" : "Egypt real estate investment guide 2026"}</h3><p>${ar ? "أين تضع أموالك بالأرقام" : "Where to invest, in numbers"}</p></a>
+      <a class="card" href="/guides/new-cairo-prices-2026/"><h3>${ar ? "أسعار القاهرة الجديدة 2026" : "New Cairo prices 2026"}</h3><p>${ar ? "رصد كامل لمتوسط المتر" : "Full price-per-meter survey"}</p></a>
+      <a class="card" href="/guides/north-coast-buying-guide/"><h3>${ar ? "دليل شراء شاليه في الساحل" : "North Coast chalet guide"}</h3><p>${ar ? "الأسعار والمناطق وقواعد الاختيار" : "Prices, areas and buying rules"}</p></a>
+      <a class="card" href="/guides/new-capital-vs-new-cairo/"><h3>${ar ? "العاصمة أم القاهرة الجديدة؟" : "New Capital vs New Cairo"}</h3><p>${ar ? "مقارنة شاملة 2026" : "Complete 2026 comparison"}</p></a>
+      <a class="card" href="/guides/payment-plans-egypt/"><h3>${ar ? "أنظمة السداد والتقسيط" : "Payment plans explained"}</h3><p>${ar ? "كيف تختار الخطة الصح" : "How to pick the right plan"}</p></a>
+      <a class="card" href="/guides/off-plan-buying-checklist/"><h3>${ar ? "الشراء على الخارطة بأمان" : "Safe off-plan buying"}</h3><p>${ar ? "12 خطوة قبل التعاقد" : "12 steps before signing"}</p></a>
+    </div>
+    <h2>${ar ? "مقارنات مباشرة" : "Head-to-head comparisons"}</h2>
+    <div class="grid">
+      <a class="card" href="/compare/taj-city-vs-bloomfields/"><h3>${ar ? "تاج سيتي ضد بلومفيلدز" : "Taj City vs Bloomfields"}</h3></a>
+      <a class="card" href="/compare/aliva-vs-eastvale-mostakbal/"><h3>${ar ? "أليفا ضد إيست فيل" : "Aliva vs Eastvale"}</h3></a>
+      <a class="card" href="/compare/hacienda-blue-vs-june/"><h3>${ar ? "هاسيندا بلو ضد سوديك جون" : "Hacienda Blue vs June"}</h3></a>
+      <a class="card" href="/compare/hydepark-vs-mountain-view-new-cairo/"><h3>${ar ? "هايد بارك ضد ماونتن فيو" : "Hyde Park vs Mountain View"}</h3></a>
+    </div>
   </main>`;
   return renderPage({ lang, title, description, path, alternatePath, body, schemas: [{
     "@context": "https://schema.org", "@type": "CollectionPage", name: title, description, url: `${SITE_URL}${path}`,
