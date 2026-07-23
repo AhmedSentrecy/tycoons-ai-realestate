@@ -1,14 +1,40 @@
 # Tycoons Investments
 
-Tycoons Investments is an Egyptian real estate brokerage and AI-assisted property search platform.
+Tycoons Investments is an Egyptian real estate brokerage and AI-assisted property search platform. It lists confirmed property inventory from developers in Egypt with prices, areas, payment plans, and delivery dates, and lets buyers search by voice or text in Arabic and English.
 
 Primary website: https://tycoons-inv.de/
 Arabic directory: https://tycoons-inv.de/ar/
 English directory: https://tycoons-inv.de/en/
 
+## Key pages
+- About Tycoons Investments: https://tycoons-inv.de/about/
+- Contact and WhatsApp: https://tycoons-inv.de/contact/
+- Data sources policy: https://tycoons-inv.de/data-sources/
+- Editorial policy: https://tycoons-inv.de/editorial-policy/
+- Project comparison example (Aliva vs Bloomfields): https://tycoons-inv.de/compare/aliva-vs-bloomfields/
+
+## Area guides with live prices (Arabic)
+- New Cairo / Tagamoa: https://tycoons-inv.de/ar/areas/new-cairo
+- North Coast: https://tycoons-inv.de/ar/areas/north-coast
+- Sheikh Zayed: https://tycoons-inv.de/ar/areas/sheikh-zayed
+- New Administrative Capital: https://tycoons-inv.de/ar/areas/new-capital
+- Ain Sokhna: https://tycoons-inv.de/ar/areas/ain-sokhna
+- Mostakbal City: https://tycoons-inv.de/ar/areas/mostakbal-city
+- 6th of October: https://tycoons-inv.de/ar/areas/october
+- New Zayed: https://tycoons-inv.de/ar/areas/new-zayed
+
+## Area guides with live prices (English)
+- New Cairo: https://tycoons-inv.de/en/areas/new-cairo
+- North Coast: https://tycoons-inv.de/en/areas/north-coast
+- Sheikh Zayed: https://tycoons-inv.de/en/areas/sheikh-zayed
+- New Administrative Capital: https://tycoons-inv.de/en/areas/new-capital
+- Ain Sokhna: https://tycoons-inv.de/en/areas/ain-sokhna
+- Mostakbal City: https://tycoons-inv.de/en/areas/mostakbal-city
+
 ## Main services
-- Search confirmed property inventory in Egypt.
+- Search confirmed property inventory in Egypt (apartments, villas, chalets, townhouses, commercial units).
 - Compare projects and units by price, area, location, delivery, finishing, and payment plan.
+- Area pages publish current price ranges (minimum, median, maximum) computed from live inventory with an explicit "as of" date.
 - Help buyers understand which property fits their residential or investment goals.
 - Continue with the Tycoons sales team through WhatsApp.
 
@@ -16,12 +42,13 @@ English directory: https://tycoons-inv.de/en/
 - New Cairo
 - Mostakbal City
 - North Coast
-- Sheikh Zayed
+- Sheikh Zayed / New Zayed
 - Ain Sokhna
 - New Administrative Capital
+- 6th of October City
 
 ## Data notes
-Property availability, prices, payment plans, and delivery details may change. Visitors should confirm the latest information with Tycoons Investments through WhatsApp.
+Property availability, prices, payment plans, and delivery details may change. Each area page states the date its price summary was computed. Visitors should confirm the latest information with Tycoons Investments through WhatsApp.
 
 ## Contact
 WhatsApp: https://wa.me/201200704344
