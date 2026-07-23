@@ -4,9 +4,49 @@ Disallow: /.netlify/functions/
 Disallow: /admin.html
 Disallow: /admin/
 
+# Explicitly welcome AI search and answer engines
 User-agent: OAI-SearchBot
 Allow: /
 Disallow: /admin.html
 Disallow: /admin/
+
+User-agent: GPTBot
+Allow: /
+Disallow: /admin.html
+Disallow: /admin/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin.html
+Disallow: /admin/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin.html
+Disallow: /admin/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /admin.html
+Disallow: /admin/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin.html
+Disallow: /admin/
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin.html
+Disallow: /admin/
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: meta-externalagent
+Allow: /
 
 Sitemap: https://tycoons-inv.de/sitemap.xml
