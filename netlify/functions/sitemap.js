@@ -35,7 +35,21 @@ exports.handler = async function handler() {
       "/editorial-policy/",
       "/privacy/",
       "/compare/aliva-vs-bloomfields/",
-    ]) addUrl(urls, path, "2026-07-22");
+      "/compare/hydepark-vs-mountain-view-new-cairo/",
+      "/compare/taj-city-vs-bloomfields/",
+      "/compare/97-hills-vs-grand-valleys/",
+      "/compare/hacienda-blue-vs-june/",
+      "/compare/31north-vs-amazon-diamond-tower/",
+      "/compare/badya-vs-mountain-view-zayed/",
+      "/compare/aliva-vs-eastvale-mostakbal/",
+      "/compare/creekview-vs-acasa-mia/",
+      "/guides/egypt-real-estate-investment-2026/",
+      "/guides/new-cairo-prices-2026/",
+      "/guides/north-coast-buying-guide/",
+      "/guides/new-capital-vs-new-cairo/",
+      "/guides/payment-plans-egypt/",
+      "/guides/off-plan-buying-checklist/",
+    ]) addUrl(urls, path, "2026-07-23");
 
     for (const project of projects) {
       const lastmod = projectLastUpdated(project);
