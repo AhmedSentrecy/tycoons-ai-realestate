@@ -317,6 +317,11 @@ def patch_outer_shell(html_path):
     #seo-fallback p { color: #5f6878; font-size: 18px; }
     #seo-fallback nav { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
     #seo-fallback a { color: #11213f; background: #f6f2e9; border: 1px solid #e4d4ae; border-radius: 999px; padding: 9px 15px; text-decoration: none; font-weight: 700; }
+    #seo-fallback h2 { margin: 28px 0 10px; font-size: 22px; }
+    #seo-fallback ul { margin: 8px 0 0; padding-inline-start: 22px; color: #5f6878; }
+    #seo-fallback dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 14px; }
+    #seo-fallback dt { font-size: 13px; color: #8a93a3; }
+    #seo-fallback dd { margin: 2px 0 0; font-weight: 700; color: #11213f; }
     #__bundler_loading {''',
             1,
         )
@@ -330,12 +335,33 @@ def patch_outer_shell(html_path):
   <main id="seo-fallback">
     <strong>Tycoons Investments</strong>
     <h1>ابحث عن عقارك في مصر بالذكاء الاصطناعي والصوت</h1>
-    <p>قارن الوحدات المؤكدة من المطورين مباشرة حسب السعر والمساحة والموقع وخطة السداد والاستلام. استكشف مشاريع القاهرة الجديدة والساحل الشمالي والشيخ زايد والعين السخنة والعاصمة الإدارية.</p>
-    <nav aria-label="روابط عقارية رئيسية">
-      <a href="/ar/">دليل المشاريع</a>
+    <p>Tycoons Investments منصة عقارية مصرية بتساعدك تلاقي شقة أو فيلا أو شاليه أو وحدة تجارية مناسبة ليك، سواء للسكن أو الاستثمار. بنقارن لك الوحدات المؤكدة من المطورين مباشرة حسب السعر والمساحة والموقع وخطة السداد وموعد الاستلام، وبتواصل مع فريق المبيعات على واتساب في خطوة واحدة.</p>
+    <dl>
+      <div><dt>نوع الخدمة</dt><dd>وساطة عقارية + بحث بالذكاء الاصطناعي</dd></div>
+      <div><dt>نغطي</dt><dd>القاهرة الجديدة، الساحل الشمالي، الشيخ زايد، العاصمة الإدارية، العين السخنة، مدينة المستقبل</dd></div>
+      <div><dt>التواصل</dt><dd>واتساب ‎+20 120 070 4344</dd></div>
+    </dl>
+    <h2>استكشف المشاريع حسب المنطقة</h2>
+    <nav aria-label="روابط المناطق العقارية">
+      <a href="/ar/">دليل كل المشاريع</a>
       <a href="/ar/areas/new-cairo">مشاريع التجمع والقاهرة الجديدة</a>
       <a href="/ar/areas/north-coast">مشاريع الساحل الشمالي</a>
       <a href="/ar/areas/sheikh-zayed">مشاريع الشيخ زايد</a>
+      <a href="/ar/areas/new-capital">مشاريع العاصمة الإدارية</a>
+      <a href="/ar/areas/ain-sokhna">مشاريع العين السخنة</a>
+      <a href="/ar/areas/mostakbal-city">مشاريع مدينة المستقبل</a>
+    </nav>
+    <h2>إزاي تستخدم الموقع؟</h2>
+    <ul>
+      <li>اكتب أو اتكلم عن اللي بتدوّر عليه: «شاليه في الساحل تحت ٩ مليون» أو «فيلا في التجمع استلام فوري».</li>
+      <li>قارن النتائج بالسعر والمساحة والمقدم والقسط وموعد الاستلام.</li>
+      <li>ابعت رسالة واتساب من صفحة المشروع مباشرة وفريقنا يكمل معاك.</li>
+    </ul>
+    <nav aria-label="روابط إضافية">
+      <a href="/about/">من نحن</a>
+      <a href="/contact/">تواصل معنا</a>
+      <a href="/editorial-policy/">سياسة المحتوى والبيانات</a>
+      <a href="/compare/aliva-vs-bloomfields/">مقارنات المشاريع</a>
       <a href="/en/" lang="en" dir="ltr">English property directory</a>
     </nav>
   </main>'''
