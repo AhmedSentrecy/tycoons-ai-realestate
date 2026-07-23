@@ -272,8 +272,12 @@ function renderPage({ lang, title, description, path, alternatePath, body, schem
   <meta property="og:description" content="${escapeHtml(description)}">
   <meta property="og:url" content="${escapeHtml(canonical)}">
   <meta property="og:locale" content="${ar ? "ar_EG" : "en_US"}">
-  ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ""}
-  <meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}">
+  <meta property="og:image" content="${escapeHtml(image || `${SITE_URL}/assets/${ar ? "og-ar.png" : "og-en.png"}`)}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="${ar ? "Tycoons Investments — بحث عقاري بالذكاء الاصطناعي في مصر" : "Tycoons Investments — AI property search in Egypt"}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="${escapeHtml(image || `${SITE_URL}/assets/${ar ? "og-ar.png" : "og-en.png"}`)}">
   ${allSchemas.map((schema) => `<script type="application/ld+json">${jsonLd(schema)}</script>`).join("\n  ")}
   <style>${baseStyles()}</style>
 </head>
