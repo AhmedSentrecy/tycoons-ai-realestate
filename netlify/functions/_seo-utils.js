@@ -431,6 +431,22 @@ function renderCollectionPage(projects, kind, slug, lang) {
   }
   if (!matches.length) return null;
   matches.sort((a, b) => projectMinPrice(a) - projectMinPrice(b));
+  const prices = matches.map((project) => projectMinPrice(project)).filter((value) => value > 0).sort((a, b) => a - b);
+  const minP = prices.length ? prices[0] : 0;
+  const maxP = prices.length ? prices[prices.length - 1] : 0;
+  const medianP = prices.length ? prices[Math.floor(prices.length / 2)] : 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const priceSummary = ar
+    ? `حتى تاريخ ${today}، تضم ${label} نحو ${matches.length} مشروعًا على منصة Tycoons Investments، وتبدأ الأسعار من ${formatPrice(minP, lang)}، ويبلغ السعر الوسيط نحو ${formatPrice(medianP, lang)}، وتصل إلى ${formatPrice(maxP, lang)}.`
+    : `As of ${today}, ${label} has about ${matches.length} projects listed on Tycoons Investments, with prices starting from ${formatPrice(minP, lang)}, a median around ${formatPrice(medianP, lang)}, and reaching up to ${formatPrice(maxP, lang)}.`;
+  const collectionFaqs = kind === "area" ? [
+    { q: ar ? `ما متوسط أسعار الوحدات في ${label}؟` : `What is the average property price in ${label}?`,
+      a: ar ? `وفق بيانات Tycoons Investments بتاريخ ${today}، تبدأ أسعار الوحدات في ${label} من ${formatPrice(minP, lang)}، والسعر الوسيط نحو ${formatPrice(medianP, lang)} عبر ${matches.length} مشروعًا.` : `According to Tycoons Investments data as of ${today}, unit prices in ${label} start from ${formatPrice(minP, lang)}, with a median around ${formatPrice(medianP, lang)} across ${matches.length} projects.` },
+    { q: ar ? `هل الأسعار في ${label} محدثة؟` : `Are prices in ${label} up to date?`,
+      a: ar ? `نعم، الصفحة تعرض الوحدات المؤكدة فقط من قاعدة بيانات Tycoons Investments، وتتغير الأسعار والتوافر حسب تحديثات المطورين. تأكد من آخر سعر عبر واتساب ‎+20 120 070 4344.` : `Yes. This page lists confirmed inventory only from the Tycoons Investments database. Prices and availability change with developer updates — confirm the latest via WhatsApp +20 120 070 4344.` },
+    { q: ar ? `كيف أحجز وحدة في ${label}؟` : `How do I book a unit in ${label}?`,
+      a: ar ? `اختر المشروع المناسب من القائمة، قارن السعر والمساحة وخطة السداد، ثم تواصل مع فريق Tycoons Investments عبر واتساب من صفحة المشروع مباشرة.` : `Pick a project from the list, compare price, area and payment plan, then contact the Tycoons Investments team via WhatsApp directly from the project page.` },
+  ] : [];
   const path = `/${lang}/${kind === "area" ? "areas" : "developers"}/${slug}`;
   const alternatePath = `/${ar ? "en" : "ar"}/${kind === "area" ? "areas" : "developers"}/${slug}`;
   const title = kind === "area"
@@ -450,9 +466,14 @@ function renderCollectionPage(projects, kind, slug, lang) {
       <h1>${escapeHtml(title.replace(" | Tycoons Investments", ""))}</h1>
       <p class="lead">${escapeHtml(description)}</p>
       <p class="updated">${ar ? "الصفحة تعرض الوحدات المؤكدة فقط من قاعدة بيانات Tycoons Investments." : "This page shows confirmed inventory only from the Tycoons Investments database."}</p>
+      <p class="lead" style="margin-top:10px">${escapeHtml(priceSummary)}</p>
     </section>
     <h2>${ar ? "المشاريع المتاحة" : "Available projects"}</h2>
     ${projectCards(matches, lang)}
+    ${collectionFaqs.length ? `<section class="hero-copy" style="margin-top:32px">
+      <h2>${ar ? "أسئلة شائعة عن " + label : "FAQs about " + label}</h2>
+      ${collectionFaqs.map((faq) => `<h3 style="margin:18px 0 6px;font-size:17px">${escapeHtml(faq.q)}</h3><p class="lead">${escapeHtml(faq.a)}</p>`).join("")}
+    </section>` : ""}
   </main>`;
   const schemas = [
     breadcrumbSchema(crumbs),
@@ -473,6 +494,15 @@ function renderCollectionPage(projects, kind, slug, lang) {
         })),
       },
     },
+    ...(collectionFaqs.length ? [{
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: collectionFaqs.map((faq) => ({
+        "@type": "Question",
+        name: faq.q,
+        acceptedAnswer: { "@type": "Answer", text: faq.a },
+      })),
+    }] : []),
   ];
   return renderPage({ lang, title, description, path, alternatePath, body, schemas, image: projectImage(matches[0]) });
 }
