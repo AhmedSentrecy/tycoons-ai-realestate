@@ -300,7 +300,12 @@ def patch_outer_shell(html_path):
   <meta property="og:title" content="Tycoons Investments | بحث عقاري بالذكاء الاصطناعي">
   <meta property="og:description" content="قارن أحدث أسعار ومساحات وخطط سداد المشاريع العقارية في مصر، وابحث بصوتك عن الوحدة المناسبة.">
   <meta property="og:url" content="https://tycoons-inv.de/">
-  <meta name="twitter:card" content="summary">
+  <meta property="og:image" content="https://tycoons-inv.de/assets/og-ar.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Tycoons Investments — بحث عقاري بالذكاء الاصطناعي في مصر">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="https://tycoons-inv.de/assets/og-ar.png">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":["Organization","RealEstateAgent"],"name":"Tycoons Investments","url":"https://tycoons-inv.de/","telephone":"+201200704344","areaServed":{"@type":"Country","name":"Egypt"}}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Tycoons Investments","url":"https://tycoons-inv.de/","inLanguage":["ar-EG","en"]}</script>'''
         text = re.sub(r'<title>.*?</title>', head, text, count=1, flags=re.S)
