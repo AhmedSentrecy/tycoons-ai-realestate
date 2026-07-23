@@ -290,6 +290,7 @@ def patch_outer_shell(html_path):
   <meta name="description" content="ابحث عن شقق وفلل وشاليهات في مصر بالذكاء الاصطناعي. قارن الأسعار والمساحات وخطط السداد والاستلام من المطورين مباشرة.">
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
   <meta name="theme-color" content="#11213f">
+  <meta name="google-site-verification" content="xhNYMhhfgWR1kDmYp_L4r5W0g0bTnIeBqFhr-MqM5kU">
   <link rel="canonical" href="https://tycoons-inv.de/">
   <link rel="alternate" hreflang="ar-EG" href="https://tycoons-inv.de/ar/">
   <link rel="alternate" hreflang="en" href="https://tycoons-inv.de/en/">
