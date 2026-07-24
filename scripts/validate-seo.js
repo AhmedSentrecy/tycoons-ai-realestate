@@ -67,7 +67,7 @@ const netlify = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
 assert(index.includes('id="seo-fallback"'), "Crawlable homepage fallback is missing");
 assert(index.includes('name="description"'), "Homepage description is missing");
 assert(robots.includes("OAI-SearchBot"), "OAI-SearchBot rule is missing");
-assert(robots.includes("Sitemap: https://tycoons-inv.de/sitemap.xml"), "Sitemap declaration is missing");
+assert(robots.includes("Sitemap: https://tycoons-inv.com/sitemap.xml"), "Sitemap declaration is missing");
 assert(netlify.includes('from = "/ar/projects/*"'), "Arabic project route is missing");
 assert(netlify.includes('from = "/en/projects/*"'), "English project route is missing");
 

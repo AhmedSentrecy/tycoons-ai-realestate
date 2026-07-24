@@ -2,6 +2,25 @@
   command = "python3 patch_tycoons_build.py"
   publish = "."
 
+# Domain migration: old .de and www variants → new .com (301 permanent)
+[[redirects]]
+  from = "https://tycoons-inv.de/*"
+  to = "https://tycoons-inv.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.tycoons-inv.de/*"
+  to = "https://tycoons-inv.com/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "https://www.tycoons-inv.com/*"
+  to = "https://tycoons-inv.com/:splat"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/sitemap.xml"
   to = "/.netlify/functions/sitemap"

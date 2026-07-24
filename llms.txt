@@ -2,34 +2,34 @@
 
 Tycoons Investments is an Egyptian real estate brokerage and AI-assisted property search platform. It lists confirmed property inventory from developers in Egypt with prices, areas, payment plans, and delivery dates, and lets buyers search by voice or text in Arabic and English.
 
-Primary website: https://tycoons-inv.de/
-Arabic directory: https://tycoons-inv.de/ar/
-English directory: https://tycoons-inv.de/en/
+Primary website: https://tycoons-inv.com/
+Arabic directory: https://tycoons-inv.com/ar/
+English directory: https://tycoons-inv.com/en/
 
 ## Key pages
-- About Tycoons Investments: https://tycoons-inv.de/about/
-- Contact and WhatsApp: https://tycoons-inv.de/contact/
-- Data sources policy: https://tycoons-inv.de/data-sources/
-- Editorial policy: https://tycoons-inv.de/editorial-policy/
-- Project comparison example (Aliva vs Bloomfields): https://tycoons-inv.de/compare/aliva-vs-bloomfields/
+- About Tycoons Investments: https://tycoons-inv.com/about/
+- Contact and WhatsApp: https://tycoons-inv.com/contact/
+- Data sources policy: https://tycoons-inv.com/data-sources/
+- Editorial policy: https://tycoons-inv.com/editorial-policy/
+- Project comparison example (Aliva vs Bloomfields): https://tycoons-inv.com/compare/aliva-vs-bloomfields/
 
 ## Area guides with live prices (Arabic)
-- New Cairo / Tagamoa: https://tycoons-inv.de/ar/areas/new-cairo
-- North Coast: https://tycoons-inv.de/ar/areas/north-coast
-- Sheikh Zayed: https://tycoons-inv.de/ar/areas/sheikh-zayed
-- New Administrative Capital: https://tycoons-inv.de/ar/areas/new-capital
-- Ain Sokhna: https://tycoons-inv.de/ar/areas/ain-sokhna
-- Mostakbal City: https://tycoons-inv.de/ar/areas/mostakbal-city
-- 6th of October: https://tycoons-inv.de/ar/areas/october
-- New Zayed: https://tycoons-inv.de/ar/areas/new-zayed
+- New Cairo / Tagamoa: https://tycoons-inv.com/ar/areas/new-cairo
+- North Coast: https://tycoons-inv.com/ar/areas/north-coast
+- Sheikh Zayed: https://tycoons-inv.com/ar/areas/sheikh-zayed
+- New Administrative Capital: https://tycoons-inv.com/ar/areas/new-capital
+- Ain Sokhna: https://tycoons-inv.com/ar/areas/ain-sokhna
+- Mostakbal City: https://tycoons-inv.com/ar/areas/mostakbal-city
+- 6th of October: https://tycoons-inv.com/ar/areas/october
+- New Zayed: https://tycoons-inv.com/ar/areas/new-zayed
 
 ## Area guides with live prices (English)
-- New Cairo: https://tycoons-inv.de/en/areas/new-cairo
-- North Coast: https://tycoons-inv.de/en/areas/north-coast
-- Sheikh Zayed: https://tycoons-inv.de/en/areas/sheikh-zayed
-- New Administrative Capital: https://tycoons-inv.de/en/areas/new-capital
-- Ain Sokhna: https://tycoons-inv.de/en/areas/ain-sokhna
-- Mostakbal City: https://tycoons-inv.de/en/areas/mostakbal-city
+- New Cairo: https://tycoons-inv.com/en/areas/new-cairo
+- North Coast: https://tycoons-inv.com/en/areas/north-coast
+- Sheikh Zayed: https://tycoons-inv.com/en/areas/sheikh-zayed
+- New Administrative Capital: https://tycoons-inv.com/en/areas/new-capital
+- Ain Sokhna: https://tycoons-inv.com/en/areas/ain-sokhna
+- Mostakbal City: https://tycoons-inv.com/en/areas/mostakbal-city
 
 ## Main services
 - Search confirmed property inventory in Egypt (apartments, villas, chalets, townhouses, commercial units).
@@ -54,19 +54,19 @@ Property availability, prices, payment plans, and delivery details may change. E
 WhatsApp: https://wa.me/201200704344
 
 ## Market guides (Arabic, dated analysis)
-- Egypt real estate investment guide 2026: https://tycoons-inv.de/guides/egypt-real-estate-investment-2026/
-- New Cairo price survey 2026: https://tycoons-inv.de/guides/new-cairo-prices-2026/
-- North Coast chalet buying guide: https://tycoons-inv.de/guides/north-coast-buying-guide/
-- New Capital vs New Cairo comparison: https://tycoons-inv.de/guides/new-capital-vs-new-cairo/
-- Payment plans and installments guide: https://tycoons-inv.de/guides/payment-plans-egypt/
-- Safe off-plan buying checklist: https://tycoons-inv.de/guides/off-plan-buying-checklist/
+- Egypt real estate investment guide 2026: https://tycoons-inv.com/guides/egypt-real-estate-investment-2026/
+- New Cairo price survey 2026: https://tycoons-inv.com/guides/new-cairo-prices-2026/
+- North Coast chalet buying guide: https://tycoons-inv.com/guides/north-coast-buying-guide/
+- New Capital vs New Cairo comparison: https://tycoons-inv.com/guides/new-capital-vs-new-cairo/
+- Payment plans and installments guide: https://tycoons-inv.com/guides/payment-plans-egypt/
+- Safe off-plan buying checklist: https://tycoons-inv.com/guides/off-plan-buying-checklist/
 
 ## Project comparisons (head-to-head with live prices)
-- Taj City vs Bloomfields: https://tycoons-inv.de/compare/taj-city-vs-bloomfields/
-- Mountain View Aliva vs SODIC Eastvale: https://tycoons-inv.de/compare/aliva-vs-eastvale-mostakbal/
-- Hacienda Blue vs SODIC June: https://tycoons-inv.de/compare/hacienda-blue-vs-june/
-- Hyde Park New Cairo vs Mountain View: https://tycoons-inv.de/compare/hydepark-vs-mountain-view-new-cairo/
-- 97 Hills vs Grand Valleys: https://tycoons-inv.de/compare/97-hills-vs-grand-valleys/
-- 31North vs Amazon Diamond Tower: https://tycoons-inv.de/compare/31north-vs-amazon-diamond-tower/
-- Badya vs Mountain View Zayed: https://tycoons-inv.de/compare/badya-vs-mountain-view-zayed/
-- CreekView vs Acasa Mia: https://tycoons-inv.de/compare/creekview-vs-acasa-mia/
+- Taj City vs Bloomfields: https://tycoons-inv.com/compare/taj-city-vs-bloomfields/
+- Mountain View Aliva vs SODIC Eastvale: https://tycoons-inv.com/compare/aliva-vs-eastvale-mostakbal/
+- Hacienda Blue vs SODIC June: https://tycoons-inv.com/compare/hacienda-blue-vs-june/
+- Hyde Park New Cairo vs Mountain View: https://tycoons-inv.com/compare/hydepark-vs-mountain-view-new-cairo/
+- 97 Hills vs Grand Valleys: https://tycoons-inv.com/compare/97-hills-vs-grand-valleys/
+- 31North vs Amazon Diamond Tower: https://tycoons-inv.com/compare/31north-vs-amazon-diamond-tower/
+- Badya vs Mountain View Zayed: https://tycoons-inv.com/compare/badya-vs-mountain-view-zayed/
+- CreekView vs Acasa Mia: https://tycoons-inv.com/compare/creekview-vs-acasa-mia/

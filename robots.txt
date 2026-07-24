@@ -49,4 +49,4 @@ Allow: /
 User-agent: meta-externalagent
 Allow: /
 
-Sitemap: https://tycoons-inv.de/sitemap.xml
+Sitemap: https://tycoons-inv.com/sitemap.xml

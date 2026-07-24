@@ -1,6 +1,6 @@
 "use strict";
 
-const SITE_URL = "https://tycoons-inv.de";
+const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ||

@@ -18,7 +18,7 @@ exports.handler = async function handler(event) {
     .filter(Boolean);
   let requestPath = "";
   try {
-    requestPath = decodeURIComponent(new URL(event.rawUrl || event.path || "/", "https://tycoons-inv.de").pathname);
+    requestPath = decodeURIComponent(new URL(event.rawUrl || event.path || "/", "https://tycoons-inv.com").pathname);
   } catch (_) {
     requestPath = decodeURIComponent(String(event.path || ""));
   }

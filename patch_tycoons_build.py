@@ -291,24 +291,24 @@ def patch_outer_shell(html_path):
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
   <meta name="theme-color" content="#11213f">
   <meta name="google-site-verification" content="xhNYMhhfgWR1kDmYp_L4r5W0g0bTnIeBqFhr-MqM5kU">
-  <link rel="canonical" href="https://tycoons-inv.de/">
-  <link rel="alternate" hreflang="ar-EG" href="https://tycoons-inv.de/ar/">
-  <link rel="alternate" hreflang="en" href="https://tycoons-inv.de/en/">
-  <link rel="alternate" hreflang="x-default" href="https://tycoons-inv.de/">
+  <link rel="canonical" href="https://tycoons-inv.com/">
+  <link rel="alternate" hreflang="ar-EG" href="https://tycoons-inv.com/ar/">
+  <link rel="alternate" hreflang="en" href="https://tycoons-inv.com/en/">
+  <link rel="alternate" hreflang="x-default" href="https://tycoons-inv.com/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tycoons Investments">
   <meta property="og:locale" content="ar_EG">
   <meta property="og:title" content="Tycoons Investments | بحث عقاري بالذكاء الاصطناعي">
   <meta property="og:description" content="قارن أحدث أسعار ومساحات وخطط سداد المشاريع العقارية في مصر، وابحث بصوتك عن الوحدة المناسبة.">
-  <meta property="og:url" content="https://tycoons-inv.de/">
-  <meta property="og:image" content="https://tycoons-inv.de/assets/og-ar.png">
+  <meta property="og:url" content="https://tycoons-inv.com/">
+  <meta property="og:image" content="https://tycoons-inv.com/assets/og-ar.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Tycoons Investments — بحث عقاري بالذكاء الاصطناعي في مصر">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:image" content="https://tycoons-inv.de/assets/og-ar.png">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":["Organization","RealEstateAgent"],"name":"Tycoons Investments","url":"https://tycoons-inv.de/","telephone":"+201200704344","areaServed":{"@type":"Country","name":"Egypt"}}</script>
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Tycoons Investments","url":"https://tycoons-inv.de/","inLanguage":["ar-EG","en"]}</script>'''
+  <meta name="twitter:image" content="https://tycoons-inv.com/assets/og-ar.png">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":["Organization","RealEstateAgent"],"name":"Tycoons Investments","url":"https://tycoons-inv.com/","telephone":"+201200704344","areaServed":{"@type":"Country","name":"Egypt"}}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Tycoons Investments","url":"https://tycoons-inv.com/","inLanguage":["ar-EG","en"]}</script>'''
         text = re.sub(r'<title>.*?</title>', head, text, count=1, flags=re.S)
         text = re.sub(r'<html(?:\s[^>]*)?>', '<html lang="ar" dir="rtl">', text, count=1)
         text = text.replace(
