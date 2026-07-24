@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 
-const links = ["البحث", "المشاريع", "الطرح الجديد", "الحاسبة", "تواصل"];
+const links = [
+  { label: "الرئيسية", to: "/" },
+  { label: "المناطق", to: "/regions/sahel" },
+  { label: "من نحن", to: "/about" },
+  { label: "الأسئلة الشائعة", to: "/faq" },
+];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -25,7 +31,7 @@ export default function Navbar() {
     >
       <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 lg:px-8">
         {/* Logo */}
-        <a href="#" className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-3">
           <span
             className={`grid h-10 w-10 place-items-center rounded-xl text-lg font-bold transition-colors ${
               scrolled ? "bg-[#14352a] text-[#e8d5ae]" : "glass text-[#e8d5ae]"
@@ -49,20 +55,20 @@ export default function Navbar() {
               INVESTMENTS
             </span>
           </span>
-        </a>
+        </Link>
 
         {/* Links */}
         <nav className="hidden items-center gap-8 lg:flex">
           {links.map((l) => (
-            <a
-              key={l}
-              href="#"
+            <Link
+              key={l.to}
+              to={l.to}
               className={`text-sm font-medium transition-colors hover:text-[#c49b5f] ${
                 scrolled ? "text-[#3d4a43]" : "text-white/85"
               }`}
             >
-              {l}
-            </a>
+              {l.label}
+            </Link>
           ))}
         </nav>
 

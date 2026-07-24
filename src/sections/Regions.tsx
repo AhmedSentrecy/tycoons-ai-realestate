@@ -1,14 +1,15 @@
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const regions = [
-  { name: "الساحل الشمالي", count: "١٣٧ مشروع متاح", image: "/images/region-sahel.webp", wide: true },
-  { name: "التجمع / القاهرة الجديدة", count: "٣١٤ مشروع متاح", image: "/images/region-newcairo.webp", wide: false },
-  { name: "الشيخ زايد", count: "١٤٩ مشروع متاح", image: "/images/region-zayed.webp", wide: false },
-  { name: "العين السخنة", count: "٧ مشاريع متاحة", image: "/images/region-sokhna.webp", wide: false },
-  { name: "العاصمة الإدارية", count: "٣٧ مشروع متاح", image: "/images/region-capital.webp", wide: false },
+  { name: "الساحل الشمالي", count: "١٣٧ مشروع متاح", image: "/images/region-sahel.webp", slug: "sahel", wide: true },
+  { name: "التجمع / القاهرة الجديدة", count: "٣١٤ مشروع متاح", image: "/images/region-newcairo.webp", slug: "new-cairo", wide: false },
+  { name: "الشيخ زايد", count: "١٤٩ مشروع متاح", image: "/images/region-zayed.webp", slug: "zayed", wide: false },
+  { name: "العين السخنة", count: "٧ مشاريع متاحة", image: "/images/region-sokhna.webp", slug: "sokhna", wide: false },
+  { name: "العاصمة الإدارية", count: "٣٧ مشروع متاح", image: "/images/region-capital.webp", slug: "capital", wide: false },
 ];
 
 export default function Regions() {
@@ -34,36 +35,40 @@ export default function Regions() {
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {regions.map((r, i) => (
-            <motion.a
+            <motion.div
               key={r.name}
-              href="#"
               initial={{ opacity: 0, y: 36 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.75, delay: i * 0.1, ease }}
-              className={`group relative overflow-hidden rounded-3xl ${
-                r.wide ? "sm:col-span-2 lg:row-span-2 lg:h-full" : ""
-              } ${r.wide ? "min-h-[280px] lg:min-h-[560px]" : "min-h-[260px]"}`}
+              className={r.wide ? "sm:col-span-2 lg:row-span-2 lg:h-full" : ""}
             >
-              <img
-                src={r.image}
-                alt={r.name}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.08]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a140f]/85 via-[#0a140f]/15 to-transparent transition-opacity duration-500 group-hover:from-[#0a140f]/92" />
+              <Link
+                to={`/regions/${r.slug}`}
+                className={`group relative block overflow-hidden rounded-3xl ${
+                  r.wide ? "min-h-[280px] lg:h-full lg:min-h-[560px]" : "min-h-[260px]"
+                }`}
+              >
+                <img
+                  src={r.image}
+                  alt={r.name}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.08]"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a140f]/85 via-[#0a140f]/15 to-transparent transition-opacity duration-500 group-hover:from-[#0a140f]/90" />
 
-              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-6">
-                <div>
-                  <h3 className={`font-extrabold text-white ${r.wide ? "text-3xl" : "text-xl"}`}>
-                    {r.name}
-                  </h3>
-                  <p className="mt-1.5 text-sm font-light text-white/70">{r.count}</p>
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-6">
+                  <div>
+                    <h3 className={`font-extrabold text-white ${r.wide ? "text-3xl" : "text-xl"}`}>
+                      {r.name}
+                    </h3>
+                    <p className="mt-1.5 text-sm font-light text-white/70">{r.count}</p>
+                  </div>
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-all duration-300 group-hover:bg-[#c49b5f] group-hover:text-[#231a0c]">
+                    <ArrowLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-0.5" />
+                  </span>
                 </div>
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/12 text-white backdrop-blur-sm transition-all duration-300 group-hover:bg-[#c49b5f] group-hover:text-[#231a0c]">
-                  <ArrowLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-0.5" />
-                </span>
-              </div>
-            </motion.a>
+              </Link>
+            </motion.div>
           ))}
         </div>
       </div>

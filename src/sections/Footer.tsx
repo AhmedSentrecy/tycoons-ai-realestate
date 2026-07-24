@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router";
 import { MessageCircle, Mic, Search } from "lucide-react";
+import { regions } from "@/data/content";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -67,24 +69,67 @@ export default function Footer() {
             </p>
           </div>
 
-          {[
-            { h: "المنصة", items: ["البحث الذكي", "البحث الصوتي", "الطرح الجديد", "الحاسبة"] },
-            { h: "المناطق", items: ["الساحل الشمالي", "التجمع", "العين السخنة", "الشيخ زايد"] },
-            { h: "Tycoons", items: ["دليل المشاريع", "المطوّرون", "تواصل معنا"] },
-          ].map((col) => (
-            <div key={col.h}>
-              <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">{col.h}</h4>
-              <ul className="space-y-3.5">
-                {col.items.map((it) => (
-                  <li key={it}>
-                    <a href="#" className="text-sm font-light text-white/55 transition-colors hover:text-white">
-                      {it}
+          <div>
+            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">المنصة</h4>
+            <ul className="space-y-3.5">
+              {[
+                { label: "البحث الذكي", to: "/" },
+                { label: "الأسئلة الشائعة", to: "/faq" },
+                { label: "من نحن", to: "/about" },
+                { label: "الحاسبة", to: "/" },
+              ].map((it) => (
+                <li key={it.label}>
+                  <Link to={it.to} className="text-sm font-light text-white/55 transition-colors hover:text-white">
+                    {it.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">المناطق</h4>
+            <ul className="space-y-3.5">
+              {regions.map((r) => (
+                <li key={r.slug}>
+                  <Link
+                    to={`/regions/${r.slug}`}
+                    className="text-sm font-light text-white/55 transition-colors hover:text-white"
+                  >
+                    {r.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">Tycoons</h4>
+            <ul className="space-y-3.5">
+              {[
+                { label: "من نحن", to: "/about" },
+                { label: "الأسئلة الشائعة", to: "/faq" },
+                { label: "تواصل معنا", to: "https://wa.me/201200704344", external: true },
+              ].map((it) => (
+                <li key={it.label}>
+                  {it.external ? (
+                    <a
+                      href={it.to}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-light text-white/55 transition-colors hover:text-white"
+                    >
+                      {it.label}
                     </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+                  ) : (
+                    <Link to={it.to} className="text-sm font-light text-white/55 transition-colors hover:text-white">
+                      {it.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         <div className="border-t border-white/10 py-6 text-center text-xs font-light text-white/40">
