@@ -1,5 +1,5 @@
 [build]
-  command = "npm ci --include=dev && npm run check"
+  command = "npm run check"
   publish = "dist"
   functions = "netlify/functions"
 
