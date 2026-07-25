@@ -1,12 +1,12 @@
 [build]
-  command = "npm run check"
+  command = "corepack enable && corepack prepare yarn@1.22.22 --activate && yarn install --production=false --non-interactive && npm run check"
   publish = "dist"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
-  NPM_FLAGS = "--include=dev"
   NODE_ENV = "development"
+  YARN_VERSION = "1.22.22"
 
 # SPA routing — كل المسارات ترجع لـ index.html
 [[redirects]]
