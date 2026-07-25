@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "test:realtime": "node scripts/test-realtime-function.cjs",
+    "check": "npm run test:realtime && npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
