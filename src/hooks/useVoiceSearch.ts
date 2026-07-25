@@ -32,6 +32,12 @@ export function useVoiceSearch({ onResult, lang = "ar-EG" }: VoiceSearchOptions)
   }, []);
 
   const start = useCallback(() => {
+    // البحث الصوتي بالمتصفح محتاج HTTPS (localhost مسموح)
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setState("unsupported");
+      setErrorMsg("البحث الصوتي محتاج موقع آمن (HTTPS)");
+      return;
+    }
     if (!supported) {
       setState("unsupported");
       setErrorMsg("متصفحك مش بيدعم البحث الصوتي — جرّب كروم");

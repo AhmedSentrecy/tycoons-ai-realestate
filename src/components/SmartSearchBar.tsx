@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Search, Sparkles, X, MapPin, ArrowLeft } from "lucide-react";
 import { useVoiceSearch } from "@/hooks/useVoiceSearch";
+import { useRealtimeVoice } from "@/hooks/useRealtimeVoice";
 import { usePropertySearch } from "@/hooks/usePropertySearch";
 import { regions } from "@/data/content";
 
@@ -16,12 +17,46 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  const voice = useVoiceSearch({
-    onResult: (text) => {
-      search(text);
-      setOpen(true);
-    },
-  });
+  const onVoiceText = (text: string) => {
+    search(text);
+    setOpen(true);
+  };
+
+  // Fallback: تحويل الكلام لنص بالمتصفح
+  const voice = useVoiceSearch({ onResult: onVoiceText });
+
+  // المسار الأساسي: OpenAI Realtime API (WebRTC) — نفس الموقع الحالي
+  const realtime = useRealtimeVoice({ onSearchQuery: onVoiceText });
+
+  const realtimeActive =
+    realtime.state === "connecting" ||
+    realtime.state === "connected" ||
+    realtime.state === "listening" ||
+    realtime.state === "speaking";
+
+  const handleMic = async () => {
+    setOpen(true);
+
+    // لو فيه جلسة Realtime شغالة — اقفلها
+    if (realtimeActive) {
+      realtime.disconnect();
+      return;
+    }
+    // لو الـ fallback بيسمع — اقفله
+    if (voice.state === "listening") {
+      voice.stop();
+      return;
+    }
+
+    // جرّب Realtime الأول — لو مش متاح، ارجع لـ Web Speech API
+    const ok = await realtime.connect();
+    if (!ok && realtime.state === "unavailable") {
+      voice.start();
+    }
+  };
+
+  const listening = voice.state === "listening" || realtime.state === "listening";
+  const busyError = realtime.errorMsg || voice.errorMsg;
 
   useEffect(() => {
     onSearchActive?.(open && hasSearched);
@@ -56,19 +91,27 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
   };
 
   const showPanel =
-    open && (hasSearched || voice.state === "listening" || Boolean(voice.errorMsg));
+    open &&
+    (hasSearched || listening || realtimeActive || Boolean(busyError));
 
-  // لو المايك اتقفل ومفيش بحث ولا خطأ — اقفل اللوحة
+  // لو كل حاجة قفلت ومفيش بحث ولا خطأ — اقفل اللوحة
   useEffect(() => {
-    if (!hasSearched && voice.state === "idle" && !voice.errorMsg) setOpen(false);
-  }, [voice.state, voice.errorMsg, hasSearched]);
+    if (
+      !hasSearched &&
+      voice.state === "idle" &&
+      !voice.errorMsg &&
+      (realtime.state === "idle" || realtime.state === "unavailable") &&
+      !realtime.errorMsg
+    )
+      setOpen(false);
+  }, [voice.state, voice.errorMsg, realtime.state, realtime.errorMsg, hasSearched]);
 
   return (
     <div ref={boxRef} className="relative w-full">
       <div
         className={`flex items-center gap-3 rounded-2xl bg-white/[0.97] px-4 ${
           compact ? "py-2.5" : "py-3.5"
-        } ${voice.state === "listening" ? "ring-2 ring-[#c49b5f]/70" : ""}`}
+        } ${listening ? "ring-2 ring-[#c49b5f]/70" : ""}`}
       >
         <Sparkles className="h-5 w-5 shrink-0 text-[#c49b5f]" />
         <input
@@ -100,23 +143,16 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
         {/* زرار المايك */}
         <button
           aria-label="بحث صوتي"
-          onClick={() => {
-            setOpen(true);
-            if (voice.state === "listening") {
-              voice.stop();
-            } else {
-              voice.start();
-            }
-          }}
+          onClick={handleMic}
           className={`relative grid shrink-0 place-items-center rounded-full border transition-all ${
             compact ? "h-10 w-10" : "h-11 w-11"
           } ${
-            voice.state === "listening"
+            listening || realtimeActive
               ? "border-[#c49b5f] bg-[#c49b5f]/15 text-[#a3854e]"
               : "border-[#e5dcc8] text-[#8a7a58] hover:bg-[#f6efe0]"
           }`}
         >
-          {voice.state === "listening" && (
+          {(listening || realtime.state === "connecting" || realtime.state === "speaking") && (
             <>
               <span className="absolute inset-0 rounded-full border-2 border-[#c49b5f]/60 animate-ping" />
               <span className="absolute -inset-1 rounded-full bg-[#c49b5f]/20 animate-pulse" />
@@ -147,7 +183,7 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
             className="absolute inset-x-0 top-full z-50 mt-3 overflow-hidden rounded-3xl border border-[#e7ddc8] bg-[#fdfbf6] shadow-[0_35px_90px_-20px_rgba(15,30,22,0.45)]"
           >
             {/* حالة الاستماع */}
-            {voice.state === "listening" && (
+            {(listening || realtime.state === "connecting" || realtime.state === "speaking") && (
               <div className="flex items-center gap-3 border-b border-[#efe7d5] bg-[#c49b5f]/8 px-6 py-4">
                 <span className="relative flex h-3 w-3">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#c49b5f] opacity-60" />
@@ -160,11 +196,11 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
             )}
 
             {/* رسالة خطأ الصوت */}
-            {voice.errorMsg && voice.state !== "listening" && (
+            {busyError && !listening && realtime.state !== "connecting" && (
               <div className="flex items-center justify-between gap-3 border-b border-[#efe7d5] bg-amber-50 px-6 py-3.5">
-                <span className="text-sm text-amber-800">{voice.errorMsg}</span>
+                <span className="text-sm text-amber-800">{busyError}</span>
                 <button
-                  onClick={voice.start}
+                  onClick={handleMic}
                   className="shrink-0 text-sm font-bold text-[#a3854e] underline underline-offset-4"
                 >
                   حاول تاني
