@@ -17,7 +17,7 @@ export default function Developers() {
   const row = [...developers, ...developers];
 
   return (
-    <section className="overflow-hidden border-y border-[#e7ddc8] bg-[#efe7d8] py-16">
+    <section className="overflow-hidden border-y border-[#e3d9c4] bg-[#efe7d8] py-16">
       <motion.div
         initial={{ opacity: 0, y: 22 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -29,7 +29,7 @@ export default function Developers() {
           <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
           <span className="text-sm font-medium text-[#a3854e]">شركاء موثوقون</span>
         </div>
-        <h2 className="text-3xl font-black text-[#1b2420] sm:text-4xl">مطوّرون موثوقون</h2>
+        <h2 className="text-3xl font-extrabold text-[#1b2420] sm:text-4xl">مطوّرون موثوقون</h2>
         <p className="mx-auto mt-3 max-w-md font-light text-[#6d7a72]">
           كل الوحدات مباشرة من المطوّر — بيانات وأسعار موثّقة، من غير وسطاء وهميين.
         </p>
@@ -41,7 +41,7 @@ export default function Developers() {
         <div className="flex w-max animate-marquee gap-14 pl-14">
           {row.map((d, i) => (
             <div key={i} className="flex items-center gap-14">
-              <span className="whitespace-nowrap text-2xl font-black tracking-wide text-[#1b2420]/35 transition-colors hover:text-[#c49b5f]">
+              <span className="whitespace-nowrap text-2xl font-bold tracking-wide text-[#3a4a41]/55 transition-colors hover:text-[#14352a]">
                 {d}
               </span>
               <span className="h-2 w-2 rotate-45 bg-[#c49b5f]/50" />

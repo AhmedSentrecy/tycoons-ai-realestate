@@ -106,7 +106,7 @@ export default function RegionPage() {
                 className="mt-12"
               >
                 <h2 className="text-2xl font-extrabold text-[#1b2420] sm:text-3xl">{p.title}</h2>
-                <p className="mt-4 font-light leading-loose text-[#6d7a72]">{p.body}</p>
+                <p className="mt-4 font-light leading-loose text-[#5c6a62]">{p.body}</p>
               </motion.div>
             ))}
 
@@ -131,7 +131,7 @@ export default function RegionPage() {
                     <AccordionTrigger className="py-5 text-right text-[16px] font-bold text-[#1b2420] hover:no-underline [&>svg]:text-[#c49b5f]">
                       {f.q}
                     </AccordionTrigger>
-                    <AccordionContent className="pb-5 font-light leading-relaxed text-[#6d7a72]">
+                    <AccordionContent className="pb-5 font-light leading-relaxed text-[#5c6a62]">
                       {f.a}
                     </AccordionContent>
                   </AccordionItem>
@@ -174,7 +174,7 @@ export default function RegionPage() {
               </div>
               <ul className="mt-4 space-y-3">
                 {region.developers.map((d) => (
-                  <li key={d} className="flex items-center gap-2.5 text-sm text-[#6d7a72]">
+                  <li key={d} className="flex items-center gap-2.5 text-sm text-[#5c6a62]">
                     <span className="h-1.5 w-1.5 rounded-full bg-[#c49b5f]" />
                     {d}
                   </li>

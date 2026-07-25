@@ -7,7 +7,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Footer() {
   return (
-    <footer className="relative overflow-hidden bg-[#08130e]">
+    <footer className="bg-[#08130e]">
       {/* CTA */}
       <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
         <motion.div
@@ -15,24 +15,23 @@ export default function Footer() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.9, ease }}
-          className="relative overflow-hidden rounded-[2.5rem] border border-[#c49b5f]/20 bg-gradient-to-bl from-[#14352a] to-[#0d1f18] px-8 py-16 text-center sm:px-16"
+          className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-bl from-[#14352a] to-[#0d1f18] px-8 py-16 text-center sm:px-16"
         >
           <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[480px] -translate-x-1/2 rounded-full bg-[#c49b5f]/15 blur-[100px]" />
-          <h2 className="relative mx-auto max-w-2xl text-balance text-3xl font-black leading-snug text-white sm:text-5xl sm:leading-snug">
-            عقارك الجاي يبدأ
-            <span className="gold-gradient-text"> بجملة واحدة</span>
+          <h2 className="relative mx-auto max-w-2xl text-balance text-3xl font-extrabold leading-snug text-white sm:text-5xl sm:leading-snug">
+            عقارك الجاي يبدأ بجملة واحدة
           </h2>
           <p className="relative mx-auto mt-5 max-w-md font-light leading-relaxed text-white/65">
             ابحث بالذكاء الاصطناعي والصوت — من المطوّرين مباشرة، من غير وسطاء.
           </p>
           <div className="relative mt-9 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              to="/"
-              className="flex items-center gap-2.5 rounded-full bg-[#c49b5f] px-8 py-4 text-sm font-bold text-[#231a0c] transition-all hover:scale-[1.05] hover:bg-[#d9b87c]"
+            <a
+              href="#"
+              className="flex items-center gap-2.5 rounded-full bg-[#c49b5f] px-8 py-4 text-sm font-bold text-[#231a0c] transition-transform hover:scale-[1.05]"
             >
               <Search className="h-4 w-4" />
               ابدأ البحث الذكي
-            </Link>
+            </a>
             <a
               href="https://wa.me/201200704344"
               target="_blank"
@@ -55,12 +54,12 @@ export default function Footer() {
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#d9b87c] to-[#c49b5f] text-lg font-black text-[#231a0c]">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#14352a] text-lg font-bold text-[#e8d5ae]">
                 T
               </span>
               <span className="leading-tight">
                 <span className="block text-[15px] font-bold tracking-[0.18em] text-white">TYCOONS</span>
-                <span className="block text-[9px] font-light tracking-[0.42em] text-[#d9b87c]/70">
+                <span className="block text-[9px] font-light tracking-[0.42em] text-white/50">
                   INVESTMENTS
                 </span>
               </span>
@@ -107,38 +106,33 @@ export default function Footer() {
           <div>
             <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">Tycoons</h4>
             <ul className="space-y-3.5">
-              <li>
-                <Link to="/about" className="text-sm font-light text-white/55 transition-colors hover:text-white">
-                  من نحن
-                </Link>
-              </li>
-              <li>
-                <Link to="/faq" className="text-sm font-light text-white/55 transition-colors hover:text-white">
-                  الأسئلة الشائعة
-                </Link>
-              </li>
-              <li>
-                <a
-                  href="https://wa.me/201200704344"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-sm font-light text-white/55 transition-colors hover:text-white"
-                >
-                  تواصل معنا
-                </a>
-              </li>
+              {[
+                { label: "من نحن", to: "/about" },
+                { label: "الأسئلة الشائعة", to: "/faq" },
+                { label: "تواصل معنا", to: "https://wa.me/201200704344", external: true },
+              ].map((it) => (
+                <li key={it.label}>
+                  {it.external ? (
+                    <a
+                      href={it.to}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-light text-white/55 transition-colors hover:text-white"
+                    >
+                      {it.label}
+                    </a>
+                  ) : (
+                    <Link to={it.to} className="text-sm font-light text-white/55 transition-colors hover:text-white">
+                      {it.label}
+                    </Link>
+                  )}
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
-        {/* Watermark */}
-        <div className="pointer-events-none select-none overflow-hidden px-5">
-          <div className="text-stroke-bone mx-auto max-w-7xl -mb-6 text-center text-[19vw] font-black leading-[0.8] tracking-tight lg:-mb-10 lg:text-[15rem]">
-            TYCOONS
-          </div>
-        </div>
-
-        <div className="relative border-t border-white/10 py-6 text-center text-xs font-light text-white/40">
+        <div className="border-t border-white/10 py-6 text-center text-xs font-light text-white/40">
           © ٢٠٢٦ تايكونز للاستثمار — كل الحقوق محفوظة
         </div>
       </div>

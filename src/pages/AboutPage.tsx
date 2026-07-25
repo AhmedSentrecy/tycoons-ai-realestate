@@ -95,11 +95,11 @@ export default function AboutPage() {
               transition={{ duration: 0.75, delay: i * 0.12, ease }}
               className="rounded-3xl border border-[#e7ddc8] bg-white/70 p-9"
             >
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#0d1f18] text-[#d9b87c]">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#14352a] text-[#e8d5ae]">
                 <c.icon className="h-6 w-6" />
               </div>
               <h2 className="mt-5 text-2xl font-extrabold text-[#1b2420]">{c.title}</h2>
-              <p className="mt-3 font-light leading-loose text-[#6d7a72]">{c.text}</p>
+              <p className="mt-3 font-light leading-loose text-[#5c6a62]">{c.text}</p>
             </motion.div>
           ))}
         </div>
@@ -129,7 +129,7 @@ export default function AboutPage() {
               >
                 <v.icon className="h-8 w-8 text-[#a3854e]" />
                 <h3 className="mt-5 text-xl font-extrabold text-[#1b2420]">{v.title}</h3>
-                <p className="mt-3 font-light leading-loose text-[#6d7a72]">{v.desc}</p>
+                <p className="mt-3 font-light leading-loose text-[#5c6a62]">{v.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -158,8 +158,8 @@ export default function AboutPage() {
               className="relative flex gap-8 border-r-2 border-[#c49b5f]/40 pb-12 pr-8 last:pb-0"
             >
               <span className="absolute -right-[9px] top-1 h-4 w-4 rounded-full border-4 border-[#f7f2ea] bg-[#c49b5f]" />
-              <span className="w-20 shrink-0 text-2xl font-extrabold text-[#0d1f18]">{m.year}</span>
-              <p className="pt-1 font-light leading-relaxed text-[#6d7a72]">{m.text}</p>
+              <span className="w-20 shrink-0 text-2xl font-extrabold text-[#14352a]">{m.year}</span>
+              <p className="pt-1 font-light leading-relaxed text-[#5c6a62]">{m.text}</p>
             </motion.div>
           ))}
         </div>

@@ -66,7 +66,7 @@ export default function FaqPage() {
                 <AccordionTrigger className="py-5 text-right text-[17px] font-bold text-[#1b2420] hover:no-underline [&>svg]:text-[#c49b5f]">
                   {f.q}
                 </AccordionTrigger>
-                <AccordionContent className="pb-5 font-light leading-relaxed text-[#6d7a72]">
+                <AccordionContent className="pb-5 font-light leading-relaxed text-[#5c6a62]">
                   {f.a}
                 </AccordionContent>
               </AccordionItem>
