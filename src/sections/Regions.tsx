@@ -14,7 +14,7 @@ const regions = [
 
 export default function Regions() {
   return (
-    <section className="bg-[#f4f1ea] py-24 lg:py-32">
+    <section className="bg-[#f7f2ea] py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 26 }}
@@ -26,18 +26,18 @@ export default function Regions() {
           <span className="text-stroke-ink hidden text-8xl font-black leading-none lg:block">02</span>
           <div>
             <div className="mb-4 flex items-center gap-2.5">
-              <span className="h-2 w-2 rounded-full bg-[#e0703c]" />
-              <span className="text-sm font-medium text-[#c4532a]">استكشف بالمنطقة</span>
+              <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
+              <span className="text-sm font-medium text-[#a3854e]">استكشف بالمنطقة</span>
             </div>
-            <h2 className="text-4xl font-black text-[#14181f] sm:text-5xl">مناطق مميّزة</h2>
-            <p className="mt-4 max-w-md font-light leading-relaxed text-[#6e6a5f]">
+            <h2 className="text-4xl font-black text-[#1b2420] sm:text-5xl">مناطق مميّزة</h2>
+            <p className="mt-4 max-w-md font-light leading-relaxed text-[#6d7a72]">
               عدّي على أي سطر — الصورة بتظهرلك قبل ما تدوس.
             </p>
           </div>
         </motion.div>
 
         {/* Editorial list */}
-        <div className="border-t border-[#ddd7c8]">
+        <div className="border-t border-[#e7ddc8]">
           {regions.map((r, i) => (
             <motion.div
               key={r.slug}
@@ -48,13 +48,13 @@ export default function Regions() {
             >
               <Link
                 to={`/regions/${r.slug}`}
-                className="group relative flex items-center justify-between gap-4 border-b border-[#ddd7c8] py-7 transition-colors sm:py-9"
+                className="group relative flex items-center justify-between gap-4 border-b border-[#e7ddc8] py-7 transition-colors sm:py-9"
               >
                 {/* hover bg sweep */}
-                <span className="absolute inset-0 origin-bottom scale-y-0 bg-[#0c0f14] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-y-100" />
+                <span className="absolute inset-0 origin-bottom scale-y-0 bg-[#0d1f18] transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-y-100" />
 
                 <div className="relative z-10 flex items-center gap-5 sm:gap-8">
-                  <span className="text-sm font-bold text-[#c4532a] transition-colors duration-300 group-hover:text-[#f2b07e]">
+                  <span className="text-sm font-bold text-[#a3854e] transition-colors duration-300 group-hover:text-[#d9b87c]">
                     {r.num}
                   </span>
 
@@ -66,10 +66,10 @@ export default function Regions() {
                   />
 
                   <div>
-                    <h3 className="text-2xl font-black text-[#14181f] transition-all duration-300 group-hover:-translate-x-2 group-hover:text-white sm:text-4xl">
+                    <h3 className="text-2xl font-black text-[#1b2420] transition-all duration-300 group-hover:-translate-x-2 group-hover:text-white sm:text-4xl">
                       {r.name}
                     </h3>
-                    <p className="mt-1 text-sm font-light text-[#6e6a5f] transition-colors duration-300 group-hover:text-white/60">
+                    <p className="mt-1 text-sm font-light text-[#6d7a72] transition-colors duration-300 group-hover:text-white/60">
                       {r.count}
                     </p>
                   </div>
@@ -80,7 +80,7 @@ export default function Regions() {
                   <img src={r.image} alt="" className="aspect-[3/2] w-full object-cover" />
                 </div>
 
-                <span className="relative z-10 grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#ddd7c8] text-[#14181f] transition-all duration-300 group-hover:border-[#e0703c] group-hover:bg-[#e0703c] group-hover:text-[#1a0f08]">
+                <span className="relative z-10 grid h-12 w-12 shrink-0 place-items-center rounded-full border border-[#e7ddc8] text-[#1b2420] transition-all duration-300 group-hover:border-[#c49b5f] group-hover:bg-[#c49b5f] group-hover:text-[#231a0c]">
                   <ArrowUpLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:-translate-x-0.5" />
                 </span>
               </Link>
@@ -93,9 +93,9 @@ export default function Regions() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="mt-8 flex items-center gap-2 text-sm font-light text-[#6e6a5f]"
+          className="mt-8 flex items-center gap-2 text-sm font-light text-[#6d7a72]"
         >
-          <ArrowLeft className="h-4 w-4 text-[#e0703c]" />
+          <ArrowLeft className="h-4 w-4 text-[#c49b5f]" />
           كل منطقة ليها صفحة كاملة بأسعارها ومطوريها وأسئلتها الشائعة
         </motion.div>
       </div>

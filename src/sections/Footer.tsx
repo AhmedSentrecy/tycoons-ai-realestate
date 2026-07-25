@@ -7,7 +7,7 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Footer() {
   return (
-    <footer className="relative overflow-hidden bg-[#080b10]">
+    <footer className="relative overflow-hidden bg-[#08130e]">
       {/* CTA */}
       <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
         <motion.div
@@ -15,12 +15,12 @@ export default function Footer() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.9, ease }}
-          className="relative overflow-hidden rounded-[2.5rem] border border-[#e0703c]/20 bg-gradient-to-bl from-[#12161f] to-[#0c0f14] px-8 py-16 text-center sm:px-16"
+          className="relative overflow-hidden rounded-[2.5rem] border border-[#c49b5f]/20 bg-gradient-to-bl from-[#14352a] to-[#0d1f18] px-8 py-16 text-center sm:px-16"
         >
-          <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[480px] -translate-x-1/2 rounded-full bg-[#e0703c]/15 blur-[100px]" />
+          <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[480px] -translate-x-1/2 rounded-full bg-[#c49b5f]/15 blur-[100px]" />
           <h2 className="relative mx-auto max-w-2xl text-balance text-3xl font-black leading-snug text-white sm:text-5xl sm:leading-snug">
             عقارك الجاي يبدأ
-            <span className="ember-gradient-text"> بجملة واحدة</span>
+            <span className="gold-gradient-text"> بجملة واحدة</span>
           </h2>
           <p className="relative mx-auto mt-5 max-w-md font-light leading-relaxed text-white/65">
             ابحث بالذكاء الاصطناعي والصوت — من المطوّرين مباشرة، من غير وسطاء.
@@ -28,7 +28,7 @@ export default function Footer() {
           <div className="relative mt-9 flex flex-wrap items-center justify-center gap-4">
             <Link
               to="/"
-              className="flex items-center gap-2.5 rounded-full bg-[#e0703c] px-8 py-4 text-sm font-bold text-[#1a0f08] transition-all hover:scale-[1.05] hover:bg-[#f2b07e]"
+              className="flex items-center gap-2.5 rounded-full bg-[#c49b5f] px-8 py-4 text-sm font-bold text-[#231a0c] transition-all hover:scale-[1.05] hover:bg-[#d9b87c]"
             >
               <Search className="h-4 w-4" />
               ابدأ البحث الذكي
@@ -55,12 +55,12 @@ export default function Footer() {
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#f2b07e] to-[#e0703c] text-lg font-black text-[#1a0f08]">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-[#d9b87c] to-[#c49b5f] text-lg font-black text-[#231a0c]">
                 T
               </span>
               <span className="leading-tight">
                 <span className="block text-[15px] font-bold tracking-[0.18em] text-white">TYCOONS</span>
-                <span className="block text-[9px] font-light tracking-[0.42em] text-[#f2b07e]/70">
+                <span className="block text-[9px] font-light tracking-[0.42em] text-[#d9b87c]/70">
                   INVESTMENTS
                 </span>
               </span>
@@ -71,7 +71,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#f2b07e]">المنصة</h4>
+            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">المنصة</h4>
             <ul className="space-y-3.5">
               {[
                 { label: "البحث الذكي", to: "/" },
@@ -89,7 +89,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#f2b07e]">المناطق</h4>
+            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">المناطق</h4>
             <ul className="space-y-3.5">
               {regions.map((r) => (
                 <li key={r.slug}>
@@ -105,7 +105,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#f2b07e]">Tycoons</h4>
+            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">Tycoons</h4>
             <ul className="space-y-3.5">
               <li>
                 <Link to="/about" className="text-sm font-light text-white/55 transition-colors hover:text-white">

@@ -26,7 +26,7 @@ const features = [
 
 export default function WhyUs() {
   return (
-    <section className="bg-[#f4f1ea] py-24 lg:py-28">
+    <section className="bg-[#f7f2ea] py-24 lg:py-28">
       <div className="mx-auto max-w-7xl px-5 lg:px-8">
         <div className="grid gap-5 md:grid-cols-3">
           {features.map((f, i) => (
@@ -36,21 +36,21 @@ export default function WhyUs() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.75, delay: i * 0.13, ease }}
-              className={`group relative overflow-hidden rounded-3xl border border-[#ddd7c8] bg-white/60 p-8 transition-all duration-500 hover:-translate-y-1.5 hover:border-[#e0703c]/45 hover:shadow-[0_28px_70px_-28px_rgba(120,60,30,0.35)] ${
+              className={`group relative overflow-hidden rounded-3xl border border-[#e7ddc8] bg-white/60 p-8 transition-all duration-500 hover:-translate-y-1.5 hover:border-[#c49b5f]/45 hover:shadow-[0_28px_70px_-28px_rgba(120,60,30,0.35)] ${
                 f.tall ? "md:row-span-2 md:flex md:flex-col md:justify-center" : ""
               }`}
             >
               {/* corner glow on hover */}
-              <span className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-[#e0703c]/0 blur-3xl transition-all duration-500 group-hover:bg-[#e0703c]/15" />
+              <span className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-[#c49b5f]/0 blur-3xl transition-all duration-500 group-hover:bg-[#c49b5f]/15" />
 
               <div className="relative">
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#0c0f14] text-[#f2b07e] transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-105">
+                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#0d1f18] text-[#d9b87c] transition-transform duration-500 group-hover:-rotate-6 group-hover:scale-105">
                   <f.icon className="h-6 w-6" />
                 </div>
-                <h3 className={`mt-6 font-black text-[#14181f] ${f.tall ? "text-2xl" : "text-xl"}`}>
+                <h3 className={`mt-6 font-black text-[#1b2420] ${f.tall ? "text-2xl" : "text-xl"}`}>
                   {f.title}
                 </h3>
-                <p className="mt-3 font-light leading-loose text-[#6e6a5f]">{f.desc}</p>
+                <p className="mt-3 font-light leading-loose text-[#6d7a72]">{f.desc}</p>
               </div>
             </motion.div>
           ))}

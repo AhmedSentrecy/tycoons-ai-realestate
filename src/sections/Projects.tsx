@@ -110,7 +110,7 @@ function TiltCard({ p, i }: { p: (typeof projects)[number]; i: number }) {
           my.set(0.5);
         }}
         style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-        className="group overflow-hidden rounded-3xl bg-white/[0.04] ring-1 ring-white/10 transition-colors duration-500 hover:bg-white/[0.07] hover:ring-[#e0703c]/40"
+        className="group overflow-hidden rounded-3xl bg-white/[0.04] ring-1 ring-white/10 transition-colors duration-500 hover:bg-white/[0.07] hover:ring-[#c49b5f]/40"
       >
         {/* Image */}
         <div className="relative aspect-[4/3] overflow-hidden">
@@ -122,7 +122,7 @@ function TiltCard({ p, i }: { p: (typeof projects)[number]; i: number }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           <span
             className={`absolute right-4 top-4 rounded-full px-3.5 py-1.5 text-xs font-bold shadow-lg ${
-              p.badge === "جديد" ? "bg-[#e0703c] text-[#1a0f08]" : "bg-emerald-500/90 text-white"
+              p.badge === "جديد" ? "bg-[#c49b5f] text-[#231a0c]" : "bg-emerald-500/90 text-white"
             }`}
           >
             {p.badge}
@@ -134,14 +134,14 @@ function TiltCard({ p, i }: { p: (typeof projects)[number]; i: number }) {
 
         {/* Body */}
         <div className="p-5">
-          <div className="text-xs font-medium text-[#f2b07e]">
+          <div className="text-xs font-medium text-[#d9b87c]">
             {p.type} · {p.developer}
           </div>
           <h3 className="mt-2 text-[17px] font-bold leading-snug text-white">{p.title}</h3>
 
           <div className="mt-4 flex items-baseline gap-2">
             <span className="text-xs text-white/50">يبدأ من</span>
-            <span className="text-lg font-black text-[#f2b07e]">{p.price}</span>
+            <span className="text-lg font-black text-[#d9b87c]">{p.price}</span>
           </div>
 
           <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
@@ -151,7 +151,7 @@ function TiltCard({ p, i }: { p: (typeof projects)[number]; i: number }) {
               { icon: KeyRound, v: p.delivery, l: "الاستلام" },
             ].map(({ icon: Icon, v, l }) => (
               <div key={l}>
-                <Icon className="mx-auto h-4 w-4 text-[#e0703c]/80" />
+                <Icon className="mx-auto h-4 w-4 text-[#c49b5f]/80" />
                 <div className="mt-1.5 text-[13px] font-semibold text-white/90">{v}</div>
                 <div className="text-[10px] text-white/45">{l}</div>
               </div>
@@ -159,14 +159,14 @@ function TiltCard({ p, i }: { p: (typeof projects)[number]; i: number }) {
           </div>
 
           <div className="mt-5 flex gap-2">
-            <button className="flex-1 rounded-full border border-white/20 py-2.5 text-[13px] font-semibold text-white transition-colors hover:border-[#e0703c]/60 hover:bg-[#e0703c]/10">
+            <button className="flex-1 rounded-full border border-white/20 py-2.5 text-[13px] font-semibold text-white transition-colors hover:border-[#c49b5f]/60 hover:bg-[#c49b5f]/10">
               تفاصيل المشروع
             </button>
             <a
               href="https://wa.me/201200704344"
               target="_blank"
               rel="noreferrer"
-              className="grid w-11 place-items-center rounded-full bg-[#e0703c] text-[#1a0f08] transition-transform hover:scale-105"
+              className="grid w-11 place-items-center rounded-full bg-[#c49b5f] text-[#231a0c] transition-transform hover:scale-105"
               aria-label="واتساب"
             >
               <MessageCircle className="h-4 w-4" />
@@ -184,8 +184,8 @@ export default function Projects() {
     scroller.current?.scrollBy({ left: dir * 400, behavior: "smooth" });
 
   return (
-    <section className="relative overflow-hidden bg-[#0c0f14] py-24 lg:py-32">
-      <div className="pointer-events-none absolute left-0 top-0 h-72 w-72 rounded-full bg-[#e0703c]/8 blur-[120px]" />
+    <section className="relative overflow-hidden bg-[#0d1f18] py-24 lg:py-32">
+      <div className="pointer-events-none absolute left-0 top-0 h-72 w-72 rounded-full bg-[#c49b5f]/8 blur-[120px]" />
 
       <div className="relative mx-auto max-w-7xl px-5 lg:px-8">
         {/* Heading */}
@@ -222,14 +222,14 @@ export default function Projects() {
             <button
               onClick={() => scrollBy(1)}
               aria-label="السابق"
-              className="grid h-12 w-12 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#e0703c] hover:bg-[#e0703c] hover:text-[#1a0f08]"
+              className="grid h-12 w-12 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#c49b5f] hover:bg-[#c49b5f] hover:text-[#231a0c]"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
             <button
               onClick={() => scrollBy(-1)}
               aria-label="التالي"
-              className="grid h-12 w-12 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#e0703c] hover:bg-[#e0703c] hover:text-[#1a0f08]"
+              className="grid h-12 w-12 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#c49b5f] hover:bg-[#c49b5f] hover:text-[#231a0c]"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>

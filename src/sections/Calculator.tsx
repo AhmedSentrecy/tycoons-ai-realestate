@@ -20,8 +20,8 @@ export default function Calculator() {
   }, [price, down, years]);
 
   return (
-    <section className="relative overflow-hidden bg-[#0c0f14] py-24 lg:py-32">
-      <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-[#e0703c]/10 blur-[130px] animate-glow-drift" />
+    <section className="relative overflow-hidden bg-[#0d1f18] py-24 lg:py-32">
+      <div className="pointer-events-none absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-[#c49b5f]/10 blur-[130px] animate-glow-drift" />
 
       <div className="relative mx-auto max-w-7xl px-5 lg:px-8">
         <div className="grid items-center gap-14 lg:grid-cols-2">
@@ -33,8 +33,8 @@ export default function Calculator() {
             transition={{ duration: 0.8, ease }}
           >
             <div className="mb-4 flex items-center gap-2.5">
-              <span className="h-2 w-2 rounded-full bg-[#e0703c]" />
-              <span className="text-sm font-medium text-[#f2b07e]">خطّط قبل ما تسأل</span>
+              <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
+              <span className="text-sm font-medium text-[#d9b87c]">خطّط قبل ما تسأل</span>
             </div>
             <h2 className="text-4xl font-black text-white sm:text-5xl">حاسبة الأقساط</h2>
             <p className="mt-4 max-w-md font-light leading-relaxed text-white/60">
@@ -44,10 +44,10 @@ export default function Calculator() {
             <div className="mt-10 grid grid-cols-2 gap-4">
               <motion.div
                 layout
-                className="rounded-3xl bg-gradient-to-br from-[#f2b07e] to-[#e0703c] p-6 shadow-[0_24px_60px_-20px_rgba(224,112,60,0.5)]"
+                className="rounded-3xl bg-gradient-to-br from-[#d9b87c] to-[#c49b5f] p-6 shadow-[0_24px_60px_-20px_rgba(224,112,60,0.5)]"
               >
-                <div className="text-[13px] font-medium text-[#1a0f08]/70">القسط الشهري التقريبي</div>
-                <div className="mt-2 text-3xl font-black text-[#1a0f08] sm:text-4xl">
+                <div className="text-[13px] font-medium text-[#231a0c]/70">القسط الشهري التقريبي</div>
+                <div className="mt-2 text-3xl font-black text-[#231a0c] sm:text-4xl">
                   {fmt(monthly)}
                   <span className="mr-1 text-base font-bold">ج.م</span>
                 </div>
@@ -81,7 +81,7 @@ export default function Calculator() {
             className="glass-dark rounded-[2rem] p-8 sm:p-10"
           >
             <div className="mb-8 flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#e0703c]/18 text-[#f2b07e]">
+              <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#c49b5f]/18 text-[#d9b87c]">
                 <CalcIcon className="h-5 w-5" />
               </div>
               <span className="text-lg font-bold text-white">جرّب بنفسك</span>
@@ -119,7 +119,7 @@ export default function Calculator() {
               <div key={s.label} className="mb-8 last:mb-0">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-sm font-medium text-white/70">{s.label}</span>
-                  <span className="rounded-full bg-[#e0703c]/15 px-4 py-1.5 text-sm font-bold text-[#f2b07e]">
+                  <span className="rounded-full bg-[#c49b5f]/15 px-4 py-1.5 text-sm font-bold text-[#d9b87c]">
                     {s.value}
                   </span>
                 </div>

@@ -73,7 +73,7 @@ export default function Hero() {
   const fade = useTransform(scrollY, [0, 650], [1, 0]);
 
   return (
-    <section ref={sectionRef} className="relative min-h-[100svh] overflow-hidden bg-[#0c0f14]">
+    <section ref={sectionRef} className="relative min-h-[100svh] overflow-hidden bg-[#0d1f18]">
       {/* Parallax background */}
       <motion.div style={{ y: bgY, scale: bgScale }} className="absolute inset-0">
         <img
@@ -82,13 +82,13 @@ export default function Hero() {
           className="h-full w-full object-cover"
         />
       </motion.div>
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0c0f14]/80 via-[#0c0f14]/40 to-[#0c0f14]" />
-      <div className="absolute inset-0 bg-gradient-to-l from-[#0c0f14]/50 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0d1f18]/80 via-[#0d1f18]/40 to-[#0d1f18]" />
+      <div className="absolute inset-0 bg-gradient-to-l from-[#0d1f18]/50 to-transparent" />
 
       {/* Drifting glows */}
-      <div className="pointer-events-none absolute -left-32 top-1/3 h-96 w-96 rounded-full bg-[#e0703c]/14 blur-[130px] animate-glow-drift" />
+      <div className="pointer-events-none absolute -left-32 top-1/3 h-96 w-96 rounded-full bg-[#c49b5f]/14 blur-[130px] animate-glow-drift" />
       <div
-        className="pointer-events-none absolute -right-24 top-16 h-80 w-80 rounded-full bg-[#f2b07e]/10 blur-[120px] animate-glow-drift"
+        className="pointer-events-none absolute -right-24 top-16 h-80 w-80 rounded-full bg-[#d9b87c]/10 blur-[120px] animate-glow-drift"
         style={{ animationDelay: "-6s" }}
       />
 
@@ -101,16 +101,16 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.8 }}
-          className="mb-7 inline-flex w-fit items-center gap-2.5 rounded-full border border-[#e0703c]/30 bg-[#e0703c]/10 px-4 py-2"
+          className="mb-7 inline-flex w-fit items-center gap-2.5 rounded-full border border-[#c49b5f]/30 bg-[#c49b5f]/10 px-4 py-2"
         >
-          <span className="h-2 w-2 rounded-full bg-[#e0703c] animate-pulse-dot" />
-          <span className="text-sm font-medium text-[#f2b07e]">بحث عقاري بالذكاء الاصطناعي</span>
+          <span className="h-2 w-2 rounded-full bg-[#c49b5f] animate-pulse-dot" />
+          <span className="text-sm font-medium text-[#d9b87c]">بحث عقاري بالذكاء الاصطناعي</span>
         </motion.div>
 
         <h1 className="max-w-4xl text-balance text-[44px] font-black leading-[1.3] text-white sm:text-6xl lg:text-[80px] lg:leading-[1.25]">
           <Words text={line1} delay={0.45} />
           <Words text={line2} delay={0.85} className="block" />
-          <Words text={line3} delay={1.25} className="ember-gradient-text block" />
+          <Words text={line3} delay={1.25} className="gold-gradient-text block" />
         </h1>
 
         <motion.p
@@ -130,8 +130,8 @@ export default function Hero() {
           transition={{ delay: 1.9, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
           className="glass-dark mt-10 max-w-2xl rounded-3xl p-3 shadow-[0_40px_100px_-25px_rgba(0,0,0,0.8)]"
         >
-          <div className="flex items-center gap-3 rounded-2xl bg-[#f4f1ea] px-4 py-3.5">
-            <Sparkles className="h-5 w-5 shrink-0 text-[#e0703c]" />
+          <div className="flex items-center gap-3 rounded-2xl bg-[#f7f2ea] px-4 py-3.5">
+            <Sparkles className="h-5 w-5 shrink-0 text-[#c49b5f]" />
             <input
               type="text"
               placeholder="عايز شاليه في الساحل أو آي فيلا في التجمع..."
@@ -139,11 +139,11 @@ export default function Hero() {
             />
             <button
               aria-label="بحث صوتي"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#ddd7c8] text-[#a06a48] transition-colors hover:bg-[#eee9dd]"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#e7ddc8] text-[#a06a48] transition-colors hover:bg-[#eee9dd]"
             >
               <Mic className="h-5 w-5" />
             </button>
-            <button className="flex shrink-0 items-center gap-2 rounded-full bg-[#0c0f14] px-6 py-3 text-sm font-bold text-[#f4f1ea] transition-all hover:scale-[1.04] hover:bg-[#e0703c] hover:text-[#1a0f08]">
+            <button className="flex shrink-0 items-center gap-2 rounded-full bg-[#0d1f18] px-6 py-3 text-sm font-bold text-[#f7f2ea] transition-all hover:scale-[1.04] hover:bg-[#c49b5f] hover:text-[#231a0c]">
               <Search className="h-4 w-4" />
               ابحث
             </button>
@@ -153,7 +153,7 @@ export default function Hero() {
             {chips.map((c) => (
               <button
                 key={c}
-                className="rounded-full border border-white/15 px-3.5 py-1.5 text-xs text-white/80 transition-all hover:border-[#e0703c]/60 hover:bg-[#e0703c]/15 hover:text-white"
+                className="rounded-full border border-white/15 px-3.5 py-1.5 text-xs text-white/80 transition-all hover:border-[#c49b5f]/60 hover:bg-[#c49b5f]/15 hover:text-white"
               >
                 {c}
               </button>
@@ -169,7 +169,7 @@ export default function Hero() {
           className="mt-14 grid max-w-2xl grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4"
         >
           {stats.map((s) => (
-            <div key={s.label} className="border-r-2 border-[#e0703c]/40 pr-4">
+            <div key={s.label} className="border-r-2 border-[#c49b5f]/40 pr-4">
               <div className="text-3xl font-black text-white sm:text-4xl">
                 <Counter target={s.value} suffix={s.suffix} />
               </div>
@@ -190,12 +190,12 @@ export default function Hero() {
       </motion.div>
 
       {/* Ticker */}
-      <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/10 bg-[#0c0f14]/80 py-4 backdrop-blur-md">
+      <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/10 bg-[#0d1f18]/80 py-4 backdrop-blur-md">
         <div className="flex w-max animate-marquee-fast gap-0">
           {[...tickerItems, ...tickerItems].map((t, i) => (
             <span key={i} className="flex items-center whitespace-nowrap text-sm font-medium text-white/60">
               <span className="px-6">{t}</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-[#e0703c]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-[#c49b5f]" />
             </span>
           ))}
         </div>

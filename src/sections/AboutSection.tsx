@@ -12,7 +12,7 @@ const points = [
 
 export default function AboutSection() {
   return (
-    <section className="relative overflow-hidden bg-[#12161f] py-24 lg:py-32">
+    <section className="relative overflow-hidden bg-[#14352a] py-24 lg:py-32">
       {/* watermark */}
       <span className="text-stroke-bone pointer-events-none absolute -top-8 left-0 select-none whitespace-nowrap text-[16rem] font-black leading-none opacity-60">
         TYCOONS
@@ -27,12 +27,12 @@ export default function AboutSection() {
           transition={{ duration: 0.8, ease }}
         >
           <div className="mb-4 flex items-center gap-2.5">
-            <span className="h-2 w-2 rounded-full bg-[#e0703c]" />
-            <span className="text-sm font-medium text-[#f2b07e]">مين إحنا؟</span>
+            <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
+            <span className="text-sm font-medium text-[#d9b87c]">مين إحنا؟</span>
           </div>
           <h2 className="text-4xl font-black leading-snug text-white sm:text-5xl sm:leading-snug">
             مش موقع إعلانات.
-            <span className="ember-gradient-text block">مساعد شراء عقاري.</span>
+            <span className="gold-gradient-text block">مساعد شراء عقاري.</span>
           </h2>
           <p className="mt-6 max-w-lg font-light leading-loose text-white/65">
             تايكونز اتعملت عشان تحل المشكلة اللي كلنا عدينا بيها: آلاف الإعلانات المكررة،
@@ -50,7 +50,7 @@ export default function AboutSection() {
                 transition={{ duration: 0.6, delay: 0.2 + i * 0.12, ease }}
                 className="flex items-center gap-4"
               >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#e0703c]/12 text-[#f2b07e] ring-1 ring-[#e0703c]/25">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#c49b5f]/12 text-[#d9b87c] ring-1 ring-[#c49b5f]/25">
                   <p.icon className="h-5 w-5" />
                 </span>
                 <span className="font-medium text-white/85">{p.text}</span>
@@ -60,7 +60,7 @@ export default function AboutSection() {
 
           <Link
             to="/about"
-            className="group mt-10 inline-flex items-center gap-2 rounded-full bg-[#e0703c] px-7 py-3.5 text-sm font-bold text-[#1a0f08] transition-all hover:scale-[1.04] hover:bg-[#f2b07e]"
+            className="group mt-10 inline-flex items-center gap-2 rounded-full bg-[#c49b5f] px-7 py-3.5 text-sm font-bold text-[#231a0c] transition-all hover:scale-[1.04] hover:bg-[#d9b87c]"
           >
             اعرف أكتر عن تايكونز
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
@@ -89,7 +89,7 @@ export default function AboutSection() {
             transition={{ duration: 0.6, delay: 0.5, ease }}
             className="glass-dark absolute -bottom-6 right-6 rounded-2xl px-7 py-5 shadow-xl sm:right-10"
           >
-            <div className="text-3xl font-black text-[#f2b07e]">٢٠٢٤</div>
+            <div className="text-3xl font-black text-[#d9b87c]">٢٠٢٤</div>
             <div className="mt-1 text-sm font-light text-white/60">سنة التأسيس</div>
           </motion.div>
           <motion.div
@@ -97,10 +97,10 @@ export default function AboutSection() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.65, ease }}
-            className="absolute -top-6 left-6 rounded-2xl bg-[#e0703c] px-7 py-5 shadow-xl sm:left-10"
+            className="absolute -top-6 left-6 rounded-2xl bg-[#c49b5f] px-7 py-5 shadow-xl sm:left-10"
           >
-            <div className="text-3xl font-black text-[#1a0f08]">+١٢٠٠</div>
-            <div className="mt-1 text-sm font-medium text-[#1a0f08]/70">عميل اتوصّل لوحدته</div>
+            <div className="text-3xl font-black text-[#231a0c]">+١٢٠٠</div>
+            <div className="mt-1 text-sm font-medium text-[#231a0c]/70">عميل اتوصّل لوحدته</div>
           </motion.div>
         </motion.div>
       </div>

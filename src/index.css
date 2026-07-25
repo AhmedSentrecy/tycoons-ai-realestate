@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 40 20% 94%;
-    --foreground: 222 20% 7%;
+    --background: 40 38% 95%;
+    --foreground: 24 12% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222 20% 7%;
+    --card-foreground: 24 12% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 20% 7%;
-    --primary: 20 72% 55%;
-    --primary-foreground: 40 20% 94%;
-    --secondary: 38 16% 87%;
-    --secondary-foreground: 222 20% 7%;
-    --muted: 38 14% 86%;
-    --muted-foreground: 40 6% 42%;
-    --accent: 20 72% 55%;
-    --accent-foreground: 40 20% 94%;
+    --popover-foreground: 24 12% 12%;
+    --primary: 33 45% 55%;
+    --primary-foreground: 24 12% 12%;
+    --secondary: 38 30% 89%;
+    --secondary-foreground: 24 12% 12%;
+    --muted: 38 22% 88%;
+    --muted-foreground: 30 8% 42%;
+    --accent: 33 45% 55%;
+    --accent-foreground: 24 12% 12%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 38 14% 80%;
-    --input: 38 14% 80%;
-    --ring: 20 72% 55%;
+    --border: 36 18% 82%;
+    --input: 36 18% 82%;
+    --ring: 33 45% 55%;
     --radius: 0.875rem;
   }
 }
@@ -39,7 +39,7 @@
     font-family: "Alexandria", system-ui, sans-serif;
   }
   ::selection {
-    background: hsl(20 72% 55% / 0.3);
+    background: hsl(33 45% 55% / 0.35);
   }
 }
 
@@ -48,29 +48,29 @@
     text-wrap: balance;
   }
   .glass-dark {
-    background: hsl(222 25% 9% / 0.72);
+    background: hsl(160 30% 8% / 0.68);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsl(0 0% 100% / 0.09);
+    border: 1px solid hsl(0 0% 100% / 0.1);
   }
   .glass-bone {
-    background: hsl(40 25% 96% / 0.8);
+    background: hsl(40 38% 97% / 0.78);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid hsl(38 14% 78% / 0.7);
+    border: 1px solid hsl(36 18% 82% / 0.65);
   }
-  .ember-gradient-text {
-    background: linear-gradient(115deg, #f2b07e 0%, #e0703c 55%, #c4532a 100%);
+  .gold-gradient-text {
+    background: linear-gradient(115deg, #d9b87c 0%, #f0dcb0 50%, #c49b5f 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
   .text-stroke-bone {
-    -webkit-text-stroke: 1.5px hsl(40 20% 94% / 0.22);
+    -webkit-text-stroke: 1.5px hsl(40 38% 92% / 0.22);
     color: transparent;
   }
   .text-stroke-ink {
-    -webkit-text-stroke: 1.5px hsl(222 20% 7% / 0.18);
+    -webkit-text-stroke: 1.5px hsl(162 33% 16% / 0.2);
     color: transparent;
   }
   .scrollbar-hide {
@@ -164,8 +164,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #e0703c;
-  border: 4px solid #0c0f14;
+  background: #d9b87c;
+  border: 4px solid #14352a;
   box-shadow: 0 0 0 1px hsl(0 0% 100% / 0.3);
   transition: transform 0.15s ease;
 }
@@ -176,7 +176,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #e0703c;
-  border: 4px solid #0c0f14;
+  background: #d9b87c;
+  border: 4px solid #14352a;
   transition: transform 0.15s ease;
 }
