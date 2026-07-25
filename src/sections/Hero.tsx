@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView, animate } from "framer-motion";
+import { motion, AnimatePresence, useInView, animate } from "framer-motion";
 import { Mic, Search, Sparkles, ChevronDown } from "lucide-react";
 
 const chips = ["شاليه في الساحل", "آي فيلا في التجمع", "شقة تحت ٧ مليون", "استلام فوري"];
@@ -36,9 +36,54 @@ function Counter({ target, suffix }: { target: number; suffix: string }) {
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+function LiquidSearchBar() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > window.innerHeight * 0.82);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ y: -70, opacity: 0, scale: 0.96 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
+          exit={{ y: -70, opacity: 0, scale: 0.96 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed inset-x-0 top-24 z-40 flex justify-center px-5"
+        >
+          <div className="liquid-glass flex w-full max-w-2xl items-center gap-2.5 rounded-full p-2 pe-2.5 ps-4 shadow-[0_25px_70px_-18px_rgba(10,25,18,0.55)]">
+            <Sparkles className="h-5 w-5 shrink-0 text-[#c49b5f]" />
+            <input
+              type="text"
+              placeholder="دوّر بصوتك أو اكتب — «شاليه في الساحل تحت ٩ مليون»..."
+              className="w-full bg-transparent text-sm text-[#22312b] outline-none placeholder:text-[#8f9a92]"
+            />
+            <button
+              aria-label="بحث صوتي"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#e5dcc8] bg-white/60 text-[#8a7a58] transition-colors hover:bg-white"
+            >
+              <Mic className="h-4 w-4" />
+            </button>
+            <button className="flex shrink-0 items-center gap-2 rounded-full bg-[#14352a] px-5 py-2.5 text-sm font-semibold text-[#efe3c6] transition-transform hover:scale-[1.05]">
+              <Search className="h-4 w-4" />
+              ابحث
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function Hero() {
   return (
     <section className="relative min-h-[100svh] overflow-hidden">
+      <LiquidSearchBar />
       {/* Background */}
       <motion.img
         src="/images/hero.webp"

@@ -30,7 +30,7 @@ export default function Footer() {
               className="flex items-center gap-2.5 rounded-full bg-[#c49b5f] px-8 py-4 text-sm font-bold text-[#231a0c] transition-transform hover:scale-[1.05]"
             >
               <Search className="h-4 w-4" />
-              ابدأ البحث الذكي
+              ابدأ البحث
             </a>
             <a
               href="https://wa.me/201200704344"
@@ -73,7 +73,7 @@ export default function Footer() {
             <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">المنصة</h4>
             <ul className="space-y-3.5">
               {[
-                { label: "البحث الذكي", to: "/" },
+                { label: "ابدأ البحث", to: "/" },
                 { label: "الأسئلة الشائعة", to: "/faq" },
                 { label: "من نحن", to: "/about" },
                 { label: "الحاسبة", to: "/" },

@@ -83,7 +83,7 @@ export default function FaqPage() {
         >
           <h2 className="text-2xl font-extrabold text-white">لسه عندك سؤال؟</h2>
           <p className="mx-auto mt-3 max-w-sm font-light text-white/65">
-            المساعد الذكي وفريقنا جاهزين يردوا عليك في دقايق.
+            المساعد وفريقنا جاهزين يردوا عليك في دقايق.
           </p>
           <a
             href="https://wa.me/201200704344"
