@@ -3,18 +3,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 /**
  * OpenAI Realtime API — بنفس عقد Netlify Function بتاع تايكونز:
  *   POST /.netlify/functions/openai-realtime-connect
- *   body: SDP offer (application/sdp أو JSON { sdp })
+ *   body: SDP offer (application/sdp)
  *   response: SDP answer (application/sdp)
- * الفانكشن بيكلم api.openai.com/v1/realtime/calls بالمفتاح المتخزن
- * في Netlify — مفيش مفاتيح في المتصفح خالص.
- *
- * ملاحظة: الجلسة (التعليمات/الصوت/الأدوات) بتتظبط جوه الفانكشن على
- * السيرفر — المتصفح بيفتح القناة وبيستقبل أحداث البيانات بس.
+ * المفتاح والجلسة بيتعامل معاهم السيرفر فقط.
  */
 
 const CONNECT_URL =
   (import.meta as any).env?.VITE_REALTIME_CONNECT_URL ||
   "/.netlify/functions/openai-realtime-connect";
+const CONNECT_TIMEOUT_MS = 15_000;
 
 export type RealtimeState =
   | "idle"
@@ -38,54 +35,113 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
   const dcRef = useRef<RTCDataChannel | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const connectingRef = useRef(false);
 
   const cleanup = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    connectingRef.current = false;
+
     try {
       dcRef.current?.close();
       pcRef.current?.close();
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      if (audioRef.current) audioRef.current.srcObject = null;
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.srcObject = null;
+      }
     } catch {
-      /* تجاهل أخطاء الإغلاق */
+      // تجاهل أخطاء الإغلاق
     }
+
     dcRef.current = null;
     pcRef.current = null;
     streamRef.current = null;
+    audioRef.current = null;
   }, []);
 
   useEffect(() => cleanup, [cleanup]);
 
+  const sendFunctionOutput = useCallback(
+    (dc: RTCDataChannel, callId: string, output: Record<string, unknown>) => {
+      if (dc.readyState !== "open") return;
+      dc.send(
+        JSON.stringify({
+          type: "conversation.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: JSON.stringify(output),
+          },
+        }),
+      );
+      dc.send(JSON.stringify({ type: "response.create" }));
+    },
+    [],
+  );
+
   const connect = useCallback(async (): Promise<boolean> => {
+    if (connectingRef.current) return false;
+    if (typeof window === "undefined" || !window.isSecureContext) {
+      setState("unavailable");
+      setErrorMsg("المحادثة الصوتية محتاجة اتصال آمن HTTPS");
+      return false;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof RTCPeerConnection === "undefined") {
+      setState("unavailable");
+      return false;
+    }
+
+    connectingRef.current = true;
     setState("connecting");
     setErrorMsg("");
 
     try {
-      // مايك المستخدم
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      cleanup();
+      connectingRef.current = true;
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
       streamRef.current = stream;
 
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
-      // صوت الرد من المساعد
       const audioEl = document.createElement("audio");
       audioEl.autoplay = true;
+      audioEl.playsInline = true;
       audioRef.current = audioEl;
-      pc.ontrack = (e) => {
-        audioEl.srcObject = e.streams[0];
+      pc.ontrack = (event) => {
+        audioEl.srcObject = event.streams[0] || new MediaStream([event.track]);
+        void audioEl.play().catch(() => undefined);
+      };
+      pc.onconnectionstatechange = () => {
+        if (["failed", "disconnected", "closed"].includes(pc.connectionState)) {
+          cleanup();
+          setState(pc.connectionState === "closed" ? "idle" : "unavailable");
+        }
       };
 
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
-      // قناة أحداث الجلسة
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
-
       dc.onopen = () => setState("connected");
+      dc.onclose = () => setState((current) => (current === "idle" ? current : "unavailable"));
+      dc.onerror = () => {
+        setErrorMsg("حصلت مشكلة في الاتصال الصوتي");
+        setState("error");
+      };
 
-      dc.onmessage = (e) => {
+      dc.onmessage = (event) => {
         try {
-          const msg = JSON.parse(e.data);
+          const msg = JSON.parse(event.data);
           switch (msg.type) {
             case "input_audio_buffer.speech_started":
               setState("listening");
@@ -99,32 +155,36 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               setState("connected");
               break;
             case "conversation.item.input_audio_transcription.completed":
-              // كلام المستخدم بعد التفريغ — نغذّي به البحث على الشاشة
-              if (msg.transcript?.trim()) onSearchQuery(msg.transcript.trim());
+              // للعرض فقط. البحث بيتنفذ من أداة search_properties عشان مايتكررش مرتين.
+              if (msg.transcript?.trim()) setTranscript(msg.transcript.trim());
               break;
             case "response.function_call_arguments.done": {
+              let args: Record<string, unknown> = {};
+              try {
+                args = JSON.parse(msg.arguments || "{}");
+              } catch {
+                sendFunctionOutput(dc, msg.call_id, { ok: false, error: "invalid_arguments" });
+                break;
+              }
+
               if (msg.name === "search_properties") {
-                try {
-                  const args = JSON.parse(msg.arguments || "{}");
-                  if (args.query) onSearchQuery(args.query);
-                  // رد على المساعد عشان يكمّل المحادثة
-                  dc.send(
-                    JSON.stringify({
-                      type: "conversation.item.create",
-                      item: {
-                        type: "function_call_output",
-                        call_id: msg.call_id,
-                        output: JSON.stringify({
-                          ok: true,
-                          note: "النتايج ظهرت للعميل على الشاشة",
-                        }),
-                      },
-                    })
-                  );
-                  dc.send(JSON.stringify({ type: "response.create" }));
-                } catch {
-                  /* arguments ناقصة — تجاهل */
+                const query = typeof args.query === "string" ? args.query.trim() : "";
+                if (query) {
+                  onSearchQuery(query);
+                  sendFunctionOutput(dc, msg.call_id, {
+                    ok: true,
+                    note: "النتايج ظهرت للعميل على الشاشة",
+                  });
+                } else {
+                  sendFunctionOutput(dc, msg.call_id, { ok: false, error: "missing_query" });
                 }
+              } else if (msg.name === "save_lead") {
+                // مفيش lead endpoint متوصل في التصميم الحالي؛ نرجع رد صريح بدل ما الجلسة تقف.
+                sendFunctionOutput(dc, msg.call_id, {
+                  ok: false,
+                  error: "lead_endpoint_not_connected",
+                  note: "اطلب من العميل يكمل على واتساب من الزر الظاهر في الموقع",
+                });
               }
               break;
             }
@@ -134,65 +194,68 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               break;
           }
         } catch {
-          /* رسالة غير JSON — تجاهل */
+          // رسالة غير JSON
         }
       };
 
-      // SDP offer → فانكشن نتليفاي → SDP answer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      // استنى اكتمال ICE gathering (مهم عشان الـ SDP يبقى كامل)
       await new Promise<void>((resolve) => {
         if (pc.iceGatheringState === "complete") return resolve();
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          pc.removeEventListener("icegatheringstatechange", onChange);
+          resolve();
+        };
         const onChange = () => {
-          if (pc.iceGatheringState === "complete") {
-            pc.removeEventListener("icegatheringstatechange", onChange);
-            resolve();
-          }
+          if (pc.iceGatheringState === "complete") finish();
         };
         pc.addEventListener("icegatheringstatechange", onChange);
-        setTimeout(resolve, 2500); // حد أقصى للأمان
+        window.setTimeout(finish, 3_000);
       });
 
       const sdpOffer = pc.localDescription?.sdp;
       if (!sdpOffer) throw new Error("no-sdp");
 
-      const res = await fetch(CONNECT_URL, {
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const timeout = window.setTimeout(() => controller.abort(), CONNECT_TIMEOUT_MS);
+      const response = await fetch(CONNECT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sdp: sdpOffer }),
-      });
+        headers: { "Content-Type": "application/sdp" },
+        body: sdpOffer,
+        signal: controller.signal,
+      }).finally(() => window.clearTimeout(timeout));
 
-      if (!res.ok) throw new Error(`connect ${res.status}`);
-
-      const answerSdp = await res.text();
-      if (!answerSdp.includes("v=0")) throw new Error("bad-answer");
+      const answerSdp = await response.text();
+      if (!response.ok) throw new Error(`connect ${response.status}: ${answerSdp.slice(0, 120)}`);
+      if (!answerSdp.trimStart().startsWith("v=0")) throw new Error("bad-answer");
 
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      connectingRef.current = false;
       return true;
-    } catch (err: any) {
+    } catch (error: any) {
       cleanup();
-      if (
-        err?.name === "NotAllowedError" ||
-        err?.name === "PermissionDeniedError"
-      ) {
+      if (error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError") {
         setState("error");
         setErrorMsg("اسمح بالمايكروفون من إعدادات المتصفح الأول");
-      } else if (err?.name === "NotFoundError") {
+      } else if (error?.name === "NotFoundError") {
         setState("error");
         setErrorMsg("مفيش مايكروفون متاح على الجهاز");
       } else {
-        // فشل الاتصال بالفانكشن — خليها unavailable عشان نرجع للـ fallback
         setState("unavailable");
       }
       return false;
     }
-  }, [cleanup, onSearchQuery]);
+  }, [cleanup, onSearchQuery, sendFunctionOutput]);
 
   const disconnect = useCallback(() => {
     cleanup();
     setState("idle");
+    setErrorMsg("");
     setTranscript("");
   }, [cleanup]);
 
