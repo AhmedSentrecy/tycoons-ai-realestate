@@ -1,10 +1,12 @@
 [build]
-  command = "npm run build"
+  command = "npm ci --include=dev && npm run check"
   publish = "dist"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
+  NPM_FLAGS = "--include=dev"
+  NODE_ENV = "development"
 
 # SPA routing — كل المسارات ترجع لـ index.html
 [[redirects]]
