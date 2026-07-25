@@ -1,4 +1,6 @@
 const assert = require('node:assert/strict');
+const { pathToFileURL } = require('node:url');
+const path = require('node:path');
 
 const ORIGINAL_ENV = { ...process.env };
 const ORIGINAL_FETCH = global.fetch;
@@ -16,10 +18,11 @@ class TestFormData {
   }
 }
 
-function loadHandler() {
-  const modulePath = require.resolve('../netlify/functions/openai-realtime-connect.js');
-  delete require.cache[modulePath];
-  return require(modulePath).handler;
+async function loadHandler() {
+  const modulePath = path.resolve(__dirname, '../netlify/functions/openai-realtime-connect.js');
+  const moduleUrl = `${pathToFileURL(modulePath).href}?test=${Date.now()}-${Math.random()}`;
+  const loaded = await import(moduleUrl);
+  return loaded.handler;
 }
 
 async function run() {
@@ -27,7 +30,7 @@ async function run() {
 
   process.env.OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1';
   delete process.env.OPENAI_API_KEY;
-  let handler = loadHandler();
+  let handler = await loadHandler();
 
   const health = await handler({ httpMethod: 'GET', headers: {}, body: '' });
   assert.equal(health.statusCode, 200);
@@ -46,7 +49,7 @@ async function run() {
   assert.equal(missingKey.statusCode, 500);
 
   process.env.OPENAI_API_KEY = 'test-key';
-  handler = loadHandler();
+  handler = await loadHandler();
 
   const invalidSdp = await handler({
     httpMethod: 'POST',
