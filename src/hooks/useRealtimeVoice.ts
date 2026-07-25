@@ -1,30 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * OpenAI Realtime API عبر WebRTC — نفس بنية الـ quickstart الرسمي:
- * 1. GET من endpoint على سيرفرك بيرجّع ephemeral key (client_secret)
- * 2. اتصال WebRTC مباشر من المتصفح مع OpenAI
- * 3. صوت المستخدم بيتبعت كـ audio track، والرد بيرجع صوت + نص
+ * OpenAI Realtime API — بنفس عقد Netlify Function بتاع تايكونز:
+ *   POST /.netlify/functions/openai-realtime-connect
+ *   body: SDP offer (application/sdp أو JSON { sdp })
+ *   response: SDP answer (application/sdp)
+ * الفانكشن بيكلم api.openai.com/v1/realtime/calls بالمفتاح المتخزن
+ * في Netlify — مفيش مفاتيح في المتصفح خالص.
  *
- * الـ endpoint الافتراضي: /api/realtime/session
- * ممكن يتغيّر من ملف .env بـ VITE_REALTIME_SESSION_URL
- * الرد المتوقع: { client_secret: { value: "ek_..." } } أو { client_secret: "ek_..." }
- *
- * لو الـ endpoint مش موجود أو رجّع خطأ → available=false
- * والـ SmartSearchBar بيتحول تلقائيًا لـ Web Speech API.
+ * ملاحظة: الجلسة (التعليمات/الصوت/الأدوات) بتتظبط جوه الفانكشن على
+ * السيرفر — المتصفح بيفتح القناة وبيستقبل أحداث البيانات بس.
  */
 
-const SESSION_URL =
-  (import.meta as any).env?.VITE_REALTIME_SESSION_URL || "/api/realtime/session";
-
-const REALTIME_MODEL = "gpt-4o-realtime-preview-2024-12-17";
-
-const ASSISTANT_INSTRUCTIONS = `انت مساعد تايكونز العقاري. بتتكلم مصري ودود ومختصر.
-شغلك: تفهم العميل عايز إيه (منطقة، نوع وحدة، ميزانية، استلام) وتقترح من المشاريع المتاحة.
-المناطق المتاحة: الساحل الشمالي، التجمع/القاهرة الجديدة، الشيخ زايد، العين السخنة، العاصمة الإدارية.
-أنواع الوحدات: شقق، فلل، تاون هاوس، شاليهات، بنتهاوس.
-لو العميل قال طلب واضح، استخدم أداة search_properties عشان تعرض النتايج.
-متتكلمش كتير — جملة أو اتنين بالمصري البسيط، واسأل سؤال واحد في المرة.`;
+const CONNECT_URL =
+  (import.meta as any).env?.VITE_REALTIME_CONNECT_URL ||
+  "/.netlify/functions/openai-realtime-connect";
 
 export type RealtimeState =
   | "idle"
@@ -70,32 +60,14 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
     setErrorMsg("");
 
     try {
-      // 1) هات ephemeral key من سيرفرك
-      const tokenRes = await fetch(SESSION_URL, { method: "POST" }).catch(
-        () => null
-      ) as Response | null;
+      // مايك المستخدم
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-      if (!tokenRes || !tokenRes.ok) {
-        setState("unavailable");
-        return false;
-      }
-
-      const data = await tokenRes.json();
-      const ephemeralKey: string | undefined =
-        typeof data?.client_secret === "string"
-          ? data.client_secret
-          : data?.client_secret?.value;
-
-      if (!ephemeralKey) {
-        setState("unavailable");
-        return false;
-      }
-
-      // 2) اتصال WebRTC
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
 
-      // صوت الرد
+      // صوت الرد من المساعد
       const audioEl = document.createElement("audio");
       audioEl.autoplay = true;
       audioRef.current = audioEl;
@@ -103,58 +75,22 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
         audioEl.srcObject = e.streams[0];
       };
 
-      // مايك المستخدم
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
-      // قناة البيانات (أحداث الجلسة)
+      // قناة أحداث الجلسة
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
 
-      dc.onopen = () => {
-        // إعداد الجلسة بالتعليمات + أداة البحث
-        dc.send(
-          JSON.stringify({
-            type: "session.update",
-            session: {
-              instructions: ASSISTANT_INSTRUCTIONS,
-              voice: "alloy",
-              input_audio_transcription: { model: "whisper-1" },
-              turn_detection: { type: "server_vad" },
-              tools: [
-                {
-                  type: "function",
-                  name: "search_properties",
-                  description:
-                    "البحث في العقارات المتاحة حسب طلب العميل (منطقة/نوع/ميزانية)",
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      query: {
-                        type: "string",
-                        description:
-                          "وصف طلب العميل بالعربي، مثل: شاليه في الساحل تحت ٩ مليون",
-                      },
-                    },
-                    required: ["query"],
-                  },
-                },
-              ],
-            },
-          })
-        );
-        setState("connected");
-      };
+      dc.onopen = () => setState("connected");
 
       dc.onmessage = (e) => {
         try {
           const msg = JSON.parse(e.data);
-
           switch (msg.type) {
             case "input_audio_buffer.speech_started":
               setState("listening");
               break;
+            case "response.audio.delta":
             case "response.audio_transcript.delta":
               setState("speaking");
               break;
@@ -163,32 +99,29 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               setState("connected");
               break;
             case "conversation.item.input_audio_transcription.completed":
-              // نص كلام المستخدم — نغذّي به البحث مباشرة
+              // كلام المستخدم بعد التفريغ — نغذّي به البحث على الشاشة
               if (msg.transcript?.trim()) onSearchQuery(msg.transcript.trim());
               break;
             case "response.function_call_arguments.done": {
-              // المساعد قرر يبحث
               if (msg.name === "search_properties") {
                 try {
                   const args = JSON.parse(msg.arguments || "{}");
-                  if (args.query) {
-                    onSearchQuery(args.query);
-                    // رد على المساعد بنجاح التنفيذ
-                    dc.send(
-                      JSON.stringify({
-                        type: "conversation.item.create",
-                        item: {
-                          type: "function_call_output",
-                          call_id: msg.call_id,
-                          output: JSON.stringify({
-                            ok: true,
-                            note: "النتايج ظهرت للعميل على الشاشة",
-                          }),
-                        },
-                      })
-                    );
-                    dc.send(JSON.stringify({ type: "response.create" }));
-                  }
+                  if (args.query) onSearchQuery(args.query);
+                  // رد على المساعد عشان يكمّل المحادثة
+                  dc.send(
+                    JSON.stringify({
+                      type: "conversation.item.create",
+                      item: {
+                        type: "function_call_output",
+                        call_id: msg.call_id,
+                        output: JSON.stringify({
+                          ok: true,
+                          note: "النتايج ظهرت للعميل على الشاشة",
+                        }),
+                      },
+                    })
+                  );
+                  dc.send(JSON.stringify({ type: "response.create" }));
                 } catch {
                   /* arguments ناقصة — تجاهل */
                 }
@@ -205,39 +138,52 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
         }
       };
 
-      // 3) SDP offer/answer
+      // SDP offer → فانكشن نتليفاي → SDP answer
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdpRes = await fetch(
-        `https://api.openai.com/v1/realtime?model=${REALTIME_MODEL}`,
-        {
-          method: "POST",
-          body: offer.sdp,
-          headers: {
-            Authorization: `Bearer ${ephemeralKey}`,
-            "Content-Type": "application/sdp",
-          },
-        }
-      );
-
-      if (!sdpRes.ok) {
-        throw new Error(`Realtime SDP failed: ${sdpRes.status}`);
-      }
-
-      await pc.setRemoteDescription({
-        type: "answer",
-        sdp: await sdpRes.text(),
+      // استنى اكتمال ICE gathering (مهم عشان الـ SDP يبقى كامل)
+      await new Promise<void>((resolve) => {
+        if (pc.iceGatheringState === "complete") return resolve();
+        const onChange = () => {
+          if (pc.iceGatheringState === "complete") {
+            pc.removeEventListener("icegatheringstatechange", onChange);
+            resolve();
+          }
+        };
+        pc.addEventListener("icegatheringstatechange", onChange);
+        setTimeout(resolve, 2500); // حد أقصى للأمان
       });
 
+      const sdpOffer = pc.localDescription?.sdp;
+      if (!sdpOffer) throw new Error("no-sdp");
+
+      const res = await fetch(CONNECT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sdp: sdpOffer }),
+      });
+
+      if (!res.ok) throw new Error(`connect ${res.status}`);
+
+      const answerSdp = await res.text();
+      if (!answerSdp.includes("v=0")) throw new Error("bad-answer");
+
+      await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
       return true;
     } catch (err: any) {
       cleanup();
-      if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
+      if (
+        err?.name === "NotAllowedError" ||
+        err?.name === "PermissionDeniedError"
+      ) {
         setState("error");
         setErrorMsg("اسمح بالمايكروفون من إعدادات المتصفح الأول");
+      } else if (err?.name === "NotFoundError") {
+        setState("error");
+        setErrorMsg("مفيش مايكروفون متاح على الجهاز");
       } else {
-        // فشل الاتصال بالسيرفر — خليها unavailable عشان نرجع للـ fallback
+        // فشل الاتصال بالفانكشن — خليها unavailable عشان نرجع للـ fallback
         setState("unavailable");
       }
       return false;

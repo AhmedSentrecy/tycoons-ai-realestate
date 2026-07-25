@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, Search, Sparkles, X, MapPin, ArrowLeft } from "lucide-react";
 import { useVoiceSearch } from "@/hooks/useVoiceSearch";
 import { useRealtimeVoice } from "@/hooks/useRealtimeVoice";
-import { usePropertySearch } from "@/hooks/usePropertySearch";
+import { useTycoonsTts } from "@/hooks/useTycoonsTts";
+import { usePropertySearch, searchResultsFor } from "@/hooks/usePropertySearch";
 import { regions } from "@/data/content";
 
 interface Props {
@@ -17,9 +18,23 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
 
+  const tts = useTycoonsTts();
+
   const onVoiceText = (text: string) => {
     search(text);
     setOpen(true);
+    // رد صوتي بنفس صوت الموقع الحالي (ElevenLabs) بعد ظهور النتايج
+    const { projects: found } = searchResultsFor(text);
+    const countWord =
+      found.length === 1
+        ? "وحدة واحدة"
+        : found.length === 2
+          ? "وحدتين"
+          : `${found.length.toLocaleString("ar-EG")} وحدات`;
+    const reply = found.length
+      ? `لقيتلك ${countWord} مناسبة — أقرب واحدة لطلبك ${found[0].type} في ${found[0].location} بسعر ${found[0].price}.`
+      : "ملقيتش نتيجة مطابقة بالظبط — جرّب توسّع البحث، أو كلمنا على واتساب والمساعد هيدوّرلك في المخزون كله.";
+    tts.speak(reply, "ar");
   };
 
   // Fallback: تحويل الكلام لنص بالمتصفح

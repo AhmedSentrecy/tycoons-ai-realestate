@@ -43,6 +43,11 @@ function parseBudget(q: string): number | null {
   return null;
 }
 
+// نسخة مستقلة — بتتستخدم من الـ TTS عشان يلخّص النتايج صوتيًا
+export function searchResultsFor(query: string): SearchResults {
+  return searchProperties(query);
+}
+
 export function searchProperties(query: string): SearchResults {
   const q = normalizeArabic(query);
   if (!q) return { projects: [], regionSlug: null, interpreted: "" };
