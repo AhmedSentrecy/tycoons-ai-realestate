@@ -24,10 +24,10 @@ export default function FaqPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#f7f2ea]">
+    <main className="min-h-screen bg-[#f4f1ea]">
       <Navbar />
 
-      <section className="bg-[#0d1f18] pb-20 pt-40">
+      <section className="bg-[#0c0f14] pb-20 pt-40">
         <div className="mx-auto max-w-4xl px-5 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -61,12 +61,12 @@ export default function FaqPage() {
               <AccordionItem
                 key={i}
                 value={`faq-${i}`}
-                className="rounded-2xl border border-[#e7ddc8] bg-white/70 px-6 transition-colors data-[state=open]:border-[#c49b5f]/50 data-[state=open]:bg-white"
+                className="rounded-2xl border border-[#ddd7c8] bg-white/70 px-6 transition-colors data-[state=open]:border-[#e0703c]/50 data-[state=open]:bg-white"
               >
-                <AccordionTrigger className="py-5 text-right text-[17px] font-bold text-[#1b2420] hover:no-underline [&>svg]:text-[#c49b5f]">
+                <AccordionTrigger className="py-5 text-right text-[17px] font-bold text-[#14181f] hover:no-underline [&>svg]:text-[#e0703c]">
                   {f.q}
                 </AccordionTrigger>
-                <AccordionContent className="pb-5 font-light leading-relaxed text-[#5c6a62]">
+                <AccordionContent className="pb-5 font-light leading-relaxed text-[#6e6a5f]">
                   {f.a}
                 </AccordionContent>
               </AccordionItem>
@@ -79,7 +79,7 @@ export default function FaqPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, ease }}
-          className="mt-14 rounded-3xl bg-[#0d1f18] p-9 text-center"
+          className="mt-14 rounded-3xl bg-[#0c0f14] p-9 text-center"
         >
           <h2 className="text-2xl font-extrabold text-white">لسه عندك سؤال؟</h2>
           <p className="mx-auto mt-3 max-w-sm font-light text-white/65">

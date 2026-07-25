@@ -41,11 +41,11 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#f7f2ea]">
+    <main className="min-h-screen bg-[#f4f1ea]">
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-[#0d1f18] pb-24 pt-40">
+      <section className="bg-[#0c0f14] pb-24 pt-40">
         <div className="mx-auto max-w-4xl px-5 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -61,7 +61,7 @@ export default function AboutPage() {
             </Link>
             <h1 className="text-4xl font-extrabold leading-snug text-white sm:text-6xl sm:leading-snug">
               إحنا بنغيّر طريقة
-              <span className="gold-gradient-text block">شراء العقار في مصر.</span>
+              <span className="ember-gradient-text block">شراء العقار في مصر.</span>
             </h1>
             <p className="mt-6 max-w-2xl text-lg font-light leading-loose text-white/70">
               تايكونز للاستثمار العقاري اتأسست عشان تحل مشكلة حقيقية: سوق مليان إعلانات
@@ -93,27 +93,27 @@ export default function AboutPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.75, delay: i * 0.12, ease }}
-              className="rounded-3xl border border-[#e7ddc8] bg-white/70 p-9"
+              className="rounded-3xl border border-[#ddd7c8] bg-white/70 p-9"
             >
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#14352a] text-[#e8d5ae]">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#0c0f14] text-[#f2b07e]">
                 <c.icon className="h-6 w-6" />
               </div>
-              <h2 className="mt-5 text-2xl font-extrabold text-[#1b2420]">{c.title}</h2>
-              <p className="mt-3 font-light leading-loose text-[#5c6a62]">{c.text}</p>
+              <h2 className="mt-5 text-2xl font-extrabold text-[#14181f]">{c.title}</h2>
+              <p className="mt-3 font-light leading-loose text-[#6e6a5f]">{c.text}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* Values */}
-      <section className="bg-[#efe7d8] py-20">
+      <section className="bg-[#ece8dd] py-20">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <motion.h2
             initial={{ opacity: 0, y: 22 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease }}
-            className="mb-12 text-center text-3xl font-extrabold text-[#1b2420] sm:text-4xl"
+            className="mb-12 text-center text-3xl font-extrabold text-[#14181f] sm:text-4xl"
           >
             قيمنا
           </motion.h2>
@@ -127,9 +127,9 @@ export default function AboutPage() {
                 transition={{ duration: 0.7, delay: i * 0.12, ease }}
                 className="rounded-3xl bg-white/60 p-8"
               >
-                <v.icon className="h-8 w-8 text-[#a3854e]" />
-                <h3 className="mt-5 text-xl font-extrabold text-[#1b2420]">{v.title}</h3>
-                <p className="mt-3 font-light leading-loose text-[#5c6a62]">{v.desc}</p>
+                <v.icon className="h-8 w-8 text-[#c4532a]" />
+                <h3 className="mt-5 text-xl font-extrabold text-[#14181f]">{v.title}</h3>
+                <p className="mt-3 font-light leading-loose text-[#6e6a5f]">{v.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -143,7 +143,7 @@ export default function AboutPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7, ease }}
-          className="mb-12 text-center text-3xl font-extrabold text-[#1b2420] sm:text-4xl"
+          className="mb-12 text-center text-3xl font-extrabold text-[#14181f] sm:text-4xl"
         >
           رحلتنا
         </motion.h2>
@@ -155,11 +155,11 @@ export default function AboutPage() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.7, delay: i * 0.1, ease }}
-              className="relative flex gap-8 border-r-2 border-[#c49b5f]/40 pb-12 pr-8 last:pb-0"
+              className="relative flex gap-8 border-r-2 border-[#e0703c]/40 pb-12 pr-8 last:pb-0"
             >
-              <span className="absolute -right-[9px] top-1 h-4 w-4 rounded-full border-4 border-[#f7f2ea] bg-[#c49b5f]" />
-              <span className="w-20 shrink-0 text-2xl font-extrabold text-[#14352a]">{m.year}</span>
-              <p className="pt-1 font-light leading-relaxed text-[#5c6a62]">{m.text}</p>
+              <span className="absolute -right-[9px] top-1 h-4 w-4 rounded-full border-4 border-[#f4f1ea] bg-[#e0703c]" />
+              <span className="w-20 shrink-0 text-2xl font-extrabold text-[#0c0f14]">{m.year}</span>
+              <p className="pt-1 font-light leading-relaxed text-[#6e6a5f]">{m.text}</p>
             </motion.div>
           ))}
         </div>
@@ -172,9 +172,9 @@ export default function AboutPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.75, ease }}
-          className="rounded-[2rem] bg-[#0d1f18] p-10 text-center"
+          className="rounded-[2rem] bg-[#0c0f14] p-10 text-center"
         >
-          <Users className="mx-auto h-8 w-8 text-[#d9b87c]" />
+          <Users className="mx-auto h-8 w-8 text-[#f2b07e]" />
           <h2 className="mt-5 text-2xl font-extrabold text-white sm:text-3xl">
             فريق واحد هدفه وحدتك الجاية
           </h2>
@@ -184,7 +184,7 @@ export default function AboutPage() {
           <div className="mt-7 flex flex-wrap items-center justify-center gap-4">
             <Link
               to="/"
-              className="rounded-full bg-[#c49b5f] px-8 py-3.5 text-sm font-bold text-[#231a0c] transition-transform hover:scale-[1.04]"
+              className="rounded-full bg-[#e0703c] px-8 py-3.5 text-sm font-bold text-[#1a0f08] transition-transform hover:scale-[1.04]"
             >
               ابدأ البحث
             </Link>

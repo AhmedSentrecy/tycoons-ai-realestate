@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, useInView, animate } from "framer-motion";
+import { motion, useInView, useScroll, useTransform, animate } from "framer-motion";
 import { Mic, Search, Sparkles, ChevronDown } from "lucide-react";
 
 const chips = ["شاليه في الساحل", "آي فيلا في التجمع", "شقة تحت ٧ مليون", "استلام فوري"];
@@ -10,6 +10,18 @@ const stats = [
   { value: 8, suffix: "", label: "مطوّرون موثوقون" },
   { value: 10, suffix: "", label: "سنين تقسيط" },
 ];
+
+const tickerItems = [
+  "الساحل الشمالي · ١٣٧ مشروع",
+  "التجمع · ٣١٤ مشروع",
+  "الشيخ زايد · ١٤٩ مشروع",
+  "العين السخنة · ٧ مشاريع",
+  "العاصمة الإدارية · ٣٧ مشروع",
+];
+
+const line1 = "ابحث بصوتك بأي حاجة";
+const line2 = "تيجي في بالك —";
+const line3 = "ونوصّلك للعقار المناسب.";
 
 function Counter({ target, suffix }: { target: number; suffix: string }) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -34,52 +46,78 @@ function Counter({ target, suffix }: { target: number; suffix: string }) {
   );
 }
 
-const ease = [0.22, 1, 0.36, 1] as const;
+function Words({ text, delay, className }: { text: string; delay: number; className?: string }) {
+  return (
+    <span className={className}>
+      {text.split(" ").map((w, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, y: 34, rotate: 2 }}
+          animate={{ opacity: 1, y: 0, rotate: 0 }}
+          transition={{ delay: delay + i * 0.09, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="inline-block"
+        >
+          {w}
+          {i < text.split(" ").length - 1 ? "\u00A0" : ""}
+        </motion.span>
+      ))}
+    </span>
+  );
+}
 
 export default function Hero() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollY } = useScroll();
+  const bgY = useTransform(scrollY, [0, 900], [0, 260]);
+  const bgScale = useTransform(scrollY, [0, 900], [1, 1.12]);
+  const fade = useTransform(scrollY, [0, 650], [1, 0]);
+
   return (
-    <section className="relative min-h-[100svh] overflow-hidden">
-      {/* Background */}
-      <motion.img
-        src="/images/hero.webp"
-        alt="فيلا فاخرة على الساحل الشمالي"
-        initial={{ scale: 1.12 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 2.2, ease }}
-        className="absolute inset-0 h-full w-full object-cover"
+    <section ref={sectionRef} className="relative min-h-[100svh] overflow-hidden bg-[#0c0f14]">
+      {/* Parallax background */}
+      <motion.div style={{ y: bgY, scale: bgScale }} className="absolute inset-0">
+        <img
+          src="/images/hero.webp"
+          alt="فيلا فاخرة على الساحل الشمالي"
+          className="h-full w-full object-cover"
+        />
+      </motion.div>
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0c0f14]/80 via-[#0c0f14]/40 to-[#0c0f14]" />
+      <div className="absolute inset-0 bg-gradient-to-l from-[#0c0f14]/50 to-transparent" />
+
+      {/* Drifting glows */}
+      <div className="pointer-events-none absolute -left-32 top-1/3 h-96 w-96 rounded-full bg-[#e0703c]/14 blur-[130px] animate-glow-drift" />
+      <div
+        className="pointer-events-none absolute -right-24 top-16 h-80 w-80 rounded-full bg-[#f2b07e]/10 blur-[120px] animate-glow-drift"
+        style={{ animationDelay: "-6s" }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#08130e]/70 via-[#08130e]/35 to-[#08130e]/85" />
-      <div className="absolute inset-0 bg-gradient-to-l from-[#08130e]/45 to-transparent" />
 
       {/* Content */}
-      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-5 pb-28 pt-32 lg:px-8">
+      <motion.div
+        style={{ opacity: fade }}
+        className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-5 pb-36 pt-32 lg:px-8"
+      >
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.9, ease }}
-          className="mb-7 flex items-center gap-2.5"
+          transition={{ delay: 0.3, duration: 0.8 }}
+          className="mb-7 inline-flex w-fit items-center gap-2.5 rounded-full border border-[#e0703c]/30 bg-[#e0703c]/10 px-4 py-2"
         >
-          <span className="h-2 w-2 rounded-full bg-[#d9b87c] animate-pulse-dot" />
-          <span className="text-sm font-medium tracking-wide text-[#e3cfa0]">
-            بحث عقاري بالذكاء الاصطناعي
-          </span>
+          <span className="h-2 w-2 rounded-full bg-[#e0703c] animate-pulse-dot" />
+          <span className="text-sm font-medium text-[#f2b07e]">بحث عقاري بالذكاء الاصطناعي</span>
         </motion.div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 34 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 1, ease }}
-          className="max-w-3xl text-balance text-[42px] font-extrabold leading-[1.25] text-white sm:text-6xl lg:text-[72px] lg:leading-[1.2]"
-        >
-          ابحث بصوتك بأي حاجة تيجي في بالك،
-          <span className="gold-gradient-text block">وإحنا نوصّلك للعقار المناسب.</span>
-        </motion.h1>
+        <h1 className="max-w-4xl text-balance text-[44px] font-black leading-[1.3] text-white sm:text-6xl lg:text-[80px] lg:leading-[1.25]">
+          <Words text={line1} delay={0.45} />
+          <Words text={line2} delay={0.85} className="block" />
+          <Words text={line3} delay={1.25} className="ember-gradient-text block" />
+        </h1>
 
         <motion.p
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.9, ease }}
-          className="mt-6 max-w-xl text-base font-light leading-relaxed text-white/75 sm:text-lg"
+          transition={{ delay: 1.7, duration: 0.8 }}
+          className="mt-6 max-w-xl text-base font-light leading-relaxed text-white/70 sm:text-lg"
         >
           اكتب أو اتكلم بطريقتك — «عايز شاليه في الساحل تحت ٩ مليون» — والنتائج تظهر جوه
           المحادثة على طول، من غير ما تدوّر.
@@ -87,35 +125,35 @@ export default function Hero() {
 
         {/* Search panel */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.9, duration: 1, ease }}
-          className="glass mt-10 max-w-2xl rounded-3xl p-3 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.55)]"
+          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ delay: 1.9, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          className="glass-dark mt-10 max-w-2xl rounded-3xl p-3 shadow-[0_40px_100px_-25px_rgba(0,0,0,0.8)]"
         >
-          <div className="flex items-center gap-3 rounded-2xl bg-white/[0.97] px-4 py-3.5">
-            <Sparkles className="h-5 w-5 shrink-0 text-[#c49b5f]" />
+          <div className="flex items-center gap-3 rounded-2xl bg-[#f4f1ea] px-4 py-3.5">
+            <Sparkles className="h-5 w-5 shrink-0 text-[#e0703c]" />
             <input
               type="text"
               placeholder="عايز شاليه في الساحل أو آي فيلا في التجمع..."
-              className="w-full bg-transparent text-[15px] text-[#22312b] outline-none placeholder:text-[#9aa69f]"
+              className="w-full bg-transparent text-[15px] text-[#1a1d24] outline-none placeholder:text-[#8a867b]"
             />
             <button
               aria-label="بحث صوتي"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#e5dcc8] text-[#8a7a58] transition-colors hover:bg-[#f6efe0]"
+              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#ddd7c8] text-[#a06a48] transition-colors hover:bg-[#eee9dd]"
             >
               <Mic className="h-5 w-5" />
             </button>
-            <button className="flex shrink-0 items-center gap-2 rounded-full bg-[#14352a] px-6 py-3 text-sm font-semibold text-[#efe3c6] transition-transform hover:scale-[1.04]">
+            <button className="flex shrink-0 items-center gap-2 rounded-full bg-[#0c0f14] px-6 py-3 text-sm font-bold text-[#f4f1ea] transition-all hover:scale-[1.04] hover:bg-[#e0703c] hover:text-[#1a0f08]">
               <Search className="h-4 w-4" />
               ابحث
             </button>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2 px-2 pb-1">
-            <span className="text-xs text-white/55">جرّب:</span>
+            <span className="text-xs text-white/50">جرّب:</span>
             {chips.map((c) => (
               <button
                 key={c}
-                className="rounded-full border border-white/20 px-3.5 py-1.5 text-xs text-white/85 transition-colors hover:border-[#d9b87c]/60 hover:bg-white/10 hover:text-white"
+                className="rounded-full border border-white/15 px-3.5 py-1.5 text-xs text-white/80 transition-all hover:border-[#e0703c]/60 hover:bg-[#e0703c]/15 hover:text-white"
               >
                 {c}
               </button>
@@ -125,31 +163,43 @@ export default function Hero() {
 
         {/* Stats */}
         <motion.div
-          initial={{ opacity: 0, y: 26 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.15, duration: 1, ease }}
+          transition={{ delay: 2.15, duration: 0.9 }}
           className="mt-14 grid max-w-2xl grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4"
         >
           {stats.map((s) => (
-            <div key={s.label}>
-              <div className="text-3xl font-bold text-white sm:text-4xl">
+            <div key={s.label} className="border-r-2 border-[#e0703c]/40 pr-4">
+              <div className="text-3xl font-black text-white sm:text-4xl">
                 <Counter target={s.value} suffix={s.suffix} />
               </div>
-              <div className="mt-1.5 text-[13px] font-light text-white/60">{s.label}</div>
+              <div className="mt-1.5 text-[13px] font-light text-white/55">{s.label}</div>
             </div>
           ))}
         </motion.div>
-      </div>
+      </motion.div>
 
       {/* Scroll hint */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.8 }}
-        className="absolute bottom-7 left-1/2 z-10 -translate-x-1/2 text-white/60"
+        transition={{ delay: 2.6 }}
+        className="absolute bottom-20 left-1/2 z-10 -translate-x-1/2 text-white/50"
       >
         <ChevronDown className="h-6 w-6 animate-float-slow" />
       </motion.div>
+
+      {/* Ticker */}
+      <div className="absolute inset-x-0 bottom-0 z-10 border-t border-white/10 bg-[#0c0f14]/80 py-4 backdrop-blur-md">
+        <div className="flex w-max animate-marquee-fast gap-0">
+          {[...tickerItems, ...tickerItems].map((t, i) => (
+            <span key={i} className="flex items-center whitespace-nowrap text-sm font-medium text-white/60">
+              <span className="px-6">{t}</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-[#e0703c]" />
+            </span>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }
