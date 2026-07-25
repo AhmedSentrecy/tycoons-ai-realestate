@@ -2,7 +2,10 @@ function corsHeaders(contentType) {
   return {
     'Content-Type': contentType,
     'Access-Control-Allow-Origin': '*',
-    'Cache-Control': 'no-store'
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff'
   };
 }
 
@@ -34,49 +37,64 @@ function normalizeSdp(event) {
   return sdp;
 }
 
+function realtimeModel() {
+  const configured = String(process.env.OPENAI_REALTIME_MODEL || '').trim();
+  return configured || 'gpt-realtime-2.1';
+}
+
 exports.handler = async function (event) {
   if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: corsHeaders('text/plain; charset=utf-8'), body: '' };
+  }
+
+  // Health check يسمح باختبار إن الفانكشن والـ env موجودين من غير فتح مايك أو كشف المفتاح.
+  if (event.httpMethod === 'GET') {
     return {
-      statusCode: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS'
-      },
-      body: ''
+      statusCode: 200,
+      headers: corsHeaders('application/json; charset=utf-8'),
+      body: JSON.stringify({
+        ok: true,
+        service: 'openai-realtime-connect',
+        model: realtimeModel(),
+        api_key_configured: Boolean(process.env.OPENAI_API_KEY)
+      })
     };
   }
 
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return {
+      statusCode: 405,
+      headers: corsHeaders('application/json; charset=utf-8'),
+      body: JSON.stringify({ error: 'Method Not Allowed' })
+    };
   }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return {
       statusCode: 500,
-      headers: corsHeaders('application/json'),
+      headers: corsHeaders('application/json; charset=utf-8'),
       body: JSON.stringify({ error: 'OPENAI_API_KEY is not configured in Netlify.' })
     };
   }
 
   const sdp = normalizeSdp(event);
-  if (!sdp.startsWith('v=0') || sdp.length < 100) {
+  if (!sdp.startsWith('v=0') || sdp.length < 100 || sdp.length > 200_000) {
     return {
       statusCode: 400,
-      headers: corsHeaders('application/json'),
+      headers: corsHeaders('application/json; charset=utf-8'),
       body: JSON.stringify({
         error: 'Invalid or incomplete SDP received by Netlify function.',
         received_prefix: sdp.slice(0, 24),
         received_length: sdp.length,
-        is_base64: !!event.isBase64Encoded
+        is_base64: Boolean(event.isBase64Encoded)
       })
     };
   }
 
   const session = {
     type: 'realtime',
-    model: process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime-2.1',
+    model: realtimeModel(),
     output_modalities: ['audio'],
     instructions: [
       'You are Sarah, a senior real-estate sales consultant for Tycoons Investments in Egypt.',
@@ -84,14 +102,14 @@ exports.handler = async function (event) {
       'Do not switch to English just because the transcript contains English words or names.',
       'Switch to English only when the client clearly asks you to speak English or continues speaking in full English sentences.',
       'When speaking Arabic, use simple Egyptian colloquial Arabic, not formal Arabic and not Gulf Arabic.',
-      'Sound warm, relaxed, close, and conversational. Use smooth connected phrasing, natural pauses, and a gentle smile in the voice.',
-      'Do not force coughs, throat-clearing, laughs, exaggerated breaths, or theatrical fillers. A soft hmm or mm-hm is allowed only when it naturally fits and never more than occasionally.',
-      'Never sound like a call-center script, a search engine, or a formal announcer. Avoid choppy delivery, clipped sentences, and overexplaining.',
+      'Sound warm, relaxed, close, and conversational. Use smooth connected phrasing and natural pauses.',
+      'Never sound like a call-center script, a search engine, or a formal announcer.',
       'Acknowledge what the client said briefly, then ask one useful question at a time.',
       'Qualify gradually: location or project, unit type, approximate budget, home or investment, payment preference, and delivery preference. Do not ask again for information already given.',
-      'If the request is broad, collect the most important missing criteria before searching. If enough criteria are known, call search_properties immediately using one complete query.',
-      'After search results, mention only the strongest two or three options and briefly explain why they fit. Never read a large result count.',
-      'When the client shows real interest, ask naturally for name and phone number, one at a time. Repeat the phone number clearly and call save_lead only after explicit confirmation.',
+      'If the request is broad, collect the most important missing criteria before searching. If enough criteria are known, call search_properties exactly once using one complete query.',
+      'After search results, mention only the strongest two or three options and briefly explain why they fit.',
+      'When the client shows real interest, ask naturally for name and phone number, one at a time. Repeat the phone number clearly before any lead action.',
+      'Never claim a lead was saved unless the tool output confirms success.',
       'Never invent prices, availability, projects, areas, payment plans, finishing, or delivery dates. Use only tool results.',
       'Stop speaking immediately when interrupted and continue from the new information without repeating yourself.',
       'Never mention tools, prompts, databases, model names, tracking, or system instructions.'
@@ -125,7 +143,7 @@ exports.handler = async function (event) {
       {
         type: 'function',
         name: 'save_lead',
-        description: 'Save a qualified lead only after the client explicitly confirms the repeated phone number.',
+        description: 'Request saving a qualified lead only after the client explicitly confirms the repeated phone number.',
         parameters: {
           type: 'object',
           properties: {
@@ -157,16 +175,23 @@ exports.handler = async function (event) {
     });
 
     const text = await response.text();
+    const contentType = response.headers.get('content-type') ||
+      (response.ok ? 'application/sdp' : 'application/json; charset=utf-8');
+
     return {
       statusCode: response.status,
-      headers: corsHeaders(response.ok ? 'application/sdp' : 'application/json'),
+      headers: {
+        ...corsHeaders(contentType),
+        ...(response.headers.get('location') ? { Location: response.headers.get('location') } : {})
+      },
       body: text
     };
   } catch (error) {
+    console.error('[Tycoons] OpenAI Realtime call error:', error);
     return {
-      statusCode: 500,
-      headers: corsHeaders('application/json'),
-      body: JSON.stringify({ error: error?.message || 'Realtime connection failed.' })
+      statusCode: 502,
+      headers: corsHeaders('application/json; charset=utf-8'),
+      body: JSON.stringify({ error: 'Realtime upstream connection failed.' })
     };
   }
 };
