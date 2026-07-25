@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useInView, animate } from "framer-motion";
-import { Mic, Search, Sparkles, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import SmartSearchBar from "@/components/SmartSearchBar";
 
 const chips = ["شاليه في الساحل", "آي فيلا في التجمع", "شقة تحت ٧ مليون", "استلام فوري"];
 
@@ -56,23 +57,8 @@ function LiquidSearchBar() {
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="fixed inset-x-0 top-24 z-40 flex justify-center px-5"
         >
-          <div className="liquid-glass flex w-full max-w-2xl items-center gap-2.5 rounded-full p-2 pe-2.5 ps-4 shadow-[0_25px_70px_-18px_rgba(10,25,18,0.55)]">
-            <Sparkles className="h-5 w-5 shrink-0 text-[#c49b5f]" />
-            <input
-              type="text"
-              placeholder="دوّر بصوتك أو اكتب — «شاليه في الساحل تحت ٩ مليون»..."
-              className="w-full bg-transparent text-sm text-[#22312b] outline-none placeholder:text-[#8f9a92]"
-            />
-            <button
-              aria-label="بحث صوتي"
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#e5dcc8] bg-white/60 text-[#8a7a58] transition-colors hover:bg-white"
-            >
-              <Mic className="h-4 w-4" />
-            </button>
-            <button className="flex shrink-0 items-center gap-2 rounded-full bg-[#14352a] px-5 py-2.5 text-sm font-semibold text-[#efe3c6] transition-transform hover:scale-[1.05]">
-              <Search className="h-4 w-4" />
-              ابحث
-            </button>
+          <div className="liquid-glass w-full max-w-2xl rounded-[2rem] p-2 shadow-[0_25px_70px_-18px_rgba(10,25,18,0.55)]">
+            <SmartSearchBar compact />
           </div>
         </motion.div>
       )}
@@ -137,29 +123,15 @@ export default function Hero() {
           transition={{ delay: 0.9, duration: 1, ease }}
           className="glass mt-10 max-w-2xl rounded-3xl p-3 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.55)]"
         >
-          <div className="flex items-center gap-3 rounded-2xl bg-white/[0.97] px-4 py-3.5">
-            <Sparkles className="h-5 w-5 shrink-0 text-[#c49b5f]" />
-            <input
-              type="text"
-              placeholder="عايز شاليه في الساحل أو آي فيلا في التجمع..."
-              className="w-full bg-transparent text-[15px] text-[#22312b] outline-none placeholder:text-[#9aa69f]"
-            />
-            <button
-              aria-label="بحث صوتي"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#e5dcc8] text-[#8a7a58] transition-colors hover:bg-[#f6efe0]"
-            >
-              <Mic className="h-5 w-5" />
-            </button>
-            <button className="flex shrink-0 items-center gap-2 rounded-full bg-[#14352a] px-6 py-3 text-sm font-semibold text-[#efe3c6] transition-transform hover:scale-[1.04]">
-              <Search className="h-4 w-4" />
-              ابحث
-            </button>
-          </div>
+          <SmartSearchBar />
           <div className="mt-3 flex flex-wrap items-center gap-2 px-2 pb-1">
             <span className="text-xs text-white/55">جرّب:</span>
             {chips.map((c) => (
               <button
                 key={c}
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent("tycoons:quick-search", { detail: c }))
+                }
                 className="rounded-full border border-white/20 px-3.5 py-1.5 text-xs text-white/85 transition-colors hover:border-[#d9b87c]/60 hover:bg-white/10 hover:text-white"
               >
                 {c}

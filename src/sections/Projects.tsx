@@ -1,83 +1,11 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { BedDouble, Ruler, KeyRound, MessageCircle, ChevronRight, ChevronLeft } from "lucide-react";
+import { projects } from "@/data/projects";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-const projects = [
-  {
-    image: "/images/project-villa.webp",
-    badge: "جديد",
-    type: "فيلا",
-    developer: "Hydepark Developments",
-    title: "Standalone Villa Hydepark New Cairo",
-    location: "التجمع / القاهرة الجديدة",
-    price: "٧٤.٣ مليون جنيه",
-    beds: "٥",
-    area: "٣٢٨ م²",
-    delivery: "سنة واحدة",
-  },
-  {
-    image: "/images/project-townhouse.webp",
-    badge: "جديد",
-    type: "Townhouse",
-    developer: "Hydepark Developments",
-    title: "Townhouse Hydepark New Cairo",
-    location: "التجمع / القاهرة الجديدة",
-    price: "٢٩.٤ مليون جنيه",
-    beds: "٣",
-    area: "١٥٩ م²",
-    delivery: "سنة واحدة",
-  },
-  {
-    image: "/images/project-chalet.webp",
-    badge: "متاح",
-    type: "شاليه",
-    developer: "La Vista Developments",
-    title: "Chalet La Vista North Coast",
-    location: "الساحل الشمالي",
-    price: "١٨.٩ مليون جنيه",
-    beds: "٣",
-    area: "١٤٥ م²",
-    delivery: "استلام فوري",
-  },
-  {
-    image: "/images/project-apartment.webp",
-    badge: "متاح",
-    type: "شقة",
-    developer: "SODIC",
-    title: "Apartment SODIC West Zayed",
-    location: "الشيخ زايد",
-    price: "٦.٨ مليون جنيه",
-    beds: "٢",
-    area: "١٢٠ م²",
-    delivery: "سنتين",
-  },
-  {
-    image: "/images/region-newcairo.webp",
-    badge: "جديد",
-    type: "بنتهاوس",
-    developer: "Mountain View",
-    title: "Penthouse MV Grand Valleys",
-    location: "التجمع / القاهرة الجديدة",
-    price: "٢٢.٥ مليون جنيه",
-    beds: "٤",
-    area: "٢١٠ م²",
-    delivery: "سنتين",
-  },
-  {
-    image: "/images/region-capital.webp",
-    badge: "متاح",
-    type: "شقة",
-    developer: "PRE Group",
-    title: "Apartment Capital Heights",
-    location: "العاصمة الإدارية",
-    price: "٢.٤ مليون جنيه",
-    beds: "٢",
-    area: "١١٠ م²",
-    delivery: "٣ سنين",
-  },
-];
+
 
 export default function Projects() {
   const scroller = useRef<HTMLDivElement>(null);
