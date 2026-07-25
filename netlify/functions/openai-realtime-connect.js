@@ -42,12 +42,11 @@ function realtimeModel() {
   return configured || 'gpt-realtime-2.1';
 }
 
-exports.handler = async function (event) {
+export async function handler(event) {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: corsHeaders('text/plain; charset=utf-8'), body: '' };
   }
 
-  // Health check يسمح باختبار إن الفانكشن والـ env موجودين من غير فتح مايك أو كشف المفتاح.
   if (event.httpMethod === 'GET') {
     return {
       statusCode: 200,
@@ -194,4 +193,4 @@ exports.handler = async function (event) {
       body: JSON.stringify({ error: 'Realtime upstream connection failed.' })
     };
   }
-};
+}
