@@ -83,4 +83,33 @@ assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(robots, /OAI-SearchBot/);
 assert.match(robots, /https:\/\/tycoons-inv\.com\/sitemap\.xml/);
 
-console.log(`SEO regression validation passed for ${projects[0].slug}`);
+async function validateRouteRecovery() {
+  const handler = require("../netlify/functions/seo-page.cjs").handler;
+  const originalFetch = global.fetch;
+  global.fetch = async () => ({
+    ok: true,
+    json: async () => rows,
+  });
+  try {
+    const projectResponse = await handler({
+      path: `/ar/projects/${projects[0].slug}`,
+      rawUrl: `https://tycoons-inv.com/ar/projects/${projects[0].slug}`,
+      queryStringParameters: { lang: "ar" },
+    });
+    const guideResponse = await handler({
+      path: "/guides/off-plan-buying-checklist/",
+      rawUrl: "https://tycoons-inv.com/guides/off-plan-buying-checklist/",
+      queryStringParameters: { lang: "ar" },
+    });
+    assert.match(projectResponse.body, /Mountain View Aliva \| Mountain View/);
+    assert.match(guideResponse.body, /دليل شراء عقار Off-plan في مصر/);
+  } finally {
+    global.fetch = originalFetch;
+  }
+  console.log(`SEO regression validation passed for ${projects[0].slug}`);
+}
+
+validateRouteRecovery().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

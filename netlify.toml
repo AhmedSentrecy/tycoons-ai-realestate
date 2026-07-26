@@ -23,13 +23,13 @@
 
 [[redirects]]
   from = "/ar"
-  to = "/ar/"
-  status = 301
+  to = "/.netlify/functions/seo-page?lang=ar&type=home"
+  status = 200
 
 [[redirects]]
   from = "/en"
-  to = "/en/"
-  status = 301
+  to = "/.netlify/functions/seo-page?lang=en&type=home"
+  status = 200
 
 [[redirects]]
   from = "/ar/"
