@@ -32,9 +32,12 @@ exports.handler = async function handler() {
     }
     for (const project of projects) {
       const updated = projectLastUpdated(project);
+      const area = areaFor(projectLocation(project));
       for (const lang of ["ar", "en"]) {
         urls.set(`${SITE_URL}/${lang}/projects/${project.slug}`, updated);
-        urls.set(`${SITE_URL}/${lang}/areas/${areaFor(projectLocation(project)).slug}`, updated);
+        if (area.indexable) {
+          urls.set(`${SITE_URL}/${lang}/areas/${area.slug}`, updated);
+        }
         urls.set(`${SITE_URL}/${lang}/developers/${slugify(project.developer)}`, updated);
       }
     }
