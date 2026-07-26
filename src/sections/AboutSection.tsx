@@ -82,8 +82,8 @@ export default function AboutSection() {
             <div className="mt-1 text-sm font-light text-[#6d7a72]">سنة التأسيس</div>
           </div>
           <div className="glass-light absolute -top-6 left-6 rounded-2xl px-7 py-5 shadow-xl sm:left-10">
-            <div className="text-3xl font-extrabold text-[#14352a]">+١٢٠٠</div>
-            <div className="mt-1 text-sm font-light text-[#6d7a72]">عميل اتوصّل لوحدته</div>
+            <div className="text-3xl font-extrabold text-[#14352a]">+٧٦٠</div>
+            <div className="mt-1 text-sm font-light text-[#6d7a72]">وحدة متاحة بآخر مراجعة</div>
           </div>
         </motion.div>
       </div>

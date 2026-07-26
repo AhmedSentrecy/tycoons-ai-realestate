@@ -214,8 +214,22 @@ export function useInventory() {
   }, []);
 
   useEffect(() => {
-    void refresh(false);
-  }, [refresh]);
+    let active = true;
+    void loadInventory(false)
+      .then((next) => {
+        if (!active) return;
+        setUnits(next);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setError("تعذّر تحميل المخزون العقاري دلوقتي");
+        setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return {
     units,

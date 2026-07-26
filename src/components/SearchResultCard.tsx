@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   BedDouble,
   Building2,
@@ -10,7 +10,7 @@ import {
   MessageCircle,
   Ruler,
 } from "lucide-react";
-import { fallbackImageFor, inventoryUnitKey } from "@/lib/inventory";
+import { fallbackImageFor } from "@/lib/inventory";
 import type { RankedInventoryUnit } from "@/lib/propertySearch";
 import { openUnitWhatsApp } from "@/lib/whatsapp";
 
@@ -31,17 +31,23 @@ function detail(value: string): string {
 
 export default function SearchResultCard({ result, query, expanded, onToggle }: Props) {
   const { unit } = result;
-  const key = inventoryUnitKey(unit);
   const images = useMemo(
     () => (unit.images.length ? unit.images : [fallbackImageFor(unit)]),
     [unit],
   );
   const [imageIndex, setImageIndex] = useState(0);
-
-  useEffect(() => setImageIndex(0), [key]);
+  const touchStartX = useRef<number | null>(null);
 
   const moveImage = (direction: number) => {
     setImageIndex((current) => (current + direction + images.length) % images.length);
+  };
+
+  const finishSwipe = (endX: number) => {
+    if (touchStartX.current == null) return;
+    const distance = endX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(distance) < 45) return;
+    moveImage(distance > 0 ? -1 : 1);
   };
 
   const primaryDifference = result.differences[0] || "اختيار قريب من طلبك";
@@ -54,13 +60,21 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
           : "border-amber-200 bg-amber-50/55 hover:border-amber-300"
       }`}
     >
-      <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#eee8dc]">
+      <div
+        className="relative aspect-[16/9] w-full touch-pan-y overflow-hidden bg-[#eee8dc]"
+        onTouchStart={(event) => {
+          touchStartX.current = event.touches[0]?.clientX ?? null;
+        }}
+        onTouchEnd={(event) => finishSwipe(event.changedTouches[0]?.clientX ?? 0)}
+      >
         <img
           src={images[imageIndex]}
           alt={`${unit.project_name} ${unit.unit_type}`}
           className="h-full w-full object-cover"
           loading="lazy"
           decoding="async"
+          width={800}
+          height={450}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
 
@@ -93,6 +107,23 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
             <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold text-white">
               {imageIndex + 1} / {images.length}
             </span>
+            <div
+              className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5"
+              aria-label="اختيار صورة"
+            >
+              {images.map((image, index) => (
+                <button
+                  key={image}
+                  type="button"
+                  aria-label={`الصورة ${index + 1}`}
+                  aria-current={index === imageIndex}
+                  onClick={() => setImageIndex(index)}
+                  className={`h-1.5 rounded-full shadow-sm transition-all ${
+                    index === imageIndex ? "w-4 bg-white" : "w-1.5 bg-white/55"
+                  }`}
+                />
+              ))}
+            </div>
           </>
         )}
       </div>

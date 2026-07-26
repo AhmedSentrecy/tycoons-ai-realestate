@@ -1,4 +1,5 @@
 import type { InventoryUnit } from "@/lib/inventory";
+import type { Project } from "@/data/projects";
 
 const WHATSAPP_NUMBER = "201200704344";
 
@@ -15,7 +16,7 @@ function trackingId(): string {
 }
 
 function pageUrl(): string {
-  return typeof window === "undefined" ? "https://tycoons-inv.de/" : window.location.href;
+  return typeof window === "undefined" ? "https://tycoons-inv.com/" : window.location.href;
 }
 
 function openMessage(message: string): void {
@@ -51,7 +52,7 @@ export function buildUnitWhatsAppMessage(
     "",
     "Please send me the latest availability and payment plan.",
     "",
-    "Source: ai_search_result",
+    "Source: unit_card",
     `Page: ${currentPageUrl}`,
     `Tracking ID: ${trackingId()}`,
   ];
@@ -78,4 +79,32 @@ export function openSearchWhatsApp(searchRequest: string): void {
       `Tracking ID: ${trackingId()}`,
     ].join("\n"),
   );
+}
+
+export function buildProjectWhatsAppMessage(
+  project: Project,
+  currentPageUrl: string,
+): string {
+  return [
+    "Hello Tycoons Investments,",
+    "I am interested in this project:",
+    "",
+    `Project: ${clean(project.title)}`,
+    `Developer: ${clean(project.developer)}`,
+    `Location: ${clean(project.location)}`,
+    `Starting price: ${clean(project.price)}`,
+    "Status: Available",
+    "",
+    `URL: ${currentPageUrl}`,
+    "",
+    "Please send me available options and details.",
+    "",
+    "Source: project_card",
+    `Page: ${currentPageUrl}`,
+    `Tracking ID: ${trackingId()}`,
+  ].join("\n");
+}
+
+export function openProjectWhatsApp(project: Project): void {
+  openMessage(buildProjectWhatsAppMessage(project, pageUrl()));
 }

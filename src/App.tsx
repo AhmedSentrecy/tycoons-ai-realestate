@@ -1,16 +1,26 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route } from 'react-router'
 import Home from './pages/Home'
-import RegionPage from './pages/RegionPage'
-import FaqPage from './pages/FaqPage'
-import AboutPage from './pages/AboutPage'
+
+const RegionPage = lazy(() => import('./pages/RegionPage'))
+const FaqPage = lazy(() => import('./pages/FaqPage'))
+const AboutPage = lazy(() => import('./pages/AboutPage'))
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/regions/:slug" element={<RegionPage />} />
-      <Route path="/faq" element={<FaqPage />} />
-      <Route path="/about" element={<AboutPage />} />
-    </Routes>
+    <Suspense
+      fallback={
+        <main className="grid min-h-screen place-items-center bg-[#f7f2ea] text-[#1b2420]">
+          <p className="font-bold">جاري تحميل الصفحة…</p>
+        </main>
+      }
+    >
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/regions/:slug" element={<RegionPage />} />
+        <Route path="/faq" element={<FaqPage />} />
+        <Route path="/about" element={<AboutPage />} />
+      </Routes>
+    </Suspense>
   )
 }

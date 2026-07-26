@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { motion } from "framer-motion";
 import { BedDouble, Ruler, KeyRound, MessageCircle, ChevronRight, ChevronLeft } from "lucide-react";
 import { projects } from "@/data/projects";
+import { openProjectWhatsApp } from "@/lib/whatsapp";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -132,15 +133,14 @@ export default function Projects() {
                 <button className="flex-1 rounded-full border border-white/20 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/10">
                   تفاصيل المشروع
                 </button>
-                <a
-                  href="https://wa.me/201200704344"
-                  target="_blank"
-                  rel="noreferrer"
+                <button
+                  type="button"
+                  onClick={() => openProjectWhatsApp(p)}
                   className="grid w-11 place-items-center rounded-full bg-[#1faa59] text-white transition-transform hover:scale-105"
                   aria-label="واتساب"
                 >
                   <MessageCircle className="h-4 w-4" />
-                </a>
+                </button>
               </div>
             </div>
           </motion.article>

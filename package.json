@@ -9,7 +9,8 @@
     "build": "tsc -b && vite build",
     "test:search": "tsx scripts/test-property-search.ts",
     "test:realtime": "node scripts/test-realtime-function.cjs",
-    "check": "yarn test:search && yarn test:realtime && yarn build",
+    "test:seo": "node scripts/validate-seo.cjs && node --check netlify/functions/_seo-utils.cjs && node --check netlify/functions/seo-page.cjs && node --check netlify/functions/sitemap.cjs",
+    "check": "yarn test:search && yarn test:realtime && yarn test:seo && yarn build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -73,7 +74,6 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
-    "kimi-plugin-inspect-react": "^1.0.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
