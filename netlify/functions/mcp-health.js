@@ -1,7 +1,7 @@
 const SERVICE = {
   ok: true,
   service: "tycoons-property-search",
-  version: "1.0.0",
+    version: "1.1.0",
   transport: "streamable-http",
   endpoint: "https://tycoons-inv.com/mcp",
   authentication: "none",
