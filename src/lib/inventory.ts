@@ -29,6 +29,7 @@ export interface InventoryUnit {
   brochure_url: string;
   video_url: string;
   last_updated_at: string;
+  source_type: string;
   images: string[];
 }
 
@@ -95,6 +96,7 @@ function normalizeUnit(row: Record<string, unknown>): InventoryUnit | null {
     brochure_url: text(row.brochure_url),
     video_url: text(row.video_url),
     last_updated_at: text(row.last_updated_at),
+    source_type: "developer_data",
     images: parseImages(imageUrl, galleryUrls),
   };
 }
@@ -110,6 +112,20 @@ export function inventoryUnitKey(unit: InventoryUnit): string {
   ]
     .join("|")
     .toLowerCase();
+}
+
+export function inventoryUnitId(unit: InventoryUnit): string {
+  const value = inventoryUnitKey(unit);
+  let first = 0x811c9dc5;
+  let second = 0x9e3779b9;
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    first = Math.imul(first ^ code, 0x01000193);
+    second = Math.imul(second ^ code, 0x85ebca6b);
+  }
+  return `unit_${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0)
+    .toString(16)
+    .padStart(8, "0")}`;
 }
 
 export function fallbackImageFor(unit: InventoryUnit): string {
