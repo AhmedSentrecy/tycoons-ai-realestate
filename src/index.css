@@ -192,3 +192,14 @@
 .animate-pulse-dot {
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
+
+/* Keep the mobile search results anchored to the actual search field. */
+@media (max-width: 639px) {
+  [class~="w-[min(94vw,960px)]"] {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    transform: none !important;
+    margin-top: 0.5rem !important;
+  }
+}
