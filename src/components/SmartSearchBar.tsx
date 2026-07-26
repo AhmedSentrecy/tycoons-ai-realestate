@@ -15,6 +15,9 @@ interface Props {
   onSearchActive?: (active: boolean) => void;
 }
 
+const RESULT_LAYOUT =
+  "grid auto-cols-[88%] grid-flow-col snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:overflow-visible";
+
 export default function SmartSearchBar({ compact = false, onSearchActive }: Props) {
   const { query, setQuery, results, hasSearched, search, clear, inventory } = usePropertySearch();
   const [open, setOpen] = useState(false);
@@ -36,8 +39,10 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
       const exactText = searchResult.totalExact
         ? `لقيت ${searchResult.totalExact.toLocaleString("ar-EG")} اختيار مطابق`
         : "ملقيتش تطابق كامل، بس لقيت بدائل قريبة";
+      const differenceText =
+        !best.exact && best.differences[0] ? ` الفرق الأساسي إن ${best.differences[0]}.` : "";
       void speak(
-        `${exactText}. أقرب اختيار ${best.unit.unit_type} في ${best.unit.project_name} بسعر يبدأ من ${new Intl.NumberFormat("en-EG").format(best.unit.starting_price)} جنيه.`,
+        `${exactText}. أقرب اختيار ${best.unit.unit_type} في ${best.unit.project_name} بسعر يبدأ من ${new Intl.NumberFormat("en-EG").format(best.unit.starting_price)} جنيه.${differenceText}`,
         "ar",
       );
     },
@@ -126,11 +131,11 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
   return (
     <div ref={boxRef} className="relative w-full">
       <div
-        className={`flex items-center gap-3 rounded-2xl bg-white/[0.97] px-4 ${
+        className={`flex items-center gap-2 rounded-2xl bg-white/[0.97] px-3 sm:gap-3 sm:px-4 ${
           compact ? "py-2.5" : "py-3.5"
         } ${listening ? "ring-2 ring-[#c49b5f]/70" : ""}`}
       >
-        <Sparkles className="h-5 w-5 shrink-0 text-[#c49b5f]" />
+        <Sparkles className="hidden h-5 w-5 shrink-0 text-[#c49b5f] sm:block" />
         <input
           type="text"
           value={query}
@@ -141,7 +146,7 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
           onKeyDown={(event) => event.key === "Enter" && submit()}
           onFocus={() => hasSearched && setOpen(true)}
           placeholder="عايز شاليه في الساحل أو آي فيلا في التجمع..."
-          className="w-full bg-transparent text-[15px] text-[#22312b] outline-none placeholder:text-[#9aa69f]"
+          className="min-w-0 flex-1 bg-transparent text-[14px] text-[#22312b] outline-none placeholder:text-[#9aa69f] sm:text-[15px]"
         />
 
         {query && (
@@ -184,12 +189,15 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
           type="button"
           onClick={submit}
           disabled={inventory.loading}
-          className={`flex shrink-0 items-center gap-2 rounded-full bg-[#14352a] font-semibold text-[#efe3c6] transition-transform hover:scale-[1.04] disabled:cursor-wait disabled:opacity-65 ${
-            compact ? "px-5 py-2.5 text-sm" : "px-6 py-3 text-sm"
+          aria-label="ابحث"
+          className={`flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#14352a] px-0 font-semibold text-[#efe3c6] transition-transform hover:scale-[1.04] disabled:cursor-wait disabled:opacity-65 ${
+            compact
+              ? "h-10 w-10 sm:h-auto sm:w-auto sm:px-5 sm:py-2.5"
+              : "h-11 w-11 sm:h-auto sm:w-auto sm:px-6 sm:py-3"
           }`}
         >
           <Search className="h-4 w-4" />
-          ابحث
+          <span className="hidden sm:inline">ابحث</span>
         </button>
       </div>
 
@@ -200,10 +208,10 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-x-0 top-full z-50 mt-3 overflow-hidden rounded-3xl border border-[#e7ddc8] bg-[#fdfbf6] shadow-[0_35px_90px_-20px_rgba(15,30,22,0.45)]"
+            className="absolute left-1/2 top-full z-50 mt-3 w-[min(94vw,960px)] -translate-x-1/2 overflow-hidden rounded-3xl border border-[#e7ddc8] bg-[#fdfbf6] shadow-[0_35px_90px_-20px_rgba(15,30,22,0.45)]"
           >
             {(listening || realtime.state === "connecting" || realtime.state === "speaking") && (
-              <div className="flex items-center gap-3 border-b border-[#efe7d5] bg-[#c49b5f]/8 px-6 py-4">
+              <div className="flex items-center gap-3 border-b border-[#efe7d5] bg-[#c49b5f]/8 px-4 py-3.5 sm:px-6 sm:py-4">
                 <span className="relative flex h-3 w-3">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#c49b5f] opacity-60" />
                   <span className="relative inline-flex h-3 w-3 rounded-full bg-[#c49b5f]" />
@@ -213,7 +221,7 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
             )}
 
             {busyError && !listening && realtime.state !== "connecting" && (
-              <div className="flex items-center justify-between gap-3 border-b border-[#efe7d5] bg-amber-50 px-6 py-3.5">
+              <div className="flex items-center justify-between gap-3 border-b border-[#efe7d5] bg-amber-50 px-4 py-3.5 sm:px-6">
                 <span className="text-sm text-amber-800">{busyError}</span>
                 <button
                   type="button"
@@ -245,59 +253,83 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
             )}
 
             {hasSearched && !inventory.loading && !inventory.error && (
-              <div className="max-h-[560px] overflow-y-auto p-3">
+              <div className="max-h-[72svh] overflow-y-auto p-3 sm:p-4">
                 {results.interpreted && (
-                  <div className="px-2 pb-3 pt-1 text-xs font-semibold text-[#92733f]">
+                  <div className="px-1 pb-3 pt-1 text-[11px] font-semibold leading-relaxed text-[#92733f] sm:px-2 sm:text-xs">
                     {results.interpreted}
+                  </div>
+                )}
+
+                {!results.exact.length && results.alternatives.length > 0 && (
+                  <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                    <p className="text-sm font-extrabold text-amber-950">مفيش نتيجة مطابقة بالكامل لطلبك</p>
+                    <p className="mt-1 text-xs leading-relaxed text-amber-800">
+                      اللي تحت بدائل قريبة، والفرق عن طلبك مكتوب بوضوح على كل كارت.
+                    </p>
                   </div>
                 )}
 
                 {results.exact.length > 0 && (
                   <section>
-                    <div className="mb-2 flex items-center justify-between px-2">
+                    <div className="mb-2 flex items-center justify-between px-1 sm:px-2">
                       <h3 className="text-xs font-extrabold text-emerald-800">نتائج مطابقة</h3>
                       <span className="text-[10px] text-[#778179]">
                         أفضل {results.exact.length.toLocaleString("ar-EG")} من {results.totalExact.toLocaleString("ar-EG")}
                       </span>
                     </div>
-                    <div className="grid gap-2">
+                    <div className={RESULT_LAYOUT}>
                       {results.exact.map((result) => {
                         const key = inventoryUnitKey(result.unit);
                         return (
-                          <SearchResultCard
-                            key={key}
-                            result={result}
-                            query={query}
-                            expanded={expandedKey === key}
-                            onToggle={() => setExpandedKey((current) => (current === key ? "" : key))}
-                          />
+                          <div key={key} className="snap-start">
+                            <SearchResultCard
+                              result={result}
+                              query={query}
+                              expanded={expandedKey === key}
+                              onToggle={() => setExpandedKey((current) => (current === key ? "" : key))}
+                            />
+                          </div>
                         );
                       })}
                     </div>
+                    {results.exact.length > 1 && (
+                      <p className="mt-1 text-center text-[10px] text-[#7b877f] sm:hidden">
+                        اسحب يمين أو شمال لباقي النتائج
+                      </p>
+                    )}
                   </section>
                 )}
 
                 {results.alternatives.length > 0 && (
                   <section className={results.exact.length ? "mt-5" : ""}>
-                    <div className="mb-2 px-2">
+                    <div className="mb-2 flex items-center justify-between px-1 sm:px-2">
                       <h3 className="text-xs font-extrabold text-amber-800">
-                        {results.exact.length ? "بدائل قريبة" : "مفيش تطابق كامل — دي أقرب بدائل"}
+                        {results.exact.length ? "بدائل قريبة" : "أقرب بدائل متاحة"}
                       </h3>
+                      <span className="text-[10px] text-[#8a7b62]">
+                        {results.alternatives.length.toLocaleString("ar-EG")} بدائل
+                      </span>
                     </div>
-                    <div className="grid gap-2">
+                    <div className={RESULT_LAYOUT}>
                       {results.alternatives.map((result) => {
                         const key = inventoryUnitKey(result.unit);
                         return (
-                          <SearchResultCard
-                            key={`alternative-${key}`}
-                            result={result}
-                            query={query}
-                            expanded={expandedKey === key}
-                            onToggle={() => setExpandedKey((current) => (current === key ? "" : key))}
-                          />
+                          <div key={`alternative-${key}`} className="snap-start">
+                            <SearchResultCard
+                              result={result}
+                              query={query}
+                              expanded={expandedKey === key}
+                              onToggle={() => setExpandedKey((current) => (current === key ? "" : key))}
+                            />
+                          </div>
                         );
                       })}
                     </div>
+                    {results.alternatives.length > 1 && (
+                      <p className="mt-1 text-center text-[10px] text-[#7b877f] sm:hidden">
+                        اسحب يمين أو شمال للمقارنة بين البدائل
+                      </p>
+                    )}
                   </section>
                 )}
 
