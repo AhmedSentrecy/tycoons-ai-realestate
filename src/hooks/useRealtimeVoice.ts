@@ -1,16 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-/**
- * OpenAI Realtime API — بنفس عقد Netlify Function بتاع تايكونز:
- *   POST /.netlify/functions/openai-realtime-connect
- *   body: SDP offer (application/sdp)
- *   response: SDP answer (application/sdp)
- * المفتاح والجلسة بيتعامل معاهم السيرفر فقط.
- */
-
 const CONNECT_URL =
-  (import.meta as any).env?.VITE_REALTIME_CONNECT_URL ||
-  "/.netlify/functions/openai-realtime-connect";
+  (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.
+    VITE_REALTIME_CONNECT_URL || "/.netlify/functions/openai-realtime-connect";
 const CONNECT_TIMEOUT_MS = 15_000;
 
 export type RealtimeState =
@@ -23,7 +15,7 @@ export type RealtimeState =
   | "unavailable";
 
 interface RealtimeOptions {
-  onSearchQuery: (query: string) => void;
+  onSearchQuery: (query: string) => Record<string, unknown> | void;
 }
 
 export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
@@ -148,14 +140,16 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               break;
             case "response.audio.delta":
             case "response.audio_transcript.delta":
+            case "response.output_audio.delta":
+            case "response.output_audio_transcript.delta":
               setState("speaking");
               break;
             case "response.audio_transcript.done":
+            case "response.output_audio_transcript.done":
               setTranscript(msg.transcript || "");
               setState("connected");
               break;
             case "conversation.item.input_audio_transcription.completed":
-              // للعرض فقط. البحث بيتنفذ من أداة search_properties عشان مايتكررش مرتين.
               if (msg.transcript?.trim()) setTranscript(msg.transcript.trim());
               break;
             case "response.function_call_arguments.done": {
@@ -170,21 +164,15 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               if (msg.name === "search_properties") {
                 const query = typeof args.query === "string" ? args.query.trim() : "";
                 if (query) {
-                  onSearchQuery(query);
+                  const payload = onSearchQuery(query) ?? {};
                   sendFunctionOutput(dc, msg.call_id, {
                     ok: true,
-                    note: "النتايج ظهرت للعميل على الشاشة",
+                    note: "النتائج ظهرت للعميل على الشاشة",
+                    ...payload,
                   });
                 } else {
                   sendFunctionOutput(dc, msg.call_id, { ok: false, error: "missing_query" });
                 }
-              } else if (msg.name === "save_lead") {
-                // مفيش lead endpoint متوصل في التصميم الحالي؛ نرجع رد صريح بدل ما الجلسة تقف.
-                sendFunctionOutput(dc, msg.call_id, {
-                  ok: false,
-                  error: "lead_endpoint_not_connected",
-                  note: "اطلب من العميل يكمل على واتساب من الزر الظاهر في الموقع",
-                });
               }
               break;
             }
@@ -237,12 +225,13 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
       connectingRef.current = false;
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       cleanup();
-      if (error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError") {
+      const name = error instanceof DOMException ? error.name : "";
+      if (name === "NotAllowedError" || name === "PermissionDeniedError") {
         setState("error");
         setErrorMsg("اسمح بالمايكروفون من إعدادات المتصفح الأول");
-      } else if (error?.name === "NotFoundError") {
+      } else if (name === "NotFoundError") {
         setState("error");
         setErrorMsg("مفيش مايكروفون متاح على الجهاز");
       } else {
