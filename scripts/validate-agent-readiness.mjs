@@ -33,12 +33,13 @@ assert.ok(openapi.paths["/mcp/health"]);
 
 const serverCard = json("public/.well-known/mcp/server-card.json");
 assert.equal(serverCard.serverInfo.name, "tycoons-property-search");
-assert.equal(serverCard.serverInfo.version, "1.0.0");
+assert.equal(serverCard.serverInfo.version, "1.1.0");
 assert.equal(serverCard.transport.type, "streamable-http");
 assert.equal(serverCard.transport.endpoint, "https://tycoons-inv.com/mcp");
 assert.equal(serverCard.authentication.required, false);
 assert.equal(serverCard.capabilities.tools.listChanged, false);
 assert.deepEqual(serverCard.tools, [
+  "get_inventory_summary",
   "search_properties",
   "get_property_details",
   "compare_properties",
