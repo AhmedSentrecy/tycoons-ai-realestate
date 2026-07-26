@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+  "skills": [
+    {
+      "name": "search-properties",
+      "type": "skill-md",
+      "description": "Search Tycoons Investments' currently available Egyptian property inventory using natural-language buyer criteria.",
+      "url": "/.well-known/agent-skills/search-properties/SKILL.md",
+      "digest": "sha256:b46b38e779674cc31b61ff3400984ba2c0cb7d8a6d7521fd013da09ae01e49aa"
+    }
+  ]
+}

@@ -3,8 +3,10 @@ Allow: /
 Disallow: /.netlify/functions/
 Disallow: /admin
 Disallow: /admin.html
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 
 User-agent: OAI-SearchBot
 Allow: /
+Content-Signal: ai-train=no, search=yes, ai-input=yes
 
 Sitemap: https://tycoons-inv.com/sitemap.xml

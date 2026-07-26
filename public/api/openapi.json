@@ -1,0 +1,123 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Tycoons Investments Public Discovery Interface",
+    "version": "1.0.0",
+    "description": "Unauthenticated, read-only discovery resources for Tycoons Investments. This interface does not expose private inventory administration or lead data."
+  },
+  "servers": [
+    {
+      "url": "https://tycoons-inv.com"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Get the Tycoons Investments homepage",
+        "description": "Returns HTML by default and Markdown when the request Accept header includes text/markdown.",
+        "responses": {
+          "200": {
+            "description": "Homepage representation",
+            "headers": {
+              "Link": {
+                "description": "Links to agent discovery resources",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Vary": {
+                "description": "Indicates that the representation varies by Accept",
+                "schema": {
+                  "type": "string",
+                  "const": "Accept"
+                }
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "text/markdown": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/api-catalog": {
+      "get": {
+        "summary": "Get the RFC 9727 API catalog",
+        "responses": {
+          "200": {
+            "description": "API catalog Linkset",
+            "content": {
+              "application/linkset+json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["linkset"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/agent-skills/index.json": {
+      "get": {
+        "summary": "Get the Agent Skills discovery index",
+        "responses": {
+          "200": {
+            "description": "Agent Skills Discovery RFC v0.2.0 index",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["$schema", "skills"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "summary": "Get the machine-readable site guide",
+        "responses": {
+          "200": {
+            "description": "Tycoons Investments site and source guide",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sitemap.xml": {
+      "get": {
+        "summary": "Get the current XML sitemap",
+        "responses": {
+          "200": {
+            "description": "XML sitemap",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
