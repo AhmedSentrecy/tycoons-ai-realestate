@@ -2,13 +2,14 @@
   "name": "my-app",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "yarn@1.22.22",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test:search": "tsx scripts/test-property-search.ts",
     "test:realtime": "node scripts/test-realtime-function.cjs",
-    "check": "npm run test:search && npm run test:realtime && npm run build",
+    "check": "yarn test:search && yarn test:realtime && yarn build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
