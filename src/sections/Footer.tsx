@@ -74,14 +74,21 @@ export default function Footer() {
             <ul className="space-y-3.5">
               {[
                 { label: "ابدأ البحث", to: "/" },
+                { label: "دليل المشاريع", to: "/ar/", external: true },
                 { label: "الأسئلة الشائعة", to: "/faq" },
                 { label: "من نحن", to: "/about" },
                 { label: "الحاسبة", to: "/" },
               ].map((it) => (
                 <li key={it.label}>
-                  <Link to={it.to} className="text-sm font-light text-white/55 transition-colors hover:text-white">
-                    {it.label}
-                  </Link>
+                  {it.external ? (
+                    <a href={it.to} className="text-sm font-light text-white/55 transition-colors hover:text-white">
+                      {it.label}
+                    </a>
+                  ) : (
+                    <Link to={it.to} className="text-sm font-light text-white/55 transition-colors hover:text-white">
+                      {it.label}
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>
@@ -109,6 +116,8 @@ export default function Footer() {
               {[
                 { label: "من نحن", to: "/about" },
                 { label: "الأسئلة الشائعة", to: "/faq" },
+                { label: "منهجية البيانات", to: "/methodology", external: true },
+                { label: "سياسة التصحيح", to: "/corrections", external: true },
                 { label: "تواصل معنا", to: "https://wa.me/201200704344", external: true },
               ].map((it) => (
                 <li key={it.label}>

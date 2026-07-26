@@ -6,7 +6,7 @@ import {
   type RankedInventoryUnit,
   type SearchOutput,
 } from "../src/lib/propertySearch.ts";
-import { buildUnitWhatsAppMessage } from "../src/lib/whatsapp.ts";
+import { buildProjectWhatsAppMessage, buildUnitWhatsAppMessage } from "../src/lib/whatsapp.ts";
 
 function fixture(overrides: Partial<InventoryUnit>): InventoryUnit {
   return {
@@ -63,12 +63,34 @@ async function run() {
   const message = buildUnitWhatsAppMessage(
     fixture({ project_name: "Mountain View Aliva" }),
     "آي فيلا في التجمع",
-    "https://tycoons-inv.de/",
+    "https://tycoons-inv.com/",
   );
-  assert.match(message, /Source: ai_search_result/);
+  assert.match(message, /Source: unit_card/);
   assert.match(message, /Tracking ID: wa_/);
   assert.match(message, /Search request: آي فيلا في التجمع/);
   assert.match(message, /Brochure:/);
+
+  const projectMessage = buildProjectWhatsAppMessage(
+    {
+      id: "aliva",
+      image: "/images/project-villa.webp",
+      badge: "متاح",
+      type: "فيلا",
+      developer: "Mountain View",
+      title: "Mountain View Aliva",
+      location: "Mostakbal City",
+      regionSlug: "new-cairo",
+      price: "57,746,382 EGP",
+      priceM: 57.746382,
+      beds: "3",
+      area: "285 m²",
+      delivery: "3 years",
+    },
+    "https://tycoons-inv.com/",
+  );
+  assert.match(projectMessage, /Source: project_card/);
+  assert.match(projectMessage, /Project: Mountain View Aliva/);
+  assert.match(projectMessage, /Tracking ID: wa_/);
 
   const units = await loadInventory(true);
   const stats = inventoryStats(units);

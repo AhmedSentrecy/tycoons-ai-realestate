@@ -19,5 +19,11 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      // Shadcn-style UI modules intentionally export components and their helpers.
+      'react-refresh/only-export-components': 'warn',
+      // Browser speech-recognition types are not included consistently across TS runtimes.
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
   },
 ])
