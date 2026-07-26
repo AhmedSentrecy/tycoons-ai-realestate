@@ -1,0 +1,11 @@
+{
+  "release": "live-inventory-search-v1",
+  "date": "2026-07-26",
+  "features": [
+    "supabase-live-inventory",
+    "ranked-exact-and-alternative-results",
+    "organized-whatsapp-tracking",
+    "realtime-2.1-ranked-results",
+    "property-search-tests"
+  ]
+}
