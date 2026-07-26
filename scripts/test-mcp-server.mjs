@@ -44,7 +44,7 @@ async function run() {
   assert.deepEqual(await health.json(), {
     ok: true,
     service: "tycoons-property-search",
-    version: "1.0.0",
+    version: "1.1.0",
     transport: "streamable-http",
     endpoint: "https://tycoons-inv.com/mcp",
     authentication: "none",
@@ -80,6 +80,7 @@ async function run() {
   const list = await rpc(2, "tools/list");
   const toolNames = list.body.result.tools.map((tool) => tool.name);
   assert.deepEqual(toolNames, [
+    "get_inventory_summary",
     "search_properties",
     "get_property_details",
     "compare_properties",
@@ -98,6 +99,7 @@ async function run() {
   assert.ok(searchData.results.length > 1);
   assert.ok(searchData.results.length <= 4);
   assert.ok(searchData.results.every((unit) => /^unit_[a-f0-9]{16}$/.test(unit.unit_id)));
+  assert.ok(searchData.results.every((unit) => unit.data_provenance.confidence === "high"));
   assert.ok(searchData.results.some((unit) => /aliva/i.test(unit.project)));
 
   const firstId = searchData.results[0].unit_id;
@@ -129,12 +131,14 @@ async function run() {
       down_payment_percent: 10,
       installment_years: 8,
       payments_per_year: 4,
+      annual_discount_rate_percent: 20,
     },
   });
   const calculationData = structured(calculation.body.result);
   assert.equal(calculationData.installment_count, 32);
   assert.equal(calculationData.down_payment_percent, 10);
   assert.ok(calculationData.equal_installment_egp > 0);
+  assert.ok(calculationData.illustrative_cash_equivalent_egp < calculationData.total_cost_egp);
   assert.match(calculationData.notice, /Illustrative/);
 
   const invalidCadence = await rpc(61, "tools/call", {
@@ -195,3 +199,10 @@ run().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
+  const summary = await rpc(31, "tools/call", {
+    name: "get_inventory_summary",
+    arguments: {},
+  });
+  const summaryData = structured(summary.body.result);
+  assert.ok(summaryData.units > 0);
+  assert.equal(summaryData.contract_version, "1.1.0");
