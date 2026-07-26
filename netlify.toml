@@ -23,13 +23,15 @@
 
 [[redirects]]
   from = "/ar"
-  to = "/.netlify/functions/seo-page?lang=ar&type=home"
-  status = 200
+  to = "/ar/"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/en"
-  to = "/.netlify/functions/seo-page?lang=en&type=home"
-  status = 200
+  to = "/en/"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/ar/"
@@ -170,11 +172,47 @@
     Access-Control-Allow-Origin = "*"
     Cache-Control = "public, max-age=300, must-revalidate"
 
-# Only real client-side routes receive the React app.
+# Retired region URLs with a direct canonical equivalent.
+[[redirects]]
+  from = "/regions/new-cairo"
+  to = "/ar/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/regions/mostakbal"
+  to = "/ar/areas/mostakbal-city"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/regions/north-coast"
+  to = "/ar/areas/north-coast"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/regions/sokhna"
+  to = "/ar/areas/ain-sokhna"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/regions/zayed"
+  to = "/ar/areas/sheikh-zayed"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/regions/new-capital"
+  to = "/ar/areas/new-capital"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/regions/*"
-  to = "/index.html"
-  status = 200
+  to = "/404.html"
+  status = 404
 
 [[redirects]]
   from = "/"
