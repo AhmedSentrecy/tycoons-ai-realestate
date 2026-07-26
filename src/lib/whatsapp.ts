@@ -14,12 +14,21 @@ function trackingId(): string {
   return `wa_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function pageUrl(): string {
+  return typeof window === "undefined" ? "https://tycoons-inv.de/" : window.location.href;
+}
+
+function openMessage(message: string): void {
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
 export function buildUnitWhatsAppMessage(
   unit: InventoryUnit,
   searchRequest: string,
-  pageUrl: string,
+  currentPageUrl: string,
 ): string {
-  const preferredUrl = unit.image_url || unit.brochure_url || pageUrl;
+  const preferredUrl = unit.image_url || unit.brochure_url || currentPageUrl;
   const lines = [
     "Hello Tycoons Investments,",
     "I am interested in this available unit:",
@@ -43,15 +52,30 @@ export function buildUnitWhatsAppMessage(
     "Please send me the latest availability and payment plan.",
     "",
     "Source: ai_search_result",
-    `Page: ${pageUrl}`,
+    `Page: ${currentPageUrl}`,
     `Tracking ID: ${trackingId()}`,
   ];
   return lines.join("\n");
 }
 
 export function openUnitWhatsApp(unit: InventoryUnit, searchRequest: string): void {
-  const pageUrl = typeof window === "undefined" ? "https://tycoons-inv.de/" : window.location.href;
-  const message = buildUnitWhatsAppMessage(unit, searchRequest, pageUrl);
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-  window.open(url, "_blank", "noopener,noreferrer");
+  openMessage(buildUnitWhatsAppMessage(unit, searchRequest, pageUrl()));
+}
+
+export function openSearchWhatsApp(searchRequest: string): void {
+  const currentPageUrl = pageUrl();
+  openMessage(
+    [
+      "Hello Tycoons Investments,",
+      "I could not find a complete match on the website and need help with this request:",
+      "",
+      `Search request: ${clean(searchRequest)}`,
+      "",
+      "Please send me the closest available options and payment plans.",
+      "",
+      "Source: ai_search_no_match",
+      `Page: ${currentPageUrl}`,
+      `Tracking ID: ${trackingId()}`,
+    ].join("\n"),
+  );
 }
