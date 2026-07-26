@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getLastSearchVoicePayload } from "@/hooks/usePropertySearch";
 
 const CONNECT_URL =
   (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.
@@ -164,7 +165,8 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               if (msg.name === "search_properties") {
                 const query = typeof args.query === "string" ? args.query.trim() : "";
                 if (query) {
-                  const payload = onSearchQuery(query) ?? {};
+                  const callbackPayload = onSearchQuery(query);
+                  const payload = callbackPayload ?? getLastSearchVoicePayload();
                   sendFunctionOutput(dc, msg.call_id, {
                     ok: true,
                     note: "النتائج ظهرت للعميل على الشاشة",
