@@ -9,7 +9,7 @@ Use this skill when a buyer wants to find or compare developer-direct property o
 
 ## Preferred workflow
 
-1. On `https://tycoons-inv.com/`, use the read-only WebMCP tool `search_properties`.
+1. Prefer the remote MCP server at `https://tycoons-inv.com/mcp`. On a WebMCP-capable browser, the homepage tool `search_properties` is also available.
 2. Pass the buyer's request as a natural-language `query`. It may include location, budget, unit type, bedrooms, area, delivery, finishing, down payment, or installment duration.
 3. Present exact matches before alternatives.
 4. For alternatives, state every returned difference instead of describing the option as an exact match.
@@ -25,4 +25,4 @@ Use this skill when a buyer wants to find or compare developer-direct property o
 
 ## Fallback
 
-If WebMCP is unavailable, use the Arabic directory at `https://tycoons-inv.com/ar/`, the English directory at `https://tycoons-inv.com/en/`, or the site's normal search interface.
+If remote MCP and WebMCP are unavailable, use the Arabic directory at `https://tycoons-inv.com/ar/`, the English directory at `https://tycoons-inv.com/en/`, or the site's normal search interface.

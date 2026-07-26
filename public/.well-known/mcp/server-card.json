@@ -1,0 +1,34 @@
+{
+  "serverInfo": {
+    "name": "tycoons-property-search",
+    "title": "Tycoons Property Search",
+    "version": "1.0.0",
+    "description": "Read-only search, property details, comparison, payment-plan arithmetic, and WhatsApp inquiry-link generation for Tycoons Investments' public Egyptian property inventory.",
+    "websiteUrl": "https://tycoons-inv.com"
+  },
+  "transport": {
+    "type": "streamable-http",
+    "endpoint": "https://tycoons-inv.com/mcp"
+  },
+  "supportedProtocolVersions": [
+    "2025-03-26",
+    "2025-06-18",
+    "2025-11-25"
+  ],
+  "authentication": {
+    "required": false
+  },
+  "capabilities": {
+    "tools": {
+      "listChanged": false
+    }
+  },
+  "tools": [
+    "search_properties",
+    "get_property_details",
+    "compare_properties",
+    "calculate_payment_plan",
+    "create_whatsapp_inquiry"
+  ],
+  "status": "https://tycoons-inv.com/mcp/health"
+}

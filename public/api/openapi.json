@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Tycoons Investments Public Discovery Interface",
-    "version": "1.0.0",
-    "description": "Unauthenticated, read-only discovery resources for Tycoons Investments. This interface does not expose private inventory administration or lead data."
+    "version": "1.1.0",
+    "description": "Unauthenticated discovery resources and a rate-limited, read-only MCP property-search server for Tycoons Investments. This interface does not expose private inventory administration or customer data, submit leads, or send messages."
   },
   "servers": [
     {
@@ -85,6 +85,112 @@
         }
       }
     },
+    "/.well-known/mcp/server-card.json": {
+      "get": {
+        "summary": "Get the Tycoons MCP Server Card",
+        "responses": {
+          "200": {
+            "description": "MCP server discovery metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "serverInfo",
+                    "transport",
+                    "capabilities"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mcp": {
+      "post": {
+        "summary": "Call the Tycoons Property Search MCP server",
+        "description": "Streamable HTTP MCP endpoint using JSON-RPC 2.0. Supported methods include initialize, ping, tools/list, and tools/call. Tool calls are read-only and rate-limited.",
+        "parameters": [
+          {
+            "name": "MCP-Protocol-Version",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "2025-03-26",
+                "2025-06-18",
+                "2025-11-25"
+              ]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JsonRpcRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON-RPC result or error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonRpcResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Notification accepted"
+          },
+          "400": {
+            "description": "Invalid JSON-RPC or unsupported protocol version"
+          },
+          "403": {
+            "description": "Origin is not allowed"
+          },
+          "413": {
+            "description": "Request body exceeds 64 KiB"
+          },
+          "415": {
+            "description": "Content-Type is not application/json"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/mcp/health": {
+      "get": {
+        "summary": "Get MCP service health",
+        "responses": {
+          "200": {
+            "description": "MCP service metadata and availability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "ok",
+                    "service",
+                    "version",
+                    "endpoint"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/llms.txt": {
       "get": {
         "summary": "Get the machine-readable site guide",
@@ -115,6 +221,70 @@
                 }
               }
             }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "JsonRpcRequest": {
+        "type": "object",
+        "required": [
+          "jsonrpc",
+          "method"
+        ],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "const": "2.0"
+          },
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "method": {
+            "type": "string"
+          },
+          "params": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": false
+      },
+      "JsonRpcResponse": {
+        "type": "object",
+        "required": [
+          "jsonrpc",
+          "id"
+        ],
+        "properties": {
+          "jsonrpc": {
+            "type": "string",
+            "const": "2.0"
+          },
+          "id": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result": {},
+          "error": {
+            "type": "object"
           }
         }
       }

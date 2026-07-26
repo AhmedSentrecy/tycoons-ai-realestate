@@ -16,11 +16,35 @@ assert.ok(Array.isArray(catalog.linkset) && catalog.linkset.length > 0);
 assert.equal(catalog.linkset[0].anchor, "https://tycoons-inv.com/");
 assert.ok(catalog.linkset[0]["service-desc"]?.[0]?.href);
 assert.ok(catalog.linkset[0]["service-doc"]?.[0]?.href);
+const mcpCatalogEntry = catalog.linkset.find((entry) => entry.anchor === "https://tycoons-inv.com/mcp");
+assert.ok(mcpCatalogEntry);
+assert.equal(
+  mcpCatalogEntry.describedby?.[0]?.href,
+  "https://tycoons-inv.com/.well-known/mcp/server-card.json",
+);
+assert.equal(mcpCatalogEntry.status?.[0]?.href, "https://tycoons-inv.com/mcp/health");
 
 const openapi = json("public/api/openapi.json");
 assert.equal(openapi.openapi, "3.1.0");
 assert.ok(openapi.paths["/"]);
 assert.ok(openapi.paths["/.well-known/api-catalog"]);
+assert.ok(openapi.paths["/mcp"]);
+assert.ok(openapi.paths["/mcp/health"]);
+
+const serverCard = json("public/.well-known/mcp/server-card.json");
+assert.equal(serverCard.serverInfo.name, "tycoons-property-search");
+assert.equal(serverCard.serverInfo.version, "1.0.0");
+assert.equal(serverCard.transport.type, "streamable-http");
+assert.equal(serverCard.transport.endpoint, "https://tycoons-inv.com/mcp");
+assert.equal(serverCard.authentication.required, false);
+assert.equal(serverCard.capabilities.tools.listChanged, false);
+assert.deepEqual(serverCard.tools, [
+  "search_properties",
+  "get_property_details",
+  "compare_properties",
+  "calculate_payment_plan",
+  "create_whatsapp_inquiry",
+]);
 
 const skillPath = "public/.well-known/agent-skills/search-properties/SKILL.md";
 const skill = read(skillPath);
@@ -37,6 +61,7 @@ const netlify = read("netlify.toml");
 assert.match(netlify, /rel="api-catalog"/);
 assert.match(netlify, /rel="service-doc"/);
 assert.match(netlify, /application\/linkset\+json/);
+assert.match(netlify, /\.well-known\/mcp\/server-card\.json/);
 
 const edgeModule = await import(
   `${pathToFileURL(path.join(root, "netlify/edge-functions/markdown-for-agents.js")).href}?test=${Date.now()}`

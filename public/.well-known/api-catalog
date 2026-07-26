@@ -14,6 +14,33 @@
           "type": "text/markdown"
         }
       ]
+    },
+    {
+      "anchor": "https://tycoons-inv.com/mcp",
+      "service-desc": [
+        {
+          "href": "https://tycoons-inv.com/api/openapi.json",
+          "type": "application/vnd.oai.openapi+json;version=3.1"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://tycoons-inv.com/docs/api.md",
+          "type": "text/markdown"
+        }
+      ],
+      "describedby": [
+        {
+          "href": "https://tycoons-inv.com/.well-known/mcp/server-card.json",
+          "type": "application/json"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://tycoons-inv.com/mcp/health",
+          "type": "application/json"
+        }
+      ]
     }
   ]
 }

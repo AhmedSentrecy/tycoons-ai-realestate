@@ -6,7 +6,7 @@
       "type": "skill-md",
       "description": "Search Tycoons Investments' currently available Egyptian property inventory using natural-language buyer criteria.",
       "url": "/.well-known/agent-skills/search-properties/SKILL.md",
-      "digest": "sha256:b46b38e779674cc31b61ff3400984ba2c0cb7d8a6d7521fd013da09ae01e49aa"
+      "digest": "sha256:cdf2d6ba410a0b179e22784ffda6798b7e19048ab8a2566e6d41c13c292165b8"
     }
   ]
 }

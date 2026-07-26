@@ -8,10 +8,11 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test:search": "node --import tsx scripts/test-property-search.ts",
+    "test:mcp": "node --import tsx scripts/test-mcp-server.mjs",
     "test:realtime": "node scripts/test-realtime-function.cjs",
     "test:seo": "node scripts/validate-seo.cjs && node --check netlify/functions/_seo-utils.cjs && node --check netlify/functions/seo-page.cjs && node --check netlify/functions/sitemap.cjs",
     "test:agent-ready": "node scripts/validate-agent-readiness.mjs",
-    "check": "npm run test:search && npm run test:realtime && npm run test:seo && npm run test:agent-ready && npm run build",
+    "check": "npm run test:search && npm run test:mcp && npm run test:realtime && npm run test:seo && npm run test:agent-ready && npm run build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
