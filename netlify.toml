@@ -1,5 +1,5 @@
 [build]
-  command = "yarn check"
+  command = "yarn run check"
   publish = "dist"
   functions = "netlify/functions"
 
