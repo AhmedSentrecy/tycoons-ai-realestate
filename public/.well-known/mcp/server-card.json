@@ -2,7 +2,7 @@
   "serverInfo": {
     "name": "tycoons-property-search",
     "title": "Tycoons Property Search",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Read-only search, property details, comparison, payment-plan arithmetic, and WhatsApp inquiry-link generation for Tycoons Investments' public Egyptian property inventory.",
     "websiteUrl": "https://tycoons-inv.com"
   },
@@ -24,6 +24,7 @@
     }
   },
   "tools": [
+    "get_inventory_summary",
     "search_properties",
     "get_property_details",
     "compare_properties",
