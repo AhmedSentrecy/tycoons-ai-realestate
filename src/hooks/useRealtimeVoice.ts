@@ -115,7 +115,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
 
       const audioEl = document.createElement("audio");
       audioEl.autoplay = true;
-      audioEl.playsInline = true;
+      audioEl.setAttribute("playsinline", "");
       audioRef.current = audioEl;
       pc.ontrack = (event) => {
         audioEl.srcObject = event.streams[0] || new MediaStream([event.track]);
