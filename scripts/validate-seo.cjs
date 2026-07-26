@@ -53,6 +53,8 @@ const directory = renderDirectory(projects, "ar");
 const area = renderCollection(projects, "area", "mostakbal-city", "ar");
 const guide = renderGuide("off-plan-buying-checklist");
 const methodology = renderStaticPage("methodology");
+const about = renderStaticPage("about");
+const faq = renderStaticPage("faq");
 const missing = notFound("ar");
 
 assert.match(project, /<html lang="ar" dir="rtl">/);
@@ -61,11 +63,18 @@ assert.match(project, /https:\/\/tycoons-inv\.com\/ar\/projects\//);
 assert.doesNotMatch(project, /tycoons-inv\.de/);
 assert.match(project, /BreadcrumbList/);
 assert.match(project, /ItemList/);
+assert.match(project, /OfferCatalog/);
+assert.match(project, /"priceCurrency":"EGP"/);
 assert.doesNotMatch(project, /aggregateRating|"review"|"@type":"Product"/);
 assert.match(directory, /دليل المشاريع العقارية المحدث/);
 assert.match(area, /مستقبل سيتي/);
 assert.match(guide, /آخر مراجعة: 26 يوليو 2026/);
 assert.match(methodology, /منهجية البيانات والحسابات/);
+assert.match(about, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/about">/);
+assert.match(about, /<h1>من نحن<\/h1>/);
+assert.doesNotMatch(about, /hreflang="en"/);
+assert.match(faq, /"@type":"FAQPage"/);
+assert.match(area, /BreadcrumbList/);
 assert.match(missing, /noindex,follow/);
 
 const netlify = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
@@ -80,6 +89,7 @@ assert.match(netlify, /https:\/\/tycoons-inv\.de\/\*/);
 assert.match(netlify, /status = 404/);
 assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/);
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
+assert.match(index, /<h1>قارن المشاريع والوحدات العقارية/);
 assert.match(robots, /OAI-SearchBot/);
 assert.match(robots, /https:\/\/tycoons-inv\.com\/sitemap\.xml/);
 

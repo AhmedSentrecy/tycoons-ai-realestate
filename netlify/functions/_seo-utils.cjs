@@ -370,16 +370,17 @@ function renderPage({
 }) {
   const ar = lang === "ar";
   const canonical = `${SITE_URL}${path}`;
-  const alternate = alternatePath ? `${SITE_URL}${alternatePath}` : canonical;
+  const alternate = alternatePath ? `${SITE_URL}${alternatePath}` : "";
   return `<!doctype html>
 <html lang="${lang}" dir="${ar ? "rtl" : "ltr"}"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${robots}">
 <link rel="canonical" href="${escapeHtml(canonical)}">
-<link rel="alternate" hreflang="ar-EG" href="${escapeHtml(ar ? canonical : alternate)}">
+${alternate ? `<link rel="alternate" hreflang="ar-EG" href="${escapeHtml(ar ? canonical : alternate)}">
 <link rel="alternate" hreflang="en" href="${escapeHtml(ar ? alternate : canonical)}">
-<link rel="alternate" hreflang="x-default" href="${escapeHtml(ar ? canonical : alternate)}">
+<link rel="alternate" hreflang="x-default" href="${escapeHtml(ar ? canonical : alternate)}">` : `<link rel="alternate" hreflang="${ar ? "ar-EG" : "en"}" href="${escapeHtml(canonical)}">
+<link rel="alternate" hreflang="x-default" href="${escapeHtml(canonical)}">`}
 <meta property="og:type" content="website"><meta property="og:site_name" content="Tycoons Investments">
 <meta property="og:title" content="${escapeHtml(title)}"><meta property="og:description" content="${escapeHtml(description)}">
 <meta property="og:url" content="${escapeHtml(canonical)}"><meta property="og:locale" content="${ar ? "ar_EG" : "en_US"}">
@@ -507,6 +508,28 @@ function renderProject(projects, slug, lang) {
           })),
         },
       },
+      {
+        "@context": "https://schema.org",
+        "@type": "OfferCatalog",
+        name: ar ? `الوحدات المتاحة في ${project.name}` : `Available units at ${project.name}`,
+        url: `${SITE_URL}${path}`,
+        numberOfItems: units.length,
+        itemListElement: units.slice(0, 20).map((unit) => ({
+          "@type": "Offer",
+          url: `${SITE_URL}${path}`,
+          price: numberValue(unit.starting_price),
+          priceCurrency: "EGP",
+          availability: "https://schema.org/InStock",
+          itemOffered: {
+            "@type": "Accommodation",
+            name: `${clean(unit.unit_type)} ${project.name}`,
+            floorSize: unit.area_sqm
+              ? { "@type": "QuantitativeValue", value: numberValue(unit.area_sqm), unitCode: "MTK" }
+              : undefined,
+            numberOfBedrooms: numberValue(unit.bedrooms_text) || undefined,
+          },
+        })),
+      },
     ],
   });
 }
@@ -530,7 +553,11 @@ function renderCollection(projects, kind, slug, lang) {
   const description = ar
     ? `قارن ${plural} مع نطاق الأسعار الظاهر وخطط السداد والاستلام حسب أحدث بيانات متاحة.`
     : `Compare ${plural} with listed price ranges, payment plans and delivery based on the latest available data.`;
-  const body = `<main><section class="hero"><span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(label)}</h1>
+  const crumbs = [
+    { name: ar ? "الرئيسية" : "Home", path: "/" },
+    { name: label, path },
+  ];
+  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(label)}</h1>
   <div class="answer"><strong>${escapeHtml(description)}</strong></div><div class="facts"><div class="fact"><small>${ar ? "عدد المشاريع" : "Projects"}</small><strong>${plural}</strong></div><div class="fact"><small>${ar ? "أقل سعر ظاهر" : "Lowest listed"}</small><strong>${escapeHtml(formatPrice(min, lang))}</strong></div><div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed"}</small><strong>${escapeHtml(formatPrice(max, lang))}</strong></div><div class="fact"><small>${ar ? "مصدر البيانات" : "Data source"}</small><strong>Tycoons inventory</strong></div></div></section>
   <h2>${ar ? "المشاريع المتاحة" : "Available projects"}</h2>${cards(matches, lang)}
   <p class="note">${ar ? "النطاق مبني على الوحدات الظاهرة وليس تقييمًا للسوق بالكامل." : "The range is based on listed units and is not a valuation of the whole market."}</p></main>`;
@@ -542,22 +569,25 @@ function renderCollection(projects, kind, slug, lang) {
     alternatePath,
     body,
     image: projectImage(matches[0]),
-    schemas: [{
-      "@context": "https://schema.org",
-      "@type": "CollectionPage",
-      name: title,
-      url: `${SITE_URL}${path}`,
-      mainEntity: {
-        "@type": "ItemList",
-        numberOfItems: matches.length,
-        itemListElement: matches.map((project, index) => ({
-          "@type": "ListItem",
-          position: index + 1,
-          name: project.name,
-          url: `${SITE_URL}/${lang}/projects/${project.slug}`,
-        })),
+    schemas: [
+      breadcrumbSchema(crumbs),
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: title,
+        url: `${SITE_URL}${path}`,
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: matches.length,
+          itemListElement: matches.map((project, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: project.name,
+            url: `${SITE_URL}/${lang}/projects/${project.slug}`,
+          })),
+        },
       },
-    }],
+    ],
   });
 }
 
@@ -573,23 +603,62 @@ function renderGuide(slug) {
     title: `${guide.title} | Tycoons Investments`,
     description: guide.description,
     path,
-    alternatePath: path,
     body,
-    schemas: [{
-      "@context": "https://schema.org",
-      "@type": "Article",
-      headline: guide.title,
-      description: guide.description,
-      dateModified: "2026-07-26",
-      author: { "@type": "Organization", name: "Tycoons Investments" },
-      publisher: { "@type": "Organization", name: "Tycoons Investments" },
-      mainEntityOfPage: `${SITE_URL}${path}`,
-    }],
+    schemas: [
+      breadcrumbSchema([
+        { name: "الرئيسية", path: "/" },
+        { name: "الأدلة", path: "/guides/off-plan-buying-checklist/" },
+        { name: guide.title, path },
+      ]),
+      {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: guide.title,
+        description: guide.description,
+        datePublished: "2026-07-26",
+        dateModified: "2026-07-26",
+        inLanguage: "ar-EG",
+        author: { "@type": "Organization", name: "Tycoons Investments", url: `${SITE_URL}/about` },
+        reviewedBy: { "@type": "Organization", name: "Tycoons Investments" },
+        publisher: { "@type": "Organization", name: "Tycoons Investments", url: SITE_URL },
+        mainEntityOfPage: `${SITE_URL}${path}`,
+      },
+    ],
   });
 }
 
 function renderStaticPage(type) {
   const pages = {
+    about: {
+      title: "من نحن | Tycoons Investments",
+      description: "تعرف على Tycoons Investments ومنهجنا في مساعدة مشتري العقارات على المقارنة واتخاذ قرار مبني على بيانات واضحة.",
+      body: `<h1>من نحن</h1><div class="answer">Tycoons Investments منصة بحث ومقارنة عقارية مصرية تساعد المشتري يفهم البدائل والأسعار وخطط السداد قبل التواصل مع فريق المبيعات.</div><h2>مهمتنا</h2><p>نحوّل البحث عن عقار من قوائم مشتتة إلى قرار واضح: نفس الميزانية، نفس نوع الوحدة، ونفس توقيت التسليم، مع توضيح الافتراضات والمخاطر.</p><h2>طريقة شغلنا</h2><p>نجمع بيانات الوحدات المتاحة من ملفات وقوائم المطورين، نعرض تاريخ التحديث، ونطلب إعادة تأكيد السعر والتوفر وقت الاستفسار. لا نعتبر أي عائد متوقع ضمانًا.</p><h2>مناسبين لمين؟</h2><p>للمشتري اللي عايز يقارن قبل القرار، وللمستثمر اللي محتاج يفصل بين سعر الشراء وخطة التمويل والسيولة والعائد المحتمل.</p><h2>إمتى منصتنا مش كفاية؟</h2><p>الموقع مش بديل عن مراجعة العقد مع محامٍ مستقل، ولا عن المعاينة وإعادة تأكيد العرض النهائي مع المطور.</p>`,
+      schemas: [{
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        name: "عن Tycoons Investments",
+        url: `${SITE_URL}/about`,
+        mainEntity: { "@type": ["Organization", "RealEstateAgent"], name: "Tycoons Investments", url: SITE_URL },
+      }],
+    },
+    faq: {
+      title: "الأسئلة الشائعة عن شراء العقارات | Tycoons Investments",
+      description: "إجابات واضحة عن الأسعار والتوفر والعمولة وخطط السداد والبحث والمقارنة مع Tycoons Investments.",
+      body: `<h1>الأسئلة الشائعة</h1><div class="answer">الأسعار والتوفر وخطط السداد تتغير، لذلك بنعرض أحدث بيانات مسجلة ونأكد العرض النهائي مع المطور وقت الطلب.</div><h2>هل الأسعار نهائية؟</h2><p>هي أحدث أسعار مسجلة عندنا، لكنها تحتاج تأكيد وقت الاستفسار لأن المطور قد يغيّر السعر أوالتوفر.</p><h2>هل Tycoons بتاخد عمولة من المشتري؟</h2><p>لا نضيف عمولة على سعر المطور للمشتري. الاتفاق النهائي والعقد يكونان وفق العرض المؤكد من المطور.</p><h2>إزاي أقارن خطط السداد؟</h2><p>قارن إجمالي السعر، المقدم والدفعات، مدة الأقساط، توقيت التسليم، والتشطيب. مدة تقسيط أطول لا تعني تلقائيًا تكلفة أقل.</p><h2>هل العائد مضمون؟</h2><p>لا. أي ROI أوإيجار متوقع تقدير مبني على افتراضات قابلة للتغير، وليس وعدًا أوضمانًا.</p><h2>إزاي أبلغ عن معلومة غير دقيقة؟</h2><p>ابعت رابط الصفحة والمعلومة الأحدث على <a href="https://wa.me/${WHATSAPP_NUMBER}">واتساب</a>، وهنراجع المصدر حسب <a href="/corrections">سياسة التصحيح</a>.</p>`,
+      schemas: [{
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: [
+          ["هل الأسعار نهائية؟", "هي أحدث أسعار مسجلة عندنا، لكنها تحتاج تأكيد وقت الاستفسار لأن المطور قد يغيّر السعر أو التوفر."],
+          ["هل Tycoons بتاخد عمولة من المشتري؟", "لا نضيف عمولة على سعر المطور للمشتري. الاتفاق النهائي والعقد يكونان وفق العرض المؤكد من المطور."],
+          ["هل العائد مضمون؟", "لا. أي عائد متوقع هو تقدير مبني على افتراضات قابلة للتغير وليس وعدًا أو ضمانًا."],
+        ].map(([name, text]) => ({
+          "@type": "Question",
+          name,
+          acceptedAnswer: { "@type": "Answer", text },
+        })),
+      }],
+    },
     methodology: {
       title: "منهجية بيانات Tycoons Investments",
       description: "كيف نجمع ونراجع ونعرض الأسعار والوحدات وخطط السداد وحسابات المقارنة.",
@@ -612,8 +681,14 @@ function renderStaticPage(type) {
     title: page.title,
     description: page.description,
     path: `/${type}`,
-    alternatePath: `/${type}`,
     body: `<main><section class="hero">${page.body}<p class="updated">آخر مراجعة: 26 يوليو 2026</p></section></main>`,
+    schemas: [
+      breadcrumbSchema([
+        { name: "الرئيسية", path: "/" },
+        { name: page.title, path: `/${type}` },
+      ]),
+      ...(page.schemas || []),
+    ],
   });
 }
 

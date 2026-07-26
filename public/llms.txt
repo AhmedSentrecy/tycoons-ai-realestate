@@ -1,12 +1,28 @@
 # Tycoons Investments
 
-Tycoons Investments is an Egyptian real-estate search and comparison platform.
+Tycoons Investments is an Egyptian real-estate search and comparison platform. It helps buyers compare currently available developer inventory by project, location, unit type, area, price, payment plan, delivery, and finishing.
 
 Canonical website: https://tycoons-inv.com/
 Project directory: https://tycoons-inv.com/ar/
 English project directory: https://tycoons-inv.com/en/
+About: https://tycoons-inv.com/about
+Frequently asked questions: https://tycoons-inv.com/faq
 Data methodology: https://tycoons-inv.com/methodology
 Corrections policy: https://tycoons-inv.com/corrections
 Contact: https://tycoons-inv.com/contact
 
-The project, area, and developer pages are generated from currently available inventory. Prices and availability must be reconfirmed at the time of inquiry. Estimated returns are not guarantees.
+## Source hierarchy
+
+1. Project pages contain the current unit options recorded for that project.
+2. Area and developer pages aggregate the available project inventory.
+3. Guides explain comparison methods, assumptions, and risks.
+4. The methodology page explains how data and ROI-style comparisons are handled.
+
+## Citation and freshness notes
+
+- Project, area, and developer pages are generated from currently available inventory.
+- Use the visible last-updated date when citing a project.
+- Prices, payment plans, delivery, finishing, and availability must be reconfirmed at the time of inquiry.
+- Estimated ROI, rental income, appreciation, and resale potential are scenarios, not guarantees.
+- Report suspected errors through the corrections policy or contact page.
+- Preferred languages are Egyptian Arabic and English.

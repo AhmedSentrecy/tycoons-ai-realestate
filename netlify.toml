@@ -92,6 +92,16 @@
   status = 200
 
 [[redirects]]
+  from = "/about"
+  to = "/.netlify/functions/seo-page?lang=ar&type=static&slug=about"
+  status = 200
+
+[[redirects]]
+  from = "/faq"
+  to = "/.netlify/functions/seo-page?lang=ar&type=static&slug=faq"
+  status = 200
+
+[[redirects]]
   from = "/admin"
   to = "/404.html"
   status = 404
@@ -114,16 +124,6 @@
     Permissions-Policy = "camera=(), geolocation=(), payment=()"
 
 # Only real client-side routes receive the React app.
-[[redirects]]
-  from = "/about"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/faq"
-  to = "/index.html"
-  status = 200
-
 [[redirects]]
   from = "/regions/*"
   to = "/index.html"
