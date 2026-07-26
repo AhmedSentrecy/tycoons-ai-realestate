@@ -163,7 +163,6 @@ async function fetchPage(offset: number): Promise<InventoryUnit[]> {
   const response = await fetch(`${SUPABASE_URL}/rest/v1/units?${params.toString()}`, {
     headers: {
       apikey: SUPABASE_PUBLISHABLE_KEY,
-      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
       Accept: "application/json",
     },
   });
