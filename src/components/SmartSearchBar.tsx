@@ -203,13 +203,14 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
 
       <AnimatePresence>
         {showPanel && (
-          <motion.div
-            initial={{ opacity: 0, y: -8, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -8, scale: 0.98 }}
-            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-1/2 top-full z-50 mt-3 w-[min(94vw,960px)] -translate-x-1/2 overflow-hidden rounded-3xl border border-[#e7ddc8] bg-[#fdfbf6] shadow-[0_35px_90px_-20px_rgba(15,30,22,0.45)]"
-          >
+          <div className="absolute left-1/2 top-full z-50 mt-3 w-[min(94vw,960px)] -translate-x-1/2">
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              className="overflow-hidden rounded-3xl border border-[#e7ddc8] bg-[#fdfbf6] shadow-[0_35px_90px_-20px_rgba(15,30,22,0.45)]"
+            >
             {(listening || realtime.state === "connecting" || realtime.state === "speaking") && (
               <div className="flex items-center gap-3 border-b border-[#efe7d5] bg-[#c49b5f]/8 px-4 py-3.5 sm:px-6 sm:py-4">
                 <span className="relative flex h-3 w-3">
@@ -350,7 +351,8 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
                 )}
               </div>
             )}
-          </motion.div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
