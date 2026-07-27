@@ -19,22 +19,28 @@ const CACHE_HEADERS = {
 
 const AREAS = [
   {
+    slug: "mostakbal-city",
+    ar: "مستقبل سيتي",
+    en: "Mostakbal City",
+    match: /mostakbal(?: city)?|مستقبل(?: سيتي)?/i,
+  },
+  {
+    slug: "new-alamein",
+    ar: "العلمين الجديدة",
+    en: "New Alamein",
+    match: /new alamein|العلمين الجديده|العلمين الجديدة/i,
+  },
+  {
     slug: "new-cairo",
     ar: "القاهرة الجديدة والتجمع",
     en: "New Cairo",
     match: /new cairo|fifth settlement|القاهره الجديده|القاهرة الجديدة|التجمع/i,
   },
   {
-    slug: "mostakbal-city",
-    ar: "مستقبل سيتي",
-    en: "Mostakbal City",
-    match: /mostakbal|مستقبل/i,
-  },
-  {
     slug: "north-coast",
     ar: "الساحل الشمالي",
     en: "North Coast",
-    match: /north coast|sahel|الساحل|ras el|راس الحكمه|رأس الحكمة|sidi abdel|العلمين/i,
+    match: /north coast|sahel|الساحل|ras el|راس الحكمه|رأس الحكمة|sidi abdel|(?<!الجديده |الجديدة )العلمين/i,
   },
   {
     slug: "ain-sokhna",
@@ -46,7 +52,7 @@ const AREAS = [
     slug: "sheikh-zayed",
     ar: "الشيخ زايد",
     en: "Sheikh Zayed",
-    match: /sheikh zayed|el sheikh zayed|الشيخ زايد|زايد/i,
+    match: /sheikh zayed|el sheikh zayed|new zayed|sodic west|الشيخ زايد|زايد الجديدة|زايد الجديده/i,
   },
   {
     slug: "new-capital",
@@ -59,12 +65,6 @@ const AREAS = [
     ar: "السادس من أكتوبر",
     en: "6th of October",
     match: /6th of october|october|اكتوبر|أكتوبر/i,
-  },
-  {
-    slug: "new-alamein",
-    ar: "العلمين الجديدة",
-    en: "New Alamein",
-    match: /new alamein|العلمين الجديده|العلمين الجديدة/i,
   },
 ];
 
@@ -177,13 +177,14 @@ function projectSlug(name, developer) {
 
 function areaFor(location) {
   const value = normalize(location);
-  return (
-    AREAS.find((area) => area.match.test(value)) || {
-      slug: slugify(location),
-      ar: String(location || "مصر"),
-      en: String(location || "Egypt"),
-    }
-  );
+  const matched = AREAS.find((area) => area.match.test(value));
+  if (matched) return { ...matched, indexable: true };
+  return {
+    slug: slugify(location),
+    ar: String(location || "مصر"),
+    en: String(location || "Egypt"),
+    indexable: false,
+  };
 }
 
 function escapeHtml(value) {

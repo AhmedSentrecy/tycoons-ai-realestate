@@ -19,10 +19,11 @@ The MCP endpoint uses Streamable HTTP with JSON responses and supports protocol 
 
 Available tools:
 
+- `get_inventory_summary`: summarize current inventory coverage and freshness;
 - `search_properties`: search the current public inventory in Arabic or English;
 - `get_property_details`: retrieve one unit by the `unit_id` returned by search;
 - `compare_properties`: compare two to five returned unit IDs;
-- `calculate_payment_plan`: calculate an illustrative equal-installment scenario;
+- `calculate_payment_plan`: calculate an illustrative equal-installment scenario, monthly commitment, and optional present-value cash equivalent;
 - `create_whatsapp_inquiry`: create a WhatsApp URL without opening it, sending a message, or storing a lead.
 
 Every MCP request is a JSON-RPC 2.0 `POST` to `/mcp`. Initialize first:
@@ -49,10 +50,11 @@ The response uses `Content-Type: text/markdown; charset=utf-8`. Normal browser r
 
 ## Browser tools
 
-On WebMCP-capable browsers, the homepage also registers read-only tools for:
+On WebMCP-capable browsers, the homepage registers the same six public tool names,
+stable `unit_id` values, and provenance fields as the remote MCP server.
 
-- searching current property inventory with natural-language criteria;
-- reading a summary of current inventory coverage;
-- creating a WhatsApp inquiry link without opening it or sending a message.
+Public property results include the developer-owned data source label, source type,
+source/update date, verification status, and confidence. Private source references
+and internal notes are never returned.
 
 Prices, availability, payment plans, finishing, and delivery dates must be reconfirmed before a purchase decision.

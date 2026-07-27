@@ -11,6 +11,7 @@ const {
   renderGuide,
   renderStaticPage,
   notFound,
+  areaFor,
 } = require("../netlify/functions/_seo-utils.cjs");
 
 const root = path.resolve(__dirname, "..");
@@ -76,6 +77,10 @@ assert.doesNotMatch(about, /hreflang="en"/);
 assert.match(faq, /"@type":"FAQPage"/);
 assert.match(area, /BreadcrumbList/);
 assert.match(missing, /noindex,follow/);
+assert.equal(areaFor("Mostakbal City, New Cairo").slug, "mostakbal-city");
+assert.equal(areaFor("New Alamein, North Coast").slug, "new-alamein");
+assert.equal(areaFor("West Cairo").indexable, false);
+assert.equal(areaFor("Zayed Central").indexable, false);
 
 const netlify = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -87,6 +92,8 @@ assert.ok(
 );
 assert.match(netlify, /https:\/\/tycoons-inv\.de\/\*/);
 assert.match(netlify, /status = 404/);
+assert.match(netlify, /from = "\/ar"\s+to = "\/ar\/"\s+status = 301\s+force = true/);
+assert.match(netlify, /from = "\/regions\/\*"\s+to = "\/404\.html"\s+status = 404/);
 assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/);
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>قارن المشاريع والوحدات العقارية/);

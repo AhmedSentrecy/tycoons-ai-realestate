@@ -1,7 +1,8 @@
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import {
-  inventoryUnitKey,
+  inventoryUnitId,
+  inventoryStats,
   loadInventory,
 } from "../../src/lib/inventory.ts";
 import { searchInventory } from "../../src/lib/propertySearch.ts";
@@ -9,7 +10,7 @@ import { searchInventory } from "../../src/lib/propertySearch.ts";
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
 const SERVER_NAME = "tycoons-property-search";
-const SERVER_VERSION = "1.0.0";
+const SERVER_VERSION = "1.1.0";
 const LATEST_PROTOCOL_VERSION = "2025-11-25";
 const SUPPORTED_PROTOCOL_VERSIONS = new Set([
   "2025-03-26",
@@ -20,6 +21,23 @@ const MAX_BODY_BYTES = 64 * 1024;
 const MAX_TOOL_RESULTS = 10;
 
 const TOOL_DEFINITIONS = [
+  {
+    name: "get_inventory_summary",
+    title: "Get inventory summary",
+    description:
+      "Return a read-only summary of the current public Tycoons inventory coverage and freshness.",
+    inputSchema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {},
+    },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    },
+  },
   {
     name: "search_properties",
     title: "Search Tycoons properties",
@@ -152,6 +170,14 @@ const TOOL_DEFINITIONS = [
           minimum: 0,
           default: 0,
         },
+        annual_discount_rate_percent: {
+          type: "number",
+          minimum: 0,
+          maximum: 100,
+          default: 0,
+          description:
+            "Optional user-supplied annual discount rate for an illustrative present-value comparison.",
+        },
       },
       required: ["installment_years"],
       oneOf: [
@@ -225,13 +251,11 @@ function boundedInteger(value, fallback, minimum, maximum) {
 }
 
 function unitId(unit) {
-  return `unit_${createHash("sha256")
-    .update(inventoryUnitKey(unit))
-    .digest("hex")
-    .slice(0, 16)}`;
+  return inventoryUnitId(unit);
 }
 
 function publicUnit(unit, includeMedia = false) {
+  const sourceOwner = unit.developer || "Tycoons Investments";
   const output = {
     unit_id: unitId(unit),
     project: unit.project_name,
@@ -247,6 +271,13 @@ function publicUnit(unit, includeMedia = false) {
     finishing: unit.finishing,
     availability: unit.availability_status,
     last_updated_at: unit.last_updated_at || null,
+    data_provenance: {
+      data_source: `${sourceOwner} official data`,
+      source_type: unit.source_type || "developer_data",
+      source_date: unit.last_updated_at || null,
+      verification_status: "confirmed",
+      confidence: "high",
+    },
   };
 
   if (includeMedia) {
@@ -354,6 +385,20 @@ async function getPropertyDetails(args) {
   };
 }
 
+async function getInventorySummary() {
+  const units = await loadInventory();
+  const latestUpdate =
+    units.map((unit) => unit.last_updated_at).filter(Boolean).sort().at(-1) ?? null;
+  return {
+    ...inventoryStats(units),
+    latest_update: latestUpdate,
+    currency: "EGP",
+    market: "Egypt",
+    availability_policy: "Only units marked available are included.",
+    contract_version: SERVER_VERSION,
+  };
+}
+
 async function compareProperties(args) {
   const input = requireObject(args);
   const ids = requireUnitIds(input.unit_ids, 2, 5);
@@ -440,13 +485,17 @@ async function calculatePaymentPlan(args) {
     : (price * percent) / 100;
   const balloon = finiteNumber(input.balloon_payment_egp ?? 0);
   const fees = finiteNumber(input.fees_egp ?? 0);
+  const annualDiscountRate = finiteNumber(input.annual_discount_rate_percent ?? 0);
   if (
     downPayment === null ||
     downPayment < 0 ||
     balloon === null ||
     balloon < 0 ||
     fees === null ||
-    fees < 0
+    fees < 0 ||
+    annualDiscountRate === null ||
+    annualDiscountRate < 0 ||
+    annualDiscountRate > 100
   ) {
     throw new ToolInputError("Payment amounts must be valid non-negative numbers");
   }
@@ -465,6 +514,20 @@ async function calculatePaymentPlan(args) {
       "installment_years × payments_per_year must produce a whole number of payments",
     );
   }
+
+  const equalInstallment = financedAcrossInstallments / installmentCount;
+  const periodicRate =
+    annualDiscountRate === 0
+      ? 0
+      : Math.pow(1 + annualDiscountRate / 100, 1 / paymentsPerYear) - 1;
+  const installmentsPresentValue =
+    periodicRate === 0
+      ? financedAcrossInstallments
+      : equalInstallment *
+        ((1 - Math.pow(1 + periodicRate, -installmentCount)) / periodicRate);
+  const balloonPresentValue =
+    balloon / Math.pow(1 + annualDiscountRate / 100, years);
+  const cashEquivalent = downPayment + fees + installmentsPresentValue + balloonPresentValue;
 
   return {
     source_property: unit
@@ -485,7 +548,16 @@ async function calculatePaymentPlan(args) {
     installment_years: years,
     payments_per_year: paymentsPerYear,
     installment_count: installmentCount,
-    equal_installment_egp: Math.round(financedAcrossInstallments / installmentCount),
+    equal_installment_egp: Math.round(equalInstallment),
+    average_monthly_commitment_egp: Math.round(financedAcrossInstallments / (years * 12)),
+    annual_discount_rate_percent: annualDiscountRate,
+    illustrative_cash_equivalent_egp: Math.round(cashEquivalent),
+    cashflow_assumptions: {
+      down_payment_timing: "contract_date",
+      installments: "equal_end_of_period",
+      balloon_timing: "end_of_term",
+      fees_timing: "contract_date",
+    },
     notice:
       "Illustrative arithmetic only. It excludes any unprovided maintenance, club, delivery, or financing charges and is not a confirmed developer payment plan.",
   };
@@ -549,6 +621,7 @@ async function createWhatsAppInquiry(args) {
 
 const TOOL_HANDLERS = {
   search_properties: searchProperties,
+  get_inventory_summary: getInventorySummary,
   get_property_details: getPropertyDetails,
   compare_properties: compareProperties,
   calculate_payment_plan: calculatePaymentPlan,
