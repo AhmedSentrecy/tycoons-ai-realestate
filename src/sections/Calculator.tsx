@@ -5,7 +5,7 @@ import { Calculator as CalcIcon, MessageCircle } from "lucide-react";
 const ease = [0.22, 1, 0.36, 1] as const;
 
 function fmt(n: number) {
-  return Math.round(n).toLocaleString("ar-EG");
+  return Math.round(n).toLocaleString("en-US");
 }
 
 interface CalculatorProps {
@@ -54,16 +54,22 @@ export default function Calculator({
             <div className="mt-10 grid grid-cols-2 gap-4">
               <div className="rounded-3xl bg-gradient-to-br from-[#c49b5f] to-[#a37c43] p-6 shadow-[0_24px_60px_-20px_rgba(196,155,95,0.45)]">
                 <div className="text-[13px] font-medium text-[#2b2113]/75">القسط الشهري التقريبي</div>
-                <div className="mt-2 text-3xl font-extrabold text-[#1d1608] sm:text-4xl">
+                <div
+                  dir="ltr"
+                  className="mt-2 text-3xl font-extrabold text-[#1d1608] sm:text-4xl"
+                >
                   {fmt(monthly)}
-                  <span className="mr-1 text-base font-semibold">ج.م</span>
+                  <span className="ml-1 text-base font-semibold">ج.م</span>
                 </div>
               </div>
               <div className="rounded-3xl border border-white/12 bg-white/[0.05] p-6">
                 <div className="text-[13px] font-medium text-white/55">قيمة المقدم</div>
-                <div className="mt-2 text-3xl font-extrabold text-white sm:text-4xl">
+                <div
+                  dir="ltr"
+                  className="mt-2 text-3xl font-extrabold text-white sm:text-4xl"
+                >
                   {fmt(downAmount)}
-                  <span className="mr-1 text-base font-semibold text-white/70">ج.م</span>
+                  <span className="ml-1 text-base font-semibold text-white/70">ج.م</span>
                 </div>
               </div>
             </div>
@@ -106,7 +112,7 @@ export default function Calculator({
               },
               {
                 label: "المقدم",
-                value: `${down.toLocaleString("ar-EG")}٪`,
+                value: `${down.toLocaleString("en-US")}%`,
                 min: 5,
                 max: 50,
                 step: 1,
@@ -115,7 +121,7 @@ export default function Calculator({
               },
               {
                 label: "مدة التقسيط",
-                value: `${years.toLocaleString("ar-EG")} سنين`,
+                value: `${years.toLocaleString("en-US")} سنين`,
                 min: 1,
                 max: 10,
                 step: 1,
@@ -126,7 +132,10 @@ export default function Calculator({
               <div key={s.label} className="mb-8 last:mb-0">
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-sm font-medium text-white/70">{s.label}</span>
-                  <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold text-[#ecd9ae]">
+                  <span
+                    dir="ltr"
+                    className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-bold text-[#ecd9ae]"
+                  >
                     {s.value}
                   </span>
                 </div>
