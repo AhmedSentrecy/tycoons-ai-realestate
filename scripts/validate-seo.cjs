@@ -92,7 +92,12 @@ assert.ok(
 );
 assert.match(netlify, /https:\/\/tycoons-inv\.de\/\*/);
 assert.match(netlify, /status = 404/);
-assert.match(netlify, /from = "\/ar"\s+to = "\/ar\/"\s+status = 301\s+force = true/);
+assert.doesNotMatch(
+  netlify,
+  /from = "\/(?:ar|en)"\s+to = "\/(?:ar|en)\/"\s+status = 301\s+force = true/,
+  "Locale slash redirects must stay removed to prevent redirect loops",
+);
+assert.match(netlify, /from = "\/projects\/\*"\s+to = "\/index\.html"\s+status = 200/);
 assert.match(netlify, /from = "\/regions\/\*"\s+to = "\/404\.html"\s+status = 404/);
 assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/);
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
