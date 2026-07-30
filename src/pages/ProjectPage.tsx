@@ -34,6 +34,21 @@ function formatPrice(value: number) {
   return new Intl.NumberFormat("ar-EG").format(value);
 }
 
+function setMeta(selector: string, attribute: "content" | "href", value: string) {
+  let element = document.head.querySelector(selector) as HTMLMetaElement | HTMLLinkElement | null;
+  if (!element) {
+    element = selector.startsWith("link") ? document.createElement("link") : document.createElement("meta");
+    if (selector.includes('rel="canonical"')) element.setAttribute("rel", "canonical");
+    if (selector.includes('name="description"')) element.setAttribute("name", "description");
+    if (selector.includes('property="og:')) {
+      const property = selector.match(/property="([^"]+)"/)?.[1];
+      if (property) element.setAttribute("property", property);
+    }
+    document.head.appendChild(element);
+  }
+  element.setAttribute(attribute, value);
+}
+
 function uniqueUnits(units: InventoryUnit[]) {
   return [
     ...new Map(
@@ -47,16 +62,16 @@ function uniqueUnits(units: InventoryUnit[]) {
 
 function ProjectGallery({
   images,
-  video,
+  videos,
   name,
 }: {
   images: string[];
-  video: string;
+  videos: string[];
   name: string;
 }) {
   const media = [
     ...images.map((src) => ({ type: "image" as const, src })),
-    ...(video ? [{ type: "video" as const, src: video }] : []),
+    ...videos.map((src) => ({ type: "video" as const, src })),
   ];
   const [index, setIndex] = useState(0);
   const current = media[index];
@@ -142,9 +157,18 @@ export default function ProjectPage() {
 
   useEffect(() => {
     if (!project) return;
-    document.title = `${project.project_name} | Tycoons Investments`;
+    const pageUrl = `${SITE_URL}/projects/${slug}`;
+    const title = "Hyde Park New Cairo New Launch | الأسعار والمساحات 2026";
+    const description =
+      "تعرف على أسعار Hyde Park New Cairo New Launch 2026، المساحات المتاحة للشقق والدوبلكس، مقدم 5% + 5% وتقسيط 8 سنوات، واحسب القسط وتواصل مع Tycoons.";
+    document.title = title;
+    setMeta('meta[name="description"]', "content", description);
+    setMeta('link[rel="canonical"]', "href", pageUrl);
+    setMeta('meta[property="og:title"]', "content", title);
+    setMeta('meta[property="og:description"]', "content", description);
+    setMeta('meta[property="og:url"]', "content", pageUrl);
     window.scrollTo(0, 0);
-  }, [project]);
+  }, [project, slug]);
 
   if (loading) {
     return (
@@ -174,7 +198,16 @@ export default function ProjectPage() {
       ),
     ),
   ].filter(Boolean);
-  const video = projectUnits.find((unit) => unit.video_url)?.video_url || "";
+  const videos = [
+    ...new Set(
+      projectUnits.flatMap((unit) =>
+        unit.video_url
+          .split(",")
+          .map((url) => url.trim())
+          .filter(Boolean),
+      ),
+    ),
+  ];
   const minPrice = Math.min(...projectUnits.map((unit) => unit.starting_price));
   const pageUrl = `${SITE_URL}/projects/${slug}`;
   const message = encodeURIComponent(
@@ -224,7 +257,7 @@ export default function ProjectPage() {
       </section>
 
       <div className="-mt-px bg-[#0d1f18] pb-4">
-        <ProjectGallery images={images} video={video} name={project.project_name} />
+        <ProjectGallery images={images} videos={videos} name={project.project_name} />
       </div>
 
       <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
@@ -242,6 +275,35 @@ export default function ProjectPage() {
               مناسب للعائلات اللي بتدور على سكن داخل كمبوند متكامل، وللمشتري اللي مهتم
               بالحفاظ على قيمة العقار على المدى الطويل.
             </p>
+            <h2 className="mt-12 text-2xl font-extrabold">موقع هايد بارك التجمع الخامس</h2>
+            <p className="mt-5 font-light leading-loose text-[#5c6a62]">
+              موقع هايد بارك القاهرة الجديدة على شارع التسعين الجنوبي بيدي السكان وصول
+              مباشر لأهم مناطق التجمع الخامس، مع قربه من الجامعة الأمريكية ومحاور القاهرة
+              الجديدة. موقع الكمبوند ومساحته الكبيرة والخدمات القائمة بيخلوا الطرح الجديد
+              اختيار مناسب للسكن والاستثمار العقاري طويل الأجل.
+            </p>
+
+            <h2 className="mt-12 text-2xl font-extrabold">
+              أسعار هايد بارك التجمع الخامس 2026
+            </h2>
+            <p className="mt-5 font-light leading-loose text-[#5c6a62]">
+              أسعار Hyde Park New Cairo New Launch بتبدأ حاليًا من {formatPrice(minPrice)}
+              جنيه، وبتختلف حسب نوع الوحدة والمساحة وموقعها داخل المشروع. الطرح بيضم شقق
+              ودوبلكس للبيع بمساحات من 80 إلى 190 متر مربع، مع مقدم 5% ثم 5% لاحقًا
+              وتقسيط الباقي على 8 سنوات. الأسعار والتوافر المعروضين بيانات مبدئية لازم يتم
+              تأكيدها وقت الحجز.
+            </p>
+
+            <h2 className="mt-12 text-2xl font-extrabold">
+              شقق ودوبلكس للبيع في Hyde Park New Cairo
+            </h2>
+            <p className="mt-5 font-light leading-loose text-[#5c6a62]">
+              تنوع المساحات بيساعدك تقارن بين الوحدة المناسبة للسكن العائلي والوحدة الأنسب
+              للاستثمار. كل الوحدات في الطرح الحالي بنظام Core &amp; Shell، وتقدر تستخدم
+              حاسبة الأقساط الموجودة في الصفحة لمقارنة السعر والمقدم والقسط الشهري قبل
+              التواصل مع مستشار Tycoons لتأكيد أحدث Availability وPayment Plan.
+            </p>
+
             <h2 className="mt-12 text-2xl font-extrabold">تفاصيل الطرح الحالي</h2>
             <ul className="mt-6 grid gap-4 sm:grid-cols-2">
               {[
@@ -263,6 +325,40 @@ export default function ProjectPage() {
               الأسعار والمساحات والتوافر بيتغيروا حسب وقت الحجز، لذلك بنأكد آخر
               Availability وPayment Plan قبل اتخاذ القرار.
             </p>
+            <section className="mt-14" aria-labelledby="hyde-park-faq">
+              <h2 id="hyde-park-faq" className="text-2xl font-extrabold">
+                أسئلة شائعة عن Hyde Park New Cairo New Launch
+              </h2>
+              <div className="mt-6 space-y-4">
+                {[
+                  {
+                    question: "ما أسعار هايد بارك التجمع الخامس 2026؟",
+                    answer: `الأسعار في الطرح الجديد تبدأ من ${formatPrice(minPrice)} جنيه، وبتختلف حسب نوع الوحدة والمساحة والتوافر وقت الحجز.`,
+                  },
+                  {
+                    question: "ما نظام سداد Hyde Park New Cairo New Launch؟",
+                    answer: "مقدم 5% ثم 5% لاحقًا، وتقسيط باقي قيمة الوحدة على 8 سنوات.",
+                  },
+                  {
+                    question: "ما أنواع ومساحات الوحدات المتاحة؟",
+                    answer: "الطرح الحالي يضم شقق ودوبلكس بمساحات تقريبية من 80 إلى 190 متر مربع.",
+                  },
+                  {
+                    question: "ما نوع تشطيب الوحدات؟",
+                    answer: "الوحدات المعروضة في الطرح الحالي بنظام Core & Shell.",
+                  },
+                  {
+                    question: "إزاي أتأكد من أحدث سعر ووحدة متاحة؟",
+                    answer: "استخدم زر واتساب في الصفحة لإرسال اسم المشروع والرابط مباشرة إلى Tycoons وتأكيد السعر والتوافر وخطة السداد.",
+                  },
+                ].map((item) => (
+                  <details key={item.question} className="group rounded-2xl border border-[#e7ddc8] bg-white/70 p-5">
+                    <summary className="cursor-pointer list-none font-bold">{item.question}</summary>
+                    <p className="mt-3 font-light leading-relaxed text-[#5c6a62]">{item.answer}</p>
+                  </details>
+                ))}
+              </div>
+            </section>
           </article>
 
           <aside className="lg:sticky lg:top-28 lg:self-start">
