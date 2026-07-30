@@ -160,6 +160,11 @@
     Access-Control-Allow-Origin = "*"
     Cache-Control = "public, max-age=300, must-revalidate"
 
+[[redirects]]
+  from = "/projects/*"
+  to = "/index.html"
+  status = 200
+
 # Retired region URLs with a direct canonical equivalent.
 [[redirects]]
   from = "/regions/new-cairo"
