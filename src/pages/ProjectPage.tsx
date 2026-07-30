@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
+import Calculator from "@/sections/Calculator";
 import { fallbackImageFor, useInventory, type InventoryUnit } from "@/lib/inventory";
 
 const SITE_URL = "https://tycoons-inv.com";
@@ -335,6 +336,13 @@ export default function ProjectPage() {
           </div>
         </div>
       </section>
+
+      <Calculator
+        initialPrice={minPrice}
+        initialDown={5}
+        initialYears={8}
+        whatsappHref={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`}
+      />
 
       <section className="mx-auto max-w-4xl px-5 py-16 text-center">
         <h2 className="text-3xl font-extrabold">عايز تقارن الوحدات وخطة السداد؟</h2>
