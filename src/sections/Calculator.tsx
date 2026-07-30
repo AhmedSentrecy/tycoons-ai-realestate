@@ -8,10 +8,22 @@ function fmt(n: number) {
   return Math.round(n).toLocaleString("ar-EG");
 }
 
-export default function Calculator() {
-  const [price, setPrice] = useState(8_400_000);
-  const [down, setDown] = useState(10);
-  const [years, setYears] = useState(8);
+interface CalculatorProps {
+  initialPrice?: number;
+  initialDown?: number;
+  initialYears?: number;
+  whatsappHref?: string;
+}
+
+export default function Calculator({
+  initialPrice = 8_400_000,
+  initialDown = 10,
+  initialYears = 8,
+  whatsappHref = "https://wa.me/201200704344",
+}: CalculatorProps) {
+  const [price, setPrice] = useState(initialPrice);
+  const [down, setDown] = useState(initialDown);
+  const [years, setYears] = useState(initialYears);
 
   const { downAmount, monthly } = useMemo(() => {
     const downAmount = (price * down) / 100;
@@ -57,7 +69,7 @@ export default function Calculator() {
             </div>
 
             <a
-              href="https://wa.me/201200704344"
+              href={whatsappHref}
               target="_blank"
               rel="noreferrer"
               className="mt-8 inline-flex items-center gap-2.5 rounded-full bg-[#1faa59] px-7 py-3.5 text-sm font-bold text-white shadow-[0_14px_40px_-10px_rgba(31,170,89,0.6)] transition-transform hover:scale-[1.04]"
