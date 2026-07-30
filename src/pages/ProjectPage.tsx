@@ -17,6 +17,10 @@ import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
 import Calculator from "@/sections/Calculator";
 import { fallbackImageFor, useInventory, type InventoryUnit } from "@/lib/inventory";
+import {
+  loadProjectPage,
+  type ProjectPageContent,
+} from "@/lib/projectPages";
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -31,7 +35,14 @@ function slugify(value: string) {
 }
 
 function formatPrice(value: number) {
-  return new Intl.NumberFormat("ar-EG").format(value);
+  return new Intl.NumberFormat("en-US").format(value);
+}
+
+function replaceTokens(value: string, minPrice: number, minArea: number, maxArea: number) {
+  return value
+    .replaceAll("{{min_price}}", formatPrice(minPrice))
+    .replaceAll("{{min_area}}", String(minArea))
+    .replaceAll("{{max_area}}", String(maxArea));
 }
 
 function setMeta(selector: string, attribute: "content" | "href", value: string) {
@@ -149,6 +160,8 @@ function ProjectGallery({
 export default function ProjectPage() {
   const { slug = "" } = useParams();
   const { units, loading, error } = useInventory();
+  const [content, setContent] = useState<ProjectPageContent | null>(null);
+  const [contentLoading, setContentLoading] = useState(true);
   const projectUnits = useMemo(
     () => uniqueUnits(units.filter((unit) => slugify(unit.project_name) === slug)),
     [slug, units],
@@ -156,21 +169,43 @@ export default function ProjectPage() {
   const project = projectUnits[0];
 
   useEffect(() => {
+    let active = true;
+    setContentLoading(true);
+    void loadProjectPage(slug)
+      .then((next) => {
+        if (active) setContent(next);
+      })
+      .catch(() => {
+        if (active) setContent(null);
+      })
+      .finally(() => {
+        if (active) setContentLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  useEffect(() => {
     if (!project) return;
     const pageUrl = `${SITE_URL}/projects/${slug}`;
-    const title = "Hyde Park New Cairo New Launch | الأسعار والمساحات 2026";
+    const title =
+      content?.seo_title || `${project.project_name} | الأسعار والوحدات المتاحة`;
     const description =
-      "تعرف على أسعار Hyde Park New Cairo New Launch 2026، المساحات المتاحة للشقق والدوبلكس، مقدم 5% + 5% وتقسيط 8 سنوات، واحسب القسط وتواصل مع Tycoons.";
+      content?.seo_description ||
+      project.description ||
+      `اعرف أسعار ومساحات ${project.project_name} وخطط السداد والوحدات المتاحة.`;
     document.title = title;
     setMeta('meta[name="description"]', "content", description);
     setMeta('link[rel="canonical"]', "href", pageUrl);
     setMeta('meta[property="og:title"]', "content", title);
     setMeta('meta[property="og:description"]', "content", description);
     setMeta('meta[property="og:url"]', "content", pageUrl);
+    setMeta('meta[property="og:type"]', "content", "article");
     window.scrollTo(0, 0);
-  }, [project, slug]);
+  }, [content, project, slug]);
 
-  if (loading) {
+  if (loading || contentLoading) {
     return (
       <main className="grid min-h-screen place-items-center bg-[#f7f2ea]">
         <p className="font-bold text-[#1b2420]">جاري تحميل تفاصيل المشروع…</p>
@@ -209,10 +244,84 @@ export default function ProjectPage() {
     ),
   ];
   const minPrice = Math.min(...projectUnits.map((unit) => unit.starting_price));
+  const areas = projectUnits
+    .map((unit) => unit.area_sqm)
+    .filter((area): area is number => typeof area === "number" && area > 0);
+  const minArea = areas.length ? Math.min(...areas) : 0;
+  const maxArea = areas.length ? Math.max(...areas) : 0;
   const pageUrl = `${SITE_URL}/projects/${slug}`;
   const message = encodeURIComponent(
     `Hello Tycoons Investments,\nI am interested in this project:\n\nProject: ${project.project_name}\nDeveloper: ${project.developer}\nLocation: ${project.location}\nStarting price: ${formatPrice(minPrice)} EGP\nStatus: Available\n\nURL: ${pageUrl}\n\nPlease send me available options and details.\n\nSource: project_page\nPage: ${pageUrl}`,
   );
+  const articleSections = content?.article_sections.length
+    ? content.article_sections
+    : [
+        {
+          heading: `عن ${project.project_name}`,
+          paragraphs: [
+            project.description ||
+              `${project.project_name} من مشروعات ${project.developer} في ${project.location}.`,
+          ],
+        },
+      ];
+  const faq = content?.faq || [];
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "RealEstateListing",
+        "@id": `${pageUrl}#listing`,
+        url: pageUrl,
+        name: project.project_name,
+        description: content?.seo_description || project.description,
+        image: images,
+        dateModified: content?.last_updated_at || project.last_updated_at,
+        offers: {
+          "@type": "AggregateOffer",
+          priceCurrency: "EGP",
+          lowPrice: minPrice,
+          offerCount: projectUnits.length,
+          availability: "https://schema.org/InStock",
+        },
+        address: {
+          "@type": "PostalAddress",
+          addressLocality: project.location,
+          addressCountry: "EG",
+        },
+      },
+      {
+        "@type": "Article",
+        "@id": `${pageUrl}#article`,
+        headline: content?.seo_title || project.project_name,
+        description: content?.seo_description || project.description,
+        mainEntityOfPage: pageUrl,
+        dateModified: content?.last_updated_at || project.last_updated_at,
+        author: { "@type": "Organization", name: "Tycoons Investments" },
+        publisher: { "@type": "Organization", name: "Tycoons Investments" },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "الرئيسية", item: SITE_URL },
+          { "@type": "ListItem", position: 2, name: "المشاريع", item: `${SITE_URL}/#projects` },
+          { "@type": "ListItem", position: 3, name: project.project_name, item: pageUrl },
+        ],
+      },
+      ...(faq.length
+        ? [{
+            "@type": "FAQPage",
+            mainEntity: faq.map((item) => ({
+              "@type": "Question",
+              name: replaceTokens(item.question, minPrice, minArea, maxArea),
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: replaceTokens(item.answer, minPrice, minArea, maxArea),
+              },
+            })),
+          }]
+        : []),
+    ],
+  };
 
   return (
     <main dir="rtl" className="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
@@ -240,7 +349,7 @@ export default function ProjectPage() {
                 {project.project_name}
               </h1>
               <p className="mt-5 text-lg font-light text-white/70">
-                طرح سكني جديد داخل مجتمع قائم في قلب القاهرة الجديدة.
+                {content?.hero_text || project.description}
               </p>
             </div>
             <a
@@ -263,55 +372,28 @@ export default function ProjectPage() {
       <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]">
           <article>
-            <h2 className="text-3xl font-extrabold">عن Hyde Park New Cairo – New Launch</h2>
-            <p className="mt-6 text-lg font-light leading-loose text-[#4d5c53]">
-              الطرح الجديد داخل Hyde Park New Cairo بيوفر فرصة للسكن داخل واحد من أكبر
-              المجتمعات المتكاملة في القاهرة الجديدة، في موقع على شارع التسعين وقريب من
-              الحديقة الرئيسية وأهم وجهات التجمع الخامس.
-            </p>
-            <p className="mt-5 font-light leading-loose text-[#5c6a62]">
-              المشروع مجتمع قائم بالفعل وبيجمع بين المساحات الخضراء والخدمات والمناطق
-              الاجتماعية والترفيهية، مع تنوع في الوحدات بين شقق ودوبلكس. ده يخلي الاختيار
-              مناسب للعائلات اللي بتدور على سكن داخل كمبوند متكامل، وللمشتري اللي مهتم
-              بالحفاظ على قيمة العقار على المدى الطويل.
-            </p>
-            <h2 className="mt-12 text-2xl font-extrabold">موقع هايد بارك التجمع الخامس</h2>
-            <p className="mt-5 font-light leading-loose text-[#5c6a62]">
-              موقع هايد بارك القاهرة الجديدة على شارع التسعين الجنوبي بيدي السكان وصول
-              مباشر لأهم مناطق التجمع الخامس، مع قربه من الجامعة الأمريكية ومحاور القاهرة
-              الجديدة. موقع الكمبوند ومساحته الكبيرة والخدمات القائمة بيخلوا الطرح الجديد
-              اختيار مناسب للسكن والاستثمار العقاري طويل الأجل.
-            </p>
-
-            <h2 className="mt-12 text-2xl font-extrabold">
-              أسعار هايد بارك التجمع الخامس 2026
-            </h2>
-            <p className="mt-5 font-light leading-loose text-[#5c6a62]">
-              أسعار Hyde Park New Cairo New Launch بتبدأ حاليًا من {formatPrice(minPrice)}
-              جنيه، وبتختلف حسب نوع الوحدة والمساحة وموقعها داخل المشروع. الطرح بيضم شقق
-              ودوبلكس للبيع بمساحات من 80 إلى 190 متر مربع، مع مقدم 5% ثم 5% لاحقًا
-              وتقسيط الباقي على 8 سنوات. الأسعار والتوافر المعروضين بيانات مبدئية لازم يتم
-              تأكيدها وقت الحجز.
-            </p>
-
-            <h2 className="mt-12 text-2xl font-extrabold">
-              شقق ودوبلكس للبيع في Hyde Park New Cairo
-            </h2>
-            <p className="mt-5 font-light leading-loose text-[#5c6a62]">
-              تنوع المساحات بيساعدك تقارن بين الوحدة المناسبة للسكن العائلي والوحدة الأنسب
-              للاستثمار. كل الوحدات في الطرح الحالي بنظام Core &amp; Shell، وتقدر تستخدم
-              حاسبة الأقساط الموجودة في الصفحة لمقارنة السعر والمقدم والقسط الشهري قبل
-              التواصل مع مستشار Tycoons لتأكيد أحدث Availability وPayment Plan.
-            </p>
+            {articleSections.map((section, sectionIndex) => (
+              <section key={section.heading} className={sectionIndex ? "mt-12" : ""}>
+                <h2 className={sectionIndex ? "text-2xl font-extrabold" : "text-3xl font-extrabold"}>
+                  {replaceTokens(section.heading, minPrice, minArea, maxArea)}
+                </h2>
+                {section.paragraphs.map((paragraph, paragraphIndex) => (
+                  <p
+                    key={paragraph}
+                    className={`${paragraphIndex ? "mt-5" : "mt-6"} font-light leading-loose text-[#5c6a62]`}
+                  >
+                    {replaceTokens(paragraph, minPrice, minArea, maxArea)}
+                  </p>
+                ))}
+              </section>
+            ))}
 
             <h2 className="mt-12 text-2xl font-extrabold">تفاصيل الطرح الحالي</h2>
             <ul className="mt-6 grid gap-4 sm:grid-cols-2">
-              {[
-                "مقدم 5% ثم 5% لاحقًا",
-                "تقسيط على 8 سنوات",
-                "شقق ودوبلكس بمساحات مختلفة",
-                "التشطيب Core & Shell",
-              ].map((item) => (
+              {(content?.highlights.length
+                ? content.highlights
+                : [project.down_payment_text, project.installments_text, project.finishing]
+              ).filter(Boolean).map((item) => (
                 <li
                   key={item}
                   className="flex items-center gap-3 rounded-2xl border border-[#e7ddc8] bg-white/70 p-4"
@@ -325,40 +407,23 @@ export default function ProjectPage() {
               الأسعار والمساحات والتوافر بيتغيروا حسب وقت الحجز، لذلك بنأكد آخر
               Availability وPayment Plan قبل اتخاذ القرار.
             </p>
-            <section className="mt-14" aria-labelledby="hyde-park-faq">
-              <h2 id="hyde-park-faq" className="text-2xl font-extrabold">
-                أسئلة شائعة عن Hyde Park New Cairo New Launch
+            {faq.length > 0 && <section className="mt-14" aria-labelledby="project-faq">
+              <h2 id="project-faq" className="text-2xl font-extrabold">
+                أسئلة شائعة عن {project.project_name}
               </h2>
               <div className="mt-6 space-y-4">
-                {[
-                  {
-                    question: "ما أسعار هايد بارك التجمع الخامس 2026؟",
-                    answer: `الأسعار في الطرح الجديد تبدأ من ${formatPrice(minPrice)} جنيه، وبتختلف حسب نوع الوحدة والمساحة والتوافر وقت الحجز.`,
-                  },
-                  {
-                    question: "ما نظام سداد Hyde Park New Cairo New Launch؟",
-                    answer: "مقدم 5% ثم 5% لاحقًا، وتقسيط باقي قيمة الوحدة على 8 سنوات.",
-                  },
-                  {
-                    question: "ما أنواع ومساحات الوحدات المتاحة؟",
-                    answer: "الطرح الحالي يضم شقق ودوبلكس بمساحات تقريبية من 80 إلى 190 متر مربع.",
-                  },
-                  {
-                    question: "ما نوع تشطيب الوحدات؟",
-                    answer: "الوحدات المعروضة في الطرح الحالي بنظام Core & Shell.",
-                  },
-                  {
-                    question: "إزاي أتأكد من أحدث سعر ووحدة متاحة؟",
-                    answer: "استخدم زر واتساب في الصفحة لإرسال اسم المشروع والرابط مباشرة إلى Tycoons وتأكيد السعر والتوافر وخطة السداد.",
-                  },
-                ].map((item) => (
+                {faq.map((item) => (
                   <details key={item.question} className="group rounded-2xl border border-[#e7ddc8] bg-white/70 p-5">
-                    <summary className="cursor-pointer list-none font-bold">{item.question}</summary>
-                    <p className="mt-3 font-light leading-relaxed text-[#5c6a62]">{item.answer}</p>
+                    <summary className="cursor-pointer list-none font-bold">
+                      {replaceTokens(item.question, minPrice, minArea, maxArea)}
+                    </summary>
+                    <p className="mt-3 font-light leading-relaxed text-[#5c6a62]">
+                      {replaceTokens(item.answer, minPrice, minArea, maxArea)}
+                    </p>
                   </details>
                 ))}
               </div>
-            </section>
+            </section>}
           </article>
 
           <aside className="lg:sticky lg:top-28 lg:self-start">
@@ -374,7 +439,7 @@ export default function ProjectPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Maximize2 className="h-5 w-5 text-[#d9b87c]" />
-                  مساحات من 80 إلى 190 م²
+                  مساحات من {minArea} إلى {maxArea} م²
                 </div>
               </div>
             </div>
@@ -458,6 +523,7 @@ export default function ProjectPage() {
       </section>
 
       <Footer />
+      <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
     </main>
   );
 }

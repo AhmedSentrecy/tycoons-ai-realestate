@@ -85,6 +85,8 @@ assert.equal(areaFor("Zayed Central").indexable, false);
 const netlify = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const robots = fs.readFileSync(path.join(root, "public/robots.txt"), "utf8");
+const sitemap = fs.readFileSync(path.join(root, "netlify/functions/sitemap.cjs"), "utf8");
+const projectPage = fs.readFileSync(path.join(root, "src/pages/ProjectPage.tsx"), "utf8");
 
 assert.ok(
   netlify.indexOf('from = "/ar/projects/*"') < netlify.indexOf('from = "/*"'),
@@ -104,6 +106,13 @@ assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>قارن المشاريع والوحدات العقارية/);
 assert.match(robots, /OAI-SearchBot/);
 assert.match(robots, /https:\/\/tycoons-inv\.com\/sitemap\.xml/);
+assert.match(sitemap, /SITE_URL}\/projects\/\${project\.slug}/);
+assert.match(projectPage, /loadProjectPage\(slug\)/);
+assert.doesNotMatch(
+  projectPage,
+  /const title = "Hyde Park|عن Hyde Park New Cairo|hyde-park-faq/,
+  "project pages must not hard-code one project's SEO content",
+);
 
 async function validateRouteRecovery() {
   const handler = require("../netlify/functions/seo-page.cjs").handler;

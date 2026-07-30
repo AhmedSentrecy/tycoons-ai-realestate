@@ -33,6 +33,7 @@ exports.handler = async function handler() {
     for (const project of projects) {
       const updated = projectLastUpdated(project);
       const area = areaFor(projectLocation(project));
+      urls.set(`${SITE_URL}/projects/${project.slug}`, updated);
       for (const lang of ["ar", "en"]) {
         urls.set(`${SITE_URL}/${lang}/projects/${project.slug}`, updated);
         if (area.indexable) {
