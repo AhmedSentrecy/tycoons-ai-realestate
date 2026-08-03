@@ -123,7 +123,7 @@ export default function Calculator({
                 label: "مدة التقسيط",
                 value: `${years.toLocaleString("en-US")} سنين`,
                 min: 1,
-                max: 10,
+                max: 15,
                 step: 1,
                 v: years,
                 set: setYears,
