@@ -65,12 +65,12 @@ exports.handler = async function handler() {
       urls.set(`${SITE_URL}/guides/${guideSlug}/`, "2026-07-26");
     }
     for (const project of projects) {
-      if (!activeProjectIds.has(project.id)) continue;
       const projectSlug = String(project.slug || "").trim() || `${slugify(project.name)}--${slugify(project.developer)}`;
       if (!projectSlug) continue;
       const updated = project.last_updated_at || null;
       const area = areaFor(project.location);
       urls.set(`${SITE_URL}/projects/${projectSlug}`, updated);
+      if (!activeProjectIds.has(project.id)) continue;
       for (const lang of ["ar", "en"]) {
         if (area.indexable) urls.set(`${SITE_URL}/${lang}/areas/${area.slug}`, updated);
         urls.set(`${SITE_URL}/${lang}/developers/${slugify(project.developer)}`, updated);
