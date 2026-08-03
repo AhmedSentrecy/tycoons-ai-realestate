@@ -175,13 +175,25 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
           </div>
         </div>
 
-        {unit.id && (
-          <Link
-            to={`/units/${unit.id}`}
-            className="mt-3 inline-flex text-xs font-extrabold text-[#8a6630] hover:underline"
-          >
-            افتح صفحة الوحدة
-          </Link>
+        {(unit.id || unit.project_slug) && (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+            {unit.id && (
+              <Link
+                to={`/units/${unit.id}`}
+                className="inline-flex text-xs font-extrabold text-[#8a6630] hover:underline"
+              >
+                افتح صفحة الوحدة
+              </Link>
+            )}
+            {unit.project_slug && (
+              <Link
+                to={`/projects/${unit.project_slug}`}
+                className="inline-flex items-center gap-1 text-xs font-extrabold text-[#14352a] hover:underline"
+              >
+                صفحة المشروع كاملة ←
+              </Link>
+            )}
+          </div>
         )}
 
         {(result.matchReasons.length > 0 || result.differences.length > 1) && (
