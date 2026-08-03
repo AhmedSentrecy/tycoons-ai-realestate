@@ -7,6 +7,8 @@ export interface Project {
   title: string;
   location: string;
   regionSlug: string;
+  /** slug صفحة المشروع الحقيقية على /projects/<slug> */
+  projectSlug?: string;
   price: string;
   priceM: number; // السعر بالمليون جنيه — للبحث بالميزانية
   beds: string;
@@ -17,6 +19,7 @@ export interface Project {
 export const projects: Project[] = [
   {
     id: "hydepark-villa",
+    projectSlug: "hydepark-new-cairo--hydepark-developments",
     image: "/images/project-villa.webp",
     badge: "جديد",
     type: "فيلا",
@@ -32,6 +35,7 @@ export const projects: Project[] = [
   },
   {
     id: "hydepark-townhouse",
+    projectSlug: "hydepark-new-cairo--hydepark-developments",
     image: "/images/project-townhouse.webp",
     badge: "جديد",
     type: "تاون هاوس",
@@ -47,6 +51,7 @@ export const projects: Project[] = [
   },
   {
     id: "lavista-chalet",
+    projectSlug: "la-vista-bay-east--la-vista-developments",
     image: "/images/project-chalet.webp",
     badge: "متاح",
     type: "شاليه",
@@ -77,6 +82,7 @@ export const projects: Project[] = [
   },
   {
     id: "mv-penthouse",
+    projectSlug: "mountain-view-grand-valleys--mountain-view",
     image: "/images/region-newcairo.webp",
     badge: "جديد",
     type: "بنتهاوس",
