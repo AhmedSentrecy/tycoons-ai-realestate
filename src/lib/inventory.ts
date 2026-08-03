@@ -11,6 +11,8 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 1000;
 
 export interface InventoryUnit {
+  id: string;
+  project_id: string;
   project_name: string;
   developer: string;
   location: string;
@@ -78,6 +80,8 @@ function normalizeUnit(row: Record<string, unknown>): InventoryUnit | null {
   const galleryUrls = text(row.gallery_urls);
 
   return {
+    id: text(row.id),
+    project_id: text(row.project_id),
     project_name: projectName,
     developer: text(row.developer),
     location: text(row.location),
@@ -148,6 +152,8 @@ export function inventoryStats(units: InventoryUnit[]): InventoryStats {
 
 async function fetchPage(offset: number): Promise<InventoryUnit[]> {
   const columns = [
+    "id",
+    "project_id",
     "project_name",
     "developer",
     "location",

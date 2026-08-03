@@ -161,16 +161,18 @@ export default function ProjectPage() {
   const { slug = "" } = useParams();
   const { units, loading, error } = useInventory();
   const [content, setContent] = useState<ProjectPageContent | null>(null);
-  const [contentLoading, setContentLoading] = useState(true);
+  const [loadedSlug, setLoadedSlug] = useState("");
   const projectUnits = useMemo(
-    () => uniqueUnits(units.filter((unit) => slugify(unit.project_name) === slug)),
+    () => uniqueUnits(units.filter((unit) => {
+      const nameSlug = slugify(unit.project_name);
+      return nameSlug === slug || `${nameSlug}--${slugify(unit.developer)}` === slug;
+    })),
     [slug, units],
   );
   const project = projectUnits[0];
 
   useEffect(() => {
     let active = true;
-    setContentLoading(true);
     void loadProjectPage(slug)
       .then((next) => {
         if (active) setContent(next);
@@ -179,12 +181,14 @@ export default function ProjectPage() {
         if (active) setContent(null);
       })
       .finally(() => {
-        if (active) setContentLoading(false);
+        if (active) setLoadedSlug(slug);
       });
     return () => {
       active = false;
     };
   }, [slug]);
+
+  const contentLoading = loadedSlug !== slug;
 
   useEffect(() => {
     if (!project) return;
@@ -228,19 +232,22 @@ export default function ProjectPage() {
 
   const images = [
     ...new Set(
-      projectUnits.flatMap((unit) =>
-        unit.images.length ? unit.images : [unit.image_url || fallbackImageFor(unit)],
-      ),
+      [
+        content?.image_url || "",
+        ...(content?.gallery_urls || "").split(",").map((url) => url.trim()),
+        ...projectUnits.flatMap((unit) =>
+          unit.images.length ? unit.images : [unit.image_url || fallbackImageFor(unit)],
+        ),
+      ].filter(Boolean),
     ),
   ].filter(Boolean);
   const videos = [
     ...new Set(
-      projectUnits.flatMap((unit) =>
-        unit.video_url
+      [content?.video_url || "", ...projectUnits.map((unit) => unit.video_url)]
+        .flatMap((value) => value
           .split(",")
           .map((url) => url.trim())
-          .filter(Boolean),
-      ),
+          .filter(Boolean)),
     ),
   ];
   const minPrice = Math.min(...projectUnits.map((unit) => unit.starting_price));
@@ -459,7 +466,7 @@ export default function ProjectPage() {
           <div className="mt-8 grid gap-5 md:grid-cols-2">
             {projectUnits.map((unit) => (
               <article
-                key={[unit.unit_type, unit.bedrooms_text, unit.area_sqm].join("|")}
+                key={unit.id || [unit.unit_type, unit.bedrooms_text, unit.area_sqm].join("|")}
                 className="rounded-3xl border border-[#e0d3bb] bg-white p-6 shadow-sm"
               >
                 <div className="flex items-start justify-between gap-4">
@@ -491,6 +498,15 @@ export default function ProjectPage() {
                     {formatPrice(unit.starting_price)} جنيه
                   </p>
                   <p className="mt-2 text-sm text-[#5c6a62]">{unit.down_payment_text}</p>
+                  {unit.id && (
+                    <Link
+                      to={`/units/${unit.id}`}
+                      className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline"
+                    >
+                      تفاصيل الوحدة
+                      <ArrowLeft className="h-4 w-4" />
+                    </Link>
+                  )}
                 </div>
               </article>
             ))}

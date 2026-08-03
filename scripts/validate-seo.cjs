@@ -106,8 +106,10 @@ assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>قارن المشاريع والوحدات العقارية/);
 assert.match(robots, /OAI-SearchBot/);
 assert.match(robots, /https:\/\/tycoons-inv\.com\/sitemap\.xml/);
-assert.match(sitemap, /SITE_URL}\/projects\/\${project\.slug}/);
+assert.match(sitemap, /SITE_URL}\/projects\/\${projectSlug}/);
+assert.match(sitemap, /SITE_URL}\/units\/\${unit\.id}/);
 assert.match(projectPage, /loadProjectPage\(slug\)/);
+assert.match(netlify, /from = "\/units\/\*"\s+to = "\/index\.html"\s+status = 200/);
 assert.doesNotMatch(
   projectPage,
   /const title = "Hyde Park|عن Hyde Park New Cairo|hyde-park-faq/,

@@ -1,0 +1,75 @@
+"use strict";
+
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const { renderProjectStatic, renderUnitStatic } = require("./lib/data-pages.cjs");
+
+const root = path.resolve(__dirname, "..");
+const dist = path.join(root, "dist");
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
+const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
+
+async function fetchRows(table, columns, filters = {}) {
+  const all = [];
+  for (let offset = 0; offset < 5000; offset += 1000) {
+    const params = new URLSearchParams({ select: columns, limit: "1000", offset: String(offset), ...filters });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${params}`, {
+      headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) throw new Error(`${table} ${response.status}: ${await response.text()}`);
+    const rows = await response.json();
+    if (!Array.isArray(rows)) throw new Error(`${table} returned a non-array response`);
+    all.push(...rows);
+    if (rows.length < 1000) break;
+  }
+  return all;
+}
+
+async function writePage(relativePath, html) {
+  const directory = path.join(dist, relativePath);
+  await fs.mkdir(directory, { recursive: true });
+  await fs.writeFile(path.join(directory, "index.html"), html, "utf8");
+}
+
+async function main() {
+  const shell = await fs.readFile(path.join(dist, "index.html"), "utf8");
+  const [projects, units] = await Promise.all([
+    fetchRows("projects", "id,name,slug,developer,location,description,status,hero_text,seo_title,seo_description,seo_keywords,targeting,article_sections,faq,highlights,image_url,gallery_urls,video_url,last_updated_at"),
+    fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,brochure_url,video_url,last_updated_at", { availability_status: "eq.available", project_id: "not.is.null" }),
+  ]);
+  const slugify = (value) => String(value || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "");
+  const normalizedProjects = projects.map((project) => ({
+    ...project,
+    slug: String(project.slug || "").trim() || `${slugify(project.name)}--${slugify(project.developer)}`,
+  }));
+  const projectById = new Map(normalizedProjects.map((project) => [project.id, project]));
+  const unitsByProject = new Map();
+  for (const unit of units) {
+    if (!projectById.has(unit.project_id)) continue;
+    const list = unitsByProject.get(unit.project_id) || [];
+    list.push(unit);
+    unitsByProject.set(unit.project_id, list);
+  }
+
+  let projectCount = 0;
+  let unitCount = 0;
+  for (const project of normalizedProjects) {
+    const projectUnits = unitsByProject.get(project.id) || [];
+    if (!projectUnits.length) continue;
+    await writePage(path.join("projects", project.slug), renderProjectStatic(shell, project, projectUnits));
+    projectCount += 1;
+  }
+  for (const unit of units) {
+    const project = projectById.get(unit.project_id);
+    if (!project) continue;
+    await writePage(path.join("units", unit.id), renderUnitStatic(shell, unit, project));
+    unitCount += 1;
+  }
+  console.log(`Generated ${projectCount} project pages and ${unitCount} unit pages from Supabase.`);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

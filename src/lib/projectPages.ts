@@ -28,6 +28,11 @@ export interface ProjectPageContent {
   article_sections: ProjectArticleSection[];
   faq: ProjectFaq[];
   highlights: string[];
+  seo_keywords: string[];
+  targeting: Record<string, unknown>;
+  image_url: string;
+  gallery_urls: string;
+  video_url: string;
   last_updated_at: string;
 }
 
@@ -61,6 +66,12 @@ function faqs(value: unknown): ProjectFaq[] {
   });
 }
 
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 export async function loadProjectPage(slug: string): Promise<ProjectPageContent | null> {
   const columns = [
     "name",
@@ -74,6 +85,11 @@ export async function loadProjectPage(slug: string): Promise<ProjectPageContent 
     "article_sections",
     "faq",
     "highlights",
+    "seo_keywords",
+    "targeting",
+    "image_url",
+    "gallery_urls",
+    "video_url",
     "last_updated_at",
   ].join(",");
   const params = new URLSearchParams({
@@ -100,6 +116,11 @@ export async function loadProjectPage(slug: string): Promise<ProjectPageContent 
     article_sections: articleSections(row.article_sections),
     faq: faqs(row.faq),
     highlights: stringArray(row.highlights),
+    seo_keywords: stringArray(row.seo_keywords),
+    targeting: objectValue(row.targeting),
+    image_url: text(row.image_url),
+    gallery_urls: text(row.gallery_urls),
+    video_url: text(row.video_url),
     last_updated_at: text(row.last_updated_at),
   };
 }

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { Link } from "react-router";
 import {
   BedDouble,
   Building2,
@@ -173,6 +174,15 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
             <span className="break-words">{detail(unit.delivery_text)}</span>
           </div>
         </div>
+
+        {unit.id && (
+          <Link
+            to={`/units/${unit.id}`}
+            className="mt-3 inline-flex text-xs font-extrabold text-[#8a6630] hover:underline"
+          >
+            افتح صفحة الوحدة
+          </Link>
+        )}
 
         {(result.matchReasons.length > 0 || result.differences.length > 1) && (
           <div className="mt-3 flex flex-wrap gap-1.5">
