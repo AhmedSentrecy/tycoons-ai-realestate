@@ -93,6 +93,16 @@
   status = 200
 
 [[redirects]]
+  from = "/search"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/search"
+  [headers.values]
+    X-Robots-Tag = "noindex, follow"
+
+[[redirects]]
   from = "/admin"
   to = "/404.html"
   status = 404
