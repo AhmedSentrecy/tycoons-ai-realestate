@@ -40,10 +40,12 @@ async function main() {
     fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,brochure_url,video_url,last_updated_at", { availability_status: "eq.available", project_id: "not.is.null" }),
   ]);
   const slugify = (value) => String(value || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "");
-  const normalizedProjects = projects.map((project) => ({
-    ...project,
-    slug: String(project.slug || "").trim() || `${slugify(project.name)}--${slugify(project.developer)}`,
-  }));
+  // Only rows with a stored slug become pages: legacy duplicate rows without a
+  // slug would otherwise collide with the canonical row via the generated slug
+  // and overwrite its rich page.
+  const normalizedProjects = projects
+    .filter((project) => String(project.slug || "").trim())
+    .map((project) => ({ ...project, slug: String(project.slug).trim() }));
   const projectById = new Map(normalizedProjects.map((project) => [project.id, project]));
   const indexableIds = indexableUnitIds(units);
   const unitsByProject = new Map();
