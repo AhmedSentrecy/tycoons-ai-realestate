@@ -27,9 +27,9 @@ async function fetchRows(table, columns, filters = {}) {
 }
 
 async function writePage(relativePath, html) {
-  const directory = path.join(dist, relativePath);
-  await fs.mkdir(directory, { recursive: true });
-  await fs.writeFile(path.join(directory, "index.html"), html, "utf8");
+  const filePath = path.join(dist, relativePath);
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, html, "utf8");
 }
 
 async function main() {
@@ -57,13 +57,13 @@ async function main() {
   for (const project of normalizedProjects) {
     const projectUnits = unitsByProject.get(project.id) || [];
     if (!projectUnits.length) continue;
-    await writePage(path.join("projects", project.slug), renderProjectStatic(shell, project, projectUnits));
+    await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, project, projectUnits));
     projectCount += 1;
   }
   for (const unit of units) {
     const project = projectById.get(unit.project_id);
     if (!project) continue;
-    await writePage(path.join("units", unit.id), renderUnitStatic(shell, unit, project));
+    await writePage(path.join("units", `${unit.id}.html`), renderUnitStatic(shell, unit, project));
     unitCount += 1;
   }
   console.log(`Generated ${projectCount} project pages and ${unitCount} unit pages from Supabase.`);
