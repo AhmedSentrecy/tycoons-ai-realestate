@@ -396,6 +396,7 @@ ${[organizationSchema(), ...schemas]
 <a href="/guides/off-plan-buying-checklist">${ar ? "الأدلة" : "Guides"}</a>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
 <a href="https://wa.me/${WHATSAPP_NUMBER}">${ar ? "واتساب" : "WhatsApp"}</a>
+${alternate ? `<a href="${escapeHtml(alternate)}" lang="${ar ? "en" : "ar"}" hreflang="${ar ? "en" : "ar-EG"}">${ar ? "English" : "العربية"}</a>` : ""}
 </nav></header>${body}
 <footer><strong>Tycoons Investments</strong><p>${ar ? "بيانات الأسعار والتوفر استرشادية ويتم تأكيدها وقت الطلب. العوائد تقديرية وليست ضمانًا." : "Prices and availability are indicative and reconfirmed on request. Returns are estimates, not guarantees."}</p>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
