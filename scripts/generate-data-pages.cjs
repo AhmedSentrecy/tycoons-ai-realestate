@@ -36,7 +36,7 @@ async function writePage(relativePath, html) {
 async function main() {
   const shell = await fs.readFile(path.join(dist, "index.html"), "utf8");
   const [projects, units] = await Promise.all([
-    fetchRows("projects", "id,name,slug,developer,location,description,status,hero_text,seo_title,seo_description,seo_keywords,targeting,article_sections,faq,highlights,image_url,gallery_urls,video_url,last_updated_at"),
+    fetchRows("projects", "id,name,slug,developer,location,description,status,min_price,down_payment_text,installments_text,delivery_text,hero_text,seo_title,seo_description,seo_keywords,targeting,article_sections,faq,highlights,image_url,gallery_urls,video_url,last_updated_at"),
     fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,brochure_url,video_url,last_updated_at", { availability_status: "eq.available", project_id: "not.is.null" }),
   ]);
   const slugify = (value) => String(value || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "");
@@ -57,8 +57,8 @@ async function main() {
   let projectCount = 0;
   let unitCount = 0;
   for (const project of normalizedProjects) {
+    if (!project.slug) continue;
     const projectUnits = unitsByProject.get(project.id) || [];
-    if (!projectUnits.length) continue;
     await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, project, projectUnits));
     projectCount += 1;
   }
