@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpLeft, MessageCircle, Mic, RefreshCw, Search, Sparkles, X } from "lucide-react";
-import SearchResultCard from "@/components/SearchResultCard";
+import SearchResultRow from "@/components/SearchResultRow";
 import { usePropertySearch } from "@/hooks/usePropertySearch";
 import { useRealtimeVoice } from "@/hooks/useRealtimeVoice";
 import { useTycoonsTts } from "@/hooks/useTycoonsTts";
 import { useVoiceSearch } from "@/hooks/useVoiceSearch";
-import { inventoryUnitKey } from "@/lib/inventory";
+import { groupByProject } from "@/lib/searchDisplay";
 import type { SearchOutput } from "@/lib/propertySearch";
 import { openSearchWhatsApp } from "@/lib/whatsapp";
 
@@ -16,13 +16,13 @@ interface Props {
   onSearchActive?: (active: boolean) => void;
 }
 
-const RESULT_LAYOUT =
-  "grid auto-cols-[88%] grid-flow-col snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-2 sm:overflow-visible";
-
 export default function SmartSearchBar({ compact = false, onSearchActive }: Props) {
   const { query, setQuery, results, hasSearched, search, clear, inventory } = usePropertySearch();
+  const groupedTop = useMemo(
+    () => groupByProject([...results.exact, ...results.alternatives]).slice(0, 6),
+    [results],
+  );
   const [open, setOpen] = useState(false);
-  const [expandedKey, setExpandedKey] = useState("");
   const boxRef = useRef<HTMLDivElement>(null);
   const { speak } = useTycoonsTts();
 
@@ -157,7 +157,6 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
             onClick={() => {
               clear();
               setOpen(false);
-              setExpandedKey("");
             }}
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#9aa69f] transition-colors hover:bg-[#f1ebdc]"
           >
@@ -265,100 +264,43 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
             )}
 
             {hasSearched && !inventory.loading && !inventory.error && (
-              <div className="max-h-[72svh] overflow-y-auto p-3 sm:p-4">
+              <div className="max-h-[72svh] overflow-y-auto">
                 {results.interpreted && (
-                  <div className="px-1 pb-3 pt-1 text-[11px] font-semibold leading-relaxed text-[#92733f] sm:px-2 sm:text-xs">
-                    {results.interpreted}
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#efe7d5] bg-[#faf6ec] px-4 py-2.5 text-[12px] sm:px-5">
+                    <span className="font-semibold text-[#92733f]">{results.interpreted}</span>
+                    <span className="text-[#6d7a72]">
+                      {results.totalExact.toLocaleString("ar-EG")} مطابقة · {results.totalAlternatives.toLocaleString("ar-EG")} بديل
+                    </span>
                   </div>
                 )}
 
-                {!results.exact.length && results.alternatives.length > 0 && (
-                  <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-                    <p className="text-sm font-extrabold text-amber-950">مفيش نتيجة مطابقة بالكامل لطلبك</p>
-                    <p className="mt-1 text-xs leading-relaxed text-amber-800">
-                      اللي تحت بدائل قريبة، والفرق عن طلبك مكتوب بوضوح على كل كارت.
-                    </p>
+                {groupedTop.length > 0 && (
+                  <div>
+                    {groupedTop.map((group) => (
+                      <SearchResultRow
+                        key={group.key}
+                        group={group}
+                        query={query}
+                        onNavigate={() => setOpen(false)}
+                      />
+                    ))}
                   </div>
                 )}
 
-                {results.exact.length > 0 && (
-                  <section>
-                    <div className="mb-2 flex items-center justify-between px-1 sm:px-2">
-                      <h3 className="text-xs font-extrabold text-emerald-800">نتائج مطابقة</h3>
-                      <span className="text-[10px] text-[#778179]">
-                        أفضل {results.exact.length.toLocaleString("ar-EG")} من {results.totalExact.toLocaleString("ar-EG")}
-                      </span>
-                    </div>
-                    <div className={RESULT_LAYOUT}>
-                      {results.exact.map((result) => {
-                        const key = inventoryUnitKey(result.unit);
-                        return (
-                          <div key={key} className="snap-start">
-                            <SearchResultCard
-                              result={result}
-                              query={query}
-                              expanded={expandedKey === key}
-                              onToggle={() => setExpandedKey((current) => (current === key ? "" : key))}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {results.exact.length > 1 && (
-                      <p className="mt-1 text-center text-[10px] text-[#7b877f] sm:hidden">
-                        اسحب يمين أو شمال لباقي النتائج
-                      </p>
-                    )}
-                  </section>
-                )}
-
-                {results.alternatives.length > 0 && (
-                  <section className={results.exact.length ? "mt-5" : ""}>
-                    <div className="mb-2 flex items-center justify-between px-1 sm:px-2">
-                      <h3 className="text-xs font-extrabold text-amber-800">
-                        {results.exact.length ? "بدائل قريبة" : "أقرب بدائل متاحة"}
-                      </h3>
-                      <span className="text-[10px] text-[#8a7b62]">
-                        {results.alternatives.length.toLocaleString("ar-EG")} بدائل
-                      </span>
-                    </div>
-                    <div className={RESULT_LAYOUT}>
-                      {results.alternatives.map((result) => {
-                        const key = inventoryUnitKey(result.unit);
-                        return (
-                          <div key={`alternative-${key}`} className="snap-start">
-                            <SearchResultCard
-                              result={result}
-                              query={query}
-                              expanded={expandedKey === key}
-                              onToggle={() => setExpandedKey((current) => (current === key ? "" : key))}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {results.alternatives.length > 1 && (
-                      <p className="mt-1 text-center text-[10px] text-[#7b877f] sm:hidden">
-                        اسحب يمين أو شمال للمقارنة بين البدائل
-                      </p>
-                    )}
-                  </section>
-                )}
-
-                {(results.exact.length > 0 || results.alternatives.length > 0) && (
-                  <div className="mt-4 border-t border-[#efe7d5] pt-3 text-center">
+                {groupedTop.length > 0 && (
+                  <div className="border-t border-[#efe7d5] bg-[#faf6ec] p-3 text-center">
                     <Link
                       to={`/search?q=${encodeURIComponent(query)}`}
                       onClick={() => setOpen(false)}
-                      className="inline-flex items-center gap-2 rounded-full bg-[#14352a] px-6 py-3 text-sm font-bold text-[#efe3c6] transition-transform hover:scale-[1.03]"
+                      className="inline-flex items-center gap-2 rounded-full bg-[#14352a] px-6 py-2.5 text-[13px] font-extrabold text-[#efe3c6] transition-transform hover:scale-[1.03]"
                     >
                       <ArrowUpLeft className="h-4 w-4" />
-                      اعرض كل النتائج في صفحة كاملة
+                      اعرض كل الـ {(results.totalExact + results.totalAlternatives).toLocaleString("ar-EG")} نتيجة في صفحة كاملة
                     </Link>
                   </div>
                 )}
 
-                {!results.exact.length && !results.alternatives.length && (
+                {!groupedTop.length && (
                   <div className="px-4 py-8 text-center">
                     <p className="text-sm font-semibold text-[#1b2420]">ملقيناش نتيجة قريبة كفاية</p>
                     <p className="mt-1.5 text-xs leading-relaxed text-[#6d7a72]">

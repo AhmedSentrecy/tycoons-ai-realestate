@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { MessageCircle } from "lucide-react";
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
-import SearchResultCard from "@/components/SearchResultCard";
+import ProjectResultCard from "@/components/ProjectResultCard";
 import SmartSearchBar from "@/components/SmartSearchBar";
 import { usePropertySearch } from "@/hooks/usePropertySearch";
-import { inventoryUnitKey } from "@/lib/inventory";
+import { groupByProject } from "@/lib/searchDisplay";
 import { openSearchWhatsApp } from "@/lib/whatsapp";
 
 const GRID = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
@@ -15,17 +15,20 @@ export default function SearchPage() {
   const [params] = useSearchParams();
   const q = (params.get("q") ?? "").trim();
   const { results, search, inventory } = usePropertySearch();
-  const [expandedKey, setExpandedKey] = useState("");
+  const [visible, setVisible] = useState(24);
 
   useEffect(() => {
     document.title = q ? `نتائج البحث: ${q} | Tycoons Investments` : "البحث | Tycoons Investments";
   }, [q]);
 
   useEffect(() => {
+    setVisible(24);
     if (q && inventory.units.length) search(q);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, inventory.units.length]);
 
+  const exactGroups = useMemo(() => groupByProject(results.exact), [results]);
+  const altGroups = useMemo(() => groupByProject(results.alternatives), [results]);
   const total = results.totalExact + results.totalAlternatives;
 
   return (
@@ -45,7 +48,7 @@ export default function SearchPage() {
           {q && !inventory.loading && (
             <p className="mt-1 text-sm text-[#6d7a72]">
               {total
-                ? `${results.totalExact.toLocaleString("ar-EG")} نتيجة مطابقة و${results.totalAlternatives.toLocaleString("ar-EG")} بديل قريب`
+                ? `${exactGroups.length.toLocaleString("ar-EG")} مشروع مطابق و${altGroups.length.toLocaleString("ar-EG")} مشروع بديل (${total.toLocaleString("ar-EG")} وحدة)`
                 : "لا توجد نتائج مطابقة حالياً"}
             </p>
           )}
@@ -58,49 +61,43 @@ export default function SearchPage() {
           <p className="py-16 text-center text-sm font-semibold text-[#6d7a72]">بنحمّل المخزون المحدث...</p>
         )}
 
-        {!inventory.loading && results.exact.length > 0 && (
+        {!inventory.loading && exactGroups.length > 0 && (
           <section>
             <h2 className="mb-3 text-lg font-extrabold text-emerald-900">نتائج مطابقة</h2>
             <div className={GRID}>
-              {results.exact.map((result) => {
-                const key = inventoryUnitKey(result.unit);
-                return (
-                  <SearchResultCard
-                    key={key}
-                    result={result}
-                    query={q}
-                    expanded={expandedKey === key}
-                    onToggle={() => setExpandedKey((c) => (c === key ? "" : key))}
-                  />
-                );
-              })}
+              {exactGroups.slice(0, visible).map((group) => (
+                <ProjectResultCard key={group.key} group={group} query={q} />
+              ))}
             </div>
           </section>
         )}
 
-        {!inventory.loading && results.alternatives.length > 0 && (
-          <section className={results.exact.length ? "mt-10" : ""}>
+        {!inventory.loading && altGroups.length > 0 && (
+          <section className={exactGroups.length ? "mt-10" : ""}>
             <h2 className="mb-3 text-lg font-extrabold text-amber-900">
-              {results.exact.length ? "بدائل قريبة" : "أقرب بدائل متاحة"}
+              {exactGroups.length ? "بدائل قريبة" : "أقرب بدائل متاحة"}
             </h2>
             <div className={GRID}>
-              {results.alternatives.map((result) => {
-                const key = inventoryUnitKey(result.unit);
-                return (
-                  <SearchResultCard
-                    key={`alt-${key}`}
-                    result={result}
-                    query={q}
-                    expanded={expandedKey === key}
-                    onToggle={() => setExpandedKey((c) => (c === key ? "" : key))}
-                  />
-                );
-              })}
+              {altGroups.slice(0, Math.max(6, visible - exactGroups.length)).map((group) => (
+                <ProjectResultCard key={`alt-${group.key}`} group={group} query={q} />
+              ))}
             </div>
           </section>
         )}
 
-        {!inventory.loading && q && !results.exact.length && !results.alternatives.length && (
+        {!inventory.loading && exactGroups.length + altGroups.length > visible && (
+          <div className="mt-8 text-center">
+            <button
+              type="button"
+              onClick={() => setVisible((v) => v + 24)}
+              className="rounded-full border border-[#d8ccb4] bg-white px-8 py-3 text-sm font-extrabold text-[#5e5139] transition-colors hover:bg-[#f4efe2]"
+            >
+              اعرض المزيد من النتائج
+            </button>
+          </div>
+        )}
+
+        {!inventory.loading && q && !exactGroups.length && !altGroups.length && (
           <div className="rounded-3xl border border-[#e7ddc8] bg-white px-6 py-14 text-center">
             <p className="text-base font-extrabold">ملقيناش نتيجة قريبة كفاية</p>
             <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#6d7a72]">
