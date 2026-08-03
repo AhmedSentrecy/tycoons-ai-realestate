@@ -142,11 +142,10 @@ function uniqueUnits(units) {
 
 function renderProjectStatic(shell, project, projectUnits) {
   const units = uniqueUnits(projectUnits);
-  if (!units.length) throw new Error(`Project ${project.slug} has no available units`);
   const canonical = `${SITE_URL}/projects/${project.slug}`;
   const prices = units.map((unit) => numberValue(unit.starting_price)).filter(Boolean);
   const areas = units.map((unit) => numberValue(unit.area_sqm)).filter(Boolean);
-  const minPrice = Math.min(...prices);
+  const minPrice = prices.length ? Math.min(...prices) : numberValue(project.min_price);
   const minArea = areas.length ? Math.min(...areas) : 0;
   const maxArea = areas.length ? Math.max(...areas) : 0;
   const imageList = urls(project.image_url, project.gallery_urls, ...units.map((unit) => unit.image_url));
@@ -159,23 +158,23 @@ function renderProjectStatic(shell, project, projectUnits) {
       question: `ما أقل سعر ظاهر حاليًا في ${project.name}؟`,
       answer: `أقل سعر ظاهر حاليًا يبدأ من {{min_price}} جنيه، ويجب تأكيد السعر والتوفر وقت الطلب.`,
     },
-    {
+    ...(units.length ? [{
       question: `ما أنواع الوحدات المتاحة في ${project.name}؟`,
       answer: `الوحدات الظاهرة حاليًا تشمل ${[...new Set(units.map((unit) => text(unit.unit_type)).filter(Boolean))].join("، ")}.`,
-    },
+    }] : []),
   ];
   const article = arrayValue(project.article_sections);
   const developerPath = `/ar/developers/${slugify(project.developer)}`;
   const areaPath = `/ar/areas/${areaSlug(project.location)}`;
   const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
-  <header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4"><a href="/" class="font-extrabold">TYCOONS INVESTMENTS</a><span class="flex gap-4 text-sm"><a href="/ar/">دليل المشاريع</a><a href="${areaPath}">${escapeHtml(project.location)}</a><a href="${developerPath}">${escapeHtml(project.developer)}</a></span></nav></header>
+  <header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4"><a href="/" class="font-extrabold">TYCOONS INVESTMENTS</a><span class="flex gap-4 text-sm"><a href="/ar/">دليل المشاريع</a><a href="${areaPath}">${escapeHtml(project.location)}</a><a href="${developerPath}">${escapeHtml(project.developer)}</a><a href="/en/projects/${escapeHtml(project.slug)}" lang="en" hreflang="en">English</a></span></nav></header>
   <section class="bg-[#0d1f18] px-5 pb-12 pt-16 text-white"><div class="mx-auto max-w-7xl"><p class="text-sm text-[#d9b87c]">${escapeHtml(project.developer)} · ${escapeHtml(project.location)}</p><h1 class="mt-5 max-w-4xl text-4xl font-extrabold leading-tight sm:text-5xl">${escapeHtml(project.name)}</h1><p class="mt-5 max-w-4xl text-lg text-white/70">${escapeHtml(text(project.hero_text) || description)}</p></div></section>
   ${imageList[0] ? `<section class="bg-[#0d1f18] px-5 pb-12"><img src="${escapeHtml(imageList[0])}" alt="${escapeHtml(project.name)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-cover"></section>` : ""}
   <section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]"><article>
   ${article.length ? article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#5c6a62]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join("") : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
   ${faq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(project.name)}</h2>${faq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#5c6a62]">${escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea))}</p></details>`).join("")}</section>` : ""}
-  </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white"><p class="text-sm text-white/55">الأسعار تبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(minPrice)} جنيه</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a></aside></div></section>
-  <section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات المتاحة</h2><div class="mt-8 grid gap-5 md:grid-cols-2">${units.map((unit) => `<article class="rounded-3xl border border-[#e0d3bb] bg-white p-6"><h3 class="text-xl font-extrabold">${escapeHtml(arabicField(unit.unit_type))} ${escapeHtml(arabicField(unit.bedrooms_text))}</h3><p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه</p><a href="/units/${escapeHtml(unit.id)}" class="mt-4 inline-block font-bold text-[#8a6630]">تفاصيل الوحدة</a></article>`).join("")}</div></div></section>
+  </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white">${minPrice ? `<p class="text-sm text-white/55">الأسعار تبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(minPrice)} جنيه</p>` : `<p class="text-sm text-white/55">السعر حسب آخر طرح</p><p class="mt-2 text-xl font-extrabold text-[#ecd9ae]">اسأل عن أحدث الأسعار</p>`}${text(project.down_payment_text) ? `<p class="mt-3 text-sm text-white/70">${escapeHtml(arabicField(project.down_payment_text))}</p>` : ""}${text(project.installments_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.installments_text))}</p>` : ""}${text(project.delivery_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.delivery_text))}</p>` : ""}<a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a></aside></div></section>
+  ${units.length ? `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات المتاحة</h2><div class="mt-8 grid gap-5 md:grid-cols-2">${units.map((unit) => `<article class="rounded-3xl border border-[#e0d3bb] bg-white p-6"><h3 class="text-xl font-extrabold">${escapeHtml(arabicField(unit.unit_type))} ${escapeHtml(arabicField(unit.bedrooms_text))}</h3><p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه</p><a href="/units/${escapeHtml(unit.id)}" class="mt-4 inline-block font-bold text-[#8a6630]">تفاصيل الوحدة</a></article>`).join("")}</div></div></section>` : `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات في ${escapeHtml(project.name)}</h2><p class="mt-5 max-w-3xl leading-loose text-[#5c6a62]">لا توجد وحدات منشورة بأسعار تفصيلية لهذا المشروع حالياً. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من المطور.</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اطلب أحدث الأسعار</a></div></section>`}
   </main>`;
 
   const schemas = [
@@ -187,7 +186,11 @@ function renderProjectStatic(shell, project, projectUnits) {
       description,
       image: imageList,
       dateModified: project.last_updated_at,
-      offers: { "@type": "AggregateOffer", priceCurrency: "EGP", lowPrice: minPrice, offerCount: units.length, availability: "https://schema.org/InStock" },
+      ...(units.length
+        ? { offers: { "@type": "AggregateOffer", priceCurrency: "EGP", lowPrice: minPrice, offerCount: units.length, availability: "https://schema.org/InStock" } }
+        : minPrice
+          ? { offers: { "@type": "Offer", priceCurrency: "EGP", price: minPrice, availability: "https://schema.org/InStock" } }
+          : {}),
       address: { "@type": "PostalAddress", addressLocality: project.location, addressCountry: "EG" },
     },
     {
