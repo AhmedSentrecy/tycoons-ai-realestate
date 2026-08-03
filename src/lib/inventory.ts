@@ -13,6 +13,7 @@ const PAGE_SIZE = 1000;
 export interface InventoryUnit {
   id: string;
   project_id: string;
+  project_slug: string;
   project_name: string;
   developer: string;
   location: string;
@@ -82,6 +83,7 @@ function normalizeUnit(row: Record<string, unknown>): InventoryUnit | null {
   return {
     id: text(row.id),
     project_id: text(row.project_id),
+    project_slug: "",
     project_name: projectName,
     developer: text(row.developer),
     location: text(row.location),
@@ -197,16 +199,48 @@ async function fetchPage(offset: number): Promise<InventoryUnit[]> {
   return rows.map(normalizeUnit).filter((unit): unit is InventoryUnit => Boolean(unit));
 }
 
+async function fetchProjectSlugs(): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  try {
+    for (let offset = 0; offset < 2000; offset += PAGE_SIZE) {
+      const params = new URLSearchParams({
+        select: "id,slug",
+        limit: String(PAGE_SIZE),
+        offset: String(offset),
+      });
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/projects?${params.toString()}`, {
+        headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Accept: "application/json" },
+      });
+      if (!response.ok) return map;
+      const rows = (await response.json()) as Record<string, unknown>[];
+      for (const row of rows) {
+        const id = text(row.id);
+        const slug = text(row.slug);
+        if (id && slug) map.set(id, slug);
+      }
+      if (rows.length < PAGE_SIZE) break;
+    }
+  } catch {
+    // non-fatal: search still works without project links
+  }
+  return map;
+}
+
 export async function loadInventory(force = false): Promise<InventoryUnit[]> {
   if (!force && cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.units;
   if (!force && pending) return pending;
 
   pending = (async () => {
+    const slugsPromise = fetchProjectSlugs();
     const units: InventoryUnit[] = [];
     for (let offset = 0; offset < 5000; offset += PAGE_SIZE) {
       const page = await fetchPage(offset);
       units.push(...page);
       if (page.length < PAGE_SIZE) break;
+    }
+    const slugMap = await slugsPromise;
+    for (const unit of units) {
+      unit.project_slug = slugMap.get(unit.project_id) ?? "";
     }
     cache = { units, fetchedAt: Date.now() };
     return units;
