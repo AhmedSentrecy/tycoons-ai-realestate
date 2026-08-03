@@ -65,7 +65,7 @@ exports.handler = async function handler() {
       urls.set(`${SITE_URL}/guides/${guideSlug}/`, "2026-07-26");
     }
     for (const project of projects) {
-      const projectSlug = String(project.slug || "").trim() || `${slugify(project.name)}--${slugify(project.developer)}`;
+      const projectSlug = String(project.slug || "").trim();
       if (!projectSlug) continue;
       const updated = project.last_updated_at || null;
       const area = areaFor(project.location);
