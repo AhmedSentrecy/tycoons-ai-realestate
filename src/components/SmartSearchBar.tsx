@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { MessageCircle, Mic, RefreshCw, Search, Sparkles, X } from "lucide-react";
+import { ArrowUpLeft, MessageCircle, Mic, RefreshCw, Search, Sparkles, X } from "lucide-react";
 import SearchResultCard from "@/components/SearchResultCard";
 import { usePropertySearch } from "@/hooks/usePropertySearch";
 import { useRealtimeVoice } from "@/hooks/useRealtimeVoice";
@@ -203,6 +204,16 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
 
       <AnimatePresence>
         {showPanel && (
+          <motion.div
+            key="search-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-40 bg-[#0d1f18]/55 backdrop-blur-[3px]"
+          />
+        )}
+        {showPanel && (
           <div className="absolute left-1/2 top-full z-50 mt-3 w-[min(94vw,960px)] -translate-x-1/2">
             <motion.div
               initial={{ opacity: 0, y: -8, scale: 0.98 }}
@@ -332,6 +343,19 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
                       </p>
                     )}
                   </section>
+                )}
+
+                {(results.exact.length > 0 || results.alternatives.length > 0) && (
+                  <div className="mt-4 border-t border-[#efe7d5] pt-3 text-center">
+                    <Link
+                      to={`/search?q=${encodeURIComponent(query)}`}
+                      onClick={() => setOpen(false)}
+                      className="inline-flex items-center gap-2 rounded-full bg-[#14352a] px-6 py-3 text-sm font-bold text-[#efe3c6] transition-transform hover:scale-[1.03]"
+                    >
+                      <ArrowUpLeft className="h-4 w-4" />
+                      اعرض كل النتائج في صفحة كاملة
+                    </Link>
+                  </div>
                 )}
 
                 {!results.exact.length && !results.alternatives.length && (
