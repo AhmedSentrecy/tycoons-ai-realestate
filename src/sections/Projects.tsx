@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { BedDouble, Ruler, KeyRound, MessageCircle, ChevronRight, ChevronLeft } from "lucide-react";
 import { projects } from "@/data/projects";
@@ -130,9 +131,12 @@ export default function Projects() {
               </div>
 
               <div className="mt-5 flex gap-2">
-                <button className="flex-1 rounded-full border border-white/20 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/10">
+                <Link
+                  to={p.projectSlug ? `/projects/${p.projectSlug}` : `/regions/${p.regionSlug}`}
+                  className="flex flex-1 items-center justify-center rounded-full border border-white/20 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/10"
+                >
                   تفاصيل المشروع
-                </button>
+                </Link>
                 <button
                   type="button"
                   onClick={() => openProjectWhatsApp(p)}
