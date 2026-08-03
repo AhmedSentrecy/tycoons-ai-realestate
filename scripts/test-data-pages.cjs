@@ -69,4 +69,21 @@ assert.ok(indexable.has("unit-1"));
 const weakHtml = renderUnitStatic(shell, weakUnit, project, { indexable: false });
 assert.match(weakHtml, /<meta name="robots" content="noindex,follow">/);
 
+const unitlessProject = {
+  ...project,
+  slug: "project-beta",
+  name: "Project Beta",
+  min_price: 5500000,
+  down_payment_text: "5% down payment",
+  installments_text: "8 years",
+  delivery_text: "Delivery in 2 years",
+};
+const unitlessHtml = renderProjectStatic(shell, unitlessProject, []);
+assert.match(unitlessHtml, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/projects\/project-beta">/);
+assert.match(unitlessHtml, /5,500,000/);
+assert.match(unitlessHtml, /"@type":"Offer"/);
+assert.doesNotMatch(unitlessHtml, /"@type":"AggregateOffer"/);
+assert.match(unitlessHtml, /اطلب أحدث الأسعار/);
+assert.match(unitlessHtml, /"@type":"RealEstateListing"/);
+
 console.log("Data-driven page isolation and canonical validation passed.");
