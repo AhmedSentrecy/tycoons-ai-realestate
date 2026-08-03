@@ -21,6 +21,7 @@ import {
   loadProjectPage,
   type ProjectPageContent,
 } from "@/lib/projectPages";
+import { arabicField } from "@/lib/arabicFields";
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -406,7 +407,7 @@ export default function ProjectPage() {
                   className="flex items-center gap-3 rounded-2xl border border-[#e7ddc8] bg-white/70 p-4"
                 >
                   <BadgeCheck className="h-5 w-5 shrink-0 text-[#a3854e]" />
-                  <span className="font-semibold">{item}</span>
+                  <span className="font-semibold">{arabicField(item)}</span>
                 </li>
               ))}
             </ul>
@@ -471,9 +472,9 @@ export default function ProjectPage() {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm text-[#8a7a58]">{unit.unit_type}</p>
+                    <p className="text-sm text-[#8a7a58]">{arabicField(unit.unit_type)}</p>
                     <h3 className="mt-1 text-xl font-extrabold">
-                      {unit.bedrooms_text || "Duplex"}
+                      {arabicField(unit.bedrooms_text, "دوبلكس")}
                     </h3>
                   </div>
                   <span className="rounded-full bg-[#e8f5ed] px-3 py-1 text-xs font-bold text-[#14733c]">
@@ -484,7 +485,7 @@ export default function ProjectPage() {
                   {unit.bedrooms_text && (
                     <span className="inline-flex items-center gap-2">
                       <BedDouble className="h-4 w-4 text-[#a3854e]" />
-                      {unit.bedrooms_text}
+                      {arabicField(unit.bedrooms_text)}
                     </span>
                   )}
                   <span className="inline-flex items-center gap-2">

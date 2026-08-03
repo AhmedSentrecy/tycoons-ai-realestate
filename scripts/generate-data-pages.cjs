@@ -3,6 +3,7 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { renderProjectStatic, renderUnitStatic } = require("./lib/data-pages.cjs");
+const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
 
 const root = path.resolve(__dirname, "..");
 const dist = path.join(root, "dist");
@@ -44,6 +45,7 @@ async function main() {
     slug: String(project.slug || "").trim() || `${slugify(project.name)}--${slugify(project.developer)}`,
   }));
   const projectById = new Map(normalizedProjects.map((project) => [project.id, project]));
+  const indexableIds = indexableUnitIds(units);
   const unitsByProject = new Map();
   for (const unit of units) {
     if (!projectById.has(unit.project_id)) continue;
@@ -63,10 +65,33 @@ async function main() {
   for (const unit of units) {
     const project = projectById.get(unit.project_id);
     if (!project) continue;
-    await writePage(path.join("units", `${unit.id}.html`), renderUnitStatic(shell, unit, project));
+    await writePage(
+      path.join("units", `${unit.id}.html`),
+      renderUnitStatic(shell, unit, project, { indexable: indexableIds.has(String(unit.id)) }),
+    );
     unitCount += 1;
   }
-  console.log(`Generated ${projectCount} project pages and ${unitCount} unit pages from Supabase.`);
+
+  const aliases = new Map([
+    ["creekview--mountain-view", "mountain-view-creek-view--mountain-view"],
+    ["mountain-view-creekview--mountain-view", "mountain-view-creek-view--mountain-view"],
+    ["regent-s-square--al-dawlia-boutique-developments", "regent-s-square--al-dawlia-developments"],
+  ]);
+  for (const project of normalizedProjects) {
+    const generatedSlug = `${slugify(project.name)}--${slugify(project.developer)}`;
+    if (generatedSlug && generatedSlug !== project.slug) aliases.set(generatedSlug, project.slug);
+  }
+  const redirects = [...aliases.entries()]
+    .filter(([, canonicalSlug]) => normalizedProjects.some((project) => project.slug === canonicalSlug))
+    .flatMap(([oldSlug, canonicalSlug]) => [
+      `/projects/${oldSlug} /projects/${canonicalSlug} 301!`,
+      `/ar/projects/${oldSlug} /projects/${canonicalSlug} 301!`,
+    ]);
+  await fs.writeFile(path.join(dist, "_redirects"), `${redirects.join("\n")}\n`, "utf8");
+
+  console.log(
+    `Generated ${projectCount} project pages and ${unitCount} unit pages (${indexableIds.size} indexable) plus ${redirects.length} legacy redirects from Supabase.`,
+  );
 }
 
 main().catch((error) => {

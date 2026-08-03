@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 const { renderProjectStatic, renderUnitStatic } = require("./lib/data-pages.cjs");
+const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
 
 const shell = `<!doctype html><html lang="ar" dir="rtl"><head><title>Home</title><meta name="description" content="home"><link rel="canonical" href="https://tycoons-inv.com/"><script type="application/ld+json">{"@type":"FAQPage"}</script></head><body><div id="root"><h1>قارن المشاريع والوحدات العقارية</h1></div><script type="module" src="/assets/app.js"></script></body></html>`;
 const project = {
@@ -31,6 +32,7 @@ const unit = {
   area_sqm: 120,
   starting_price: 10000000,
   availability_status: "available",
+  description: "A complete unit description with enough detail for a useful standalone search result page.",
   finishing: "Core & Shell",
   installments_text: "8 years",
   delivery_text: "3 years",
@@ -41,6 +43,7 @@ const unit = {
 
 const projectHtml = renderProjectStatic(shell, project, [unit]);
 assert.match(projectHtml, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/projects\/project-alpha">/);
+assert.match(projectHtml, /hreflang="en" href="https:\/\/tycoons-inv\.com\/en\/projects\/project-alpha">/);
 assert.match(projectHtml, /Project Alpha SEO/);
 assert.match(projectHtml, /Alpha only content/);
 assert.match(projectHtml, /"@type":"RealEstateListing"/);
@@ -55,5 +58,15 @@ assert.match(unitHtml, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/
 assert.match(unitHtml, /Project Alpha/);
 assert.match(unitHtml, /href="\/projects\/project-alpha"/);
 assert.doesNotMatch(unitHtml, /قارن المشاريع والوحدات العقارية/);
+assert.match(unitHtml, /شقة/);
+assert.match(unitHtml, /نصف تشطيب/);
+
+const duplicateUnit = { ...unit, id: "unit-2" };
+const weakUnit = { ...unit, id: "unit-3", area_sqm: null };
+const indexable = indexableUnitIds([unit, duplicateUnit, weakUnit]);
+assert.equal(indexable.size, 1);
+assert.ok(indexable.has("unit-1"));
+const weakHtml = renderUnitStatic(shell, weakUnit, project, { indexable: false });
+assert.match(weakHtml, /<meta name="robots" content="noindex,follow">/);
 
 console.log("Data-driven page isolation and canonical validation passed.");

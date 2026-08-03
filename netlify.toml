@@ -33,8 +33,9 @@
 
 [[redirects]]
   from = "/ar/projects/*"
-  to = "/.netlify/functions/seo-page?lang=ar&type=project&slug=:splat"
-  status = 200
+  to = "/projects/:splat"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/en/projects/*"
@@ -162,13 +163,13 @@
 
 [[redirects]]
   from = "/projects/*"
-  to = "/index.html"
-  status = 200
+  to = "/404.html"
+  status = 404
 
 [[redirects]]
   from = "/units/*"
-  to = "/index.html"
-  status = 200
+  to = "/404.html"
+  status = 404
 
 # Retired region URLs with a direct canonical equivalent.
 [[redirects]]

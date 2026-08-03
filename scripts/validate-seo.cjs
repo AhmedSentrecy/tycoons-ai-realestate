@@ -60,7 +60,9 @@ const missing = notFound("ar");
 
 assert.match(project, /<html lang="ar" dir="rtl">/);
 assert.match(english, /<html lang="en" dir="ltr">/);
-assert.match(project, /https:\/\/tycoons-inv\.com\/ar\/projects\//);
+assert.match(project, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/projects\//);
+assert.match(project, /hreflang="en" href="https:\/\/tycoons-inv\.com\/en\/projects\//);
+assert.match(english, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/projects\//);
 assert.doesNotMatch(project, /tycoons-inv\.de/);
 assert.match(project, /BreadcrumbList/);
 assert.match(project, /ItemList/);
@@ -92,6 +94,11 @@ assert.ok(
   netlify.indexOf('from = "/ar/projects/*"') < netlify.indexOf('from = "/*"'),
   "SEO routes must appear before the 404 catch-all",
 );
+assert.match(
+  netlify,
+  /from = "\/ar\/projects\/\*"\s+to = "\/projects\/:splat"\s+status = 301\s+force = true/,
+  "Arabic legacy project routes must redirect to the primary Arabic project URL",
+);
 assert.match(netlify, /https:\/\/tycoons-inv\.de\/\*/);
 assert.match(netlify, /status = 404/);
 assert.doesNotMatch(
@@ -99,7 +106,7 @@ assert.doesNotMatch(
   /from = "\/(?:ar|en)"\s+to = "\/(?:ar|en)\/"\s+status = 301\s+force = true/,
   "Locale slash redirects must stay removed to prevent redirect loops",
 );
-assert.match(netlify, /from = "\/projects\/\*"\s+to = "\/index\.html"\s+status = 200/);
+assert.match(netlify, /from = "\/projects\/\*"\s+to = "\/404\.html"\s+status = 404/);
 assert.match(netlify, /from = "\/regions\/\*"\s+to = "\/404\.html"\s+status = 404/);
 assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/);
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
@@ -109,7 +116,7 @@ assert.match(robots, /https:\/\/tycoons-inv\.com\/sitemap\.xml/);
 assert.match(sitemap, /SITE_URL}\/projects\/\${projectSlug}/);
 assert.match(sitemap, /SITE_URL}\/units\/\${unit\.id}/);
 assert.match(projectPage, /loadProjectPage\(slug\)/);
-assert.match(netlify, /from = "\/units\/\*"\s+to = "\/index\.html"\s+status = 200/);
+assert.match(netlify, /from = "\/units\/\*"\s+to = "\/404\.html"\s+status = 404/);
 assert.doesNotMatch(
   projectPage,
   /const title = "Hyde Park|عن Hyde Park New Cairo|hyde-park-faq/,
@@ -125,9 +132,9 @@ async function validateRouteRecovery() {
   });
   try {
     const projectResponse = await handler({
-      path: `/ar/projects/${projects[0].slug}`,
-      rawUrl: `https://tycoons-inv.com/ar/projects/${projects[0].slug}`,
-      queryStringParameters: { lang: "ar" },
+      path: `/en/projects/${projects[0].slug}`,
+      rawUrl: `https://tycoons-inv.com/en/projects/${projects[0].slug}`,
+      queryStringParameters: { lang: "en" },
     });
     const guideResponse = await handler({
       path: "/guides/off-plan-buying-checklist/",
@@ -135,6 +142,7 @@ async function validateRouteRecovery() {
       queryStringParameters: { lang: "ar" },
     });
     assert.match(projectResponse.body, /Mountain View Aliva \| Mountain View/);
+    assert.match(projectResponse.body, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/projects\//);
     assert.match(guideResponse.body, /دليل شراء عقار Off-plan في مصر/);
   } finally {
     global.fetch = originalFetch;

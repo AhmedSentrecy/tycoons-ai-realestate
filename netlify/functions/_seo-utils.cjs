@@ -408,7 +408,8 @@ function cards(projects, lang) {
   return `<div class="grid">${projects
     .map((project) => {
       const image = projectImage(project);
-      return `<a class="card" href="/${lang}/projects/${project.slug}">
+      const projectPath = ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`;
+      return `<a class="card" href="${projectPath}">
       ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(project.name)}" loading="lazy" width="640" height="360">` : ""}
       <h3>${escapeHtml(project.name)}</h3><p>${escapeHtml(project.developer)} · ${escapeHtml(projectLocation(project))}</p>
       <strong>${ar ? "يبدأ من" : "Starting from"} ${escapeHtml(formatPrice(projectMinPrice(project), lang))}</strong></a>`;
@@ -451,8 +452,8 @@ function renderProject(projects, slug, lang) {
   const project = projects.find((item) => item.slug === slug);
   if (!project) return null;
   const ar = lang === "ar";
-  const path = `/${lang}/projects/${slug}`;
-  const alternatePath = `/${ar ? "en" : "ar"}/projects/${slug}`;
+  const path = ar ? `/projects/${slug}` : `/en/projects/${slug}`;
+  const alternatePath = ar ? `/en/projects/${slug}` : `/projects/${slug}`;
   const location = projectLocation(project);
   const area = areaFor(location);
   const image = projectImage(project);
@@ -584,7 +585,7 @@ function renderCollection(projects, kind, slug, lang) {
             "@type": "ListItem",
             position: index + 1,
             name: project.name,
-            url: `${SITE_URL}/${lang}/projects/${project.slug}`,
+            url: `${SITE_URL}${ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`}`,
           })),
         },
       },

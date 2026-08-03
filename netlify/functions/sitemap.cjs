@@ -8,6 +8,7 @@ const {
   slugify,
   escapeHtml,
 } = require("./_seo-utils.cjs");
+const { indexableUnitIds } = require("./_unit-indexing.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY =
@@ -41,13 +42,14 @@ exports.handler = async function handler() {
   try {
     const [projects, units] = await Promise.all([
       fetchRows("projects", "id,name,slug,developer,location,last_updated_at"),
-      fetchRows("units", "id,project_id,last_updated_at", {
+      fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,description,last_updated_at", {
         availability_status: "eq.available",
         project_id: "not.is.null",
       }),
     ]);
     const projectsById = new Map(projects.map((project) => [project.id, project]));
     const activeProjectIds = new Set(units.map((unit) => unit.project_id));
+    const indexableIds = indexableUnitIds(units);
     const urls = new Map([
       [`${SITE_URL}/`, null],
       [`${SITE_URL}/about`, null],
@@ -76,6 +78,7 @@ exports.handler = async function handler() {
     }
     for (const unit of units) {
       if (!projectsById.has(unit.project_id)) continue;
+      if (!indexableIds.has(String(unit.id))) continue;
       urls.set(`${SITE_URL}/units/${unit.id}`, unit.last_updated_at || null);
     }
 

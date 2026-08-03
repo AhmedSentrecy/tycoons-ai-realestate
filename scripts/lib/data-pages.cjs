@@ -39,6 +39,34 @@ function replaceTokens(value, minPrice, minArea, maxArea) {
     .replaceAll("{{max_area}}", String(maxArea));
 }
 
+function arabicField(value, fallback = "") {
+  const source = text(value).replace(/\s+/g, " ");
+  if (!source) return fallback;
+  const exact = {
+    apartment: "شقة", studio: "ستوديو", duplex: "دوبلكس", penthouse: "بنتهاوس",
+    chalet: "شاليه", "standalone villa": "فيلا مستقلة", "twin house": "توين هاوس",
+    townhouse: "تاون هاوس", "town house": "تاون هاوس", office: "مكتب إداري",
+    clinic: "عيادة", "commercial unit": "وحدة تجارية", retail: "محل تجاري",
+    "core & shell": "نصف تشطيب", "core and shell": "نصف تشطيب",
+    "fully finished": "تشطيب كامل", finished: "متشطب",
+    "immediate delivery": "استلام فوري", "ready to move": "جاهز للاستلام",
+  }[source.toLowerCase()];
+  if (exact) return exact;
+  return source
+    .replace(/delivery\s+in\s+(\d+)\s+years?/gi, "الاستلام خلال $1 سنوات")
+    .replace(/(\d+)\s+years?/gi, "$1 سنوات")
+    .replace(/(\d+)\s+bedrooms?/gi, "$1 غرف نوم")
+    .replace(/\bstandalone villa\b/gi, "فيلا مستقلة")
+    .replace(/\btwin house\b/gi, "توين هاوس")
+    .replace(/\btown\s*house\b/gi, "تاون هاوس")
+    .replace(/\bapartment\b/gi, "شقة")
+    .replace(/\bpenthouse\b/gi, "بنتهاوس")
+    .replace(/\bduplex\b/gi, "دوبلكس")
+    .replace(/\bchalet\b/gi, "شاليه")
+    .replace(/\bcore\s*(?:&|and)\s*shell\b/gi, "نصف تشطيب")
+    .replace(/\bfully finished\b/gi, "تشطيب كامل");
+}
+
 function slugify(value) {
   return text(value)
     .toLowerCase()
@@ -63,7 +91,7 @@ function removeTag(html, expression) {
   return html.replace(expression, "");
 }
 
-function pageShell(shell, { title, description, canonical, image, keywords, schemas, body }) {
+function pageShell(shell, { title, description, canonical, image, keywords, schemas, body, robots = "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1", alternates = [] }) {
   let html = shell;
   html = removeTag(html, /<title>[\s\S]*?<\/title>/i);
   html = removeTag(html, /<meta\s+name=["']description["'][\s\S]*?\/?\s*>/i);
@@ -78,10 +106,11 @@ function pageShell(shell, { title, description, canonical, image, keywords, sche
   const head = [
     `<title>${escapeHtml(title)}</title>`,
     `<meta name="description" content="${escapeHtml(description)}">`,
-    `<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">`,
+    `<meta name="robots" content="${escapeHtml(robots)}">`,
     keywords.length ? `<meta name="keywords" content="${escapeHtml(keywords.join(", "))}">` : "",
     `<link rel="canonical" href="${escapeHtml(canonical)}">`,
     `<link rel="alternate" hreflang="ar-EG" href="${escapeHtml(canonical)}">`,
+    ...alternates.map(({ hreflang, href }) => `<link rel="alternate" hreflang="${escapeHtml(hreflang)}" href="${escapeHtml(href)}">`),
     `<link rel="alternate" hreflang="x-default" href="${escapeHtml(canonical)}">`,
     `<meta property="og:type" content="article">`,
     `<meta property="og:site_name" content="Tycoons Investments">`,
@@ -146,7 +175,7 @@ function renderProjectStatic(shell, project, projectUnits) {
   ${article.length ? article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#5c6a62]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join("") : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
   ${faq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(project.name)}</h2>${faq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#5c6a62]">${escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea))}</p></details>`).join("")}</section>` : ""}
   </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white"><p class="text-sm text-white/55">الأسعار تبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(minPrice)} جنيه</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a></aside></div></section>
-  <section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات المتاحة</h2><div class="mt-8 grid gap-5 md:grid-cols-2">${units.map((unit) => `<article class="rounded-3xl border border-[#e0d3bb] bg-white p-6"><h3 class="text-xl font-extrabold">${escapeHtml(text(unit.unit_type))} ${escapeHtml(text(unit.bedrooms_text))}</h3><p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه</p><a href="/units/${escapeHtml(unit.id)}" class="mt-4 inline-block font-bold text-[#8a6630]">تفاصيل الوحدة</a></article>`).join("")}</div></div></section>
+  <section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات المتاحة</h2><div class="mt-8 grid gap-5 md:grid-cols-2">${units.map((unit) => `<article class="rounded-3xl border border-[#e0d3bb] bg-white p-6"><h3 class="text-xl font-extrabold">${escapeHtml(arabicField(unit.unit_type))} ${escapeHtml(arabicField(unit.bedrooms_text))}</h3><p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه</p><a href="/units/${escapeHtml(unit.id)}" class="mt-4 inline-block font-bold text-[#8a6630]">تفاصيل الوحدة</a></article>`).join("")}</div></div></section>
   </main>`;
 
   const schemas = [
@@ -198,22 +227,25 @@ function renderProjectStatic(shell, project, projectUnits) {
     keywords: arrayValue(project.seo_keywords).map(text).filter(Boolean),
     schemas,
     body,
+    alternates: [{ hreflang: "en", href: `${SITE_URL}/en/projects/${project.slug}` }],
   });
 }
 
-function renderUnitStatic(shell, unit, project) {
+function renderUnitStatic(shell, unit, project, { indexable = true } = {}) {
   const canonical = `${SITE_URL}/units/${unit.id}`;
   const projectUrl = `${SITE_URL}/projects/${project.slug}`;
-  const title = `${text(unit.unit_type)} ${numberValue(unit.area_sqm)} م² في ${text(unit.project_name)} | Tycoons`;
-  const description = `${text(unit.unit_type)} في ${text(unit.project_name)} بسعر يبدأ من ${formatPrice(unit.starting_price)} جنيه. اعرف المساحة وخطة السداد والتشطيب.`;
+  const unitType = arabicField(unit.unit_type);
+  const bedrooms = arabicField(unit.bedrooms_text);
+  const title = `${unitType}${bedrooms ? ` ${bedrooms}` : ""} ${numberValue(unit.area_sqm)} م² في ${text(unit.project_name)} | Tycoons`;
+  const description = `${unitType} في ${text(unit.project_name)} بسعر يبدأ من ${formatPrice(unit.starting_price)} جنيه. اعرف المساحة وخطة السداد والتشطيب.`;
   const imageList = urls(unit.image_url, unit.gallery_urls);
-  const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]"><header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto flex max-w-7xl justify-between"><a href="/" class="font-extrabold">TYCOONS INVESTMENTS</a><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(unit.project_name)}</a></nav></header><section class="bg-[#0d1f18] px-5 pb-12 pt-16 text-white"><div class="mx-auto max-w-7xl"><p class="text-[#d9b87c]">${escapeHtml(unit.developer)} · ${escapeHtml(unit.location)}</p><h1 class="mt-5 text-4xl font-extrabold sm:text-5xl">${escapeHtml(unit.unit_type)} ${escapeHtml(unit.area_sqm)} م² في ${escapeHtml(unit.project_name)}</h1></div></section>${imageList[0] ? `<section class="bg-[#0d1f18] px-5 pb-12"><img src="${escapeHtml(imageList[0])}" alt="${escapeHtml(title)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-cover"></section>` : ""}<section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-8 lg:grid-cols-[1fr_0.75fr]"><article><h2 class="text-3xl font-extrabold">تفاصيل الوحدة</h2><p class="mt-5 leading-loose text-[#5c6a62]">${escapeHtml(text(unit.description) || description)}</p><dl class="mt-8 grid gap-4 sm:grid-cols-2"><div class="rounded-2xl border bg-white p-5"><dt>المساحة</dt><dd class="font-bold">${escapeHtml(unit.area_sqm)} م²</dd></div><div class="rounded-2xl border bg-white p-5"><dt>التشطيب</dt><dd class="font-bold">${escapeHtml(text(unit.finishing))}</dd></div><div class="rounded-2xl border bg-white p-5"><dt>السداد</dt><dd class="font-bold">${escapeHtml(text(unit.installments_text))}</dd></div><div class="rounded-2xl border bg-white p-5"><dt>الاستلام</dt><dd class="font-bold">${escapeHtml(text(unit.delivery_text))}</dd></div></dl></article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white"><p>السعر يبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(unit.starting_price)} جنيه</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a><br><a href="/projects/${escapeHtml(project.slug)}" class="mt-6 inline-block text-[#d9b87c]">شوف المشروع بالكامل</a></aside></div></section></main>`;
+  const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]"><header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto flex max-w-7xl justify-between"><a href="/" class="font-extrabold">TYCOONS INVESTMENTS</a><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(unit.project_name)}</a></nav></header><section class="bg-[#0d1f18] px-5 pb-12 pt-16 text-white"><div class="mx-auto max-w-7xl"><p class="text-[#d9b87c]">${escapeHtml(unit.developer)} · ${escapeHtml(unit.location)}</p><h1 class="mt-5 text-4xl font-extrabold sm:text-5xl">${escapeHtml(unitType)} ${escapeHtml(unit.area_sqm)} م² في ${escapeHtml(unit.project_name)}</h1></div></section>${imageList[0] ? `<section class="bg-[#0d1f18] px-5 pb-12"><img src="${escapeHtml(imageList[0])}" alt="${escapeHtml(title)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-cover"></section>` : ""}<section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-8 lg:grid-cols-[1fr_0.75fr]"><article><h2 class="text-3xl font-extrabold">تفاصيل الوحدة</h2><p class="mt-5 leading-loose text-[#5c6a62]">${escapeHtml(text(unit.description) || description)}</p><dl class="mt-8 grid gap-4 sm:grid-cols-2"><div class="rounded-2xl border bg-white p-5"><dt>المساحة</dt><dd class="font-bold">${escapeHtml(unit.area_sqm)} م²</dd></div><div class="rounded-2xl border bg-white p-5"><dt>التشطيب</dt><dd class="font-bold">${escapeHtml(arabicField(unit.finishing))}</dd></div><div class="rounded-2xl border bg-white p-5"><dt>السداد</dt><dd class="font-bold">${escapeHtml(arabicField(unit.installments_text))}</dd></div><div class="rounded-2xl border bg-white p-5"><dt>الاستلام</dt><dd class="font-bold">${escapeHtml(arabicField(unit.delivery_text))}</dd></div></dl></article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white"><p>السعر يبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(unit.starting_price)} جنيه</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a><br><a href="/projects/${escapeHtml(project.slug)}" class="mt-6 inline-block text-[#d9b87c]">شوف المشروع بالكامل</a></aside></div></section></main>`;
   const schemas = [
     {
       "@type": "RealEstateListing",
       "@id": `${canonical}#listing`,
       url: canonical,
-      name: `${unit.unit_type} في ${unit.project_name}`,
+      name: `${unitType} في ${unit.project_name}`,
       description,
       image: imageList,
       dateModified: unit.last_updated_at,
@@ -225,11 +257,22 @@ function renderUnitStatic(shell, unit, project) {
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "الرئيسية", item: SITE_URL },
         { "@type": "ListItem", position: 2, name: unit.project_name, item: projectUrl },
-        { "@type": "ListItem", position: 3, name: unit.unit_type, item: canonical },
+        { "@type": "ListItem", position: 3, name: unitType, item: canonical },
       ],
     },
   ];
-  return pageShell(shell, { title, description, canonical, image: imageList[0] || "", keywords: [], schemas, body });
+  return pageShell(shell, {
+    title,
+    description,
+    canonical,
+    image: imageList[0] || "",
+    keywords: [],
+    schemas,
+    body,
+    robots: indexable
+      ? "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+      : "noindex,follow",
+  });
 }
 
 module.exports = { renderProjectStatic, renderUnitStatic, escapeHtml };
