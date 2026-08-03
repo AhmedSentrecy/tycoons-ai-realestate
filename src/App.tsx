@@ -7,6 +7,7 @@ const ProjectPage = lazy(() => import('./pages/ProjectPage'))
 const UnitPage = lazy(() => import('./pages/UnitPage'))
 const FaqPage = lazy(() => import('./pages/FaqPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
+const SearchPage = lazy(() => import('./pages/SearchPage'))
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/regions/:slug" element={<RegionPage />} />
         <Route path="/faq" element={<FaqPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/search" element={<SearchPage />} />
       </Routes>
     </Suspense>
   )
