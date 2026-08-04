@@ -54,8 +54,16 @@ export default function Footer() {
         <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#14352a] text-lg font-bold text-[#e8d5ae]">
-                T
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#14352a]">
+                <img
+                  src="/images/logo-badge-gold.png"
+                  alt="Tycoons Investments"
+                  width={256}
+                  height={256}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-6 w-6 object-contain"
+                />
               </span>
               <span className="leading-tight">
                 <span className="block text-[15px] font-bold tracking-[0.18em] text-white">TYCOONS</span>

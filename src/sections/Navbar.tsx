@@ -33,11 +33,18 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3">
           <span
-            className={`grid h-10 w-10 place-items-center rounded-xl text-lg font-bold transition-colors ${
-              scrolled ? "bg-[#14352a] text-[#e8d5ae]" : "glass text-[#e8d5ae]"
+            className={`grid h-10 w-10 place-items-center rounded-xl transition-colors ${
+              scrolled ? "bg-[#14352a]" : "glass"
             }`}
           >
-            T
+            <img
+              src="/images/logo-badge-gold.png"
+              alt="Tycoons Investments"
+              width={256}
+              height={256}
+              decoding="async"
+              className="h-6 w-6 object-contain"
+            />
           </span>
           <span className="leading-tight">
             <span
