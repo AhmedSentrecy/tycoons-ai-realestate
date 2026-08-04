@@ -88,7 +88,7 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           <a
             href="/en/"
-            hreflang="en"
+            hrefLang="en"
             lang="en"
             aria-label="English project directory"
             className={`hidden rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-colors sm:block ${
