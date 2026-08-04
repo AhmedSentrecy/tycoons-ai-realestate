@@ -171,10 +171,22 @@
     Access-Control-Allow-Origin = "*"
     Cache-Control = "public, max-age=300, must-revalidate"
 
-# Duplicate project URL consolidated onto the canonical slug.
+# Duplicate project URLs consolidated onto the canonical slugs.
 [[redirects]]
   from = "/projects/mountain-view-grand-valleys--mountain-view"
   to = "/projects/grand-valleys--mountain-view"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/projects/mindset--lmd"
+  to = "/projects/mindset-residences--lmd"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/projects/n-line-nest-residence--n-developments"
+  to = "/projects/nest--n-developments"
   status = 301
   force = true
 
