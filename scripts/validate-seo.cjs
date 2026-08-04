@@ -107,10 +107,17 @@ assert.doesNotMatch(
   "Locale slash redirects must stay removed to prevent redirect loops",
 );
 assert.match(netlify, /from = "\/projects\/\*"\s+to = "\/404\.html"\s+status = 404/);
-assert.match(netlify, /from = "\/regions\/\*"\s+to = "\/404\.html"\s+status = 404/);
+assert.match(
+  netlify,
+  /from = "\/regions\/\*"\s+to = "\/ar\/areas\/:splat"\s+status = 301\s+force = true/,
+  "Retired region URLs must 301 to their canonical area pages, never 404",
+);
+assert.match(netlify, /from = "\/regions\/sahel"\s+to = "\/ar\/areas\/north-coast"\s+status = 301/);
+assert.match(netlify, /from = "\/regions\/capital"\s+to = "\/ar\/areas\/new-capital"\s+status = 301/);
 assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/);
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
-assert.match(index, /<h1>قارن المشاريع والوحدات العقارية/);
+assert.match(index, /<h1>ابحث بصوتك/);
+assert.match(index, /<h2>قارن المشاريع والوحدات العقارية/);
 assert.match(robots, /OAI-SearchBot/);
 assert.match(robots, /https:\/\/tycoons-inv\.com\/sitemap\.xml/);
 assert.match(sitemap, /SITE_URL}\/projects\/\${projectSlug}/);
