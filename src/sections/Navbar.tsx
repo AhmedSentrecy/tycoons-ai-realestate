@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 
 const links = [
-  { label: "الرئيسية", to: "/" },
-  { label: "المناطق", to: "/regions/sahel" },
-  { label: "من نحن", to: "/about" },
-  { label: "الأسئلة الشائعة", to: "/faq" },
+  { label: "الرئيسية", to: "/", external: false },
+  { label: "دليل المشاريع", to: "/ar/", external: true },
+  { label: "من نحن", to: "/about", external: false },
+  { label: "الأسئلة الشائعة", to: "/faq", external: false },
 ];
 
 export default function Navbar() {
@@ -59,28 +59,44 @@ export default function Navbar() {
 
         {/* Links */}
         <nav className="hidden items-center gap-8 lg:flex">
-          {links.map((l) => (
-            <Link
-              key={l.to}
-              to={l.to}
-              className={`text-sm font-medium transition-colors hover:text-[#c49b5f] ${
-                scrolled ? "text-[#3d4a43]" : "text-white/85"
-              }`}
-            >
-              {l.label}
-            </Link>
-          ))}
+          {links.map((l) =>
+            l.external ? (
+              <a
+                key={l.to}
+                href={l.to}
+                className={`text-sm font-medium transition-colors hover:text-[#c49b5f] ${
+                  scrolled ? "text-[#3d4a43]" : "text-white/85"
+                }`}
+              >
+                {l.label}
+              </a>
+            ) : (
+              <Link
+                key={l.to}
+                to={l.to}
+                className={`text-sm font-medium transition-colors hover:text-[#c49b5f] ${
+                  scrolled ? "text-[#3d4a43]" : "text-white/85"
+                }`}
+              >
+                {l.label}
+              </Link>
+            )
+          )}
         </nav>
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <button
+          <a
+            href="/en/"
+            hreflang="en"
+            lang="en"
+            aria-label="English project directory"
             className={`hidden rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-colors sm:block ${
               scrolled ? "bg-[#ece3d0] text-[#5c4f33]" : "glass text-white/90"
             }`}
           >
             EN
-          </button>
+          </a>
           <a
             href="https://wa.me/201200704344"
             target="_blank"

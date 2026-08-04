@@ -1,5 +1,6 @@
 export interface Region {
   slug: string;
+  areaSlug: string;
   name: string;
   count: string;
   image: string;
@@ -13,6 +14,7 @@ export interface Region {
 export const regions: Region[] = [
   {
     slug: "sahel",
+    areaSlug: "north-coast",
     name: "الساحل الشمالي",
     count: "شوف المتاح المحدث",
     image: "/images/region-sahel.webp",
@@ -51,6 +53,7 @@ export const regions: Region[] = [
   },
   {
     slug: "new-cairo",
+    areaSlug: "new-cairo",
     name: "التجمع / القاهرة الجديدة",
     count: "شوف المتاح المحدث",
     image: "/images/region-newcairo.webp",
@@ -89,6 +92,7 @@ export const regions: Region[] = [
   },
   {
     slug: "zayed",
+    areaSlug: "sheikh-zayed",
     name: "الشيخ زايد",
     count: "شوف المتاح المحدث",
     image: "/images/region-zayed.webp",
@@ -127,6 +131,7 @@ export const regions: Region[] = [
   },
   {
     slug: "sokhna",
+    areaSlug: "ain-sokhna",
     name: "العين السخنة",
     count: "شوف المتاح المحدث",
     image: "/images/region-sokhna.webp",
@@ -165,6 +170,7 @@ export const regions: Region[] = [
   },
   {
     slug: "capital",
+    areaSlug: "new-capital",
     name: "العاصمة الإدارية",
     count: "شوف المتاح المحدث",
     image: "/images/region-capital.webp",

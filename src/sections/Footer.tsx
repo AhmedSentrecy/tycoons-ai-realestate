@@ -99,12 +99,12 @@ export default function Footer() {
             <ul className="space-y-3.5">
               {regions.map((r) => (
                 <li key={r.slug}>
-                  <Link
-                    to={`/regions/${r.slug}`}
+                  <a
+                    href={`/ar/areas/${r.areaSlug}`}
                     className="text-sm font-light text-white/55 transition-colors hover:text-white"
                   >
                     {r.name}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>

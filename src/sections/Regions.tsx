@@ -1,15 +1,14 @@
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const regions = [
-  { name: "الساحل الشمالي", count: "١٣٧ مشروع متاح", image: "/images/region-sahel.webp", slug: "sahel", wide: true },
-  { name: "التجمع / القاهرة الجديدة", count: "٣١٤ مشروع متاح", image: "/images/region-newcairo.webp", slug: "new-cairo", wide: false },
-  { name: "الشيخ زايد", count: "١٤٩ مشروع متاح", image: "/images/region-zayed.webp", slug: "zayed", wide: false },
-  { name: "العين السخنة", count: "٧ مشاريع متاحة", image: "/images/region-sokhna.webp", slug: "sokhna", wide: false },
-  { name: "العاصمة الإدارية", count: "٣٧ مشروع متاح", image: "/images/region-capital.webp", slug: "capital", wide: false },
+  { name: "الساحل الشمالي", count: "شوف المتاح المحدث", image: "/images/region-sahel.webp", areaSlug: "north-coast", wide: true },
+  { name: "التجمع / القاهرة الجديدة", count: "شوف المتاح المحدث", image: "/images/region-newcairo.webp", areaSlug: "new-cairo", wide: false },
+  { name: "الشيخ زايد", count: "شوف المتاح المحدث", image: "/images/region-zayed.webp", areaSlug: "sheikh-zayed", wide: false },
+  { name: "العين السخنة", count: "شوف المتاح المحدث", image: "/images/region-sokhna.webp", areaSlug: "ain-sokhna", wide: false },
+  { name: "العاصمة الإدارية", count: "شوف المتاح المحدث", image: "/images/region-capital.webp", areaSlug: "new-capital", wide: false },
 ];
 
 export default function Regions() {
@@ -43,8 +42,8 @@ export default function Regions() {
               transition={{ duration: 0.75, delay: i * 0.1, ease }}
               className={r.wide ? "sm:col-span-2 lg:row-span-2 lg:h-full" : ""}
             >
-              <Link
-                to={`/regions/${r.slug}`}
+              <a
+                href={`/ar/areas/${r.areaSlug}`}
                 className={`group relative block overflow-hidden rounded-3xl ${
                   r.wide ? "min-h-[280px] lg:h-full lg:min-h-[560px]" : "min-h-[260px]"
                 }`}
@@ -67,7 +66,7 @@ export default function Regions() {
                     <ArrowLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-0.5" />
                   </span>
                 </div>
-              </Link>
+              </a>
             </motion.div>
           ))}
         </div>
