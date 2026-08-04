@@ -74,6 +74,10 @@ export default function AboutSection() {
             <img
               src="/images/project-villa.webp"
               alt="كمباوند فاخر في القاهرة الجديدة"
+              width={1012}
+              height={733}
+              loading="lazy"
+              decoding="async"
               className="aspect-[4/5] w-full object-cover"
             />
           </div>

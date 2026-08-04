@@ -80,6 +80,10 @@ export default function Hero() {
       <motion.img
         src="/images/hero.webp"
         alt="فيلا فاخرة على الساحل الشمالي"
+        width={1767}
+        height={1080}
+        decoding="async"
+        {...({ fetchpriority: "high" } as Record<string, string>)}
         initial={{ scale: 1.12 }}
         animate={{ scale: 1 }}
         transition={{ duration: 2.2, ease }}

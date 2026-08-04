@@ -51,6 +51,10 @@ export default function Regions() {
                 <img
                   src={r.image}
                   alt={r.name}
+                  width={1012}
+                  height={733}
+                  loading="lazy"
+                  decoding="async"
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.08]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a140f]/85 via-[#0a140f]/15 to-transparent transition-opacity duration-500 group-hover:from-[#0a140f]/90" />
