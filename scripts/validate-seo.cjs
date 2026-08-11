@@ -112,6 +112,48 @@ assert.notEqual(
 );
 assert.equal(renderUnit(projects, "does-not-exist", "ar"), null);
 
+// Regression test for the /en/projects/* 404 bug: units.project_name/developer are free-text
+// copies that can drift from the canonical projects table after a rename or merge (this
+// happened for real with "Mindset Residences" -> "Mindset"). groupProjects must key off the
+// real projects.slug via project_id, not text derived from the unit row, and must still create
+// a page for projects with zero currently-available units instead of making them disappear.
+const projectsMeta = [
+  { id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", name: "Mountain View Aliva", slug: "mountain-view-aliva--mountain-view", developer: "Mountain View", location: "Mostakbal City" },
+  { id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", name: "Skyline Residences", slug: "skyline-residences--skyline-dev", developer: "Skyline Dev", location: "New Cairo" },
+];
+const driftedRows = [
+  ...rows,
+  // Same project_id as the first project, but the unit's own project_name text has drifted
+  // (e.g. renamed in the projects table without updating this row) — must still resolve to
+  // the canonical slug from projectsMeta, not a slug computed from this stale text.
+  {
+    id: "33333333-3333-3333-3333-333333333333",
+    project_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    project_name: "Aliva Old Name",
+    developer: "Mountain View",
+    location: "Mostakbal City",
+    unit_type: "Apartment",
+    bedrooms_text: "1 bedroom",
+    area_sqm: 90,
+    starting_price: 8000000,
+    availability_status: "available",
+    last_updated_at: "2026-07-26T00:00:00Z",
+  },
+];
+const projectsWithMeta = groupProjects(driftedRows, projectsMeta);
+assert.equal(
+  projectsWithMeta.find((p) => p.name === "Mountain View Aliva")?.slug,
+  "mountain-view-aliva--mountain-view",
+  "a unit's stale project_name text must not override the canonical projects.slug",
+);
+const zeroUnitProject = projectsWithMeta.find((p) => p.slug === "skyline-residences--skyline-dev");
+assert.ok(zeroUnitProject, "a project with zero currently-available units must still get a group instead of disappearing");
+assert.equal(zeroUnitProject.units.length, 0);
+const zeroUnitEnglish = renderProject(projectsWithMeta, "skyline-residences--skyline-dev", "en");
+assert.ok(zeroUnitEnglish, "renderProject must not return null for a project with zero available units");
+assert.match(zeroUnitEnglish, /Contact us for the latest price|No units with detailed pricing are published/);
+assert.doesNotMatch(zeroUnitEnglish, /NaN|Infinity/);
+
 const netlify = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const robots = fs.readFileSync(path.join(root, "public/robots.txt"), "utf8");

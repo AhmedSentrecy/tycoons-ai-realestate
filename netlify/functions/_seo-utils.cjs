@@ -205,6 +205,7 @@ const GUIDES = {
 };
 
 let cache = { units: null, fetchedAt: 0 };
+let projectsCache = { projects: null, fetchedAt: 0 };
 
 function normalize(value) {
   return String(value || "")
@@ -329,21 +330,71 @@ async function fetchUnits() {
   }
 }
 
-function groupProjects(units) {
+async function fetchProjectsMeta() {
+  if (projectsCache.projects && Date.now() - projectsCache.fetchedAt < 15 * 60 * 1000) return projectsCache.projects;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8500);
+  try {
+    const params = new URLSearchParams({ select: "id,name,slug,developer,location", limit: "1000" });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/projects?${params}`, {
+      headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`projects ${response.status}`);
+    const rows = await response.json();
+    if (!Array.isArray(rows)) throw new Error("projects invalid");
+    projectsCache = { projects: rows, fetchedAt: Date.now() };
+    return rows;
+  } catch (error) {
+    if (projectsCache.projects) return projectsCache.projects;
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// `units.project_name`/`units.developer` are free-text copies that can drift from the
+// canonical `projects` table (renames, merges). When project metadata is available we key
+// groups by the real `projects.slug` (via `unit.project_id`) so every project — including
+// ones with zero currently-available units — gets a stable page instead of a slug computed
+// from possibly-stale text, which silently 404s pages like /en/projects/<slug>.
+function groupProjects(units, projectsMeta = []) {
   const grouped = new Map();
+  const metaById = new Map();
+  for (const meta of projectsMeta) {
+    const slug = clean(meta.slug, "");
+    if (!slug || !meta.id) continue;
+    metaById.set(meta.id, { ...meta, slug });
+    if (!grouped.has(slug)) {
+      grouped.set(slug, {
+        slug,
+        name: clean(meta.name, ""),
+        developer: clean(meta.developer, "Tycoons verified developer"),
+        location: clean(meta.location, ""),
+        units: [],
+      });
+    }
+  }
   for (const unit of units) {
+    const meta = unit.project_id ? metaById.get(unit.project_id) : null;
+    if (meta) {
+      grouped.get(meta.slug).units.push(unit);
+      continue;
+    }
+    // Fallback for units without a resolvable project_id (or when project metadata failed
+    // to load): keep the legacy text-derived grouping so nothing silently disappears.
     const name = clean(unit.project_name, "");
     const developer = clean(unit.developer, "Tycoons verified developer");
     if (!name || numberValue(unit.starting_price) <= 0) continue;
     const slug = projectSlug(name, developer);
-    if (!grouped.has(slug)) grouped.set(slug, { slug, name, developer, units: [] });
+    if (!grouped.has(slug)) grouped.set(slug, { slug, name, developer, location: "", units: [] });
     grouped.get(slug).units.push(unit);
   }
   return [...grouped.values()];
 }
 
 function projectLocation(project) {
-  return clean(project.units.find((unit) => unit.location)?.location, "Egypt");
+  return clean(project.location, "") || clean(project.units.find((unit) => unit.location)?.location, "Egypt");
 }
 
 function projectImage(project) {
@@ -351,11 +402,13 @@ function projectImage(project) {
 }
 
 function projectMinPrice(project) {
-  return Math.min(...project.units.map((unit) => numberValue(unit.starting_price)).filter(Boolean));
+  const prices = project.units.map((unit) => numberValue(unit.starting_price)).filter(Boolean);
+  return prices.length ? Math.min(...prices) : 0;
 }
 
 function projectMaxPrice(project) {
-  return Math.max(...project.units.map((unit) => numberValue(unit.starting_price)).filter(Boolean));
+  const prices = project.units.map((unit) => numberValue(unit.starting_price)).filter(Boolean);
+  return prices.length ? Math.max(...prices) : 0;
 }
 
 function projectLastUpdated(project) {
@@ -540,17 +593,23 @@ function renderProject(projects, slug, lang) {
   const message = encodeURIComponent(
     `Hello Tycoons Investments,\nI am interested in this project:\n\nProject: ${project.name}\nDeveloper: ${project.developer}\nLocation: ${location}\nStarting price: ${formatPrice(projectMinPrice(project), "en")}\nStatus: Available\n\nURL: ${SITE_URL}${path}\n\nPlease send me available options and details.\n\nSource: project_page\nPage: ${SITE_URL}${path}`,
   );
+  const minPrice = projectMinPrice(project);
+  const hasUnits = units.length > 0;
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
   <section class="hero"><span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
   ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:cover;border-radius:20px" fetchpriority="high">` : ""}
-  <div class="facts"><div class="fact"><small>${ar ? "يبدأ من" : "Starting from"}</small><strong>${escapeHtml(formatPrice(projectMinPrice(project), lang))}</strong></div>
+  <div class="facts">${hasUnits ? `<div class="fact"><small>${ar ? "يبدأ من" : "Starting from"}</small><strong>${escapeHtml(formatPrice(minPrice, lang))}</strong></div>
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
-  <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>
+  <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
   <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث Availability" : "Request current availability"}</a></section>
-  <h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2><div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
+  <h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2>${
+    hasUnits
+      ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
   ${units.map((unit) => `<tr><td>${escapeHtml(clean(unit.unit_type))}</td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${escapeHtml(clean(unit.down_payment_text))}</td><td>${escapeHtml(clean(unit.installments_text))}</td><td>${escapeHtml(clean(unit.delivery_text))}</td></tr>`).join("")}
-  </tbody></table></div><p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p></main>`;
+  </tbody></table></div>`
+      : `<p class="note">${ar ? `لا توجد وحدات منشورة بأسعار تفصيلية لـ${project.name} حاليًا. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من ${project.developer}.` : `No units with detailed pricing are published for ${project.name} right now. Message us on WhatsApp and we'll send the latest price list and payment plans from ${project.developer}.`}</p>`
+  }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p></main>`;
   return renderPage({
     lang,
     title: `${project.name} | ${project.developer} | Tycoons Investments`,
@@ -1036,6 +1095,7 @@ module.exports = {
   slugify,
   areaFor,
   fetchUnits,
+  fetchProjectsMeta,
   groupProjects,
   projectLocation,
   projectLastUpdated,

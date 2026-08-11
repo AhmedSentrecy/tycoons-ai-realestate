@@ -37,10 +37,73 @@
   status = 301
   force = true
 
+# Retired/renamed project slugs found 404ing in GSC (Aug 2026): the developer or slug changed
+# in the projects table but old inbound/crawled links still point at the old slug.
+[[redirects]]
+  from = "/en/projects/covaya--roya-developments"
+  to = "/en/projects/covaya--pre-group"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/projects/regents-square--al-dawlia-boutique-developments"
+  to = "/en/projects/regent-s-square--al-dawlia-developments"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/en/projects/*"
   to = "/.netlify/functions/seo-page?lang=en&type=project&slug=:splat"
   status = 200
+
+# Retired area slugs (renamed to their current canonical slug) still surfacing in GSC.
+[[redirects]]
+  from = "/ar/areas/sodic-west-west-cairo"
+  to = "/ar/areas/sheikh-zayed"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/areas/sodic-west-west-cairo"
+  to = "/en/areas/sheikh-zayed"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/new-zayed"
+  to = "/ar/areas/sheikh-zayed"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/areas/new-zayed"
+  to = "/en/areas/sheikh-zayed"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/6th-of-october-city"
+  to = "/ar/areas/october"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/areas/6th-of-october-city"
+  to = "/en/areas/october"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/east-cairo"
+  to = "/ar/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/areas/east-cairo"
+  to = "/en/areas/new-cairo"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/ar/areas/*"
@@ -61,6 +124,25 @@
   from = "/en/developers/*"
   to = "/.netlify/functions/seo-page?lang=en&type=developer&slug=:splat"
   status = 200
+
+# Retired guide slugs (renamed to their current canonical slug) still surfacing in GSC.
+[[redirects]]
+  from = "/guides/new-cairo-prices-2026/*"
+  to = "/guides/new-cairo-property-prices/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/guides/egypt-real-estate-investment-2026/*"
+  to = "/guides/real-estate-investment-egypt/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/guides/north-coast-buying-guide/*"
+  to = "/guides/north-coast-chalet-guide/"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/guides/*"

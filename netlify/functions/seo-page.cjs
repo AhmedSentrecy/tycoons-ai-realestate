@@ -3,6 +3,7 @@
 const {
   CACHE_HEADERS,
   fetchUnits,
+  fetchProjectsMeta,
   groupProjects,
   renderDirectory,
   renderProject,
@@ -55,7 +56,8 @@ exports.handler = async function handler(event) {
     if (type === "guide") html = renderGuide(slug);
     if (type === "static") html = renderStaticPage(slug);
     if (!["guide", "static"].includes(type)) {
-      const projects = groupProjects(await fetchUnits());
+      const [units, projectsMeta] = await Promise.all([fetchUnits(), fetchProjectsMeta()]);
+      const projects = groupProjects(units, projectsMeta);
       if (type === "home") html = renderDirectory(projects, lang);
       if (type === "project") html = renderProject(projects, slug, lang);
       if (type === "unit") html = renderUnit(projects, slug, "ar");
