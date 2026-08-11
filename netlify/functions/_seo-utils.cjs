@@ -433,6 +433,17 @@ function organizationSchema() {
     },
     image: `${SITE_URL}/images/hero.webp`,
     telephone: `+${WHATSAPP_NUMBER}`,
+    // NAP: this address string must stay byte-identical to the Google Business
+    // Profile listing. Changing it here without changing it there weakens the
+    // local signal.
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Hyde Park Business District, Office 14, Fifth Settlement",
+      addressLocality: "New Cairo",
+      addressRegion: "Cairo",
+      postalCode: "11835",
+      addressCountry: "EG",
+    },
     sameAs: [
       "https://www.facebook.com/tycoonsinvestments/",
       "https://www.instagram.com/tycoonsinvestment/",

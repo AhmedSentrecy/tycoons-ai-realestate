@@ -205,6 +205,13 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), geolocation=(), payment=()"
+    # WebMCP origin trial (first-party, subdomain matching). Sent on every path
+    # so it covers all three render paths: the SPA shell, the build-time static
+    # pages, and the Netlify function SSR pages.
+    # EXPIRES 2026-11-17 — renew at https://developer.chrome.com/origintrials
+    # The trial itself ends at Chrome 156; after that this header is dead weight
+    # and the tools work (or don't) on the shipped API instead.
+    Origin-Trial = "AmpXSEf7Y8P74TL7LNDacHR1HCFqxWD8b+1Xcpu6qGauLOjANuz1I4fpiDLBAJayEjVj5IcYSStodi0/o8xAFwwAAABieyJvcmlnaW4iOiJodHRwczovL3R5Y29vbnMtaW52LmNvbTo0NDMiLCJmZWF0dXJlIjoiV2ViTUNQIiwiZXhwaXJ5IjoxNzk0ODczNjAwLCJpc1N1YmRvbWFpbiI6dHJ1ZX0="
 
 [[headers]]
   for = "/"
