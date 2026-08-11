@@ -67,9 +67,10 @@ async function main() {
   for (const unit of units) {
     const project = projectById.get(unit.project_id);
     if (!project) continue;
+    const siblings = (unitsByProject.get(unit.project_id) || []).filter((sibling) => sibling.id !== unit.id);
     await writePage(
       path.join("units", `${unit.id}.html`),
-      renderUnitStatic(shell, unit, project, { indexable: indexableIds.has(String(unit.id)) }),
+      renderUnitStatic(shell, unit, project, siblings, { indexable: indexableIds.has(String(unit.id)) }),
     );
     unitCount += 1;
   }

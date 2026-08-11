@@ -84,8 +84,124 @@ function areaSlug(location) {
   if (/sokhna|galala/.test(value)) return "ain-sokhna";
   if (/zayed/.test(value)) return "sheikh-zayed";
   if (/new capital|administrative capital/.test(value)) return "new-capital";
+  if (/october/.test(value)) return "october";
+  if (/alamein/.test(value)) return "new-alamein";
   return slugify(location);
 }
+
+const AREA_NAMES = {
+  "mostakbal-city": "مستقبل سيتي",
+  "new-alamein": "العلمين الجديدة",
+  "new-cairo": "القاهرة الجديدة والتجمع",
+  "north-coast": "الساحل الشمالي",
+  "ain-sokhna": "العين السخنة",
+  "sheikh-zayed": "الشيخ زايد",
+  "new-capital": "العاصمة الإدارية الجديدة",
+  october: "السادس من أكتوبر",
+};
+
+const AREA_FACTS = {
+  "mostakbal-city": {
+    context: "مستقبل سيتي منطقة سكنية ناشئة على امتداد طريق السويس، قريبة من مدينتي والقاهرة الجديدة، وبقت من أكتر المناطق اللي المطورين بيطلقوا فيها مشاريع جديدة في السنين الأخيرة.",
+    buyerNote: "غالبية المشاريع هنا لسه تحت الإنشاء بخطط سداد طويلة، فمراجعة سجل تسليم المطور مهمة قبل الحجز.",
+  },
+  "new-alamein": {
+    context: "العلمين الجديدة مدينة ساحلية جديدة غرب الساحل الشمالي بدعم حكومي، وفيها مشاريع سكنية دائمة مش موسمية بس زي باقي الساحل.",
+    buyerNote: "فرّق وانت بتقارن بين وحدات للسكن الدائم في العلمين الجديدة ووحدات موسمية في باقي الساحل الشمالي، لأن نمط الاستخدام والعائد المتوقع مختلف.",
+  },
+  "new-cairo": {
+    context: "القاهرة الجديدة والتجمع الخامس من أكتر مناطق شرق القاهرة اكتمالاً من ناحية الخدمات — فيها الجامعة الأمريكية بالقاهرة (AUC)، مولات زي كايرو فيستيفال سيتي، ومدارس وجامعات دولية.",
+    buyerNote: "المنطقة عليها طلب إيجاري وإعادة بيع من الأعلى في القاهرة الجديدة، خصوصاً في المشاريع المُسلَّمة أو القريبة من التسليم.",
+  },
+  "north-coast": {
+    context: "الساحل الشمالي شريط القرى السياحية على طريق الإسكندرية-مطروح، ومعظم الوحدات فيه شاليهات وفيلات موسمية بتتباع بنظام الحجز المبكر قبل الصيف.",
+    buyerNote: "افرق بين الاستخدام الشخصي والتأجير الموسمي وانت بتقارن الموقع جوه القرية والمسافة من الشاطئ، لأنها بتأثر على السعر أكتر من مساحة الوحدة نفسها.",
+  },
+  "ain-sokhna": {
+    context: "العين السخنة أقرب شاطئ للقاهرة على خليج السويس، وده بيخليها خيار شائع لشاليه ويك إند بدل رحلة الساحل الشمالي الأطول.",
+    buyerNote: "راجع مسافة القرية عن طريق السخنة السريع وجودة الخدمة الشتوية، لأن كتير من القرى بتقلل خدماتها بره موسم الصيف.",
+  },
+  "sheikh-zayed": {
+    context: "الشيخ زايد امتداد غرب القاهرة بمحاذاة أكتوبر، وفيها خليط من الكمبوندات المُسلَّمة والمشاريع الجديدة، وقريبة من مولات زي مول العرب وهايبر وان.",
+    buyerNote: "المنطقة عليها طلب سكني مستقر، فالمشاريع القريبة من المحاور الرئيسية عادة بتحافظ على سيولة إعادة بيع أعلى.",
+  },
+  "new-capital": {
+    context: "العاصمة الإدارية الجديدة مدينة قيد الإنشاء شرق القاهرة، فيها الحي الحكومي والبرج الأيقوني، ومعظم مشاريعها السكنية لسه في مراحل تسليم مبكرة أو متوسطة.",
+    buyerNote: "لأن كتير من الخدمات لسه بتتبني، قارن توقيت التسليم الفعلي للمشروع بجدول تسليم المرافق المحيطة قبل ما تعتمد على جدول المطور وحده.",
+  },
+  october: {
+    context: "السادس من أكتوبر مدينة راسخة غرب القاهرة فيها جامعات وصناعات ومناطق سكنية جاهزة، وأسعارها عادة أقل من زايد على نفس المسافة من القاهرة.",
+    buyerNote: "المشاريع الجاهزة أو القريبة من التسليم في أكتوبر عادة بتوفر بديل أرخص لمن يريد سكن غرب القاهرة بميزانية أقل من زايد.",
+  },
+};
+
+const GENERIC_AREA_FACTS = {
+  context: "المنطقة دي من مناطق العرض الحالية في قاعدة بيانات Tycoons، وبتُحدَّث بيانات المشاريع فيها باستمرار.",
+  buyerNote: "راجع قرب المشروع من الطرق الرئيسية والخدمات القائمة فعليًا قبل المقارنة بمناطق تانية.",
+};
+
+function areaInfo(location) {
+  const slug = areaSlug(location);
+  return {
+    slug,
+    ar: AREA_NAMES[slug] || text(location) || "مصر",
+    facts: AREA_FACTS[slug] || GENERIC_AREA_FACTS,
+  };
+}
+
+function hashPick(seed, length) {
+  let hash = 0;
+  const value = String(seed || "");
+  for (let i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  return length > 0 ? hash % length : 0;
+}
+
+function pick(bank, seed, salt = "") {
+  return bank[hashPick(`${seed}:${salt}`, bank.length)];
+}
+
+function unitStats(unit, siblings) {
+  const price = numberValue(unit.starting_price);
+  const area = numberValue(unit.area_sqm);
+  const siblingPrices = siblings.map((item) => numberValue(item.starting_price)).filter(Boolean);
+  const siblingAreas = siblings.map((item) => numberValue(item.area_sqm)).filter(Boolean);
+  const minPrice = siblingPrices.length ? Math.min(...siblingPrices) : price;
+  const maxPrice = siblingPrices.length ? Math.max(...siblingPrices) : price;
+  const minArea = siblingAreas.length ? Math.min(...siblingAreas) : area;
+  const maxArea = siblingAreas.length ? Math.max(...siblingAreas) : area;
+  const priceRank =
+    siblingPrices.length < 2 ? "only" : price <= minPrice * 1.02 ? "cheapest" : price >= maxPrice * 0.98 ? "priciest" : "mid";
+  const sizeRank =
+    siblingAreas.length < 2 ? "only" : area >= maxArea * 0.98 ? "largest" : area <= minArea * 1.02 ? "smallest" : "mid";
+  return { price, area, priceRank, sizeRank, siblingCount: siblings.length };
+}
+
+function rankClause(stats) {
+  const parts = [];
+  if (stats.siblingCount > 0) {
+    if (stats.priceRank === "cheapest") parts.push("من أرخص الخيارات المتاحة حاليًا في المشروع");
+    else if (stats.priceRank === "priciest") parts.push("من أعلى الوحدات سعرًا في المشروع، غالبًا لمساحة أو موقع مميز");
+    if (stats.sizeRank === "largest") parts.push("أكبر مساحة متاحة من نفس المشروع");
+    else if (stats.sizeRank === "smallest") parts.push("أصغر مساحة متاحة، خيار مناسب لميزانية أقل");
+  }
+  if (!parts.length) {
+    parts.push(
+      stats.siblingCount > 0
+        ? `واحدة من ${stats.siblingCount + 1} خيارات متاحة حاليًا في المشروع`
+        : "الخيار الوحيد الظاهر حاليًا من هذا المشروع في قاعدة بياناتنا",
+    );
+  }
+  return parts.join(" و");
+}
+
+const UNIT_INTRO_BANK = [
+  (u) => `${u.unitType} بمساحة ${u.area} م² جوه ${u.projectName} من ${u.developer}، في ${u.areaAr}. ${u.rank}. السعر يبدأ من ${u.price}، والاستلام ${u.delivery}.`,
+  (u) => `لو بتدوّر على ${u.unitType} في ${u.projectName} (${u.developer}) بمنطقة ${u.areaAr}، الوحدة دي مساحتها ${u.area} م² وسعرها يبدأ من ${u.price}. ${u.rank}.`,
+  (u) => `وحدة ${u.unitType} داخل ${u.projectName} — مشروع ${u.developer} في ${u.areaAr} — بمساحة ${u.area} م². ${u.rank}. خطة السداد: ${u.installments}.`,
+  (u) => `${u.projectName} من ${u.developer} بيقدّم ${u.unitType} بمساحة ${u.area} م² في ${u.areaAr}، سعرها يبدأ من ${u.price}. ${u.rank}.`,
+  (u) => `دي ${u.unitType} بمساحة ${u.area} م² في مشروع ${u.projectName} (${u.developer})، منطقة ${u.areaAr}. ${u.rank}. السعر يبدأ من ${u.price} والتسليم ${u.delivery}.`,
+  (u) => `وحدة من نوع ${u.unitType} في ${u.projectName}، ${u.developer}، ${u.areaAr}، بمساحة ${u.area} م² وسعر يبدأ من ${u.price}. ${u.rank}.`,
+];
 
 function removeTag(html, expression) {
   return html.replace(expression, "");
@@ -234,15 +350,69 @@ function renderProjectStatic(shell, project, projectUnits) {
   });
 }
 
-function renderUnitStatic(shell, unit, project, { indexable = true } = {}) {
+const UNIT_FAQ_PRICE_BANK = [
+  (u) => ({ q: `كام سعر ${u.unitType} في ${u.projectName}؟`, a: `السعر يبدأ من ${u.price} جنيه لـ${u.unitType} بمساحة ${u.area} م². السعر النهائي بيتحدد حسب الدور والموقع داخل المشروع، فمن الأفضل تأكيد آخر سعر قبل الحجز.` }),
+  (u) => ({ q: `هل سعر ${u.unitType} دي شامل التشطيب؟`, a: `السعر المعروض ${u.price} جنيه حسب بيانات ${u.developer}، والتشطيب ${u.finishing}. أكّد تفاصيل التشطيب والسعر النهائي مع فريق المبيعات قبل الحجز.` }),
+];
+
+const UNIT_FAQ_PLAN_BANK = [
+  (u) => ({ q: `إيه خطة السداد المتاحة؟`, a: `خطة السداد الحالية: ${u.installments}. الاستلام ${u.delivery}. الأرقام دي بتتغير من وقت للتاني حسب عروض ${u.developer}.` }),
+  (u) => ({ q: `هل ممكن أقسّط الوحدة؟`, a: `نعم، ${u.projectName} بيوفر خطة سداد (${u.installments}) مع استلام ${u.delivery}. للتفاصيل الدقيقة تواصل معنا لتأكيد آخر عرض من ${u.developer}.` }),
+];
+
+const UNIT_FAQ_AREA_BANK = [
+  (u) => ({ q: `هل ${u.areaAr} منطقة مناسبة للسكن أو الاستثمار؟`, a: u.buyerNote }),
+  (u) => ({ q: `ليه أشتري في ${u.areaAr}؟`, a: u.buyerNote }),
+];
+
+function renderUnitFaq(vars, seed) {
+  const items = [pick(UNIT_FAQ_PRICE_BANK, seed, "faq-price")(vars), pick(UNIT_FAQ_PLAN_BANK, seed, "faq-plan")(vars)];
+  if (vars.areaAr) items.push(pick(UNIT_FAQ_AREA_BANK, seed, "faq-area")(vars));
+  if (vars.siblingCount > 0) {
+    items.push({
+      q: `هل فيه وحدات تانية بديلة في ${vars.projectName}؟`,
+      a: `نعم، فيه ${vars.siblingCount} وحدة تانية متاحة حاليًا في نفس المشروع بمساحات وأسعار مختلفة — تقدر تشوفهم في قسم "بدائل قريبة" تحت.`,
+    });
+  }
+  return items;
+}
+
+function renderUnitStatic(shell, unit, project, siblings = [], { indexable = true } = {}) {
   const canonical = `${SITE_URL}/units/${unit.id}`;
   const projectUrl = `${SITE_URL}/projects/${project.slug}`;
   const unitType = arabicField(unit.unit_type);
   const bedrooms = arabicField(unit.bedrooms_text);
   const title = `${unitType}${bedrooms ? ` ${bedrooms}` : ""} ${numberValue(unit.area_sqm)} م² في ${text(unit.project_name)} | Tycoons`;
+  const area = areaInfo(unit.location || project.location);
+  const stats = unitStats(unit, siblings);
+  const rank = rankClause(stats);
+  const introVars = {
+    unitType,
+    area: numberValue(unit.area_sqm),
+    projectName: text(unit.project_name),
+    developer: text(unit.developer),
+    areaAr: area.ar,
+    price: formatPrice(unit.starting_price),
+    delivery: arabicField(unit.delivery_text) || "حسب جدول المطور",
+    installments: arabicField(unit.installments_text) || "حسب عرض المطور",
+    finishing: arabicField(unit.finishing) || "حسب المطور",
+    rank,
+    buyerNote: area.facts.buyerNote,
+    siblingCount: stats.siblingCount,
+  };
   const description = `${unitType} في ${text(unit.project_name)} بسعر يبدأ من ${formatPrice(unit.starting_price)} جنيه. اعرف المساحة وخطة السداد والتشطيب.`;
+  const intro = pick(UNIT_INTRO_BANK, unit.id, "intro")(introVars);
   const imageList = urls(unit.image_url, unit.gallery_urls);
-  const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]"><header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto flex max-w-7xl justify-between"><a href="/" class="font-extrabold">TYCOONS INVESTMENTS</a><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(unit.project_name)}</a></nav></header><section class="bg-[#0d1f18] px-5 pb-12 pt-16 text-white"><div class="mx-auto max-w-7xl"><p class="text-[#d9b87c]">${escapeHtml(unit.developer)} · ${escapeHtml(unit.location)}</p><h1 class="mt-5 text-4xl font-extrabold sm:text-5xl">${escapeHtml(unitType)} ${escapeHtml(unit.area_sqm)} م² في ${escapeHtml(unit.project_name)}</h1></div></section>${imageList[0] ? `<section class="bg-[#0d1f18] px-5 pb-12"><img src="${escapeHtml(imageList[0])}" alt="${escapeHtml(title)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-cover"></section>` : ""}<section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-8 lg:grid-cols-[1fr_0.75fr]"><article><h2 class="text-3xl font-extrabold">تفاصيل الوحدة</h2><p class="mt-5 leading-loose text-[#5c6a62]">${escapeHtml(text(unit.description) || description)}</p><dl class="mt-8 grid gap-4 sm:grid-cols-2"><div class="rounded-2xl border bg-white p-5"><dt>المساحة</dt><dd class="font-bold">${escapeHtml(unit.area_sqm)} م²</dd></div><div class="rounded-2xl border bg-white p-5"><dt>التشطيب</dt><dd class="font-bold">${escapeHtml(arabicField(unit.finishing))}</dd></div><div class="rounded-2xl border bg-white p-5"><dt>السداد</dt><dd class="font-bold">${escapeHtml(arabicField(unit.installments_text))}</dd></div><div class="rounded-2xl border bg-white p-5"><dt>الاستلام</dt><dd class="font-bold">${escapeHtml(arabicField(unit.delivery_text))}</dd></div></dl></article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white"><p>السعر يبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(unit.starting_price)} جنيه</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a><br><a href="/projects/${escapeHtml(project.slug)}" class="mt-6 inline-block text-[#d9b87c]">شوف المشروع بالكامل</a></aside></div></section></main>`;
+  const faqItems = renderUnitFaq(introVars, unit.id);
+  const alternates = siblings
+    .slice()
+    .sort((a, b) => Math.abs(numberValue(a.starting_price) - numberValue(unit.starting_price)) - Math.abs(numberValue(b.starting_price) - numberValue(unit.starting_price)))
+    .slice(0, 4);
+  const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]"><header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto flex max-w-7xl justify-between"><a href="/" class="font-extrabold">TYCOONS INVESTMENTS</a><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(unit.project_name)}</a></nav></header><section class="bg-[#0d1f18] px-5 pb-12 pt-16 text-white"><div class="mx-auto max-w-7xl"><p class="text-[#d9b87c]">${escapeHtml(unit.developer)} · ${escapeHtml(unit.location)}</p><h1 class="mt-5 text-4xl font-extrabold sm:text-5xl">${escapeHtml(unitType)} ${escapeHtml(unit.area_sqm)} م² في ${escapeHtml(unit.project_name)}</h1></div></section>${imageList[0] ? `<section class="bg-[#0d1f18] px-5 pb-12"><img src="${escapeHtml(imageList[0])}" alt="${escapeHtml(title)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-cover"></section>` : ""}<section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-8 lg:grid-cols-[1fr_0.75fr]"><article><h2 class="text-3xl font-extrabold">تفاصيل الوحدة</h2><p class="mt-5 leading-loose text-[#5c6a62]">${escapeHtml(intro)}</p><dl class="mt-8 grid gap-4 sm:grid-cols-2"><div class="rounded-2xl border bg-white p-5"><dt>المساحة</dt><dd class="font-bold">${escapeHtml(unit.area_sqm)} م²</dd></div><div class="rounded-2xl border bg-white p-5"><dt>التشطيب</dt><dd class="font-bold">${escapeHtml(arabicField(unit.finishing))}</dd></div><div class="rounded-2xl border bg-white p-5"><dt>السداد</dt><dd class="font-bold">${escapeHtml(arabicField(unit.installments_text))}</dd></div><div class="rounded-2xl border bg-white p-5"><dt>الاستلام</dt><dd class="font-bold">${escapeHtml(arabicField(unit.delivery_text))}</dd></div></dl>
+  <section class="mt-12"><h2 class="text-2xl font-extrabold">عن ${escapeHtml(area.ar)}</h2><p class="mt-4 leading-loose text-[#5c6a62]">${escapeHtml(area.facts.context)}</p><p class="mt-3 leading-loose text-[#5c6a62]">${escapeHtml(area.facts.buyerNote)}</p></section>
+  ${alternates.length ? `<section class="mt-12"><h2 class="text-2xl font-extrabold">بدائل قريبة داخل ${escapeHtml(unit.project_name)}</h2><div class="mt-5 overflow-x-auto"><table class="w-full min-w-[420px] border-collapse text-sm"><thead><tr class="border-b border-[#e0d3bb] text-right"><th class="py-2">النوع</th><th class="py-2">المساحة</th><th class="py-2">السعر</th><th class="py-2"></th></tr></thead><tbody>${alternates.map((sibling) => `<tr class="border-b border-[#efe7d8]"><td class="py-2">${escapeHtml(arabicField(sibling.unit_type))} ${escapeHtml(arabicField(sibling.bedrooms_text))}</td><td class="py-2">${escapeHtml(sibling.area_sqm)} م²</td><td class="py-2">${formatPrice(sibling.starting_price)} جنيه</td><td class="py-2"><a href="/units/${escapeHtml(sibling.id)}" class="font-bold text-[#8a6630]">التفاصيل</a></td></tr>`).join("")}</tbody></table></div></section>` : ""}
+  <section class="mt-12"><h2 class="text-2xl font-extrabold">أسئلة شائعة</h2>${faqItems.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(item.q)}</summary><p class="mt-3 text-[#5c6a62]">${escapeHtml(item.a)}</p></details>`).join("")}</section>
+  </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white"><p>السعر يبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(unit.starting_price)} جنيه</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a><br><a href="/projects/${escapeHtml(project.slug)}" class="mt-6 inline-block text-[#d9b87c]">شوف المشروع بالكامل</a></aside></div></section></main>`;
   const schemas = [
     {
       "@type": "RealEstateListing",
@@ -254,6 +424,15 @@ function renderUnitStatic(shell, unit, project, { indexable = true } = {}) {
       dateModified: unit.last_updated_at,
       offers: { "@type": "Offer", price: numberValue(unit.starting_price), priceCurrency: "EGP", availability: "https://schema.org/InStock" },
       accommodation: { "@type": "Accommodation", floorSize: { "@type": "QuantitativeValue", value: numberValue(unit.area_sqm), unitCode: "MTK" } },
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${canonical}#faq`,
+      mainEntity: faqItems.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      })),
     },
     {
       "@type": "BreadcrumbList",

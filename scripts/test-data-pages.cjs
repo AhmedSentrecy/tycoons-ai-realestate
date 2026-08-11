@@ -53,20 +53,54 @@ assert.match(projectHtml, /"@type":"BreadcrumbList"/);
 assert.doesNotMatch(projectHtml, /قارن المشاريع والوحدات العقارية/);
 assert.match(projectHtml, /<script type="module" src="\/assets\/app\.js"><\/script>/);
 
-const unitHtml = renderUnitStatic(shell, unit, project);
+const sibling = {
+  id: "unit-sibling",
+  project_id: "project-1",
+  project_name: "Project Alpha",
+  developer: "Developer One",
+  location: "New Cairo",
+  unit_type: "Apartment",
+  bedrooms_text: "3 Bedrooms",
+  area_sqm: 150,
+  starting_price: 13000000,
+  availability_status: "available",
+  description: "Another unit in the same project.",
+  finishing: "Fully Finished",
+  installments_text: "8 years",
+  delivery_text: "3 years",
+  image_url: "",
+  gallery_urls: "",
+  last_updated_at: "2026-08-03T00:00:00Z",
+};
+
+const unitHtml = renderUnitStatic(shell, unit, project, [sibling]);
 assert.match(unitHtml, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/units\/unit-1">/);
 assert.match(unitHtml, /Project Alpha/);
 assert.match(unitHtml, /href="\/projects\/project-alpha"/);
 assert.doesNotMatch(unitHtml, /قارن المشاريع والوحدات العقارية/);
 assert.match(unitHtml, /شقة/);
 assert.match(unitHtml, /نصف تشطيب/);
+assert.match(unitHtml, /"@type":"FAQPage"/);
+assert.match(unitHtml, /"@type":"RealEstateListing"/);
+assert.match(unitHtml, /"@type":"BreadcrumbList"/);
+assert.match(unitHtml, /القاهرة الجديدة والتجمع/);
+assert.match(unitHtml, /بدائل قريبة/);
+assert.match(unitHtml, /href="\/units\/unit-sibling"/);
+assert.doesNotMatch(
+  unitHtml,
+  /A complete unit description with enough detail for a useful standalone search result page\./,
+);
+
+const unitHtmlNoSiblings = renderUnitStatic(shell, unit, project, []);
+assert.doesNotMatch(unitHtmlNoSiblings, /بدائل قريبة/);
+assert.notEqual(unitHtml.match(/<p class="mt-5 leading-loose[^>]*>([^<]*)<\/p>/)?.[1], unitHtmlNoSiblings.match(/<p class="mt-5 leading-loose[^>]*>([^<]*)<\/p>/)?.[1]);
 
 const duplicateUnit = { ...unit, id: "unit-2" };
 const weakUnit = { ...unit, id: "unit-3", area_sqm: null };
 const indexable = indexableUnitIds([unit, duplicateUnit, weakUnit]);
 assert.equal(indexable.size, 1);
 assert.ok(indexable.has("unit-1"));
-const weakHtml = renderUnitStatic(shell, weakUnit, project, { indexable: false });
+const weakHtml = renderUnitStatic(shell, weakUnit, project, [], { indexable: false });
 assert.match(weakHtml, /<meta name="robots" content="noindex,follow">/);
 
 const unitlessProject = {
