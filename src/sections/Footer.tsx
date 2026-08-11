@@ -25,25 +25,26 @@ export default function Footer() {
             ابحث بالذكاء الاصطناعي والصوت — من المطوّرين مباشرة، من غير وسطاء.
           </p>
           <div className="relative mt-9 flex flex-wrap items-center justify-center gap-4">
-            <a
-              href="#"
+            <Link
+              to="/"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               className="flex items-center gap-2.5 rounded-full bg-[#c49b5f] px-8 py-4 text-sm font-bold text-[#231a0c] transition-transform hover:scale-[1.05]"
             >
-              <Search className="h-4 w-4" />
+              <Search aria-hidden="true" className="h-4 w-4" />
               ابدأ البحث
-            </a>
+            </Link>
             <a
               href="https://wa.me/201200704344"
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-2.5 rounded-full border border-white/25 px-8 py-4 text-sm font-bold text-white transition-colors hover:bg-white/10"
             >
-              <MessageCircle className="h-4 w-4" />
+              <MessageCircle aria-hidden="true" className="h-4 w-4" />
               كلمنا واتساب
             </a>
           </div>
           <div className="relative mt-8 flex items-center justify-center gap-2 text-xs text-white/45">
-            <Mic className="h-3.5 w-3.5" />
+            <Mic aria-hidden="true" className="h-3.5 w-3.5" />
             يدعم البحث الصوتي بالعربي والإنجليزي
           </div>
         </motion.div>

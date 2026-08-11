@@ -1,15 +1,26 @@
 # Tycoons Investments
 
-Tycoons Investments is an Egyptian real-estate search and comparison platform. It helps buyers compare currently available developer inventory by project, location, unit type, area, price, payment plan, delivery, and finishing.
+> Egyptian real-estate search and comparison platform. Buyers compare currently available developer inventory by project, location, unit type, area, price, payment plan, delivery, and finishing.
 
-Canonical website: https://tycoons-inv.com/
-Project directory: https://tycoons-inv.com/ar/
-English project directory: https://tycoons-inv.com/en/
-About: https://tycoons-inv.com/about
-Frequently asked questions: https://tycoons-inv.com/faq
-Data methodology: https://tycoons-inv.com/methodology
-Corrections policy: https://tycoons-inv.com/corrections
-Contact: https://tycoons-inv.com/contact
+Tycoons Investments indexes new-development inventory across Egypt's main growth areas — New Cairo, Mostakbal City, Sheikh Zayed, the New Administrative Capital, October, North Coast, New Alamein, and Ain Sokhna. Listings come from developers directly rather than from resale intermediaries. The site is primarily in Egyptian Arabic, with an English mirror of the project directory.
+
+## Key pages
+
+- [Arabic project directory](https://tycoons-inv.com/ar/): Main index of every published project, grouped by area and developer.
+- [English project directory](https://tycoons-inv.com/en/): English mirror of the project index.
+- [About Tycoons Investments](https://tycoons-inv.com/about): Who operates the platform and how it makes money.
+- [Frequently asked questions](https://tycoons-inv.com/faq): Common buyer questions on pricing, payment plans, delivery, and reservation.
+- [Data methodology](https://tycoons-inv.com/methodology): How inventory is collected, updated, and how ROI-style comparisons are calculated.
+- [Corrections policy](https://tycoons-inv.com/corrections): How to report and how we handle inaccurate data.
+- [Contact](https://tycoons-inv.com/contact): Direct contact channels for inquiries.
+
+## For agents
+
+- [Agent skill: search-properties](https://tycoons-inv.com/.well-known/agent-skills/index.json): Agent Skills discovery index for querying available inventory.
+- [API catalog](https://tycoons-inv.com/.well-known/api-catalog): RFC 9727 linkset describing the public read-only discovery interface.
+- [robots.txt](https://tycoons-inv.com/robots.txt): Crawl rules and content signals (`ai-train=no, search=yes, ai-input=yes`).
+
+Any HTML page on this site also returns `text/markdown` when requested with an `Accept: text/markdown` header. The homepage registers in-browser WebMCP tools (`search_properties`, `get_inventory_summary`, `create_whatsapp_inquiry_link`) for agents running in a WebMCP-capable browser.
 
 ## Source hierarchy
 

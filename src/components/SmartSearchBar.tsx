@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { Link } from "react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpLeft, MessageCircle, Mic, RefreshCw, Search, Sparkles, X } from "lucide-react";
@@ -15,6 +16,24 @@ interface Props {
   compact?: boolean;
   onSearchActive?: (active: boolean) => void;
 }
+
+/**
+ * Declarative WebMCP annotations (Chrome agentic-browsing / Lighthouse).
+ * Lowercase custom attributes are passed through by React and read by agents
+ * straight from the HTML, without needing our JS bundle to execute first.
+ * The imperative equivalent lives in `src/lib/webmcp.ts` under a different
+ * tool name so the two never collide during registration.
+ */
+const WEBMCP_FORM_ATTRS = {
+  toolname: "search_properties_form",
+  tooldescription:
+    "Searches available Egyptian real-estate inventory on Tycoons Investments from a free-text description of what the buyer wants — unit type, area or compound, budget, payment plan and delivery date. Returns matching units grouped by project, plus closest alternatives.",
+} as Record<string, string>;
+
+const WEBMCP_QUERY_ATTRS = {
+  toolparamdescription:
+    "Free-text description of the desired property, in Egyptian Arabic or English. Examples: 'شاليه في الساحل الشمالي بـ 8 مليون', 'apartment in New Cairo under 10M EGP with 5% down payment'.",
+} as Record<string, string>;
 
 export default function SmartSearchBar({ compact = false, onSearchActive }: Props) {
   const { query, setQuery, results, hasSearched, search, clear, inventory } = usePropertySearch();
@@ -94,6 +113,11 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
     setOpen(true);
   };
 
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    submit();
+  };
+
   useEffect(() => {
     onSearchActive?.(open && hasSearched);
   }, [open, hasSearched, onSearchActive]);
@@ -131,22 +155,31 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
 
   return (
     <div ref={boxRef} className="relative w-full">
-      <div
+      <form
+        role="search"
+        onSubmit={onSubmit}
+        aria-label="البحث في الوحدات العقارية المتاحة"
+        {...WEBMCP_FORM_ATTRS}
         className={`flex items-center gap-2 rounded-2xl bg-white/[0.97] px-3 sm:gap-3 sm:px-4 ${
           compact ? "py-2.5" : "py-3.5"
         } ${listening ? "ring-2 ring-[#c49b5f]/70" : ""}`}
       >
-        <Sparkles className="hidden h-5 w-5 shrink-0 text-[#c49b5f] sm:block" />
+        <Sparkles aria-hidden="true" className="hidden h-5 w-5 shrink-0 text-[#c49b5f] sm:block" />
         <input
           type="text"
+          name="query"
+          id="tycoons-search-query"
+          enterKeyHint="search"
+          autoComplete="off"
+          aria-label="اكتب طلبك: نوع الوحدة والمنطقة والميزانية"
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
             if (!event.target.value.trim()) clear();
           }}
-          onKeyDown={(event) => event.key === "Enter" && submit()}
           onFocus={() => hasSearched && setOpen(true)}
           placeholder="عايز شاليه في الساحل أو آي فيلا في التجمع..."
+          {...WEBMCP_QUERY_ATTRS}
           className="min-w-0 flex-1 bg-transparent text-[14px] text-[#22312b] outline-none placeholder:text-[#9aa69f] sm:text-[15px]"
         />
 
@@ -160,13 +193,14 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
             }}
             className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#9aa69f] transition-colors hover:bg-[#f1ebdc]"
           >
-            <X className="h-4 w-4" />
+            <X aria-hidden="true" className="h-4 w-4" />
           </button>
         )}
 
         <button
           type="button"
           aria-label="بحث صوتي"
+          aria-pressed={listening || realtimeActive}
           onClick={handleMic}
           className={`relative grid shrink-0 place-items-center rounded-full border transition-all ${
             compact ? "h-10 w-10" : "h-11 w-11"
@@ -182,12 +216,11 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
               <span className="absolute -inset-1 animate-pulse rounded-full bg-[#c49b5f]/20" />
             </>
           )}
-          <Mic className={`relative ${compact ? "h-4 w-4" : "h-5 w-5"}`} />
+          <Mic aria-hidden="true" className={`relative ${compact ? "h-4 w-4" : "h-5 w-5"}`} />
         </button>
 
         <button
-          type="button"
-          onClick={submit}
+          type="submit"
           disabled={inventory.loading}
           aria-label="ابحث"
           className={`flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#14352a] px-0 font-semibold text-[#efe3c6] transition-transform hover:scale-[1.04] disabled:cursor-wait disabled:opacity-65 ${
@@ -196,10 +229,10 @@ export default function SmartSearchBar({ compact = false, onSearchActive }: Prop
               : "h-11 w-11 sm:h-auto sm:w-auto sm:px-6 sm:py-3"
           }`}
         >
-          <Search className="h-4 w-4" />
+          <Search aria-hidden="true" className="h-4 w-4" />
           <span className="hidden sm:inline">ابحث</span>
         </button>
-      </div>
+      </form>
 
       <AnimatePresence>
         {showPanel && (
