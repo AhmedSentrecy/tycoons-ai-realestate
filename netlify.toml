@@ -197,8 +197,8 @@
 
 [[redirects]]
   from = "/units/*"
-  to = "/404.html"
-  status = 404
+  to = "/.netlify/functions/seo-page?lang=ar&type=unit&slug=:splat"
+  status = 200
 
 # Retired English guide URLs: send to the closest live guide.
 [[redirects]]

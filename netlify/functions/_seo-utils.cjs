@@ -68,6 +68,62 @@ const AREAS = [
   },
 ];
 
+const AREA_FACTS = {
+  "mostakbal-city": {
+    context:
+      "مستقبل سيتي منطقة سكنية ناشئة على امتداد طريق السويس، قريبة من مدينتي والقاهرة الجديدة، وبقت من أكتر المناطق اللي المطورين بيطلقوا فيها مشاريع جديدة في السنين الأخيرة.",
+    buyerNote:
+      "غالبية المشاريع هنا لسه تحت الإنشاء بخطط سداد طويلة، فمراجعة سجل تسليم المطور مهمة قبل الحجز.",
+  },
+  "new-alamein": {
+    context:
+      "العلمين الجديدة مدينة ساحلية جديدة غرب الساحل الشمالي بدعم حكومي، وفيها مشاريع سكنية دائمة مش موسمية بس زي باقي الساحل.",
+    buyerNote:
+      "فرّق وانت بتقارن بين وحدات للسكن الدائم في العلمين الجديدة ووحدات موسمية في باقي الساحل الشمالي، لأن نمط الاستخدام والعائد المتوقع مختلف.",
+  },
+  "new-cairo": {
+    context:
+      "القاهرة الجديدة والتجمع الخامس من أكتر مناطق شرق القاهرة اكتمالاً من ناحية الخدمات — فيها الجامعة الأمريكية بالقاهرة (AUC)، مولات زي كايرو فيستيفال سيتي، ومدارس وجامعات دولية.",
+    buyerNote:
+      "المنطقة عليها طلب إيجاري وإعادة بيع من الأعلى في القاهرة الجديدة، خصوصاً في المشاريع المُسلَّمة أو القريبة من التسليم.",
+  },
+  "north-coast": {
+    context:
+      "الساحل الشمالي شريط القرى السياحية على طريق الإسكندرية-مطروح، ومعظم الوحدات فيه شاليهات وفيلات موسمية بتتباع بنظام الحجز المبكر قبل الصيف.",
+    buyerNote:
+      "افرق بين الاستخدام الشخصي والتأجير الموسمي وانت بتقارن الموقع جوه القرية والمسافة من الشاطئ، لأنها بتأثر على السعر أكتر من مساحة الوحدة نفسها.",
+  },
+  "ain-sokhna": {
+    context:
+      "العين السخنة أقرب شاطئ للقاهرة على خليج السويس، وده بيخليها خيار شائع لشاليه ويك إند بدل رحلة الساحل الشمالي الأطول.",
+    buyerNote:
+      "راجع مسافة القرية عن طريق السخنة السريع وجودة الخدمة الشتوية، لأن كتير من القرى بتقلل خدماتها بره موسم الصيف.",
+  },
+  "sheikh-zayed": {
+    context:
+      "الشيخ زايد امتداد غرب القاهرة بمحاذاة أكتوبر، وفيها خليط من الكمبوندات المُسلَّمة والمشاريع الجديدة، وقريبة من مولات زي مول العرب وهايبر وان.",
+    buyerNote:
+      "المنطقة عليها طلب سكني مستقر، فالمشاريع القريبة من المحاور الرئيسية عادة بتحافظ على سيولة إعادة بيع أعلى.",
+  },
+  "new-capital": {
+    context:
+      "العاصمة الإدارية الجديدة مدينة قيد الإنشاء شرق القاهرة، فيها الحي الحكومي والبرج الأيقوني، ومعظم مشاريعها السكنية لسه في مراحل تسليم مبكرة أو متوسطة.",
+    buyerNote:
+      "لأن كتير من الخدمات لسه بتتبني، قارن توقيت التسليم الفعلي للمشروع بجدول تسليم المرافق المحيطة قبل ما تعتمد على جدول المطور وحده.",
+  },
+  october: {
+    context:
+      "السادس من أكتوبر مدينة راسخة غرب القاهرة فيها جامعات وصناعات ومناطق سكنية جاهزة، وأسعارها عادة أقل من زايد على نفس المسافة من القاهرة.",
+    buyerNote:
+      "المشاريع الجاهزة أو القريبة من التسليم في أكتوبر عادة بتوفر بديل أرخص لمن يريد سكن غرب القاهرة بميزانية أقل من زايد.",
+  },
+};
+
+const GENERIC_AREA_FACTS = {
+  context: "المنطقة دي من مناطق العرض الحالية في قاعدة بيانات Tycoons، وبتُحدَّث بيانات المشاريع فيها باستمرار.",
+  buyerNote: "راجع قرب المشروع من الطرق الرئيسية والخدمات القائمة فعليًا قبل المقارنة بمناطق تانية.",
+};
+
 const GUIDES = {
   "off-plan-buying-checklist": {
     title: "دليل شراء عقار Off-plan في مصر",
@@ -227,6 +283,8 @@ function formatDate(value, lang) {
 async function fetchUnits() {
   if (cache.units && Date.now() - cache.fetchedAt < 15 * 60 * 1000) return cache.units;
   const columns = [
+    "id",
+    "project_id",
     "project_name",
     "developer",
     "location",
@@ -545,6 +603,213 @@ function renderProject(projects, slug, lang) {
   });
 }
 
+function hashPick(seed, length) {
+  let hash = 0;
+  const value = String(seed || "");
+  for (let i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  return length > 0 ? hash % length : 0;
+}
+
+function pick(bank, seed, salt = "") {
+  return bank[hashPick(`${seed}:${salt}`, bank.length)];
+}
+
+function unitStats(unit, siblings) {
+  const price = numberValue(unit.starting_price);
+  const area = numberValue(unit.area_sqm);
+  const pricePerSqm = area > 0 ? Math.round(price / area) : 0;
+  const siblingPrices = siblings.map((item) => numberValue(item.starting_price)).filter(Boolean);
+  const siblingAreas = siblings.map((item) => numberValue(item.area_sqm)).filter(Boolean);
+  const minPrice = siblingPrices.length ? Math.min(...siblingPrices) : price;
+  const maxPrice = siblingPrices.length ? Math.max(...siblingPrices) : price;
+  const minArea = siblingAreas.length ? Math.min(...siblingAreas) : area;
+  const maxArea = siblingAreas.length ? Math.max(...siblingAreas) : area;
+  const priceRank =
+    siblingPrices.length < 2 ? "only" : price <= minPrice * 1.02 ? "cheapest" : price >= maxPrice * 0.98 ? "priciest" : "mid";
+  const sizeRank =
+    siblingAreas.length < 2 ? "only" : area >= maxArea * 0.98 ? "largest" : area <= minArea * 1.02 ? "smallest" : "mid";
+  return { price, area, pricePerSqm, minPrice, maxPrice, minArea, maxArea, priceRank, sizeRank, siblingCount: siblings.length };
+}
+
+function rankClause(stats) {
+  const parts = [];
+  if (stats.siblingCount > 0) {
+    if (stats.priceRank === "cheapest") parts.push("من أرخص الخيارات المتاحة حاليًا في المشروع");
+    else if (stats.priceRank === "priciest") parts.push("من أعلى الوحدات سعرًا في المشروع، غالبًا لمساحة أو موقع مميز");
+    if (stats.sizeRank === "largest") parts.push("أكبر مساحة متاحة من نفس المشروع");
+    else if (stats.sizeRank === "smallest") parts.push("أصغر مساحة متاحة، خيار مناسب لميزانية أقل");
+  }
+  if (!parts.length) {
+    parts.push(
+      stats.siblingCount > 0
+        ? `واحدة من ${stats.siblingCount + 1} خيارات متاحة حاليًا في المشروع`
+        : "الخيار الوحيد الظاهر حاليًا من هذا المشروع في قاعدة بياناتنا",
+    );
+  }
+  return parts.join(" و");
+}
+
+const UNIT_INTRO_BANK = [
+  (u) => `${u.unitType} بمساحة ${u.area} م² جوه ${u.projectName} من ${u.developer}، في ${u.areaAr}. ${u.rank}. السعر يبدأ من ${u.price}، والاستلام ${u.delivery}.`,
+  (u) => `لو بتدوّر على ${u.unitType} في ${u.projectName} (${u.developer}) بمنطقة ${u.areaAr}، الوحدة دي مساحتها ${u.area} م² وسعرها يبدأ من ${u.price}. ${u.rank}.`,
+  (u) => `وحدة ${u.unitType} داخل ${u.projectName} — مشروع ${u.developer} في ${u.areaAr} — بمساحة ${u.area} م². ${u.rank}. خطة السداد: ${u.installments}.`,
+  (u) => `${u.projectName} من ${u.developer} بيقدّم ${u.unitType} بمساحة ${u.area} م² في ${u.areaAr}، سعرها يبدأ من ${u.price}. ${u.rank}.`,
+  (u) => `دي ${u.unitType} بمساحة ${u.area} م² في مشروع ${u.projectName} (${u.developer})، منطقة ${u.areaAr}. ${u.rank}. السعر يبدأ من ${u.price} والتسليم ${u.delivery}.`,
+  (u) => `وحدة من نوع ${u.unitType} في ${u.projectName}، ${u.developer}، ${u.areaAr}، بمساحة ${u.area} م² وسعر يبدأ من ${u.price}. ${u.rank}.`,
+];
+
+const UNIT_FAQ_PRICE_BANK = [
+  (u) => `السعر يبدأ من ${u.price} لمساحة ${u.area} م²، حسب آخر تحديث بتاريخ ${u.updated}. السعر والتوفر يحتاجان تأكيد وقت الطلب.`,
+  (u) => `أحدث سعر مسجّل عندنا لـ${u.unitType} في ${u.projectName} يبدأ من ${u.price} (${u.area} م²)، وآخر تحديث كان ${u.updated}. راجع التوفر مع فريقنا قبل الحجز.`,
+];
+
+const UNIT_FAQ_AREA_BANK = [
+  (u) => u.buyerNote,
+  (u) => `${u.buyerNote} ده جزء من تقييمنا العام لمنطقة ${u.areaAr}، مش توصية استثمارية مضمونة.`,
+];
+
+function renderUnitFaq(unit, project, stats, area, unitTypeAr, priceFmt, updatedText) {
+  const seed = unit.id || `${unit.project_name}-${unit.unit_type}-${unit.area_sqm}`;
+  const faq = [
+    [
+      `كام سعر ${unitTypeAr} في ${project.name}؟`,
+      pick(UNIT_FAQ_PRICE_BANK, seed, "price")({
+        price: priceFmt,
+        area: clean(unit.area_sqm, "—"),
+        unitType: unitTypeAr,
+        projectName: project.name,
+        updated: updatedText,
+      }),
+    ],
+    [
+      "إيه خطة السداد المتاحة؟",
+      `${clean(unit.down_payment_text, "المقدم يُحدَّد حسب المشروع.")} ${clean(unit.installments_text, "الأقساط تُحدَّد حسب المشروع وموعد الاستلام.")}`,
+    ],
+    ["امتى الاستلام؟", clean(unit.delivery_text, "موعد الاستلام يتأكد مع المطور وقت الطلب.")],
+    [
+      `هل ${area.ar} مكان مناسب للسكن أو الاستثمار؟`,
+      pick(UNIT_FAQ_AREA_BANK, seed, "area")({ buyerNote: area.buyerNote, areaAr: area.ar }),
+    ],
+  ];
+  if (stats.siblingCount > 0) {
+    faq.push([
+      `فيه بدائل تانية في ${project.name}؟`,
+      `أيوه، عندنا ${stats.siblingCount} وحدة تانية متاحة حاليًا في نفس المشروع بمساحات وأسعار مختلفة — شوف الجدول أسفل أو صفحة المشروع الكاملة.`,
+    ]);
+  }
+  return faq;
+}
+
+function renderUnit(projects, unitId, lang = "ar") {
+  let unit = null;
+  let project = null;
+  for (const item of projects) {
+    const match = item.units.find((row) => clean(row.id, "") === unitId);
+    if (match) {
+      unit = match;
+      project = item;
+      break;
+    }
+  }
+  if (!unit || !project) return null;
+
+  const ar = lang === "ar";
+  const path = `/units/${unitId}`;
+  const location = clean(unit.location, projectLocation(project));
+  const area = areaFor(location);
+  const areaFacts = AREA_FACTS[area.slug] || GENERIC_AREA_FACTS;
+  const unitTypeAr = clean(unit.unit_type);
+  const siblings = project.units.filter((row) => clean(row.id, "") !== unitId);
+  const stats = unitStats(unit, siblings);
+  const priceFmt = formatPrice(unit.starting_price, lang);
+  const updated = clean(unit.last_updated_at, "");
+  const updatedText = formatDate(updated, lang);
+  const seed = unit.id || `${unit.project_name}-${unit.unit_type}-${unit.area_sqm}`;
+
+  const introVars = {
+    unitType: unitTypeAr,
+    area: clean(unit.area_sqm, "—"),
+    projectName: project.name,
+    developer: project.developer,
+    areaAr: area.ar,
+    rank: rankClause(stats),
+    price: priceFmt,
+    delivery: clean(unit.delivery_text, "يتأكد مع المطور"),
+    installments: clean(unit.installments_text, "تُحدَّد حسب المشروع"),
+  };
+  const intro = pick(UNIT_INTRO_BANK, seed, "intro")(introVars);
+
+  const title = `${unitTypeAr} ${clean(unit.area_sqm, "")} م² في ${project.name} | Tycoons`;
+  const description = `${unitTypeAr} في ${project.name} بسعر يبدأ من ${priceFmt}. اعرف المساحة وخطة السداد والتشطيب والبدائل القريبة.`;
+
+  const crumbs = [
+    { name: ar ? "الرئيسية" : "Home", path: "/" },
+    { name: ar ? area.ar : area.en, path: `/ar/areas/${area.slug}` },
+    { name: project.name, path: `/projects/${project.slug}` },
+    { name: unitTypeAr, path },
+  ];
+
+  const alternates = [...siblings]
+    .sort((a, b) => Math.abs(numberValue(a.starting_price) - stats.price) - Math.abs(numberValue(b.starting_price) - stats.price))
+    .slice(0, 4);
+
+  const faq = renderUnitFaq(unit, project, stats, area, unitTypeAr, priceFmt, updatedText);
+
+  const message = encodeURIComponent(
+    `Hello Tycoons Investments,\nI am interested in this available unit:\n\nProject: ${project.name}\nDeveloper: ${project.developer}\nLocation: ${location}\nUnit type: ${unit.unit_type}\nBedrooms: ${clean(unit.bedrooms_text, "Not specified")}\nArea: ${unit.area_sqm} sqm\nStarting price: ${formatPrice(unit.starting_price, "en")}\n\nURL: ${SITE_URL}${path}\n\nPlease send me the latest availability and payment plan.\n\nSource: unit_page\nPage: ${SITE_URL}${path}`,
+  );
+
+  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
+  <section class="hero"><span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(area.ar)}</span><h1>${escapeHtml(`${unitTypeAr} ${clean(unit.area_sqm, "")} م² في ${project.name}`)}</h1>
+  <p class="lead">${escapeHtml(intro)}</p>
+  <div class="facts"><div class="fact"><small>${ar ? "السعر يبدأ من" : "Starting from"}</small><strong>${escapeHtml(priceFmt)}</strong></div>
+  <div class="fact"><small>${ar ? "المساحة" : "Area"}</small><strong>${escapeHtml(clean(unit.area_sqm, "—"))} م²</strong></div>
+  <div class="fact"><small>${ar ? "الغرف" : "Bedrooms"}</small><strong>${escapeHtml(clean(unit.bedrooms_text, "غير محدد"))}</strong></div>
+  <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(updatedText)}</strong></div></div>
+  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "تأكيد السعر والمتاح" : "Confirm price and availability"}</a></section>
+
+  <h2>عن المنطقة — ${escapeHtml(area.ar)}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>
+
+  ${alternates.length ? `<h2>بدائل قريبة داخل ${escapeHtml(project.name)}</h2><div class="table"><table><thead><tr><th>النوع</th><th>الغرف / المساحة</th><th>السعر</th></tr></thead><tbody>
+  ${alternates.map((row) => `<tr><td>${escapeHtml(clean(row.unit_type))}</td><td>${escapeHtml(clean(row.bedrooms_text))}${row.area_sqm ? ` · ${escapeHtml(row.area_sqm)} م²` : ""}</td><td>${escapeHtml(formatPrice(row.starting_price, lang))}</td></tr>`).join("")}
+  </tbody></table></div><p class="note"><a href="/projects/${escapeHtml(project.slug)}">شوف كل وحدات ${escapeHtml(project.name)}</a></p>` : `<p class="note"><a href="/projects/${escapeHtml(project.slug)}">شوف كل وحدات ${escapeHtml(project.name)}</a></p>`}
+
+  <h2>أسئلة شائعة</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}
+  <p class="note">الأسعار والتوفر وخطط السداد تتغير ويتم تأكيدها مع المطور وقت الطلب.</p></main>`;
+
+  return renderPage({
+    lang,
+    title,
+    description,
+    path,
+    body,
+    image: clean(unit.image_url, ""),
+    schemas: [
+      breadcrumbSchema(crumbs),
+      {
+        "@context": "https://schema.org",
+        "@type": "RealEstateListing",
+        "@id": `${SITE_URL}${path}#listing`,
+        url: `${SITE_URL}${path}`,
+        name: `${unitTypeAr} في ${project.name}`,
+        description: intro,
+        dateModified: updated || undefined,
+        offers: { "@type": "Offer", price: stats.price, priceCurrency: "EGP", availability: "https://schema.org/InStock" },
+        accommodation: {
+          "@type": "Accommodation",
+          floorSize: unit.area_sqm ? { "@type": "QuantitativeValue", value: numberValue(unit.area_sqm), unitCode: "MTK" } : undefined,
+          numberOfRooms: numberValue(unit.bedrooms_text) || undefined,
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faq.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
+      },
+    ],
+  });
+}
+
 function renderCollection(projects, kind, slug, lang) {
   const ar = lang === "ar";
   const matches =
@@ -736,6 +1001,7 @@ module.exports = {
   projectLastUpdated,
   renderDirectory,
   renderProject,
+  renderUnit,
   renderCollection,
   renderGuide,
   renderStaticPage,

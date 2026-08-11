@@ -6,6 +6,7 @@ const {
   groupProjects,
   renderDirectory,
   renderProject,
+  renderUnit,
   renderCollection,
   renderGuide,
   renderStaticPage,
@@ -22,6 +23,7 @@ exports.handler = async function handler(event) {
     }
   })();
   const route = originalPath.match(/^\/(ar|en)\/(projects|areas|developers)\/(.+?)\/?$/);
+  const unitRoute = originalPath.match(/^\/units\/(.+?)\/?$/);
   const guideRoute = originalPath.match(/^\/guides\/(.+?)\/?$/);
   const staticRoute = originalPath.match(/^\/(about|faq|methodology|corrections|contact)\/?$/);
   const directoryRoute = originalPath.match(/^\/(ar|en)\/?$/);
@@ -33,6 +35,9 @@ exports.handler = async function handler(event) {
   if (route) {
     type = { projects: "project", areas: "area", developers: "developer" }[route[2]];
     rawSlug = route[3];
+  } else if (unitRoute) {
+    type = "unit";
+    rawSlug = unitRoute[1];
   } else if (guideRoute) {
     type = "guide";
     rawSlug = guideRoute[1];
@@ -53,6 +58,7 @@ exports.handler = async function handler(event) {
       const projects = groupProjects(await fetchUnits());
       if (type === "home") html = renderDirectory(projects, lang);
       if (type === "project") html = renderProject(projects, slug, lang);
+      if (type === "unit") html = renderUnit(projects, slug, "ar");
       if (type === "area") html = renderCollection(projects, "area", slug, lang);
       if (type === "developer") html = renderCollection(projects, "developer", slug, lang);
     }

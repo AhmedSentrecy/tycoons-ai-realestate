@@ -55,6 +55,37 @@ async function getRows(table: string, params: URLSearchParams) {
   return (await response.json()) as Record<string, unknown>[];
 }
 
+export interface SiblingUnitRow {
+  id: string;
+  unit_type: string;
+  bedrooms_text: string;
+  area_sqm: number;
+  starting_price: number;
+}
+
+export async function loadUnitSiblings(projectId: string, excludeId: string): Promise<SiblingUnitRow[]> {
+  if (!projectId) return [];
+  const params = new URLSearchParams({
+    select: "id,unit_type,bedrooms_text,area_sqm,starting_price",
+    project_id: `eq.${projectId}`,
+    id: `neq.${excludeId}`,
+    availability_status: "eq.available",
+    limit: "20",
+  });
+  try {
+    const rows = await getRows("units", params);
+    return rows.map((row) => ({
+      id: text(row.id),
+      unit_type: text(row.unit_type),
+      bedrooms_text: text(row.bedrooms_text),
+      area_sqm: numberValue(row.area_sqm),
+      starting_price: numberValue(row.starting_price),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function loadUnitPage(id: string): Promise<UnitPageData | null> {
   const unitParams = new URLSearchParams({
     select:
