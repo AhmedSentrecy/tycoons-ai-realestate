@@ -819,23 +819,54 @@ function renderCollection(projects, kind, slug, lang) {
   if (!matches.length) return null;
   matches.sort((a, b) => projectMinPrice(a) - projectMinPrice(b));
   const area = kind === "area" ? areaFor(projectLocation(matches[0])) : null;
+  const areaFacts = kind === "area" ? AREA_FACTS[area.slug] || GENERIC_AREA_FACTS : null;
   const label = kind === "area" ? (ar ? area.ar : area.en) : matches[0].developer;
   const plural = matches.length === 1 ? (ar ? "مشروع واحد" : "1 project") : ar ? `${matches.length} مشروع` : `${matches.length} projects`;
   const path = `/${lang}/${kind === "area" ? "areas" : "developers"}/${slug}`;
   const alternatePath = `/${ar ? "en" : "ar"}/${kind === "area" ? "areas" : "developers"}/${slug}`;
   const min = Math.min(...matches.map(projectMinPrice));
   const max = Math.max(...matches.map(projectMaxPrice));
-  const title = ar ? `مشاريع ${label} وأسعار الوحدات | Tycoons Investments` : `${label} projects and prices | Tycoons Investments`;
+  const minFmt = formatPrice(min, lang);
+  const title = ar
+    ? `مشاريع ${label} 2026 — أسعار من ${minFmt} (${plural}) | Tycoons`
+    : `${label} projects 2026 — prices from ${minFmt} (${plural}) | Tycoons`;
   const description = ar
-    ? `قارن ${plural} مع نطاق الأسعار الظاهر وخطط السداد والاستلام حسب أحدث بيانات متاحة.`
-    : `Compare ${plural} with listed price ranges, payment plans and delivery based on the latest available data.`;
+    ? `${plural} في ${label} بأسعار تبدأ من ${minFmt}. قارن السعر والمساحة وخطة السداد والاستلام لكل مشروع في مكان واحد.`
+    : `${plural} in ${label} starting from ${minFmt}. Compare price, size, payment plan and delivery for each project in one place.`;
   const crumbs = [
     { name: ar ? "الرئيسية" : "Home", path: "/" },
     { name: label, path },
   ];
+  const contextSection =
+    kind === "area"
+      ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>`
+      : "";
+  const faq =
+    kind === "area"
+      ? [
+          [
+            ar ? `كام سعر شقة أو وحدة في ${label}؟` : `How much does a unit cost in ${label}?`,
+            ar
+              ? `الأسعار الظاهرة حاليًا في ${label} بتتراوح من ${minFmt} لحد ${escapeHtml(formatPrice(max, lang))} حسب المشروع والمساحة ونوع الوحدة، وده بناءً على ${plural} مسجّلة عندنا. السعر النهائي يتأكد مع المطور وقت الطلب.`
+              : `Listed prices in ${label} currently range from ${minFmt} to ${escapeHtml(formatPrice(max, lang))} depending on the project, size and unit type, based on ${plural} in our inventory. Confirm the final price with the developer at inquiry time.`,
+          ],
+          [
+            ar ? `هل ${label} منطقة مناسبة للسكن أو الاستثمار؟` : `Is ${label} a good area to live in or invest?`,
+            areaFacts.buyerNote,
+          ],
+          [
+            ar ? `كام مشروع متاح حاليًا في ${label}؟` : `How many projects are currently available in ${label}?`,
+            ar
+              ? `عندنا ${plural} مسجّلة حاليًا في ${label} في قاعدة بياناتنا، وبيتم تحديثها باستمرار — شوف القائمة كاملة تحت.`
+              : `We currently have ${plural} listed in ${label} in our database, updated continuously — see the full list below.`,
+          ],
+        ]
+      : [];
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(label)}</h1>
-  <div class="answer"><strong>${escapeHtml(description)}</strong></div><div class="facts"><div class="fact"><small>${ar ? "عدد المشاريع" : "Projects"}</small><strong>${plural}</strong></div><div class="fact"><small>${ar ? "أقل سعر ظاهر" : "Lowest listed"}</small><strong>${escapeHtml(formatPrice(min, lang))}</strong></div><div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed"}</small><strong>${escapeHtml(formatPrice(max, lang))}</strong></div><div class="fact"><small>${ar ? "مصدر البيانات" : "Data source"}</small><strong>Tycoons inventory</strong></div></div></section>
+  <div class="answer"><strong>${escapeHtml(description)}</strong></div><div class="facts"><div class="fact"><small>${ar ? "عدد المشاريع" : "Projects"}</small><strong>${plural}</strong></div><div class="fact"><small>${ar ? "أقل سعر ظاهر" : "Lowest listed"}</small><strong>${escapeHtml(minFmt)}</strong></div><div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed"}</small><strong>${escapeHtml(formatPrice(max, lang))}</strong></div><div class="fact"><small>${ar ? "مصدر البيانات" : "Data source"}</small><strong>Tycoons inventory</strong></div></div></section>
+  ${contextSection}
   <h2>${ar ? "المشاريع المتاحة" : "Available projects"}</h2>${cards(matches, lang)}
+  ${faq.length ? `<h2>${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}` : ""}
   <p class="note">${ar ? "النطاق مبني على الوحدات الظاهرة وليس تقييمًا للسوق بالكامل." : "The range is based on listed units and is not a valuation of the whole market."}</p></main>`;
   return renderPage({
     lang,
@@ -863,6 +894,15 @@ function renderCollection(projects, kind, slug, lang) {
           })),
         },
       },
+      ...(faq.length
+        ? [
+            {
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: faq.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
+            },
+          ]
+        : []),
     ],
   });
 }
