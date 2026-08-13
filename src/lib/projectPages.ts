@@ -16,6 +16,13 @@ export interface ProjectFaq {
   answer: string;
 }
 
+export interface ProjectPriceRange {
+  unit_type: string;
+  area_sqm: number;
+  min_price: number;
+  max_price: number;
+}
+
 export interface ProjectPageContent {
   name: string;
   slug: string;
@@ -30,6 +37,7 @@ export interface ProjectPageContent {
   highlights: string[];
   seo_keywords: string[];
   targeting: Record<string, unknown>;
+  price_ranges: ProjectPriceRange[];
   image_url: string;
   gallery_urls: string;
   video_url: string;
@@ -72,6 +80,21 @@ function objectValue(value: unknown): Record<string, unknown> {
     : {};
 }
 
+function priceRanges(value: unknown): ProjectPriceRange[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const record = item as Record<string, unknown>;
+    const unitType = text(record.unit_type);
+    const areaSqm = Number(record.area_sqm);
+    const minPrice = Number(record.min_price);
+    const maxPrice = Number(record.max_price);
+    return unitType && areaSqm > 0 && minPrice > 0 && maxPrice >= minPrice
+      ? [{ unit_type: unitType, area_sqm: areaSqm, min_price: minPrice, max_price: maxPrice }]
+      : [];
+  });
+}
+
 export async function loadProjectPage(slug: string): Promise<ProjectPageContent | null> {
   const columns = [
     "name",
@@ -104,6 +127,7 @@ export async function loadProjectPage(slug: string): Promise<ProjectPageContent 
   if (!response.ok) throw new Error(`project page ${response.status}`);
   const [row] = (await response.json()) as Record<string, unknown>[];
   if (!row) return null;
+  const targeting = objectValue(row.targeting);
   return {
     name: text(row.name),
     slug: text(row.slug),
@@ -117,7 +141,8 @@ export async function loadProjectPage(slug: string): Promise<ProjectPageContent 
     faq: faqs(row.faq),
     highlights: stringArray(row.highlights),
     seo_keywords: stringArray(row.seo_keywords),
-    targeting: objectValue(row.targeting),
+    targeting,
+    price_ranges: priceRanges(targeting.price_ranges),
     image_url: text(row.image_url),
     gallery_urls: text(row.gallery_urls),
     video_url: text(row.video_url),
