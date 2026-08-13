@@ -50,6 +50,10 @@ assert.match(projectHtml, /"@type":"RealEstateListing"/);
 assert.match(projectHtml, /"@type":"Article"/);
 assert.match(projectHtml, /"@type":"FAQPage"/);
 assert.match(projectHtml, /"@type":"BreadcrumbList"/);
+assert.match(projectHtml, /"@type":"ItemList"/);
+assert.match(projectHtml, /"highPrice":10000000/);
+assert.match(projectHtml, /"numberOfItems":1/);
+assert.match(projectHtml, /اختار وحدتك واعرف خطة السداد/);
 assert.doesNotMatch(projectHtml, /قارن المشاريع والوحدات العقارية/);
 assert.match(projectHtml, /<script type="module" src="\/assets\/app\.js"><\/script>/);
 
