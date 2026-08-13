@@ -256,12 +256,45 @@ function uniqueUnits(units) {
   ])).values()];
 }
 
+function isVillaLike(unit) {
+  return /villa|townhouse|town house|twinhouse|twin house|standalone|فيلا|تاون\s*هاوس|توين\s*هاوس/i
+    .test(`${text(unit.unit_type)} ${text(unit.bedrooms_text)}`);
+}
+
+function projectPriceRanges(project) {
+  const targeting = project.targeting && typeof project.targeting === "object" && !Array.isArray(project.targeting)
+    ? project.targeting
+    : {};
+  return arrayValue(targeting.price_ranges).flatMap((range) => {
+    const unitType = text(range?.unit_type);
+    const areaSqm = numberValue(range?.area_sqm);
+    const minPrice = numberValue(range?.min_price);
+    const maxPrice = numberValue(range?.max_price);
+    return unitType && areaSqm > 0 && minPrice > 0 && maxPrice >= minPrice
+      ? [{ unit_type: unitType, area_sqm: areaSqm, min_price: minPrice, max_price: maxPrice }]
+      : [];
+  });
+}
+
+function staticUnitCard(unit) {
+  const plan = [text(unit.down_payment_text), text(unit.installments_text)].filter(Boolean).map(arabicField).join(" · ");
+  return `<details class="overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white p-6"><summary class="cursor-pointer list-none"><h3 class="text-xl font-extrabold">${escapeHtml(arabicField(unit.unit_type))} ${escapeHtml(arabicField(unit.bedrooms_text))}</h3><p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary>${plan ? `<p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml(plan)}</p>` : ""}${unit.id ? `<a href="/units/${escapeHtml(unit.id)}" class="mt-4 inline-block font-bold text-[#8a6630]">كل تفاصيل الوحدة</a>` : ""}</details>`;
+}
+
 function renderProjectStatic(shell, project, projectUnits) {
   const units = uniqueUnits(projectUnits);
+  const priceRanges = projectPriceRanges(project);
+  const villaUnits = units.filter(isVillaLike);
+  const otherUnits = units.filter((unit) => !isVillaLike(unit));
   const canonical = `${SITE_URL}/projects/${project.slug}`;
-  const prices = units.map((unit) => numberValue(unit.starting_price)).filter(Boolean);
+  const prices = [
+    ...units.map((unit) => numberValue(unit.starting_price)),
+    ...priceRanges.flatMap((range) => [range.min_price, range.max_price]),
+  ].filter(Boolean);
   const areas = units.map((unit) => numberValue(unit.area_sqm)).filter(Boolean);
   const minPrice = prices.length ? Math.min(...prices) : numberValue(project.min_price);
+  const highPrice = prices.length ? Math.max(...prices) : minPrice;
+  const totalOptionCount = units.length + priceRanges.length;
   const minArea = areas.length ? Math.min(...areas) : 0;
   const maxArea = areas.length ? Math.max(...areas) : 0;
   const imageList = urls(project.image_url, project.gallery_urls, ...units.map((unit) => unit.image_url));
@@ -290,7 +323,7 @@ function renderProjectStatic(shell, project, projectUnits) {
   ${article.length ? article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#5c6a62]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join("") : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
   ${faq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(project.name)}</h2>${faq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#5c6a62]">${escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea))}</p></details>`).join("")}</section>` : ""}
   </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white">${minPrice ? `<p class="text-sm text-white/55">الأسعار تبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(minPrice)} جنيه</p>` : `<p class="text-sm text-white/55">السعر حسب آخر طرح</p><p class="mt-2 text-xl font-extrabold text-[#ecd9ae]">اسأل عن أحدث الأسعار</p>`}${text(project.down_payment_text) ? `<p class="mt-3 text-sm text-white/70">${escapeHtml(arabicField(project.down_payment_text))}</p>` : ""}${text(project.installments_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.installments_text))}</p>` : ""}${text(project.delivery_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.delivery_text))}</p>` : ""}<a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a></aside></div></section>
-  ${units.length ? `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات المتاحة</h2><div class="mt-8 grid gap-5 md:grid-cols-2">${units.map((unit) => `<article class="rounded-3xl border border-[#e0d3bb] bg-white p-6"><h3 class="text-xl font-extrabold">${escapeHtml(arabicField(unit.unit_type))} ${escapeHtml(arabicField(unit.bedrooms_text))}</h3><p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه</p><a href="/units/${escapeHtml(unit.id)}" class="mt-4 inline-block font-bold text-[#8a6630]">تفاصيل الوحدة</a></article>`).join("")}</div></div></section>` : `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات في ${escapeHtml(project.name)}</h2><p class="mt-5 max-w-3xl leading-loose text-[#5c6a62]">لا توجد وحدات منشورة بأسعار تفصيلية لهذا المشروع حالياً. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من المطور.</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اطلب أحدث الأسعار</a></div></section>`}
+  ${totalOptionCount ? `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">اختار وحدتك واعرف خطة السداد</h2><p class="mt-3 text-[#5c6a62]">${totalOptionCount} اختيار متاح من البيانات الحالية للصفحة.</p>${priceRanges.length || villaUnits.length ? `<section class="mt-9 rounded-3xl bg-[#0d1f18] p-6 text-white"><h3 class="text-2xl font-extrabold">فلل وتاون هاوس</h3><div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">${priceRanges.map((range) => `<details class="overflow-hidden rounded-3xl bg-white p-6 text-[#1b2420]"><summary class="cursor-pointer list-none"><h4 class="text-xl font-extrabold">${escapeHtml(range.unit_type)}</h4><p class="mt-3">${range.area_sqm} م² · ${formatPrice(range.min_price)}–${formatPrice(range.max_price)} جنيه</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary><p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml([text(project.down_payment_text), text(project.installments_text)].filter(Boolean).map(arabicField).join(" · "))}</p></details>`).join("")}${villaUnits.map(staticUnitCard).join("")}</div></section>` : ""}${otherUnits.length ? `<section class="mt-10"><h3 class="text-2xl font-extrabold">${villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : "الوحدات المتاحة"}</h3><div class="mt-6 grid gap-5 md:grid-cols-2">${otherUnits.map(staticUnitCard).join("")}</div></section>` : ""}</div></section>` : `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات في ${escapeHtml(project.name)}</h2><p class="mt-5 max-w-3xl leading-loose text-[#5c6a62]">لا توجد وحدات منشورة بأسعار تفصيلية لهذا المشروع حالياً. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من المطور.</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اطلب أحدث الأسعار</a></div></section>`}
   </main>`;
 
   const schemas = [
@@ -302,8 +335,8 @@ function renderProjectStatic(shell, project, projectUnits) {
       description,
       image: imageList,
       dateModified: project.last_updated_at,
-      ...(units.length
-        ? { offers: { "@type": "AggregateOffer", priceCurrency: "EGP", lowPrice: minPrice, offerCount: units.length, availability: "https://schema.org/InStock" } }
+      ...(totalOptionCount
+        ? { offers: { "@type": "AggregateOffer", priceCurrency: "EGP", lowPrice: minPrice, highPrice, offerCount: totalOptionCount, availability: "https://schema.org/InStock" } }
         : minPrice
           ? { offers: { "@type": "Offer", priceCurrency: "EGP", price: minPrice, availability: "https://schema.org/InStock" } }
           : {}),
@@ -314,10 +347,41 @@ function renderProjectStatic(shell, project, projectUnits) {
       "@id": `${canonical}#article`,
       headline: title,
       description,
-      mainEntityOfPage: canonical,
+      inLanguage: "ar-EG",
+      mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
+      about: { "@id": `${canonical}#listing` },
       dateModified: project.last_updated_at,
       author: { "@type": "Organization", name: "Tycoons Investments" },
       publisher: { "@type": "Organization", name: "Tycoons Investments" },
+    },
+    {
+      "@type": "ItemList",
+      "@id": `${canonical}#unit-options`,
+      name: `الوحدات المتاحة في ${project.name}`,
+      numberOfItems: totalOptionCount,
+      itemListElement: [
+        ...priceRanges.map((range, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          item: {
+            "@type": "Product",
+            name: `${project.name} - ${range.unit_type}`,
+            floorSize: { "@type": "QuantitativeValue", value: range.area_sqm, unitCode: "MTK" },
+            offers: { "@type": "AggregateOffer", priceCurrency: "EGP", lowPrice: range.min_price, highPrice: range.max_price, availability: "https://schema.org/InStock" },
+          },
+        })),
+        ...units.map((unit, index) => ({
+          "@type": "ListItem",
+          position: priceRanges.length + index + 1,
+          item: {
+            "@type": "Product",
+            name: `${project.name} - ${text(unit.unit_type)} ${text(unit.bedrooms_text)}`.trim(),
+            url: unit.id ? `${SITE_URL}/units/${unit.id}` : canonical,
+            ...(numberValue(unit.area_sqm) ? { floorSize: { "@type": "QuantitativeValue", value: numberValue(unit.area_sqm), unitCode: "MTK" } } : {}),
+            offers: { "@type": "Offer", priceCurrency: "EGP", price: numberValue(unit.starting_price), availability: "https://schema.org/InStock" },
+          },
+        })),
+      ],
     },
     {
       "@type": "FAQPage",
