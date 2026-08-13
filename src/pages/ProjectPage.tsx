@@ -415,6 +415,43 @@ export default function ProjectPage() {
               الأسعار والمساحات والتوافر بيتغيروا حسب وقت الحجز، لذلك بنأكد آخر
               Availability وPayment Plan قبل اتخاذ القرار.
             </p>
+            {content?.price_ranges.length ? (
+              <section className="mt-14" aria-labelledby="project-price-ranges">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[#a3854e]">الفلل والتاون هاوس</p>
+                    <h2 id="project-price-ranges" className="mt-2 text-2xl font-extrabold">
+                      المساحات ونطاقات الأسعار
+                    </h2>
+                  </div>
+                  <span className="text-xs text-[#6b776f]">الأسعار بالمليون جنيه</span>
+                </div>
+                <div className="mt-6 overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white/75 shadow-sm">
+                  <div className="hidden grid-cols-[1.5fr_0.7fr_1fr] gap-4 bg-[#0d1f18] px-6 py-4 text-sm font-bold text-white sm:grid">
+                    <span>نوع الوحدة</span>
+                    <span>المساحة</span>
+                    <span>نطاق السعر</span>
+                  </div>
+                  <div className="divide-y divide-[#eee5d6]">
+                    {content.price_ranges.map((range) => (
+                      <div
+                        key={`${range.unit_type}-${range.area_sqm}`}
+                        className="grid gap-2 px-5 py-4 sm:grid-cols-[1.5fr_0.7fr_1fr] sm:items-center sm:gap-4 sm:px-6"
+                      >
+                        <span className="font-bold text-[#14352a]">{range.unit_type}</span>
+                        <span className="text-sm text-[#5c6a62]">{range.area_sqm} م²</span>
+                        <span className="font-extrabold text-[#8a6630]">
+                          {formatPrice(range.min_price / 1_000_000)}–{formatPrice(range.max_price / 1_000_000)} مليون
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <p className="mt-4 text-sm leading-relaxed text-[#6b776f]">
+                  النطاقات استرشادية وبتتغير حسب موقع الوحدة وتاريخ الحجز والتوافر الفعلي.
+                </p>
+              </section>
+            ) : null}
             {faq.length > 0 && <section className="mt-14" aria-labelledby="project-faq">
               <h2 id="project-faq" className="text-2xl font-extrabold">
                 أسئلة شائعة عن {project.project_name}
