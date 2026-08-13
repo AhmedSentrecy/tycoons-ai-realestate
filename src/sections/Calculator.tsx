@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Calculator as CalcIcon, MessageCircle } from "lucide-react";
 
@@ -24,6 +24,10 @@ export default function Calculator({
   const [price, setPrice] = useState(initialPrice);
   const [down, setDown] = useState(initialDown);
   const [years, setYears] = useState(initialYears);
+
+  useEffect(() => setPrice(initialPrice), [initialPrice]);
+  useEffect(() => setDown(initialDown), [initialDown]);
+  useEffect(() => setYears(initialYears), [initialYears]);
 
   const { downAmount, monthly } = useMemo(() => {
     const downAmount = (price * down) / 100;
@@ -113,9 +117,9 @@ export default function Calculator({
               {
                 label: "المقدم",
                 value: `${down.toLocaleString("en-US")}%`,
-                min: 5,
+                min: 1,
                 max: 50,
-                step: 1,
+                step: 0.5,
                 v: down,
                 set: setDown,
               },
