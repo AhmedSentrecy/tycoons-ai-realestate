@@ -6,8 +6,10 @@ import {
   BadgeCheck,
   BedDouble,
   Building2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  House,
   MapPin,
   Maximize2,
   MessageCircle,
@@ -37,6 +39,40 @@ function slugify(value: string) {
 
 function formatPrice(value: number) {
   return new Intl.NumberFormat("en-US").format(value);
+}
+
+function paymentBreakdown(price: number) {
+  return {
+    firstDownPayment: Math.round(price * 0.05),
+    secondDownPayment: Math.round(price * 0.05),
+    monthlyInstallment: Math.round((price * 0.9) / (8 * 12)),
+  };
+}
+
+function FinancingDetails({ price, startsFrom = false }: { price: number; startsFrom?: boolean }) {
+  const payment = paymentBreakdown(price);
+  return (
+    <div className="grid gap-3 border-t border-[#e8decd] bg-[#faf7f1] p-5 sm:grid-cols-3">
+      <div>
+        <p className="text-xs text-[#7b877f]">المقدم الأول 5%</p>
+        <p className="mt-1 font-extrabold text-[#14352a]">
+          {startsFrom ? "يبدأ من " : ""}{formatPrice(payment.firstDownPayment)} جنيه
+        </p>
+      </div>
+      <div>
+        <p className="text-xs text-[#7b877f]">الدفعة الثانية 5%</p>
+        <p className="mt-1 font-extrabold text-[#14352a]">
+          {startsFrom ? "تبدأ من " : ""}{formatPrice(payment.secondDownPayment)} جنيه
+        </p>
+      </div>
+      <div>
+        <p className="text-xs text-[#7b877f]">القسط الشهري على 8 سنوات</p>
+        <p className="mt-1 font-extrabold text-[#8a6630]">
+          {startsFrom ? "يبدأ من " : ""}{formatPrice(payment.monthlyInstallment)} جنيه تقريبًا
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function replaceTokens(value: string, minPrice: number, minArea: number, maxArea: number) {
@@ -163,6 +199,7 @@ export default function ProjectPage() {
   const { units, loading, error } = useInventory();
   const [content, setContent] = useState<ProjectPageContent | null>(null);
   const [loadedSlug, setLoadedSlug] = useState("");
+  const isHydeParkLaunch = slug === "hyde-park-new-cairo-new-launch";
   const projectUnits = useMemo(
     () => uniqueUnits(units.filter((unit) => {
       const nameSlug = slugify(unit.project_name);
@@ -257,6 +294,15 @@ export default function ProjectPage() {
     .filter((area): area is number => typeof area === "number" && area > 0);
   const minArea = areas.length ? Math.min(...areas) : 0;
   const maxArea = areas.length ? Math.max(...areas) : 0;
+  const priceRanges = content?.price_ranges || [];
+  const allOptionPrices = isHydeParkLaunch
+    ? [
+        ...projectUnits.map((unit) => unit.starting_price),
+        ...priceRanges.flatMap((range) => [range.min_price, range.max_price]),
+      ]
+    : projectUnits.map((unit) => unit.starting_price);
+  const highestPrice = Math.max(...allOptionPrices);
+  const totalOptionCount = projectUnits.length + (isHydeParkLaunch ? priceRanges.length : 0);
   const pageUrl = `${SITE_URL}/projects/${slug}`;
   const message = encodeURIComponent(
     `Hello Tycoons Investments,\nI am interested in this project:\n\nProject: ${project.project_name}\nDeveloper: ${project.developer}\nLocation: ${project.location}\nStarting price: ${formatPrice(minPrice)} EGP\nStatus: Available\n\nURL: ${pageUrl}\n\nPlease send me available options and details.\n\nSource: project_page\nPage: ${pageUrl}`,
@@ -288,7 +334,8 @@ export default function ProjectPage() {
           "@type": "AggregateOffer",
           priceCurrency: "EGP",
           lowPrice: minPrice,
-          offerCount: projectUnits.length,
+          highPrice: highestPrice,
+          offerCount: totalOptionCount,
           availability: "https://schema.org/InStock",
         },
         address: {
@@ -415,7 +462,7 @@ export default function ProjectPage() {
               الأسعار والمساحات والتوافر بيتغيروا حسب وقت الحجز، لذلك بنأكد آخر
               Availability وPayment Plan قبل اتخاذ القرار.
             </p>
-            {content?.price_ranges.length ? (
+            {!isHydeParkLaunch && content?.price_ranges.length ? (
               <section className="mt-14" aria-labelledby="project-price-ranges">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
@@ -492,65 +539,159 @@ export default function ProjectPage() {
         </div>
       </section>
 
-      <section className="border-y border-[#e7ddc8] bg-[#efe7d8] py-16">
+      {isHydeParkLaunch ? (
+      <section className="border-y border-[#e7ddc8] bg-[#efe7d8] py-16" aria-labelledby="project-unit-options">
         <div className="mx-auto max-w-7xl px-5 lg:px-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-[#a3854e]">الوحدات المتاحة</p>
-              <h2 className="mt-2 text-3xl font-extrabold">اختار المساحة المناسبة</h2>
+              <p className="text-sm font-semibold text-[#a3854e]">كل اختيارات الطرح الحالي</p>
+              <h2 id="project-unit-options" className="mt-2 text-3xl font-extrabold">اختار وحدتك واحسب القسط</h2>
             </div>
-            <span className="text-sm text-[#5c6a62]">{projectUnits.length} اختيارات</span>
+            <span className="text-sm text-[#5c6a62]">{totalOptionCount} اختيار</span>
           </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
-            {projectUnits.map((unit) => (
-              <article
-                key={unit.id || [unit.unit_type, unit.bedrooms_text, unit.area_sqm].join("|")}
-                className="rounded-3xl border border-[#e0d3bb] bg-white p-6 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm text-[#8a7a58]">{arabicField(unit.unit_type)}</p>
-                    <h3 className="mt-1 text-xl font-extrabold">
-                      {arabicField(unit.bedrooms_text, "دوبلكس")}
-                    </h3>
-                  </div>
-                  <span className="rounded-full bg-[#e8f5ed] px-3 py-1 text-xs font-bold text-[#14733c]">
-                    متاح
-                  </span>
+
+          {priceRanges.length > 0 && (
+            <section className="mt-9 rounded-[2rem] bg-[#0d1f18] p-5 text-white shadow-xl sm:p-8" aria-labelledby="villa-options">
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-[#d9b87c]">
+                    <House className="h-4 w-4" />
+                    الاختيارات الرئيسية
+                  </p>
+                  <h3 id="villa-options" className="mt-2 text-2xl font-extrabold">فلل وتاون هاوس</h3>
                 </div>
-                <div className="mt-5 flex items-center gap-5 text-sm text-[#5c6a62]">
-                  {unit.bedrooms_text && (
+                <p className="text-sm text-white/60">اضغط على الوحدة لعرض المقدم والقسط الشهري</p>
+              </div>
+              <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {priceRanges.map((range) => (
+                  <details
+                    key={`${range.unit_type}-${range.area_sqm}`}
+                    className="group overflow-hidden rounded-3xl bg-white text-[#1b2420] shadow-sm open:ring-2 open:ring-[#d9b87c]"
+                  >
+                    <summary className="cursor-pointer list-none p-5 [&::-webkit-details-marker]:hidden">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold text-[#a3854e]">فيلا / تاون هاوس</p>
+                          <h4 className="mt-1 text-lg font-extrabold text-[#14352a]">{range.unit_type}</h4>
+                        </div>
+                        <span className="rounded-full bg-[#efe7d8] px-3 py-1 text-xs font-bold text-[#6e522c]">{range.area_sqm} م²</span>
+                      </div>
+                      <p className="mt-5 text-xs text-[#7b877f]">نطاق السعر</p>
+                      <p className="mt-1 text-xl font-extrabold text-[#14352a]">
+                        {formatPrice(range.min_price / 1_000_000)}–{formatPrice(range.max_price / 1_000_000)} مليون جنيه
+                      </p>
+                      <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
+                        اعرض المقدم والقسط
+                        <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
+                      </span>
+                    </summary>
+                    <FinancingDetails price={range.min_price} startsFrom />
+                  </details>
+                ))}
+              </div>
+              <p className="mt-5 text-sm leading-relaxed text-white/55">
+                الحسابات مبنية على أقل سعر في كل نطاق: 5% مقدم أول + 5% دفعة ثانية، وتقسيط 90% على 8 سنوات. الأسعار والتوافر استرشاديين وبيتأكدوا وقت الحجز.
+              </p>
+            </section>
+          )}
+
+          <section className="mt-12" aria-labelledby="apartment-options">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-[#a3854e]">اختيارات سكنية متنوعة</p>
+                <h3 id="apartment-options" className="mt-2 text-2xl font-extrabold">شقق ودوبلكس</h3>
+              </div>
+              <p className="text-sm text-[#5c6a62]">اضغط على الوحدة لعرض المقدم والقسط الشهري</p>
+            </div>
+            <div className="mt-7 grid gap-5 md:grid-cols-2">
+            {projectUnits.map((unit) => (
+              <details
+                key={unit.id || [unit.unit_type, unit.bedrooms_text, unit.area_sqm].join("|")}
+                className="group overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white shadow-sm open:border-[#a3854e] open:ring-1 open:ring-[#a3854e]"
+              >
+                <summary className="cursor-pointer list-none p-6 [&::-webkit-details-marker]:hidden">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-[#8a7a58]">{arabicField(unit.unit_type)}</p>
+                      <h4 className="mt-1 text-xl font-extrabold">
+                        {arabicField(unit.bedrooms_text, "دوبلكس")}
+                      </h4>
+                    </div>
+                    <span className="rounded-full bg-[#e8f5ed] px-3 py-1 text-xs font-bold text-[#14733c]">متاح</span>
+                  </div>
+                  <div className="mt-5 flex items-center gap-5 text-sm text-[#5c6a62]">
                     <span className="inline-flex items-center gap-2">
                       <BedDouble className="h-4 w-4 text-[#a3854e]" />
                       {arabicField(unit.bedrooms_text)}
                     </span>
-                  )}
-                  <span className="inline-flex items-center gap-2">
-                    <Maximize2 className="h-4 w-4 text-[#a3854e]" />
-                    {unit.area_sqm} م²
-                  </span>
-                </div>
-                <div className="mt-6 border-t border-[#eee5d6] pt-5">
+                    <span className="inline-flex items-center gap-2">
+                      <Maximize2 className="h-4 w-4 text-[#a3854e]" />
+                      {unit.area_sqm} م²
+                    </span>
+                  </div>
+                  <div className="mt-6 border-t border-[#eee5d6] pt-5">
                   <p className="text-xs text-[#7b877f]">يبدأ من</p>
                   <p className="mt-1 text-2xl font-extrabold text-[#14352a]">
                     {formatPrice(unit.starting_price)} جنيه
                   </p>
                   <p className="mt-2 text-sm text-[#5c6a62]">{unit.down_payment_text}</p>
-                  {unit.id && (
-                    <Link
-                      to={`/units/${unit.id}`}
-                      className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline"
-                    >
-                      تفاصيل الوحدة
+                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
+                      اعرض المقدم والقسط
+                      <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
+                    </span>
+                  </div>
+                </summary>
+                <FinancingDetails price={unit.starting_price} />
+                {unit.id && (
+                  <div className="bg-[#faf7f1] px-5 pb-5">
+                    <Link to={`/units/${unit.id}`} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
+                      كل تفاصيل الوحدة
                       <ArrowLeft className="h-4 w-4" />
                     </Link>
-                  )}
-                </div>
-              </article>
+                  </div>
+                )}
+              </details>
             ))}
+            </div>
+          </section>
           </div>
-        </div>
       </section>
+      ) : (
+        <section className="border-y border-[#e7ddc8] bg-[#efe7d8] py-16">
+          <div className="mx-auto max-w-7xl px-5 lg:px-8">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-[#a3854e]">الوحدات المتاحة</p>
+                <h2 className="mt-2 text-3xl font-extrabold">اختار المساحة المناسبة</h2>
+              </div>
+              <span className="text-sm text-[#5c6a62]">{projectUnits.length} اختيارات</span>
+            </div>
+            <div className="mt-8 grid gap-5 md:grid-cols-2">
+              {projectUnits.map((unit) => (
+                <article key={unit.id || [unit.unit_type, unit.bedrooms_text, unit.area_sqm].join("|")} className="rounded-3xl border border-[#e0d3bb] bg-white p-6 shadow-sm">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm text-[#8a7a58]">{arabicField(unit.unit_type)}</p>
+                      <h3 className="mt-1 text-xl font-extrabold">{arabicField(unit.bedrooms_text, "دوبلكس")}</h3>
+                    </div>
+                    <span className="rounded-full bg-[#e8f5ed] px-3 py-1 text-xs font-bold text-[#14733c]">متاح</span>
+                  </div>
+                  <div className="mt-5 flex items-center gap-5 text-sm text-[#5c6a62]">
+                    {unit.bedrooms_text && <span className="inline-flex items-center gap-2"><BedDouble className="h-4 w-4 text-[#a3854e]" />{arabicField(unit.bedrooms_text)}</span>}
+                    <span className="inline-flex items-center gap-2"><Maximize2 className="h-4 w-4 text-[#a3854e]" />{unit.area_sqm} م²</span>
+                  </div>
+                  <div className="mt-6 border-t border-[#eee5d6] pt-5">
+                    <p className="text-xs text-[#7b877f]">يبدأ من</p>
+                    <p className="mt-1 text-2xl font-extrabold text-[#14352a]">{formatPrice(unit.starting_price)} جنيه</p>
+                    <p className="mt-2 text-sm text-[#5c6a62]">{unit.down_payment_text}</p>
+                    {unit.id && <Link to={`/units/${unit.id}`} className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">تفاصيل الوحدة<ArrowLeft className="h-4 w-4" /></Link>}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <Calculator
         initialPrice={minPrice}
