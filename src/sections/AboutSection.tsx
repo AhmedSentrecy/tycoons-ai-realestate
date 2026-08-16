@@ -12,8 +12,8 @@ const points = [
 
 export default function AboutSection() {
   return (
-    <section className="overflow-hidden bg-[#f7f2ea] py-24 lg:py-32">
-      <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 lg:grid-cols-2 lg:px-8">
+    <section className="overflow-hidden bg-[#f7f2ea] py-16 lg:py-20">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 lg:grid-cols-2 lg:px-8">
         {/* Text */}
         <motion.div
           initial={{ opacity: 0, y: 28 }}
@@ -25,17 +25,17 @@ export default function AboutSection() {
             <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
             <span className="text-sm font-medium text-[#a3854e]">مين إحنا؟</span>
           </div>
-          <h2 className="text-4xl font-extrabold leading-snug text-[#1b2420] sm:text-5xl sm:leading-snug">
+          <h2 className="text-3xl font-extrabold leading-snug text-[#1b2420] sm:text-4xl sm:leading-snug">
             مش موقع إعلانات.
             <span className="block text-[#a3854e]">مساعد شراء عقاري.</span>
           </h2>
-          <p className="mt-6 max-w-lg font-light leading-loose text-[#5c6a62]">
+          <p className="mt-4 max-w-lg text-sm font-light leading-relaxed text-[#5c6a62]">
             تايكونز اتعملت عشان تحل المشكلة اللي كلنا عدينا بيها: آلاف الإعلانات المكررة،
             سماسرة بأسعار وهمية، وساعات ضايعة في المكالمات. إحنا بنجمع الوحدات من المطوّر
             مباشرة، ونخليك توصف اللي عايزه بجملة واحدة — والمساعد يوصّلك للوحدة الصح.
           </p>
 
-          <div className="mt-8 space-y-4">
+          <div className="mt-6 space-y-3">
             {points.map((p, i) => (
               <motion.div
                 key={p.text}
@@ -45,7 +45,7 @@ export default function AboutSection() {
                 transition={{ duration: 0.6, delay: 0.2 + i * 0.12, ease }}
                 className="flex items-center gap-4"
               >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#14352a]/10 text-[#14352a] ring-1 ring-[#14352a]/15">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#14352a]/10 text-[#14352a] ring-1 ring-[#14352a]/15">
                   <p.icon className="h-5 w-5" />
                 </span>
                 <span className="font-medium text-[#2a3731]">{p.text}</span>
@@ -55,7 +55,7 @@ export default function AboutSection() {
 
           <Link
             to="/about"
-            className="group mt-10 inline-flex items-center gap-2 rounded-full bg-[#14352a] px-7 py-3.5 text-sm font-bold text-[#efe3c6] transition-transform hover:scale-[1.04]"
+            className="group mt-7 inline-flex items-center gap-2 rounded-full bg-[#14352a] px-6 py-3 text-sm font-bold text-[#efe3c6] transition-transform hover:scale-[1.04]"
           >
             اعرف أكتر عن تايكونز
             <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
@@ -78,7 +78,7 @@ export default function AboutSection() {
               height={733}
               loading="lazy"
               decoding="async"
-              className="aspect-[4/5] w-full object-cover"
+              className="max-h-[520px] w-full object-cover"
             />
           </div>
           <div className="glass-light absolute -bottom-6 right-6 rounded-2xl px-7 py-5 shadow-xl sm:right-10">
