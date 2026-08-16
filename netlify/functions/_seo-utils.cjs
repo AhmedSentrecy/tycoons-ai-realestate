@@ -335,7 +335,7 @@ async function fetchProjectsMeta() {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8500);
   try {
-    const params = new URLSearchParams({ select: "id,name,slug,developer,location", limit: "1000" });
+    const params = new URLSearchParams({ select: "id,name,slug,developer,location,image_url,gallery_urls", limit: "1000" });
     const response = await fetch(`${SUPABASE_URL}/rest/v1/projects?${params}`, {
       headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
       signal: controller.signal,
@@ -371,6 +371,8 @@ function groupProjects(units, projectsMeta = []) {
         name: clean(meta.name, ""),
         developer: clean(meta.developer, "Tycoons verified developer"),
         location: clean(meta.location, ""),
+        image_url: clean(meta.image_url, ""),
+        gallery_urls: clean(meta.gallery_urls, ""),
         units: [],
       });
     }
@@ -398,7 +400,19 @@ function projectLocation(project) {
 }
 
 function projectImage(project) {
-  return clean(project.units.find((unit) => unit.image_url)?.image_url, "");
+  const galleryImage = clean(project.gallery_urls, "")
+    .split(",")
+    .map((value) => value.trim())
+    .find(Boolean);
+  const verifiedImage = clean(project.image_url, "") || galleryImage || clean(project.units.find((unit) => unit.image_url)?.image_url, "");
+  if (verifiedImage) return verifiedImage;
+
+  const location = projectLocation(project).toLowerCase();
+  if (/north coast|sahel|ras el|sokhna|alamein/.test(location)) return "/images/project-chalet.webp";
+  if (/new cairo|mostakbal/.test(location)) return "/images/region-newcairo.webp";
+  if (/zayed|october/.test(location)) return "/images/region-zayed.webp";
+  if (/capital/.test(location)) return "/images/region-capital.webp";
+  return "/images/project-apartment.webp";
 }
 
 function projectMinPrice(project) {
@@ -571,7 +585,7 @@ function renderDirectory(projects, lang) {
     : "A property project directory based on currently available Tycoons inventory, including prices, areas and payment plans.";
   const body = `<main><section class="hero"><span class="eyebrow">Tycoons Investments</span><h1>${ar ? "دليل المشاريع العقارية المحدث" : "Updated property project directory"}</h1><p class="lead">${escapeHtml(description)}</p><p class="note">${ar ? `${projects.length} مشروع ظاهر حسب آخر تحميل ناجح للبيانات.` : `${projects.length} projects shown from the latest successful data load.`}</p></section>
   <h2>${ar ? "استكشف حسب المنطقة" : "Explore by area"}</h2><div class="grid">${areas.map((area) => `<a class="card" href="/${lang}/areas/${area.slug}"><h3>${escapeHtml(ar ? area.ar : area.en)}</h3></a>`).join("")}</div>
-  <h2>${ar ? "استكشف حسب المطور" : "Explore by developer"}</h2><div class="grid">${developers.map((developer) => `<a class="card" href="/${lang}/developers/${developer.slug}"><h3>${escapeHtml(developer.name)}</h3></a>`).join("")}</div>
+  <h2 id="developers">${ar ? "استكشف حسب المطور" : "Explore by developer"}</h2><div class="grid">${developers.map((developer) => `<a class="card" href="/${lang}/developers/${developer.slug}"><h3>${escapeHtml(developer.name)}</h3></a>`).join("")}</div>
   <h2>${ar ? "أحدث المشاريع" : "Recently updated projects"}</h2>${cards(latest, lang)}</main>`;
   return renderPage({
     lang,
