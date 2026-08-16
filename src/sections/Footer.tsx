@@ -9,26 +9,26 @@ export default function Footer() {
   return (
     <footer className="bg-[#08130e]">
       {/* CTA */}
-      <div className="mx-auto max-w-7xl px-5 py-24 lg:px-8 lg:py-28">
+      <div className="mx-auto max-w-6xl px-5 py-16 lg:px-8 lg:py-20">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.9, ease }}
-          className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-bl from-[#14352a] to-[#0d1f18] px-8 py-16 text-center sm:px-16"
+          className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-bl from-[#14352a] to-[#0d1f18] px-6 py-11 text-center sm:px-12"
         >
           <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[480px] -translate-x-1/2 rounded-full bg-[#c49b5f]/15 blur-[100px]" />
-          <h2 className="relative mx-auto max-w-2xl text-balance text-3xl font-extrabold leading-snug text-white sm:text-5xl sm:leading-snug">
+          <h2 className="relative mx-auto max-w-2xl text-balance text-2xl font-extrabold leading-snug text-white sm:text-4xl sm:leading-snug">
             عقارك الجاي يبدأ بجملة واحدة
           </h2>
-          <p className="relative mx-auto mt-5 max-w-md font-light leading-relaxed text-white/65">
+          <p className="relative mx-auto mt-4 max-w-md text-sm font-light leading-relaxed text-white/65">
             ابحث بالذكاء الاصطناعي والصوت — من المطوّرين مباشرة، من غير وسطاء.
           </p>
-          <div className="relative mt-9 flex flex-wrap items-center justify-center gap-4">
+          <div className="relative mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
               to="/"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex items-center gap-2.5 rounded-full bg-[#c49b5f] px-8 py-4 text-sm font-bold text-[#231a0c] transition-transform hover:scale-[1.05]"
+              className="flex items-center gap-2.5 rounded-full bg-[#c49b5f] px-7 py-3 text-sm font-bold text-[#231a0c] transition-transform hover:scale-[1.05]"
             >
               <Search aria-hidden="true" className="h-4 w-4" />
               ابدأ البحث
@@ -37,13 +37,13 @@ export default function Footer() {
               href="https://wa.me/201200704344"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2.5 rounded-full border border-white/25 px-8 py-4 text-sm font-bold text-white transition-colors hover:bg-white/10"
+              className="flex items-center gap-2.5 rounded-full border border-white/25 px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-white/10"
             >
               <MessageCircle aria-hidden="true" className="h-4 w-4" />
               كلمنا واتساب
             </a>
           </div>
-          <div className="relative mt-8 flex items-center justify-center gap-2 text-xs text-white/45">
+          <div className="relative mt-6 flex items-center justify-center gap-2 text-xs text-white/45">
             <Mic aria-hidden="true" className="h-3.5 w-3.5" />
             يدعم البحث الصوتي بالعربي والإنجليزي
           </div>
@@ -52,7 +52,7 @@ export default function Footer() {
 
       {/* Links */}
       <div className="border-t border-white/10">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
+        <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#14352a]">
