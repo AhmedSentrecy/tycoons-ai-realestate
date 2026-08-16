@@ -174,7 +174,7 @@ function ProjectGallery({
   if (!current) return null;
 
   return (
-    <section className="mx-auto max-w-7xl px-5 pb-10 lg:px-8">
+    <section className="mx-auto max-w-6xl px-5 pb-8 lg:px-8">
       <div className="relative overflow-hidden rounded-3xl bg-[#0d1f18] shadow-2xl">
         <div className="aspect-[4/3] sm:aspect-[16/8]">
           {current.type === "video" ? (
@@ -472,7 +472,7 @@ export default function ProjectPage() {
       <Navbar />
 
       <section className="bg-[#0d1f18] px-5 pb-12 pt-32 text-white lg:px-8">
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-6xl">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-white/65 hover:text-white">
             <ArrowRight className="h-4 w-4" />
             الرئيسية
@@ -489,7 +489,7 @@ export default function ProjectPage() {
                   {project.location}
                 </span>
               </div>
-              <h1 className="mt-5 max-w-4xl text-4xl font-extrabold leading-tight sm:text-5xl">
+              <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-tight sm:text-4xl">
                 {project.project_name}
               </h1>
               <p className="mt-5 text-lg font-light text-white/70">
@@ -513,7 +513,7 @@ export default function ProjectPage() {
         <ProjectGallery images={images} videos={videos} name={project.project_name} />
       </div>
 
-      <section className="mx-auto max-w-7xl px-5 py-16 lg:px-8">
+      <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]">
           <article>
             {articleSections.map((section, sectionIndex) => (
@@ -592,7 +592,7 @@ export default function ProjectPage() {
       </section>
 
       <section className="border-y border-[#e7ddc8] bg-[#efe7d8] py-16" aria-labelledby="project-unit-options">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+        <div className="mx-auto max-w-6xl px-5 lg:px-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-[#a3854e]">كل اختيارات الطرح الحالي</p>
