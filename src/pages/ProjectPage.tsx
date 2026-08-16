@@ -24,6 +24,7 @@ import {
   type ProjectPageContent,
 } from "@/lib/projectPages";
 import { arabicField } from "@/lib/arabicFields";
+import { areaFor } from "@/lib/unitContent";
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -440,8 +441,9 @@ export default function ProjectPage() {
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "الرئيسية", item: SITE_URL },
-          { "@type": "ListItem", position: 2, name: "المشاريع", item: `${SITE_URL}/#projects` },
-          { "@type": "ListItem", position: 3, name: project.project_name, item: pageUrl },
+          { "@type": "ListItem", position: 2, name: project.location, item: `${SITE_URL}/ar/areas/${areaFor(project.location).slug}` },
+          { "@type": "ListItem", position: 3, name: project.developer, item: `${SITE_URL}/ar/developers/${slugify(project.developer)}` },
+          { "@type": "ListItem", position: 4, name: project.project_name, item: pageUrl },
         ],
       },
       {
@@ -480,14 +482,14 @@ export default function ProjectPage() {
           <div className="mt-8 grid items-end gap-8 lg:grid-cols-[1fr_auto]">
             <div>
               <div className="flex flex-wrap items-center gap-3 text-sm text-[#d9b87c]">
-                <span className="inline-flex items-center gap-1.5">
+                <a href={`/ar/developers/${slugify(project.developer)}`} className="inline-flex items-center gap-1.5 hover:text-white">
                   <Building2 className="h-4 w-4" />
                   {project.developer}
-                </span>
-                <span className="inline-flex items-center gap-1.5">
+                </a>
+                <a href={`/ar/areas/${areaFor(project.location).slug}`} className="inline-flex items-center gap-1.5 hover:text-white">
                   <MapPin className="h-4 w-4" />
                   {project.location}
-                </span>
+                </a>
               </div>
               <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-tight sm:text-4xl">
                 {project.project_name}
