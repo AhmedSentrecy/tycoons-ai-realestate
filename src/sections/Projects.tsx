@@ -15,13 +15,13 @@ export default function Projects() {
     scroller.current?.scrollBy({ left: dir * 420, behavior: "smooth" });
 
   return (
-    <section className="relative overflow-hidden bg-[#0d1f18] py-24 lg:py-32">
+    <section className="relative overflow-hidden bg-[#0d1f18] py-16 lg:py-20">
       {/* subtle glow */}
       <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-[#1d4a38]/30 blur-[140px]" />
 
-      <div className="relative mx-auto max-w-7xl px-5 lg:px-8">
+      <div className="relative mx-auto max-w-6xl px-5 lg:px-8">
         {/* Heading */}
-        <div className="mb-12 flex flex-wrap items-end justify-between gap-6">
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
           <motion.div
             initial={{ opacity: 0, y: 26 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -32,8 +32,8 @@ export default function Projects() {
               <span className="h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse-dot" />
               <span className="text-xs font-semibold tracking-wide text-red-300">مباشر</span>
             </div>
-            <h2 className="text-4xl font-extrabold text-white sm:text-5xl">بتتطرح دلوقتي</h2>
-            <p className="mt-4 max-w-md font-light leading-relaxed text-white/60">
+            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">بتتطرح دلوقتي</h2>
+            <p className="mt-3 max-w-md text-sm font-light leading-relaxed text-white/60">
               أول فرصة لمشاريع لسه نازلة — من المطوّرين مباشرة، قبل السوق كله.
             </p>
           </motion.div>
@@ -52,14 +52,14 @@ export default function Projects() {
             <button
               onClick={() => scrollBy(1)}
               aria-label="السابق"
-              className="grid h-12 w-12 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#c49b5f] hover:bg-[#c49b5f] hover:text-[#231a0c]"
+              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#c49b5f] hover:bg-[#c49b5f] hover:text-[#231a0c]"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
             <button
               onClick={() => scrollBy(-1)}
               aria-label="التالي"
-              className="grid h-12 w-12 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#c49b5f] hover:bg-[#c49b5f] hover:text-[#231a0c]"
+              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#c49b5f] hover:bg-[#c49b5f] hover:text-[#231a0c]"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -71,7 +71,7 @@ export default function Projects() {
       <div
         ref={scroller}
         dir="rtl"
-        className="scrollbar-hide relative flex snap-x snap-mandatory gap-6 overflow-x-auto px-5 pb-4 lg:px-[max(2rem,calc((100vw-80rem)/2+2rem))]"
+        className="scrollbar-hide relative flex snap-x snap-mandatory gap-5 overflow-x-auto px-5 pb-4 lg:px-[max(2rem,calc((100vw-72rem)/2+2rem))]"
       >
         {projects.map((p, i) => (
           <motion.article
@@ -80,10 +80,10 @@ export default function Projects() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.75, delay: (i % 3) * 0.1, ease }}
-            className="group w-[320px] shrink-0 snap-start overflow-hidden rounded-3xl bg-white/[0.04] ring-1 ring-white/10 transition-all duration-500 hover:-translate-y-2 hover:bg-white/[0.07] hover:ring-[#d9b87c]/35 sm:w-[360px]"
+            className="group w-[275px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white/[0.04] ring-1 ring-white/10 transition-all duration-500 hover:-translate-y-1.5 hover:bg-white/[0.07] hover:ring-[#d9b87c]/35 sm:w-[310px]"
           >
             {/* Image */}
-            <div className="relative aspect-[4/3] overflow-hidden">
+            <div className="relative aspect-[16/10] overflow-hidden">
               <img
                 src={p.image}
                 alt={p.title}
@@ -109,18 +109,18 @@ export default function Projects() {
             </div>
 
             {/* Body */}
-            <div className="p-5">
+            <div className="p-4">
               <div className="text-xs font-medium text-[#d9b87c]">
                 {p.type} · {p.developer}
               </div>
               <h3 className="mt-2 text-[17px] font-bold leading-snug text-white">{p.title}</h3>
 
-              <div className="mt-4 flex items-baseline gap-2">
+              <div className="mt-3 flex items-baseline gap-2">
                 <span className="text-xs text-white/50">يبدأ من</span>
                 <span className="text-lg font-extrabold text-[#ecd9ae]">{p.price}</span>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
+              <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/10 pt-3 text-center">
                 {[
                   { icon: BedDouble, v: p.beds, l: "غرف" },
                   { icon: Ruler, v: p.area, l: "المساحة" },
@@ -134,7 +134,7 @@ export default function Projects() {
                 ))}
               </div>
 
-              <div className="mt-5 flex gap-2">
+              <div className="mt-4 flex gap-2">
                 <Link
                   to={p.projectSlug ? `/projects/${p.projectSlug}` : `/regions/${p.regionSlug}`}
                   className="flex flex-1 items-center justify-center rounded-full border border-white/20 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/10"
