@@ -14,6 +14,7 @@ import {
   unitsCountLabel,
 } from "@/lib/searchDisplay";
 import { openUnitWhatsApp } from "@/lib/whatsapp";
+import { parseSearchQuery } from "@/lib/propertySearch";
 
 interface Props {
   group: GroupedResult;
@@ -22,6 +23,9 @@ interface Props {
 
 export default function ProjectResultCard({ group, query }: Props) {
   const unit = group.best.unit;
+  const criteria = parseSearchQuery(query);
+  const showPaymentEstimate = Boolean(criteria.monthlyInstallmentMax || criteria.downPaymentCashMax);
+  const payment = group.best.paymentEstimate;
   const image = group.image || fallbackImageFor(unit);
   const facts: string[] = [];
   const types = typesSummary(group);
@@ -86,6 +90,18 @@ export default function ProjectResultCard({ group, query }: Props) {
               </b>
             </div>
           )
+        )}
+
+        {showPaymentEstimate && payment && (
+          <div className="mt-2.5 rounded-xl border border-[#cfe6d8] bg-[#edf8f1] px-3 py-2 text-[#24583d]">
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <span className="font-semibold">القسط الشهري التقريبي</span>
+              <b className="text-sm text-[#123c29]">{new Intl.NumberFormat("en-EG", { maximumFractionDigits: 0 }).format(payment.monthlyInstallment)} جنيه</b>
+            </div>
+            <p className="mt-1 text-[10.5px] text-[#557263]">
+              على {payment.installmentYears} سنين · مقدم محسوب {new Intl.NumberFormat("en-EG", { maximumFractionDigits: 0 }).format(payment.downPaymentValue)} جنيه · بدون دفعات أو مصاريف إضافية
+            </p>
+          </div>
         )}
 
         <div className="mt-3 flex gap-2">
