@@ -23,8 +23,8 @@ const features = [
 
 export default function WhyUs() {
   return (
-    <section className="bg-[#f7f2ea] py-24 lg:py-28">
-      <div className="mx-auto max-w-7xl px-5 lg:px-8">
+    <section className="bg-[#f7f2ea] py-16 lg:py-20">
+      <div className="mx-auto max-w-6xl px-5 lg:px-8">
         <div className="grid gap-6 md:grid-cols-3">
           {features.map((f, i) => (
             <motion.div
@@ -33,13 +33,13 @@ export default function WhyUs() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.75, delay: i * 0.13, ease }}
-              className="group rounded-3xl border border-[#e7ddc8] bg-white/60 p-8 transition-all duration-500 hover:-translate-y-1.5 hover:border-[#c49b5f]/45 hover:shadow-[0_24px_60px_-24px_rgba(60,48,25,0.28)]"
+              className="group rounded-2xl border border-[#e7ddc8] bg-white/60 p-6 transition-all duration-500 hover:-translate-y-1.5 hover:border-[#c49b5f]/45 hover:shadow-[0_24px_60px_-24px_rgba(60,48,25,0.28)]"
             >
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#14352a] text-[#e8d5ae] transition-transform duration-500 group-hover:rotate-6 group-hover:scale-105">
+              <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#14352a] text-[#e8d5ae] transition-transform duration-500 group-hover:rotate-6 group-hover:scale-105">
                 <f.icon className="h-6 w-6" />
               </div>
-              <h3 className="mt-6 text-xl font-extrabold text-[#1b2420]">{f.title}</h3>
-              <p className="mt-3 font-light leading-relaxed text-[#6d7a72]">{f.desc}</p>
+              <h3 className="mt-4 text-lg font-extrabold text-[#1b2420]">{f.title}</h3>
+              <p className="mt-2 text-sm font-light leading-relaxed text-[#6d7a72]">{f.desc}</p>
             </motion.div>
           ))}
         </div>
