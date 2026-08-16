@@ -45,7 +45,7 @@ export default function RegionPage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="relative flex min-h-[62svh] items-end overflow-hidden">
+      <section className="relative flex min-h-[52svh] items-end overflow-hidden">
         <motion.img
           src={region.image}
           alt={`عقارات ${region.name}`}
@@ -55,7 +55,7 @@ export default function RegionPage() {
           className="absolute inset-0 h-full w-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#08130e]/90 via-[#08130e]/35 to-[#08130e]/40" />
-        <div className="relative z-10 mx-auto w-full max-w-7xl px-5 pb-14 pt-40 lg:px-8">
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-5 pb-10 pt-32 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -68,7 +68,7 @@ export default function RegionPage() {
               <ArrowRight className="h-4 w-4" />
               كل المناطق
             </Link>
-            <h1 className="text-5xl font-extrabold text-white sm:text-6xl">
+            <h1 className="text-4xl font-extrabold text-white sm:text-5xl">
               عقارات {region.name}
             </h1>
             <p className="mt-4 flex items-center gap-3 text-lg font-light text-white/75">
@@ -82,7 +82,7 @@ export default function RegionPage() {
       </section>
 
       {/* Content */}
-      <section className="mx-auto max-w-7xl px-5 py-20 lg:px-8">
+      <section className="mx-auto max-w-6xl px-5 py-14 lg:px-8">
         <div className="grid gap-14 lg:grid-cols-3">
           {/* Main article */}
           <div className="lg:col-span-2">
@@ -187,7 +187,7 @@ export default function RegionPage() {
 
       {/* Other regions */}
       <section className="border-t border-[#e7ddc8] bg-[#efe7d8] py-16">
-        <div className="mx-auto max-w-7xl px-5 lg:px-8">
+        <div className="mx-auto max-w-6xl px-5 lg:px-8">
           <h2 className="mb-8 text-2xl font-extrabold text-[#1b2420]">استكشف مناطق تانية</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {others.map((r) => (
