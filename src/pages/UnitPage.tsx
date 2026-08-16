@@ -31,6 +31,16 @@ const UNIT_INTRO_BANK: Array<(vars: Record<string, string>) => string> = [
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9\u0600-\u06ff]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 function formatPrice(value: number) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(value);
 }
@@ -172,7 +182,7 @@ export default function UnitPage() {
           <Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="inline-flex items-center gap-2 text-sm text-white/65 hover:text-white"><ArrowRight className="h-4 w-4" />{unit.project_name}</Link>
           <div className="mt-8 grid items-end gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <div className="flex flex-wrap gap-4 text-sm text-[#d9b87c]"><span className="inline-flex items-center gap-2"><Building2 className="h-4 w-4" />{unit.developer}</span><span className="inline-flex items-center gap-2"><MapPin className="h-4 w-4" />{unit.location}</span></div>
+              <div className="flex flex-wrap gap-4 text-sm text-[#d9b87c]"><a href={`/ar/developers/${slugify(unit.developer)}`} className="inline-flex items-center gap-2 hover:text-white"><Building2 className="h-4 w-4" />{unit.developer}</a><a href={`/ar/areas/${area.slug}`} className="inline-flex items-center gap-2 hover:text-white"><MapPin className="h-4 w-4" />{unit.location}</a></div>
               <h1 className="mt-4 text-3xl font-extrabold leading-tight sm:text-4xl">{unitTypeAr} {unit.area_sqm} م² في {unit.project_name}</h1>
             </div>
             <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1faa59] px-6 py-3.5 font-bold"><MessageCircle className="h-5 w-5" />تأكيد السعر والمتاح</a>
