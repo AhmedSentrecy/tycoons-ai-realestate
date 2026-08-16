@@ -29,7 +29,7 @@ export default function Navbar() {
         scrolled ? "glass-light shadow-[0_8px_40px_-12px_rgba(20,30,25,0.25)]" : "bg-transparent"
       }`}
     >
-      <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 lg:px-8">
+      <div className="mx-auto flex h-[64px] max-w-6xl items-center justify-between px-5 lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3">
           <span
