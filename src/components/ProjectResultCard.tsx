@@ -45,8 +45,8 @@ export default function ProjectResultCard({ group, query }: Props) {
   const projectPath = group.projectSlug ? `/projects/${group.projectSlug}` : unit.id ? `/units/${unit.id}` : "";
 
   return (
-    <article className="overflow-hidden rounded-[22px] border border-[#e7ddc8] bg-white">
-      <div className="relative h-[150px] bg-gradient-to-br from-[#2a4a3a] to-[#0d1f18]">
+    <article className="overflow-hidden rounded-2xl border border-[#e7ddc8] bg-white">
+      <div className="relative h-[125px] bg-gradient-to-br from-[#2a4a3a] to-[#0d1f18]">
         <img src={image} alt={group.projectName} loading="lazy" className="h-full w-full object-cover" />
         <span
           className={`absolute right-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold ${
@@ -59,8 +59,8 @@ export default function ProjectResultCard({ group, query }: Props) {
           {unitsCountLabel(group.unitsCount)}
         </span>
       </div>
-      <div className="p-4">
-        <div className="text-xl font-black text-[#9b793f]">
+      <div className="p-3.5">
+        <div className="text-lg font-black text-[#9b793f]">
           {formatMillionsRange(group.minPrice, group.maxPrice)}
           <span className="mr-1 text-[11px] font-semibold text-[#6d7a72]"> جنيه{group.maxPrice <= group.minPrice ? " · يبدأ من" : ""}</span>
         </div>
