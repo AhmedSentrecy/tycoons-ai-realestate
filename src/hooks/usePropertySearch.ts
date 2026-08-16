@@ -15,6 +15,7 @@ const EMPTY_RESULTS: SearchOutput = {
     unitType: "",
     typeAliases: [],
     budgetMax: null,
+    budgetMode: "max",
     bedrooms: null,
     areaMin: null,
     areaMax: null,
