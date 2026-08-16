@@ -14,6 +14,8 @@ export interface SearchCriteria {
   deliveryYearsMax: number | null;
   installmentsYearsMin: number | null;
   downPaymentMax: number | null;
+  downPaymentCashMax: number | null;
+  monthlyInstallmentMax: number | null;
   finishing: "finished" | "core-shell" | "";
   freeTokens: string[];
 }
@@ -24,6 +26,14 @@ export interface RankedInventoryUnit {
   exact: boolean;
   matchReasons: string[];
   differences: string[];
+  paymentEstimate: PaymentEstimate | null;
+}
+
+export interface PaymentEstimate {
+  downPaymentValue: number;
+  downPaymentPercent: number;
+  installmentYears: number;
+  monthlyInstallment: number;
 }
 
 export interface SearchOutput {
@@ -133,6 +143,21 @@ const STOP_WORDS = new Set(
     "minimum",
     "over",
     "above",
+    "قسط",
+    "اقساط",
+    "أقساط",
+    "شهري",
+    "شهريا",
+    "بالشهر",
+    "مقدم",
+    "ومقدم",
+    "الف",
+    "ألف",
+    "monthly",
+    "installment",
+    "payment",
+    "cash",
+    "thousand",
     "غرف",
     "غرفه",
     "غرفة",
@@ -178,12 +203,35 @@ function parseNumber(value: string): number {
 }
 
 function parseBudget(normalized: string): number | null {
-  const million = normalized.match(/(\d+(?:[.,]\d+)?)\s*(?:مليون|million|mn|m\b)/);
-  if (million) return parseNumber(million[1]) * 1_000_000;
+  const millions = [...normalized.matchAll(/(\d+(?:[.,]\d+)?)\s*(?:مليون|million|mn|m\b)/g)];
+  for (const million of millions) {
+    const prefix = normalized.slice(Math.max(0, (million.index ?? 0) - 24), million.index ?? 0);
+    if (!/(?:مقدم|down payment|قسط|monthly)/.test(prefix)) return parseNumber(million[1]) * 1_000_000;
+  }
 
   const raw = normalized.match(/(?:تحت|اقل من|اقل|حتى|max|maximum|under|below)\s*(\d[\d,]{5,})/);
   if (raw) return Number(raw[1].replace(/,/g, ""));
 
+  return null;
+}
+
+function parseMoneyValue(value: string): number | null {
+  const match = value.match(/(\d+(?:[.,]\d+)?)\s*(مليون|million|mn|m\b|الف|ألف|thousand|k\b)?/);
+  if (!match) return null;
+  const amount = parseNumber(match[1]);
+  const scale = /مليون|million|mn|m\b/.test(match[2] || "")
+    ? 1_000_000
+    : /الف|ألف|thousand|k\b/.test(match[2] || "")
+      ? 1_000
+      : 1;
+  return amount * scale;
+}
+
+function parseCashAfter(normalized: string, patterns: string[]): number | null {
+  for (const pattern of patterns) {
+    const match = normalized.match(new RegExp(`${pattern}[^0-9]{0,12}(\\d+(?:[.,]\\d+)?\\s*(?:مليون|million|mn|m\\b|الف|ألف|thousand|k\\b)?)`));
+    if (match) return parseMoneyValue(match[1]);
+  }
   return null;
 }
 
@@ -243,6 +291,15 @@ function parseDownPayment(normalized: string): number | null {
   return match ? parseNumber(match[1]) : null;
 }
 
+function parseDownPaymentCash(normalized: string): number | null {
+  if (/(?:مقدم|down payment|cash down)[^%]{0,24}%/.test(normalized)) return null;
+  return parseCashAfter(normalized, ["مقدم", "down payment", "cash down"]);
+}
+
+function parseMonthlyInstallment(normalized: string): number | null {
+  return parseCashAfter(normalized, ["قسط شهري", "قسط بالشهر", "شهريا", "شهري", "monthly installment", "monthly payment", "per month"]);
+}
+
 function meaningfulTokens(normalized: string): string[] {
   return [...new Set(
     normalized
@@ -292,6 +349,8 @@ export function parseSearchQuery(query: string): SearchCriteria {
     deliveryYearsMax: parseYears(normalized, ["استلام", "delivery", "تسليم"]),
     installmentsYearsMin: parseYears(normalized, ["تقسيط", "installments", "payment plan", "قسط"]),
     downPaymentMax: parseDownPayment(normalized),
+    downPaymentCashMax: parseDownPaymentCash(normalized),
+    monthlyInstallmentMax: parseMonthlyInstallment(normalized),
     finishing,
     freeTokens,
   };
@@ -327,6 +386,31 @@ function paymentPercent(value: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
+function installmentYears(value: string): number | null {
+  const normalized = normalizeText(value);
+  const matches = [...normalized.matchAll(/(\d+(?:\.\d+)?)\s*(?:سنه|سنين|عام|year|years)\b/g)]
+    .map((match) => Number(match[1]))
+    .filter((years) => Number.isFinite(years) && years > 0);
+  return matches.length ? Math.max(...matches) : null;
+}
+
+export function calculatePaymentEstimate(unit: InventoryUnit, cashDown?: number | null): PaymentEstimate | null {
+  const downPaymentPercent = paymentPercent(unit.down_payment_text);
+  const years = installmentYears(unit.installments_text);
+  if (downPaymentPercent === null || years === null) return null;
+  const requiredDownPayment = unit.starting_price * (downPaymentPercent / 100);
+  const downPaymentValue = Math.min(
+    unit.starting_price,
+    cashDown === null || cashDown === undefined ? requiredDownPayment : Math.max(requiredDownPayment, cashDown),
+  );
+  return {
+    downPaymentValue,
+    downPaymentPercent,
+    installmentYears: years,
+    monthlyInstallment: Math.max(0, unit.starting_price - downPaymentValue) / (years * 12),
+  };
+}
+
 function formatMoney(value: number): string {
   return `${new Intl.NumberFormat("en-EG", { maximumFractionDigits: 0 }).format(value)} EGP`;
 }
@@ -346,6 +430,7 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
   const matchReasons: string[] = [];
   const differences: string[] = [];
   let score = 0;
+  const paymentEstimate = calculatePaymentEstimate(unit, criteria.downPaymentCashMax);
 
   const normalizedProject = normalizeText(unit.project_name);
   const normalizedDeveloper = normalizeText(unit.developer);
@@ -473,6 +558,34 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
     }
   }
 
+  if (criteria.downPaymentCashMax !== null) {
+    const requiredPercent = paymentPercent(unit.down_payment_text);
+    const requiredCash = requiredPercent === null ? null : unit.starting_price * (requiredPercent / 100);
+    if (requiredCash !== null && requiredCash <= criteria.downPaymentCashMax) {
+      score += 22;
+      matchReasons.push("المقدم النقدي مناسب");
+    } else {
+      differences.push(
+        requiredCash === null
+          ? "قيمة المقدم غير محددة"
+          : `المقدم المطلوب أعلى بـ ${formatMoney(requiredCash - criteria.downPaymentCashMax)}`,
+      );
+    }
+  }
+
+  if (criteria.monthlyInstallmentMax !== null) {
+    if (paymentEstimate && paymentEstimate.monthlyInstallment <= criteria.monthlyInstallmentMax) {
+      score += 28;
+      matchReasons.push("القسط الشهري التقريبي مناسب");
+    } else {
+      differences.push(
+        paymentEstimate
+          ? `القسط الشهري التقريبي أعلى بـ ${formatMoney(paymentEstimate.monthlyInstallment - criteria.monthlyInstallmentMax)}`
+          : "خطة السداد غير مكتملة لحساب القسط",
+      );
+    }
+  }
+
   if (criteria.finishing) {
     const finishing = normalizeText(unit.finishing);
     const matches =
@@ -498,6 +611,8 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
       criteria.deliveryYearsMax !== null ||
       criteria.installmentsYearsMin !== null ||
       criteria.downPaymentMax !== null ||
+      criteria.downPaymentCashMax !== null ||
+      criteria.monthlyInstallmentMax !== null ||
       criteria.finishing,
   );
 
@@ -506,7 +621,7 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
   }
 
   const exact = differences.length === 0 && (criteria.freeTokens.length === 0 || tokenCoverage >= 0.5);
-  return { unit, score, exact, matchReasons: [...new Set(matchReasons)], differences: [...new Set(differences)] };
+  return { unit, score, exact, matchReasons: [...new Set(matchReasons)], differences: [...new Set(differences)], paymentEstimate };
 }
 
 function criteriaSummary(criteria: SearchCriteria): string {
@@ -534,6 +649,8 @@ function criteriaSummary(criteria: SearchCriteria): string {
   if (criteria.deliveryYearsMax !== null) parts.push(`استلام خلال ${criteria.deliveryYearsMax} سنة`);
   if (criteria.installmentsYearsMin !== null) parts.push(`تقسيط ${criteria.installmentsYearsMin} سنة أو أكتر`);
   if (criteria.downPaymentMax !== null) parts.push(`مقدم حتى ${criteria.downPaymentMax}%`);
+  if (criteria.downPaymentCashMax !== null) parts.push(`مقدم نقدي حتى ${formatMoney(criteria.downPaymentCashMax)}`);
+  if (criteria.monthlyInstallmentMax !== null) parts.push(`قسط شهري تقريبي حتى ${formatMoney(criteria.monthlyInstallmentMax)}`);
   if (criteria.finishing) parts.push(criteria.finishing === "finished" ? "متشطب" : "Core & Shell");
   return parts.length ? `فهمنا طلبك: ${parts.join(" · ")}` : "رتبنا النتائج حسب أقرب تطابق لكلامك";
 }
@@ -553,10 +670,20 @@ export function searchInventory(units: InventoryUnit[], query: string): SearchOu
     };
   }
 
-  const budgetDistance = (result: RankedInventoryUnit) =>
-    criteria.budgetMax === null
-      ? 0
-      : Math.abs(result.unit.starting_price - criteria.budgetMax) / criteria.budgetMax;
+  const budgetDistance = (result: RankedInventoryUnit) => {
+    if (criteria.monthlyInstallmentMax !== null && result.paymentEstimate) {
+      return Math.abs(result.paymentEstimate.monthlyInstallment - criteria.monthlyInstallmentMax) / criteria.monthlyInstallmentMax;
+    }
+    if (criteria.budgetMax !== null) {
+      return Math.abs(result.unit.starting_price - criteria.budgetMax) / criteria.budgetMax;
+    }
+    if (criteria.downPaymentCashMax !== null) {
+      const requiredPercent = paymentPercent(result.unit.down_payment_text);
+      const requiredCash = requiredPercent === null ? null : result.unit.starting_price * (requiredPercent / 100);
+      return requiredCash === null ? Number.POSITIVE_INFINITY : Math.abs(requiredCash - criteria.downPaymentCashMax) / criteria.downPaymentCashMax;
+    }
+    return 0;
+  };
   const mismatchWeight = (result: RankedInventoryUnit) => {
     const typeMismatch = criteria.typeAliases.length && !result.matchReasons.some((reason) => reason.startsWith("نوع الوحدة"));
     const regionMismatch = criteria.regionTerms.length && !result.matchReasons.some((reason) => reason.startsWith("في "));
