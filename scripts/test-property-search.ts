@@ -112,6 +112,17 @@ async function run() {
   assert.ok(naturalArabic.totalExact > 0, "Structured Arabic terms should not lower exact-match coverage");
   assert.ok(naturalArabic.exact.every((result) => result.unit.starting_price <= 10_000_000));
 
+  const targetBudget = searchInventory(units, "chalet 8 million");
+  assert.equal(targetBudget.criteria.budgetMode, "target");
+  assert.ok(targetBudget.exact.length > 0, "A target-budget chalet query should return close chalets");
+  assert.match(targetBudget.exact[0].unit.unit_type, /chalet/i);
+  assert.ok(
+    Math.abs(targetBudget.exact[0].unit.starting_price - 8_000_000) <=
+      Math.abs(targetBudget.exact[targetBudget.exact.length - 1].unit.starting_price - 8_000_000),
+    "Exact results should be ordered by distance from the requested budget",
+  );
+  assert.match(targetBudget.alternatives[0]?.unit.unit_type || "", /chalet/i);
+
   console.log(
     `Property search tests passed: ${stats.units} units, ${stats.projects} projects, ${stats.developers} developers`,
   );
