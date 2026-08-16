@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
 
 function slugify(value: string) {
   return value
@@ -27,7 +28,7 @@ export default function Developers() {
   const row = [...developers, ...developers];
 
   return (
-    <section className="overflow-hidden border-y border-[#e3d9c4] bg-[#efe7d8] py-11">
+    <section id="developers" className="overflow-hidden border-y border-[#e3d9c4] bg-[#efe7d8] py-11">
       <motion.div
         initial={{ opacity: 0, y: 22 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -58,6 +59,16 @@ export default function Developers() {
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="mt-8 flex justify-center px-5">
+        <a
+          href="/ar/#developers"
+          className="inline-flex items-center gap-2 rounded-full border border-[#b9995f]/45 bg-white/65 px-5 py-2.5 text-sm font-bold text-[#493d27] transition hover:border-[#a3854e] hover:bg-white"
+        >
+          استكشف كل المطورين ومشاريعهم
+          <ArrowLeft className="h-4 w-4" />
+        </a>
       </div>
     </section>
   );
