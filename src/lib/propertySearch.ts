@@ -6,6 +6,7 @@ export interface SearchCriteria {
   unitType: string;
   typeAliases: string[];
   budgetMax: number | null;
+  budgetMode: "max" | "target";
   bedrooms: number | null;
   areaMin: number | null;
   areaMax: number | null;
@@ -186,6 +187,12 @@ function parseBudget(normalized: string): number | null {
   return null;
 }
 
+function parseBudgetMode(normalized: string): "max" | "target" {
+  return /(?:تحت|اقل من|اقل|حتى|حد اقصى|max|maximum|under|below)/.test(normalized)
+    ? "max"
+    : "target";
+}
+
 function parseBedrooms(normalized: string): number | null {
   const numeric = normalized.match(/(\d+)\s*(?:غرفه|غرف|bedroom|bedrooms|br\b)/);
   if (numeric) return Number(numeric[1]);
@@ -277,6 +284,7 @@ export function parseSearchQuery(query: string): SearchCriteria {
     unitType: unitType?.label ?? "",
     typeAliases: unitType?.aliases.map(normalizeText) ?? [],
     budgetMax: parseBudget(normalized),
+    budgetMode: parseBudgetMode(normalized),
     bedrooms: parseBedrooms(normalized),
     areaMin: area.min,
     areaMax: area.max,
@@ -380,12 +388,25 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
   }
 
   if (criteria.budgetMax !== null) {
-    if (unit.starting_price <= criteria.budgetMax) {
-      score += 38;
+    const gap = unit.starting_price - criteria.budgetMax;
+    const gapRatio = Math.abs(gap) / criteria.budgetMax;
+    if (criteria.budgetMode === "target") {
+      score += Math.max(0, 50 - gapRatio * 100);
+      if (gapRatio <= 0.25) {
+        matchReasons.push("قريب من الميزانية");
+      } else {
+        differences.push(
+          gap > 0
+            ? `أعلى من الميزانية بـ ${formatMoney(gap)}`
+            : `أقل من الميزانية بـ ${formatMoney(Math.abs(gap))}`,
+        );
+      }
+    } else if (unit.starting_price <= criteria.budgetMax) {
+      score += 38 + Math.max(0, 12 - gapRatio * 12);
       matchReasons.push("داخل الميزانية");
     } else {
-      differences.push(`أعلى من الميزانية بـ ${formatMoney(unit.starting_price - criteria.budgetMax)}`);
-      score -= Math.min(35, ((unit.starting_price - criteria.budgetMax) / criteria.budgetMax) * 50);
+      differences.push(`أعلى من الميزانية بـ ${formatMoney(gap)}`);
+      score -= Math.min(35, (gap / criteria.budgetMax) * 50);
     }
   }
 
@@ -492,7 +513,13 @@ function criteriaSummary(criteria: SearchCriteria): string {
   const parts: string[] = [];
   if (criteria.unitType) parts.push(criteria.unitType);
   if (criteria.regionLabel) parts.push(criteria.regionLabel);
-  if (criteria.budgetMax !== null) parts.push(`حد أقصى ${formatMoney(criteria.budgetMax)}`);
+  if (criteria.budgetMax !== null) {
+    parts.push(
+      criteria.budgetMode === "target"
+        ? `ميزانية حوالي ${formatMoney(criteria.budgetMax)}`
+        : `حد أقصى ${formatMoney(criteria.budgetMax)}`,
+    );
+  }
   if (criteria.bedrooms !== null) parts.push(`${criteria.bedrooms} غرف`);
   if (criteria.areaMin !== null || criteria.areaMax !== null) {
     parts.push(
@@ -526,17 +553,30 @@ export function searchInventory(units: InventoryUnit[], query: string): SearchOu
     };
   }
 
+  const budgetDistance = (result: RankedInventoryUnit) =>
+    criteria.budgetMax === null
+      ? 0
+      : Math.abs(result.unit.starting_price - criteria.budgetMax) / criteria.budgetMax;
+  const mismatchWeight = (result: RankedInventoryUnit) => {
+    const typeMismatch = criteria.typeAliases.length && !result.matchReasons.some((reason) => reason.startsWith("نوع الوحدة"));
+    const regionMismatch = criteria.regionTerms.length && !result.matchReasons.some((reason) => reason.startsWith("في "));
+    return (typeMismatch ? 100 : 0) + (regionMismatch ? 30 : 0) + result.differences.length;
+  };
+
   const ranked = dedupeUnits(units)
     .map((unit) => rankUnit(unit, criteria, normalizedQuery))
     .filter((result) => result.score > 0 || result.exact)
-    .sort((a, b) => b.score - a.score || a.unit.starting_price - b.unit.starting_price);
+    .sort((a, b) => b.score - a.score || budgetDistance(a) - budgetDistance(b));
 
-  const exactAll = ranked.filter((result) => result.exact);
+  const exactAll = ranked
+    .filter((result) => result.exact)
+    .sort((a, b) => budgetDistance(a) - budgetDistance(b) || b.score - a.score);
   const alternativesAll = ranked
     .filter((result) => !result.exact)
     .sort(
       (a, b) =>
-        a.differences.length - b.differences.length ||
+        mismatchWeight(a) - mismatchWeight(b) ||
+        budgetDistance(a) - budgetDistance(b) ||
         b.score - a.score ||
         a.unit.starting_price - b.unit.starting_price,
     );
