@@ -13,21 +13,21 @@ const regions = [
 
 export default function Regions() {
   return (
-    <section className="bg-[#f7f2ea] py-24 lg:py-32">
-      <div className="mx-auto max-w-7xl px-5 lg:px-8">
+    <section className="bg-[#f7f2ea] py-16 lg:py-20">
+      <div className="mx-auto max-w-6xl px-5 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 26 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.8, ease }}
-          className="mb-14 max-w-xl"
+          className="mb-9 max-w-xl"
         >
           <div className="mb-4 flex items-center gap-2.5">
             <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
             <span className="text-sm font-medium text-[#a3854e]">استكشف بالمنطقة</span>
           </div>
-          <h2 className="text-4xl font-extrabold text-[#1b2420] sm:text-5xl">مناطق مميّزة</h2>
-          <p className="mt-4 font-light leading-relaxed text-[#6d7a72]">
+          <h2 className="text-3xl font-extrabold text-[#1b2420] sm:text-4xl">مناطق مميّزة</h2>
+          <p className="mt-3 text-sm font-light leading-relaxed text-[#6d7a72]">
             اختار منطقة والمساعد يبدأ البحث فيها فورًا.
           </p>
         </motion.div>
@@ -45,7 +45,7 @@ export default function Regions() {
               <a
                 href={`/ar/areas/${r.areaSlug}`}
                 className={`group relative block overflow-hidden rounded-3xl ${
-                  r.wide ? "min-h-[280px] lg:h-full lg:min-h-[560px]" : "min-h-[260px]"
+                  r.wide ? "min-h-[230px] lg:h-full lg:min-h-[430px]" : "min-h-[205px]"
                 }`}
               >
                 <img
@@ -59,9 +59,9 @@ export default function Regions() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0a140f]/85 via-[#0a140f]/15 to-transparent transition-opacity duration-500 group-hover:from-[#0a140f]/90" />
 
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-6">
+                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">
                   <div>
-                    <h3 className={`font-extrabold text-white ${r.wide ? "text-3xl" : "text-xl"}`}>
+                    <h3 className={`font-extrabold text-white ${r.wide ? "text-2xl" : "text-lg"}`}>
                       {r.name}
                     </h3>
                     <p className="mt-1.5 text-sm font-light text-white/70">{r.count}</p>
