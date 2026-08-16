@@ -23,6 +23,8 @@ const EMPTY_RESULTS: SearchOutput = {
     deliveryYearsMax: null,
     installmentsYearsMin: null,
     downPaymentMax: null,
+    downPaymentCashMax: null,
+    monthlyInstallmentMax: null,
     finishing: "",
     freeTokens: [],
   },
@@ -63,6 +65,8 @@ function optionPayload(item: RankedInventoryUnit) {
     finishing: item.unit.finishing,
     reasons: item.matchReasons,
     differences: item.differences,
+    estimated_monthly_installment_egp: item.paymentEstimate?.monthlyInstallment ?? null,
+    estimated_down_payment_egp: item.paymentEstimate?.downPaymentValue ?? null,
   };
 }
 
