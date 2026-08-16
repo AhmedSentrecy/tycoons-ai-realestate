@@ -4,11 +4,14 @@ import { BrowserRouter } from 'react-router'
 import './index.css'
 import App from './App.tsx'
 import { registerWebMcpTools } from './lib/webmcp.ts'
+import { VoiceSessionProvider } from './contexts/VoiceSessionContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <VoiceSessionProvider>
+        <App />
+      </VoiceSessionProvider>
     </BrowserRouter>
   </StrictMode>,
 )
