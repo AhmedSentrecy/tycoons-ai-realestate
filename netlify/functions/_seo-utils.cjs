@@ -559,6 +559,10 @@ function renderDirectory(projects, lang) {
     const area = areaFor(projectLocation(project));
     return [area.slug, area];
   })).values()];
+  const developers = [...new Map(projects.map((project) => [
+    slugify(project.developer),
+    { slug: slugify(project.developer), name: project.developer },
+  ])).values()].sort((a, b) => a.name.localeCompare(b.name));
   const title = ar
     ? "مشاريع عقارية في مصر بالأسعار المحدثة | Tycoons Investments"
     : "Egypt property projects with updated prices | Tycoons Investments";
@@ -567,6 +571,7 @@ function renderDirectory(projects, lang) {
     : "A property project directory based on currently available Tycoons inventory, including prices, areas and payment plans.";
   const body = `<main><section class="hero"><span class="eyebrow">Tycoons Investments</span><h1>${ar ? "دليل المشاريع العقارية المحدث" : "Updated property project directory"}</h1><p class="lead">${escapeHtml(description)}</p><p class="note">${ar ? `${projects.length} مشروع ظاهر حسب آخر تحميل ناجح للبيانات.` : `${projects.length} projects shown from the latest successful data load.`}</p></section>
   <h2>${ar ? "استكشف حسب المنطقة" : "Explore by area"}</h2><div class="grid">${areas.map((area) => `<a class="card" href="/${lang}/areas/${area.slug}"><h3>${escapeHtml(ar ? area.ar : area.en)}</h3></a>`).join("")}</div>
+  <h2>${ar ? "استكشف حسب المطور" : "Explore by developer"}</h2><div class="grid">${developers.map((developer) => `<a class="card" href="/${lang}/developers/${developer.slug}"><h3>${escapeHtml(developer.name)}</h3></a>`).join("")}</div>
   <h2>${ar ? "أحدث المشاريع" : "Recently updated projects"}</h2>${cards(latest, lang)}</main>`;
   return renderPage({
     lang,
@@ -599,6 +604,7 @@ function renderProject(projects, slug, lang) {
   const crumbs = [
     { name: ar ? "الرئيسية" : "Home", path: "/" },
     { name: ar ? area.ar : area.en, path: `/${lang}/areas/${area.slug}` },
+    { name: project.developer, path: `/${lang}/developers/${slugify(project.developer)}` },
     { name: project.name, path },
   ];
   const message = encodeURIComponent(
@@ -911,6 +917,31 @@ function renderCollection(projects, kind, slug, lang) {
     kind === "area"
       ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>`
       : "";
+  const projectUnitCount = matches.reduce((total, project) => total + project.units.length, 0);
+  const branches = kind === "area"
+    ? [...new Map(matches.map((project) => [slugify(project.developer), {
+        slug: slugify(project.developer),
+        label: project.developer,
+        projects: matches.filter((item) => slugify(item.developer) === slugify(project.developer)),
+      }])).values()]
+    : [...new Map(matches.map((project) => {
+        const projectArea = areaFor(projectLocation(project));
+        return [projectArea.slug, {
+          slug: projectArea.slug,
+          label: ar ? projectArea.ar : projectArea.en,
+          projects: matches.filter((item) => areaFor(projectLocation(item)).slug === projectArea.slug),
+        }];
+      })).values()];
+  const branchHeading = kind === "area"
+    ? (ar ? `المطورون ومشاريعهم في ${label}` : `Developers and their projects in ${label}`)
+    : (ar ? `مشاريع ${label} حسب المنطقة` : `${label} projects by area`);
+  const branchHtml = `<h2>${escapeHtml(branchHeading)}</h2><div class="grid">${branches.map((branch) => {
+    const branchPath = kind === "area"
+      ? `/${lang}/developers/${branch.slug}`
+      : `/${lang}/areas/${branch.slug}`;
+    const unitsCount = branch.projects.reduce((total, project) => total + project.units.length, 0);
+    return `<section class="card"><h3><a href="${branchPath}">${escapeHtml(branch.label)}</a></h3><p>${ar ? `${branch.projects.length} مشروع · ${unitsCount} وحدة متاحة` : `${branch.projects.length} projects · ${unitsCount} available units`}</p><ul>${branch.projects.map((project) => `<li><a href="${ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`}">${escapeHtml(project.name)}</a></li>`).join("")}</ul></section>`;
+  }).join("")}</div>`;
   const faq =
     kind === "area"
       ? [
@@ -933,8 +964,9 @@ function renderCollection(projects, kind, slug, lang) {
         ]
       : [];
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(label)}</h1>
-  <div class="answer"><strong>${escapeHtml(description)}</strong></div><div class="facts"><div class="fact"><small>${ar ? "عدد المشاريع" : "Projects"}</small><strong>${plural}</strong></div><div class="fact"><small>${ar ? "أقل سعر ظاهر" : "Lowest listed"}</small><strong>${escapeHtml(minFmt)}</strong></div><div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed"}</small><strong>${escapeHtml(formatPrice(max, lang))}</strong></div><div class="fact"><small>${ar ? "مصدر البيانات" : "Data source"}</small><strong>Tycoons inventory</strong></div></div></section>
+  <div class="answer"><strong>${escapeHtml(description)}</strong></div><div class="facts"><div class="fact"><small>${ar ? "عدد المشاريع" : "Projects"}</small><strong>${plural}</strong></div><div class="fact"><small>${ar ? "الوحدات المتاحة" : "Available units"}</small><strong>${projectUnitCount}</strong></div><div class="fact"><small>${ar ? "أقل سعر ظاهر" : "Lowest listed"}</small><strong>${escapeHtml(minFmt)}</strong></div><div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed"}</small><strong>${escapeHtml(formatPrice(max, lang))}</strong></div></div></section>
   ${contextSection}
+  ${branchHtml}
   <h2>${ar ? "المشاريع المتاحة" : "Available projects"}</h2>${cards(matches, lang)}
   ${faq.length ? `<h2>${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}` : ""}
   <p class="note">${ar ? "النطاق مبني على الوحدات الظاهرة وليس تقييمًا للسوق بالكامل." : "The range is based on listed units and is not a valuation of the whole market."}</p></main>`;
@@ -963,6 +995,18 @@ function renderCollection(projects, kind, slug, lang) {
             url: `${SITE_URL}${ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`}`,
           })),
         },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: branchHeading,
+        numberOfItems: branches.length,
+        itemListElement: branches.map((branch, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          name: branch.label,
+          url: `${SITE_URL}/${lang}/${kind === "area" ? "developers" : "areas"}/${branch.slug}`,
+        })),
       },
       ...(faq.length
         ? [
