@@ -1,5 +1,15 @@
 import { motion } from "framer-motion";
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9\u0600-\u06ff]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const developers = [
@@ -41,9 +51,9 @@ export default function Developers() {
         <div className="flex w-max animate-marquee gap-14 pl-14">
           {row.map((d, i) => (
             <div key={i} className="flex items-center gap-14">
-              <span className="whitespace-nowrap text-xl font-bold tracking-wide text-[#3a4a41]/55 transition-colors hover:text-[#14352a]">
+              <a href={`/ar/developers/${slugify(d)}`} className="whitespace-nowrap text-xl font-bold tracking-wide text-[#3a4a41]/55 transition-colors hover:text-[#14352a]">
                 {d}
-              </span>
+              </a>
               <span className="h-2 w-2 rotate-45 bg-[#c49b5f]/50" />
             </div>
           ))}
