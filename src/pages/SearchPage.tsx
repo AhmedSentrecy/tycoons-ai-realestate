@@ -52,15 +52,15 @@ export default function SearchPage() {
   return (
     <div dir="rtl" className="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
       <Navbar />
-      <section className="bg-[#0d1f18] px-5 pb-10 pt-28 text-white lg:px-8">
-        <div className="mx-auto max-w-7xl">
+      <section className="bg-[#0d1f18] px-5 pb-8 pt-24 text-white lg:px-8">
+        <div className="mx-auto max-w-6xl">
           <p className="text-xs font-bold text-[#d9b87c]"><Link to="/" className="hover:underline">الرئيسية</Link> / البحث</p>
-          <div className="mt-4 grid items-end gap-7 lg:grid-cols-[1fr_0.85fr]">
+          <div className="mt-3 grid items-end gap-6 lg:grid-cols-[1fr_0.85fr]">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/70">
                 <Search className="h-3.5 w-3.5 text-[#d9b87c]" /> بحث مباشر في المخزون الحالي
               </span>
-              <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-tight sm:text-5xl">
+              <h1 className="mt-3 max-w-3xl text-2xl font-extrabold leading-tight sm:text-4xl">
                 {q ? "الاختيارات الأقرب لطلبك" : "قولنا بتدور على إيه"}
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/65 sm:text-base">
@@ -81,7 +81,7 @@ export default function SearchPage() {
         </div>
       </section>
 
-      <main className="mx-auto max-w-7xl px-5 pb-20 pt-8 lg:px-8">
+      <main className="mx-auto max-w-6xl px-5 pb-16 pt-7 lg:px-8">
         {q && (
           <div className="mb-7 rounded-3xl border border-[#e3d7c0] bg-white p-5 shadow-sm sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
