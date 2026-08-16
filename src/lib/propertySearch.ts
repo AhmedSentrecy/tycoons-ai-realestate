@@ -113,6 +113,25 @@ const STOP_WORDS = new Set(
     "مليون",
     "جنيه",
     "egp",
+    "تحت",
+    "اقل",
+    "أقل",
+    "حتى",
+    "فوق",
+    "اكتر",
+    "أكتر",
+    "اكثر",
+    "أكثر",
+    "حد",
+    "اقصى",
+    "أقصى",
+    "ميزانيه",
+    "ميزانية",
+    "budget",
+    "maximum",
+    "minimum",
+    "over",
+    "above",
     "غرف",
     "غرفه",
     "غرفة",
@@ -236,6 +255,21 @@ export function parseSearchQuery(query: string): SearchCriteria {
     : includesAny(normalized, ["core shell", "core & shell", "نصف تشطيب", "بدون تشطيب"])
       ? "core-shell"
       : "";
+  const structuredAliases = [
+    ...(region?.aliases ?? []),
+    ...(unitType?.aliases ?? []),
+    "استلام فوري",
+    "فوري",
+    "ready to move",
+    "متشطب",
+    "تشطيب كامل",
+    "fully finished",
+    "core shell",
+    "نصف تشطيب",
+  ].map(normalizeText);
+  const freeTokens = meaningfulTokens(normalized).filter(
+    (token) => !structuredAliases.some((alias) => alias.split(" ").includes(token)),
+  );
 
   return {
     regionLabel: region?.label ?? "",
@@ -251,7 +285,7 @@ export function parseSearchQuery(query: string): SearchCriteria {
     installmentsYearsMin: parseYears(normalized, ["تقسيط", "installments", "payment plan", "قسط"]),
     downPaymentMax: parseDownPayment(normalized),
     finishing,
-    freeTokens: meaningfulTokens(normalized),
+    freeTokens,
   };
 }
 
