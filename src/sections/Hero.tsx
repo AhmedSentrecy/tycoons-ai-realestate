@@ -46,7 +46,7 @@ export default function Hero() {
   ];
 
   return (
-    <section className="relative min-h-[100svh] overflow-hidden">
+    <section className="relative min-h-[86svh] overflow-hidden">
       <motion.img
         src="/images/hero.webp"
         alt="فيلا فاخرة على الساحل الشمالي"
@@ -62,7 +62,7 @@ export default function Hero() {
       <div className="absolute inset-0 bg-gradient-to-b from-[#08130e]/70 via-[#08130e]/35 to-[#08130e]/85" />
       <div className="absolute inset-0 bg-gradient-to-l from-[#08130e]/45 to-transparent" />
 
-      <div className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-5 pb-20 pt-28 sm:pb-24 sm:pt-32 lg:px-8">
+      <div className="relative z-10 mx-auto flex min-h-[86svh] max-w-6xl flex-col justify-center px-5 pb-14 pt-24 sm:pb-16 sm:pt-28 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -79,7 +79,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 34 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 1, ease }}
-          className="max-w-4xl text-balance text-[38px] font-extrabold leading-[1.25] text-white sm:text-6xl lg:text-[70px] lg:leading-[1.18]"
+          className="max-w-3xl text-balance text-[32px] font-extrabold leading-[1.25] text-white sm:text-5xl lg:text-[54px] lg:leading-[1.2]"
         >
           ابحث بصوتك بأي حاجة تيجي في بالك،
           <span className="gold-gradient-text block">وإحنا نوصّلك للعقار المناسب.</span>
@@ -89,7 +89,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7, duration: 0.9, ease }}
-          className="mt-6 max-w-xl text-base font-light leading-relaxed text-white/75 sm:text-lg"
+          className="mt-4 max-w-xl text-sm font-light leading-relaxed text-white/75 sm:text-base"
         >
           اكتب أو اتكلم بطريقتك — «عايز شاليه في الساحل تحت 20 مليون» — وشوف الوحدات
           المطابقة والبدائل القريبة من المخزون المحدث.
@@ -99,7 +99,7 @@ export default function Hero() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9, duration: 1, ease }}
-          className="glass mt-9 max-w-3xl rounded-3xl p-3 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.55)] sm:p-4"
+          className="glass mt-7 max-w-2xl rounded-2xl p-2.5 shadow-[0_24px_65px_-20px_rgba(0,0,0,0.55)] sm:p-3"
         >
           <SmartSearchBar />
           <p className="mt-3 px-2 text-xs leading-relaxed text-white/65">
@@ -126,11 +126,11 @@ export default function Hero() {
           initial={{ opacity: 0, y: 26 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.15, duration: 1, ease }}
-          className="mt-10 grid max-w-3xl grid-cols-2 gap-x-8 gap-y-5 border-t border-white/15 pt-7 sm:grid-cols-4"
+          className="mt-7 grid max-w-2xl grid-cols-2 gap-x-6 gap-y-4 border-t border-white/15 pt-5 sm:grid-cols-4"
         >
           {liveStats.map((stat) => (
             <div key={stat.label}>
-              <div className="text-3xl font-bold text-white sm:text-4xl">
+              <div className="text-2xl font-bold text-white sm:text-3xl">
                 <Counter target={stat.value} suffix={stat.suffix} />
               </div>
               <div className="mt-1.5 text-[13px] font-light text-white/60">{stat.label}</div>
