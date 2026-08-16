@@ -108,6 +108,10 @@ async function run() {
   const budget = completeMatches(searchInventory(units, "شقة تحت 7 مليون"));
   assert.ok(budget.every((result) => result.unit.starting_price <= 7_000_000));
 
+  const naturalArabic = searchInventory(units, "شقة في التجمع تحت 10 مليون");
+  assert.ok(naturalArabic.totalExact > 0, "Structured Arabic terms should not lower exact-match coverage");
+  assert.ok(naturalArabic.exact.every((result) => result.unit.starting_price <= 10_000_000));
+
   console.log(
     `Property search tests passed: ${stats.units} units, ${stats.projects} projects, ${stats.developers} developers`,
   );
