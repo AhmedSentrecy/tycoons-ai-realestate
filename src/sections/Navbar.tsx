@@ -6,6 +6,7 @@ import { MessageCircle } from "lucide-react";
 const links = [
   { label: "الرئيسية", to: "/", external: false },
   { label: "دليل المشاريع", to: "/ar/", external: true },
+  { label: "المطورون", to: "/ar/#developers", external: true },
   { label: "من نحن", to: "/about", external: false },
   { label: "الأسئلة الشائعة", to: "/faq", external: false },
 ];
