@@ -123,6 +123,13 @@ async function run() {
   );
   assert.match(targetBudget.alternatives[0]?.unit.unit_type || "", /chalet/i);
 
+  const monthly = searchInventory(units, "شاليه قسط شهري 100 ألف ومقدم 500 ألف");
+  assert.equal(monthly.criteria.monthlyInstallmentMax, 100_000);
+  assert.equal(monthly.criteria.downPaymentCashMax, 500_000);
+  assert.equal(monthly.criteria.budgetMax, null, "Cash down must not be parsed as the total property budget");
+  assert.ok(monthly.exact.length > 0, "Monthly-installment search should return affordable exact results");
+  assert.ok(monthly.exact.every((result) => (result.paymentEstimate?.monthlyInstallment ?? Infinity) <= 100_000));
+
   console.log(
     `Property search tests passed: ${stats.units} units, ${stats.projects} projects, ${stats.developers} developers`,
   );
