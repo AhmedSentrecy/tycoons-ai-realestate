@@ -1,3 +1,3 @@
-Rebuild requested for Sales War Room admin quick access.
-Timestamp: 2026-08-25T13:20:00Z
-Reason: admin should open agent dashboards without agent password and all agent rows/cards should be clickable.
+Rebuild requested for Sales War Room admin direct access.
+Timestamp: 2026-08-25T13:23:00Z
+Reason: logged-in admin should open any agent URL directly without entering the agent password; admin cards and rows are clickable.
