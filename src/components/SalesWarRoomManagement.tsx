@@ -25,6 +25,7 @@ export default function SalesWarRoomManagement({ mode }: { mode: Mode }) {
   const [from, setFrom] = useState(startOfMonth());
   const [to, setTo] = useState(fmt(new Date()));
   const [data, setData] = useState<any>(null);
+  const [ownerPipeline,setOwnerPipeline] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [openingSlug, setOpeningSlug] = useState("");
@@ -67,9 +68,19 @@ export default function SalesWarRoomManagement({ mode }: { mode: Mode }) {
     try {
       setLoading(true);
       setError("");
-      setData(await salesWarRoomApi.adminSummary(token, from, to));
+      if(isOwner){
+        const [summary,fullPipeline]=await Promise.all([
+          salesWarRoomApi.adminSummary(token, from, to),
+          salesWarRoomApi.getOwnerPipeline(token),
+        ]);
+        setData(summary);
+        setOwnerPipeline(fullPipeline.pipeline||[]);
+      }else{
+        setData(await salesWarRoomApi.adminSummary(token, from, to));
+        setOwnerPipeline([]);
+      }
     } catch (e: any) {
-      if (e.message === "unauthorized") {
+      if (e.message === "unauthorized" || e.message === "owner_only") {
         localStorage.removeItem(tokenKey);
         setToken("");
       }
@@ -191,8 +202,8 @@ export default function SalesWarRoomManagement({ mode }: { mode: Mode }) {
   }, [data]);
 
   const ownerLeads = useMemo(()=>{
-    if(!data?.pipeline)return [];
-    return data.pipeline
+    if(!data?.agents)return [];
+    return ownerPipeline
       .filter((p:any)=>leadAgentFilter==="all"||p.agent_id===leadAgentFilter)
       .filter((p:any)=>leadStageFilter==="all"||p.stage===leadStageFilter)
       .map((p:any)=>({
@@ -203,7 +214,7 @@ export default function SalesWarRoomManagement({ mode }: { mode: Mode }) {
         const pr=(x:any)=>x.stage==="Hot / Very Potential"?0:x.stage==="Warm"?1:x.stage==="Negotiation / Closing"?2:x.stage==="Meeting Scheduled"?3:4;
         return pr(a)-pr(b)||String(a.next_action_date||"9999").localeCompare(String(b.next_action_date||"9999"));
       });
-  },[data,leadAgentFilter,leadStageFilter]);
+  },[ownerPipeline,data,leadAgentFilter,leadStageFilter]);
 
   if (!token) {
     return (
