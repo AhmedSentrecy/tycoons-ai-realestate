@@ -213,3 +213,9 @@ section.mt-4.rounded-3xl.border.bg-white.p-4.shadow-sm
   > div.rounded-full.bg-slate-950.px-3.py-1.text-\[10px\].font-black.text-white {
   display: none;
 }
+
+/* Sales War Room: Expected Sale is set on lead creation and locked for agents afterward. */
+div.rounded-xl.border-2.border-slate-400.bg-white.p-3.shadow-sm
+  label:has(input[type="number"][step="0.1"]) {
+  display: none;
+}
