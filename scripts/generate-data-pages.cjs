@@ -84,16 +84,19 @@ async function main() {
     const generatedSlug = `${slugify(project.name)}--${slugify(project.developer)}`;
     if (generatedSlug && generatedSlug !== project.slug) aliases.set(generatedSlug, project.slug);
   }
-  const redirects = [...aliases.entries()]
-    .filter(([, canonicalSlug]) => normalizedProjects.some((project) => project.slug === canonicalSlug))
-    .flatMap(([oldSlug, canonicalSlug]) => [
-      `/projects/${oldSlug} /projects/${canonicalSlug} 301!`,
-      `/ar/projects/${oldSlug} /projects/${canonicalSlug} 301!`,
-    ]);
+  const redirects = [
+    "/sales-war-room/* /index.html 200!",
+    ...[...aliases.entries()]
+      .filter(([, canonicalSlug]) => normalizedProjects.some((project) => project.slug === canonicalSlug))
+      .flatMap(([oldSlug, canonicalSlug]) => [
+        `/projects/${oldSlug} /projects/${canonicalSlug} 301!`,
+        `/ar/projects/${oldSlug} /projects/${canonicalSlug} 301!`,
+      ]),
+  ];
   await fs.writeFile(path.join(dist, "_redirects"), `${redirects.join("\n")}\n`, "utf8");
 
   console.log(
-    `Generated ${projectCount} project pages and ${unitCount} unit pages (${indexableIds.size} indexable) plus ${redirects.length} legacy redirects from Supabase.`,
+    `Generated ${projectCount} project pages and ${unitCount} unit pages (${indexableIds.size} indexable) plus ${redirects.length} redirect rules from Supabase and private app routing.`,
   );
 }
 
