@@ -1,3 +1,3 @@
-Rebuild requested for final Sales War Room owner/admin routing.
-Timestamp: 2026-08-25T15:10:00Z
-Reason: keep /sales-war-room/admin as Owner Dashboard, add /sales-war-room/team-admin as limited Admin Dashboard, and preserve owner-only agent access.
+Rebuild requested for Sales War Room motivation board and editable follow-ups.
+Timestamp: 2026-08-25T15:22:00Z
+Reason: add daily/weekly top Calls and Hot leaders without counts, split Follow-up Date and Trigger, and add in-card editing for existing leads.
