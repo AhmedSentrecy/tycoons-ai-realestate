@@ -1,3 +1,3 @@
-Rebuild requested for selectable Sales War Room pipeline views.
-Timestamp: 2026-08-25T18:38:00+03:00
-Reason: rename Pipeline Kanban to Pipeline View and add Kanban, Action Queue, Stage Tabs, Table, Calendar, and Funnel selectors.
+Rebuild requested for Sales War Room expected and lost sales metrics.
+Timestamp: 2026-08-25T18:43:00+03:00
+Reason: add Expected Sale per lead, aggregate Warm + Hot Expected Sales, and aggregate Lost / Dead sales value on each agent dashboard.
