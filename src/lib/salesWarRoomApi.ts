@@ -1,13 +1,18 @@
 const API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room";
+const ADMIN_AGENT_ACCESS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-admin-agent-access";
 
-async function request(path: string, options: RequestInit = {}) {
-  const res = await fetch(`${API}/${path}`, {
+async function requestUrl(url: string, options: RequestInit = {}) {
+  const res = await fetch(url, {
     ...options,
     headers: { "Content-Type": "application/json", ...(options.headers || {}) },
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || `Request failed: ${res.status}`);
   return data;
+}
+
+async function request(path: string, options: RequestInit = {}) {
+  return requestUrl(`${API}/${path}`, options);
 }
 
 const agentHeaders = (token: string) => ({ "x-agent-token": token });
@@ -25,4 +30,9 @@ export const salesWarRoomApi = {
   adminSummary: (token: string, from: string, to: string) => request(`admin-summary?from=${from}&to=${to}`, { headers: { "x-admin-token": token } }),
   adminAgents: (token: string) => request("admin-agents", { headers: { "x-admin-token": token } }),
   addAdminAgent: (token: string, body: Record<string, unknown>) => request("admin-agents", { method: "POST", headers: { "x-admin-token": token }, body: JSON.stringify(body) }),
+  adminAgentAccess: (token: string, slug: string) => requestUrl(ADMIN_AGENT_ACCESS_API, {
+    method: "POST",
+    headers: { "x-admin-token": token },
+    body: JSON.stringify({ slug }),
+  }),
 };
