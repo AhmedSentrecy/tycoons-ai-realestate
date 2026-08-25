@@ -3,12 +3,18 @@ import { salesWarRoomApi } from "../lib/salesWarRoomApi";
 
 type Mode = "owner" | "admin";
 
+const stages = ["New Lead","Contacted","Warm","Hot / Very Potential","Meeting Scheduled","Meeting Held","Negotiation / Closing","Won","Lost / Dead"];
+const stageAr: Record<string,string> = {
+  "New Lead":"ليد جديد","Contacted":"تم التواصل","Warm":"Warm","Hot / Very Potential":"Hot / قوي جدًا","Meeting Scheduled":"ميعاد متحدد","Meeting Held":"تم الاجتماع","Negotiation / Closing":"تفاوض / Closing","Won":"مكسب","Lost / Dead":"خسارة / Dead"
+};
+
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
 const startOfMonth = () => {
   const d = new Date();
   d.setDate(1);
   return fmt(d);
 };
+const money = (n: number) => n >= 1_000_000_000 ? `EGP ${(n / 1_000_000_000).toFixed(1)}B` : n >= 1_000_000 ? `EGP ${(n / 1_000_000).toFixed(1)}M` : `EGP ${Math.round(n).toLocaleString()}`;
 
 export default function SalesWarRoomManagement({ mode }: { mode: Mode }) {
   const isOwner = mode === "owner";
@@ -23,6 +29,11 @@ export default function SalesWarRoomManagement({ mode }: { mode: Mode }) {
   const [loading, setLoading] = useState(false);
   const [openingSlug, setOpeningSlug] = useState("");
   const [newAgent, setNewAgent] = useState({ name_en: "", name_ar: "", slug: "" });
+  const [leadAgentFilter,setLeadAgentFilter] = useState("all");
+  const [leadStageFilter,setLeadStageFilter] = useState("all");
+  const [editingLeadId,setEditingLeadId] = useState("");
+  const [leadDraft,setLeadDraft] = useState<any>(null);
+  const [savingLead,setSavingLead] = useState(false);
   const t = (en: string, ar: string) => (lang === "ar" ? ar : en);
 
   useEffect(() => {
@@ -99,6 +110,53 @@ export default function SalesWarRoomManagement({ mode }: { mode: Mode }) {
     }
   }
 
+  function startLeadEdit(x:any){
+    if(!isOwner)return;
+    setEditingLeadId(x.id);
+    setLeadDraft({
+      id:x.id,
+      client_name:x.client_name||"",
+      phone:x.phone||"",
+      budget:x.budget||"",
+      stage:x.stage||"New Lead",
+      expected_sale_m:x.expected_value ? String(Number(x.expected_value)/1_000_000) : "",
+      next_action:x.next_action||"",
+      next_action_date:x.next_action_date||"",
+      next_action_trigger:x.next_action_trigger||"",
+      notes:x.notes||"",
+    });
+  }
+
+  function cancelLeadEdit(){setEditingLeadId("");setLeadDraft(null)}
+
+  async function saveOwnerLead(){
+    if(!isOwner||!leadDraft||savingLead)return;
+    if(!String(leadDraft.client_name||"").trim())return setError(t("Client name is required.","اسم العميل مطلوب."));
+    if(leadDraft.stage==="Warm"&&(!String(leadDraft.next_action||"").trim()||(!leadDraft.next_action_date&&!String(leadDraft.next_action_trigger||"").trim()))){
+      return setError(t("Warm requires Next Action plus a Date or Trigger.","Warm لازم يكون له Next Action ومعاه Date أو Trigger."));
+    }
+    const m=Number(leadDraft.expected_sale_m||0);
+    if(!Number.isFinite(m)||m<0)return setError(t("Expected Sale must be a valid positive number.","Expected Sale لازم يكون رقم صحيح موجب."));
+    try{
+      setSavingLead(true);setError("");
+      await salesWarRoomApi.ownerUpdateLead(token,{
+        id:leadDraft.id,
+        client_name:leadDraft.client_name,
+        phone:leadDraft.phone,
+        budget:leadDraft.budget,
+        stage:leadDraft.stage,
+        expected_value:m*1_000_000,
+        next_action:leadDraft.next_action,
+        next_action_date:leadDraft.next_action_date||null,
+        next_action_trigger:leadDraft.next_action_trigger,
+        notes:leadDraft.notes,
+      });
+      cancelLeadEdit();
+      await load();
+    }catch(e:any){setError(e.message==="owner_only"?t("Owner permission required.","الصلاحية دي للـOwner فقط."):e.message)}
+    finally{setSavingLead(false)}
+  }
+
   const rows = useMemo(() => {
     if (!data) return [];
     return data.agents.map((a: any) => {
@@ -131,6 +189,21 @@ export default function SalesWarRoomManagement({ mode }: { mode: Mode }) {
       };
     });
   }, [data]);
+
+  const ownerLeads = useMemo(()=>{
+    if(!data?.pipeline)return [];
+    return data.pipeline
+      .filter((p:any)=>leadAgentFilter==="all"||p.agent_id===leadAgentFilter)
+      .filter((p:any)=>leadStageFilter==="all"||p.stage===leadStageFilter)
+      .map((p:any)=>({
+        ...p,
+        agent:data.agents.find((a:any)=>a.id===p.agent_id),
+      }))
+      .sort((a:any,b:any)=>{
+        const pr=(x:any)=>x.stage==="Hot / Very Potential"?0:x.stage==="Warm"?1:x.stage==="Negotiation / Closing"?2:x.stage==="Meeting Scheduled"?3:4;
+        return pr(a)-pr(b)||String(a.next_action_date||"9999").localeCompare(String(b.next_action_date||"9999"));
+      });
+  },[data,leadAgentFilter,leadStageFilter]);
 
   if (!token) {
     return (
@@ -200,6 +273,46 @@ export default function SalesWarRoomManagement({ mode }: { mode: Mode }) {
           </div>
           {loading && <div className="p-3 text-xs text-slate-500">{t("Refreshing…", "جاري التحديث…")}</div>}
         </section>
+
+        {isOwner && <section className="mt-4 rounded-3xl border bg-white p-4 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-4">
+            <div><h2 className="text-lg font-black">{t("Owner Pipeline Editor","تعديل الـPipeline للـOwner")}</h2><p className="text-xs text-slate-500">{t("Edit any lead directly without opening the agent dashboard.","عدّل أي Lead مباشرة من غير ما تفتح داشبورد الـAgent.")}</p></div>
+            <div className="flex flex-wrap gap-2">
+              <select value={leadAgentFilter} onChange={e=>setLeadAgentFilter(e.target.value)} className="rounded-xl border bg-white px-3 py-2 text-sm font-bold">
+                <option value="all">{t("All Agents","كل الـAgents")}</option>
+                {(data?.agents||[]).map((a:any)=><option key={a.id} value={a.id}>{lang==="ar"?a.name_ar:a.name_en}</option>)}
+              </select>
+              <select value={leadStageFilter} onChange={e=>setLeadStageFilter(e.target.value)} className="rounded-xl border bg-white px-3 py-2 text-sm font-bold">
+                <option value="all">{t("All Stages","كل المراحل")}</option>
+                {stages.map(s=><option key={s} value={s}>{lang==="ar"?stageAr[s]:s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            {ownerLeads.map((x:any)=>editingLeadId===x.id&&leadDraft ? <div key={x.id} className="rounded-2xl border-2 border-slate-400 bg-slate-50 p-4">
+              <div className="mb-3 flex items-center justify-between"><div><div className="font-black">✏️ {t("Edit Lead","تعديل Lead")} — {x.client_name}</div><div className="text-xs text-slate-500">{lang==="ar"?x.agent?.name_ar:x.agent?.name_en}</div></div><button onClick={cancelLeadEdit} className="rounded-lg border bg-white px-3 py-2 text-xs font-black">{t("Cancel","إلغاء")}</button></div>
+              <div className="grid gap-2 md:grid-cols-4">
+                <input value={leadDraft.client_name} onChange={e=>setLeadDraft({...leadDraft,client_name:e.target.value})} placeholder={t("Client name","اسم العميل")} className="rounded-xl border bg-white p-3"/>
+                <input value={leadDraft.phone} onChange={e=>setLeadDraft({...leadDraft,phone:e.target.value})} placeholder={t("Phone","الموبايل")} className="rounded-xl border bg-white p-3"/>
+                <input value={leadDraft.budget} onChange={e=>setLeadDraft({...leadDraft,budget:e.target.value})} placeholder={t("Budget","الميزانية")} className="rounded-xl border bg-white p-3"/>
+                <select value={leadDraft.stage} onChange={e=>setLeadDraft({...leadDraft,stage:e.target.value})} className="rounded-xl border bg-white p-3 font-bold">{stages.map(s=><option key={s} value={s}>{lang==="ar"?stageAr[s]:s}</option>)}</select>
+                <label className="text-xs font-black text-slate-500">{t("Expected Sale (M EGP)","Expected Sale بالمليون")}<input type="number" min="0" step="0.1" value={leadDraft.expected_sale_m} onChange={e=>setLeadDraft({...leadDraft,expected_sale_m:e.target.value})} className="mt-1 w-full rounded-xl border bg-white p-3 text-slate-950"/></label>
+                <input value={leadDraft.next_action} onChange={e=>setLeadDraft({...leadDraft,next_action:e.target.value})} placeholder={t("Next Action","الخطوة الجاية")} className="rounded-xl border bg-white p-3 md:col-span-2"/>
+                <label className="text-xs font-black text-slate-500">{t("Follow-up Date","تاريخ المتابعة")}<input type="date" value={leadDraft.next_action_date} onChange={e=>setLeadDraft({...leadDraft,next_action_date:e.target.value})} className="mt-1 w-full rounded-xl border bg-white p-3 text-slate-950"/></label>
+                <input value={leadDraft.next_action_trigger} onChange={e=>setLeadDraft({...leadDraft,next_action_trigger:e.target.value})} placeholder={t("Trigger","Trigger")} className="rounded-xl border bg-white p-3"/>
+                <textarea value={leadDraft.notes} onChange={e=>setLeadDraft({...leadDraft,notes:e.target.value})} placeholder={t("Full feedback / notes","الفيدباك كامل / الملاحظات")} className="min-h-[100px] rounded-xl border bg-white p-3 md:col-span-3"/>
+                <button disabled={savingLead} onClick={saveOwnerLead} className="rounded-xl bg-slate-950 p-3 font-black text-white disabled:opacity-50">{savingLead?t("Saving…","جاري الحفظ…"):t("Save Changes","حفظ التعديل")}</button>
+              </div>
+            </div> : <div key={x.id} className="grid gap-3 rounded-2xl border bg-slate-50 p-3 md:grid-cols-[1fr_1fr_1fr_auto] md:items-center">
+              <div><div className="font-black">{x.client_name}</div><div className="mt-1 text-xs font-bold text-slate-500">{lang==="ar"?x.agent?.name_ar:x.agent?.name_en}</div></div>
+              <div className="text-xs"><div className="font-black">{lang==="ar"?stageAr[x.stage]:x.stage}</div><div className="mt-1 text-slate-500">{x.phone||t("No phone","بدون رقم")}</div></div>
+              <div className="text-xs"><div><b>{t("Expected","متوقع")}:</b> {money(Number(x.expected_value||0))}</div><div className="mt-1 text-slate-500"><b>{t("Next","التالي")}:</b> {x.next_action||"—"} {x.next_action_date?`· ${x.next_action_date}`:""}</div></div>
+              <button onClick={()=>startLeadEdit(x)} className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black text-white">✏️ {t("Edit","تعديل")}</button>
+            </div>)}
+            {!ownerLeads.length&&<div className="rounded-2xl border border-dashed p-8 text-center text-sm font-bold text-slate-400">{t("No leads match these filters.","مفيش Leads مطابقة للفلاتر دي.")}</div>}
+          </div>
+        </section>}
 
         <section className="mt-4 grid gap-3 md:grid-cols-2">
           <div className="rounded-3xl border bg-white p-4">
