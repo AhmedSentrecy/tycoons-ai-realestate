@@ -3,10 +3,12 @@ Allow: /
 Disallow: /.netlify/functions/
 Disallow: /admin
 Disallow: /admin.html
+Disallow: /sales-war-room/
 Content-Signal: ai-train=no, search=yes, ai-input=yes
 
 User-agent: OAI-SearchBot
 Allow: /
+Disallow: /sales-war-room/
 Content-Signal: ai-train=no, search=yes, ai-input=yes
 
 Sitemap: https://tycoons-inv.com/sitemap.xml
