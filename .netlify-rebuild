@@ -1,2 +1,3 @@
-Rebuild requested after project article, FAQ, keyword, and targeting updates in Supabase.
-Timestamp: 2026-08-03T12:30:00Z
+Rebuild requested for Sales War Room route and production deploy.
+Timestamp: 2026-08-25T13:02:00Z
+Reason: /sales-war-room/* must rewrite to /index.html before the catch-all 404.
