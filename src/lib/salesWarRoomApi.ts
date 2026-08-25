@@ -1,6 +1,8 @@
 const API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room";
 const ADMIN_AGENT_ACCESS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-admin-agent-access";
 const LIMITED_ADMIN_LOGIN_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-admin-login";
+const PIPELINE_V2_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-pipeline-v2";
+const LEADERS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-leaders";
 
 async function requestUrl(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
@@ -21,9 +23,10 @@ const agentHeaders = (token: string) => ({ "x-agent-token": token });
 export const salesWarRoomApi = {
   agentLogin: (slug: string, password: string) => request("agent-login", { method: "POST", body: JSON.stringify({ slug, password }) }),
   getAgent: (slug: string, token: string, date?: string) => request(`agent?slug=${encodeURIComponent(slug)}${date ? `&date=${date}` : ""}`, { headers: agentHeaders(token) }),
+  getLeaders: (token: string) => requestUrl(LEADERS_API, { headers: agentHeaders(token) }),
   patchScore: (token: string, body: Record<string, unknown>) => request("score", { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
-  addLead: (token: string, body: Record<string, unknown>) => request("pipeline", { method: "POST", headers: agentHeaders(token), body: JSON.stringify(body) }),
-  updateLead: (token: string, body: Record<string, unknown>) => request("pipeline", { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
+  addLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "POST", headers: agentHeaders(token), body: JSON.stringify(body) }),
+  updateLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
   deleteLead: (token: string, id: string) => request(`pipeline?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: agentHeaders(token) }),
   addFollowup: (token: string, body: Record<string, unknown>) => request("followup", { method: "POST", headers: agentHeaders(token), body: JSON.stringify(body) }),
   updateFollowup: (token: string, body: Record<string, unknown>) => request("followup", { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
