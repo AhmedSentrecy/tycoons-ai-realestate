@@ -40,6 +40,7 @@ function pathSlug(){
 
 export default function SalesWarRoomRecommendations(){
   const slug=pathSlug();
+  const sessionKey=slug?`warRoomAgentToken:${slug}`:"";
   const [open,setOpen]=useState(false);
   const [pipeline,setPipeline]=useState<any[]>([]);
   const [selectedId,setSelectedId]=useState("");
@@ -48,14 +49,18 @@ export default function SalesWarRoomRecommendations(){
   const [loadingPipeline,setLoadingPipeline]=useState(false);
   const [error,setError]=useState("");
   const [lang,setLang]=useState<"en"|"ar">((localStorage.getItem("warRoomLang") as "en"|"ar")||"en");
+  const [sessionReady,setSessionReady]=useState(()=>Boolean(sessionKey&&localStorage.getItem(sessionKey)));
   const t=(en:string,ar:string)=>lang==="ar"?ar:en;
 
   useEffect(()=>{
     if(!slug)return;
-    const id=window.setInterval(()=>{
+    const sync=()=>{
       const next=(localStorage.getItem("warRoomLang") as "en"|"ar")||"en";
       setLang(next);
-    },1000);
+      setSessionReady(Boolean(localStorage.getItem(`warRoomAgentToken:${slug}`)));
+    };
+    sync();
+    const id=window.setInterval(sync,750);
     return()=>window.clearInterval(id);
   },[slug]);
 
@@ -75,7 +80,7 @@ export default function SalesWarRoomRecommendations(){
     finally{setLoadingPipeline(false)}
   }
 
-  useEffect(()=>{if(open)void loadPipeline()},[open,slug]);
+  useEffect(()=>{if(open&&sessionReady)void loadPipeline()},[open,slug,sessionReady]);
   useEffect(()=>{setResult(null);setError("")},[selectedId]);
 
   const selected=useMemo(()=>pipeline.find(x=>x.id===selectedId),[pipeline,selectedId]);
@@ -92,7 +97,7 @@ export default function SalesWarRoomRecommendations(){
     finally{setLoading(false)}
   }
 
-  if(!slug)return null;
+  if(!slug||!sessionReady)return null;
 
   return <>
     <button onClick={()=>setOpen(true)} className="fixed bottom-5 end-5 z-[90] rounded-full bg-emerald-700 px-5 py-3 text-sm font-black text-white shadow-2xl ring-4 ring-white/70 transition hover:-translate-y-0.5">
