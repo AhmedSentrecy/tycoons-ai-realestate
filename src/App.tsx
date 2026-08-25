@@ -9,6 +9,7 @@ const FaqPage = lazy(() => import('./pages/FaqPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
 const SalesWarRoom = lazy(() => import('./pages/SalesWarRoom'))
+const SalesWarRoomOwner = lazy(() => import('./pages/SalesWarRoomOwner'))
 const SalesWarRoomAdmin = lazy(() => import('./pages/SalesWarRoomAdmin'))
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/sales-war-room/a/:slug" element={<SalesWarRoom />} />
+        <Route path="/sales-war-room/owner" element={<SalesWarRoomOwner />} />
         <Route path="/sales-war-room/admin" element={<SalesWarRoomAdmin />} />
       </Routes>
     </Suspense>
