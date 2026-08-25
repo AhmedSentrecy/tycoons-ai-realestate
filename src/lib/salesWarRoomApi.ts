@@ -1,0 +1,25 @@
+const API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room";
+
+async function request(path: string, options: RequestInit = {}) {
+  const res = await fetch(`${API}/${path}`, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Request failed: ${res.status}`);
+  return data;
+}
+
+export const salesWarRoomApi = {
+  getAgent: (slug: string, date?: string) => request(`agent?slug=${encodeURIComponent(slug)}${date ? `&date=${date}` : ""}`),
+  patchScore: (body: Record<string, unknown>) => request("score", { method: "PATCH", body: JSON.stringify(body) }),
+  addLead: (body: Record<string, unknown>) => request("pipeline", { method: "POST", body: JSON.stringify(body) }),
+  updateLead: (body: Record<string, unknown>) => request("pipeline", { method: "PATCH", body: JSON.stringify(body) }),
+  deleteLead: (id: string) => request(`pipeline?id=${encodeURIComponent(id)}`, { method: "DELETE" }),
+  addFollowup: (body: Record<string, unknown>) => request("followup", { method: "POST", body: JSON.stringify(body) }),
+  updateFollowup: (body: Record<string, unknown>) => request("followup", { method: "PATCH", body: JSON.stringify(body) }),
+  adminLogin: (password: string) => request("login", { method: "POST", body: JSON.stringify({ password }) }),
+  adminSummary: (token: string, from: string, to: string) => request(`admin-summary?from=${from}&to=${to}`, { headers: { "x-admin-token": token } }),
+  adminAgents: (token: string) => request("admin-agents", { headers: { "x-admin-token": token } }),
+  addAdminAgent: (token: string, body: Record<string, unknown>) => request("admin-agents", { method: "POST", headers: { "x-admin-token": token }, body: JSON.stringify(body) }),
+};
