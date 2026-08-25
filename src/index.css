@@ -206,3 +206,10 @@ html { font-size: 15px; }
     margin-top: 0.5rem !important;
   }
 }
+
+/* Sales War Room: hide the motivation-board "NO NUMBERS" badge. */
+section.mt-4.rounded-3xl.border.bg-white.p-4.shadow-sm
+  > div.mb-3.flex.items-center.justify-between
+  > div.rounded-full.bg-slate-950.px-3.py-1.text-\[10px\].font-black.text-white {
+  display: none;
+}
