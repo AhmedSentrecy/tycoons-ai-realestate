@@ -1,3 +1,3 @@
-Rebuild requested for Sales War Room motivation badge cleanup.
-Timestamp: 2026-08-25T18:31:00+03:00
-Reason: remove the NO NUMBERS badge from the motivation board without changing leaderboard logic.
+Rebuild requested for selectable Sales War Room pipeline views.
+Timestamp: 2026-08-25T18:38:00+03:00
+Reason: rename Pipeline Kanban to Pipeline View and add Kanban, Action Queue, Stage Tabs, Table, Calendar, and Funnel selectors.
