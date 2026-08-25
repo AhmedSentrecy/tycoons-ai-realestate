@@ -1,3 +1,3 @@
-Rebuild requested for Sales War Room route and production deploy.
-Timestamp: 2026-08-25T13:02:00Z
-Reason: /sales-war-room/* must rewrite to /index.html before the catch-all 404.
+Rebuild requested for Sales War Room admin quick access.
+Timestamp: 2026-08-25T13:20:00Z
+Reason: admin should open agent dashboards without agent password and all agent rows/cards should be clickable.
