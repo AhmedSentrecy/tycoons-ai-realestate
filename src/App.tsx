@@ -8,6 +8,8 @@ const UnitPage = lazy(() => import('./pages/UnitPage'))
 const FaqPage = lazy(() => import('./pages/FaqPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
+const SalesWarRoom = lazy(() => import('./pages/SalesWarRoom'))
+const SalesWarRoomAdmin = lazy(() => import('./pages/SalesWarRoomAdmin'))
 
 export default function App() {
   return (
@@ -26,6 +28,8 @@ export default function App() {
         <Route path="/faq" element={<FaqPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/sales-war-room/a/:slug" element={<SalesWarRoom />} />
+        <Route path="/sales-war-room/admin" element={<SalesWarRoomAdmin />} />
       </Routes>
     </Suspense>
   )
