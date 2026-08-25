@@ -3,6 +3,7 @@ const ADMIN_AGENT_ACCESS_API = "https://coqnjymekrkoausiiytm.supabase.co/functio
 const LIMITED_ADMIN_LOGIN_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-admin-login";
 const PIPELINE_V2_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-pipeline-v2";
 const LEADERS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-leaders";
+const OWNER_LEAD_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-owner-lead";
 
 async function requestUrl(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
@@ -27,6 +28,11 @@ export const salesWarRoomApi = {
   patchScore: (token: string, body: Record<string, unknown>) => request("score", { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
   addLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "POST", headers: agentHeaders(token), body: JSON.stringify(body) }),
   updateLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
+  ownerUpdateLead: (token: string, body: Record<string, unknown>) => requestUrl(OWNER_LEAD_API, {
+    method: "PATCH",
+    headers: { "x-admin-token": token },
+    body: JSON.stringify(body),
+  }),
   deleteLead: (token: string, id: string) => request(`pipeline?id=${encodeURIComponent(id)}`, { method: "DELETE", headers: agentHeaders(token) }),
   addFollowup: (token: string, body: Record<string, unknown>) => request("followup", { method: "POST", headers: agentHeaders(token), body: JSON.stringify(body) }),
   updateFollowup: (token: string, body: Record<string, unknown>) => request("followup", { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
