@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { registerWebMcpTools } from './lib/webmcp.ts'
 import { VoiceSessionProvider } from './contexts/VoiceSessionContext.tsx'
 import SalesWarRoomRecommendations from './components/SalesWarRoomRecommendations.tsx'
+import SalesWarRoomExport from './components/SalesWarRoomExport.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')!).render(
       <VoiceSessionProvider>
         <App />
         <SalesWarRoomRecommendations />
+        <SalesWarRoomExport />
       </VoiceSessionProvider>
     </BrowserRouter>
   </StrictMode>,
