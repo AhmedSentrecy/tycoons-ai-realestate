@@ -3,6 +3,7 @@ import { salesWarRoomApi } from "../lib/salesWarRoomApi";
 
 const fmt=(d:Date)=>d.toISOString().slice(0,10);
 const startOfMonth=()=>{const d=new Date();d.setDate(1);return fmt(d)};
+const OWNER_AGENT_SLUG="ahmed-sentrecy";
 
 export default function SalesWarRoomAdmin(){
   const tokenKey="warRoomLimitedAdminToken";
@@ -23,11 +24,11 @@ export default function SalesWarRoomAdmin(){
   async function login(){try{setError("");const r=await salesWarRoomApi.limitedAdminLogin(password);localStorage.setItem(tokenKey,r.token);setToken(r.token);setPassword("")}catch{setError(t("Wrong password","كلمة السر غير صحيحة"))}}
   async function load(){try{setLoading(true);setError("");setData(await salesWarRoomApi.adminSummary(token,from,to))}catch(e:any){if(e.message==="unauthorized"){localStorage.removeItem(tokenKey);setToken("");setData(null)}setError(e.message)}finally{setLoading(false)}}
   function logout(){localStorage.removeItem(tokenKey);setToken("");setData(null)}
-  function openAgent(slug:string){window.open(`/sales-war-room/monitor/${slug}`,"_blank")}
+  function openAgent(slug:string){if(slug===OWNER_AGENT_SLUG)return;window.open(`/sales-war-room/monitor/${slug}`,"_blank")}
 
   const rows=useMemo(()=>{
     if(!data)return[];
-    return (data.agents||[]).map((a:any)=>{
+    return (data.agents||[]).filter((a:any)=>a.slug!==OWNER_AGENT_SLUG).map((a:any)=>{
       const scores=(data.scores||[]).filter((s:any)=>s.agent_id===a.id);
       const pipe=(data.pipeline||[]).filter((p:any)=>p.agent_id===a.id);
       const follow=(data.followups||[]).filter((f:any)=>f.agent_id===a.id);
