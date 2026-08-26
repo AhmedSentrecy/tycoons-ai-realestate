@@ -5,6 +5,7 @@ const PIPELINE_V2_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/s
 const LEADERS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-leaders";
 const OWNER_LEAD_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-owner-lead";
 const RECOMMENDATIONS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-recommendations";
+const TEAM_MONITOR_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-team-monitor";
 
 async function requestUrl(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
@@ -33,6 +34,9 @@ export const salesWarRoomApi = {
     method: "POST",
     headers: owner ? { "x-admin-token": token } : agentHeaders(token),
     body: JSON.stringify({ lead_id: leadId }),
+  }),
+  teamMonitor: (token: string, slug: string) => requestUrl(`${TEAM_MONITOR_API}?slug=${encodeURIComponent(slug)}`, {
+    headers: { "x-admin-token": token },
   }),
   getOwnerPipeline: (token: string) => requestUrl(OWNER_LEAD_API, { headers: { "x-admin-token": token } }),
   ownerUpdateLead: (token: string, body: Record<string, unknown>) => requestUrl(OWNER_LEAD_API, {
