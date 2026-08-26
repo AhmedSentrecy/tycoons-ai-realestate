@@ -289,6 +289,30 @@
   to = "/.netlify/functions/seo-page?lang=ar&type=unit&slug=:splat"
   status = 200
 
+# The high-impression New Cairo price guide now has a native English page.
+[[redirects]]
+  from = "/en/guides/new-cairo-prices-2026"
+  to = "/en/guides/new-cairo-property-prices/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/guides/new-cairo-prices-2026/*"
+  to = "/en/guides/new-cairo-property-prices/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/guides/new-cairo-property-prices"
+  to = "/en/guides/new-cairo-property-prices/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/guides/new-cairo-property-prices/"
+  to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=new-cairo-property-prices"
+  status = 200
+
 # Retired English guide URLs: send to the closest live guide.
 [[redirects]]
   from = "/en/guides/egypt-real-estate-investment-2026/*"

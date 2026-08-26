@@ -58,6 +58,19 @@ const english = renderProject(projects, projects[0].slug, "en");
 const directory = renderDirectory(projects, "ar");
 const area = renderCollection(projects, "area", "mostakbal-city", "ar");
 const guide = renderGuide("off-plan-buying-checklist");
+const englishNewCairoGuide = renderGuide("new-cairo-property-prices", "en");
+const newCairoProjects = groupProjects(rows.map((row) => ({ ...row, location: "New Cairo" })));
+const newCairoArea = renderCollection(newCairoProjects, "area", "new-cairo", "en");
+const icityRows = rows.map((row, index) => ({
+  ...row,
+  id: `44444444-4444-4444-4444-44444444444${index}`,
+  project_id: "cccccccc-cccc-cccc-cccc-cccccccccccc",
+  project_name: "Mountain View iCity October",
+  developer: "Mountain View",
+  location: "6th of October",
+}));
+const icityProjects = groupProjects(icityRows);
+const icity = renderProject(icityProjects, "mountain-view-icity-october--mountain-view", "ar");
 const methodology = renderStaticPage("methodology");
 const about = renderStaticPage("about");
 const faq = renderStaticPage("faq");
@@ -86,6 +99,18 @@ assert.match(area, /خريطة مشاريع مستقبل سيتي والمطور
 assert.match(area, /هل الاستثمار العقاري في مستقبل سيتي مناسب؟/, "Mostakbal City must cover investment intent with a non-guaranteed answer");
 assert.match(area, /مشاريع مستقبل سيتي 2026 — الخريطة والأسعار/, "Mostakbal title must reflect the strongest Search Console intents");
 assert.match(guide, /آخر مراجعة: 26 يوليو 2026/);
+assert.match(englishNewCairoGuide, /<html lang="en" dir="ltr">/);
+assert.match(englishNewCairoGuide, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/new-cairo-property-prices\//);
+assert.match(englishNewCairoGuide, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/guides\/new-cairo-property-prices\//);
+assert.match(englishNewCairoGuide, /Compare the same unit type/);
+assert.match(newCairoArea, /New Cairo projects 2026 — prices and developers/);
+assert.match(newCairoArea, /How to compare New Cairo property prices/);
+assert.match(newCairoArea, /New Cairo projects by developer/);
+assert.match(icity, /أسعار Mountain View iCity October/);
+assert.doesNotMatch(icity, /October أكتوبر/);
+assert.match(icity, /6th of October/);
+assert.match(icity, /master plan/);
+assert.match(icity, /"@type":"FAQPage"/);
 assert.match(methodology, /منهجية البيانات والحسابات/);
 assert.match(about, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/about">/);
 assert.match(about, /<h1>من نحن<\/h1>/);
@@ -197,6 +222,15 @@ assert.match(
 );
 assert.match(netlify, /from = "\/regions\/sahel"\s+to = "\/ar\/areas\/north-coast"\s+status = 301/);
 assert.match(netlify, /from = "\/regions\/capital"\s+to = "\/ar\/areas\/new-capital"\s+status = 301/);
+assert.match(
+  netlify,
+  /from = "\/en\/guides\/new-cairo-prices-2026"\s+to = "\/en\/guides\/new-cairo-property-prices\/"\s+status = 301/,
+  "The retired English New Cairo guide must redirect to the native English canonical",
+);
+assert.ok(
+  netlify.indexOf('from = "/en/guides/new-cairo-property-prices/"') < netlify.indexOf('from = "/en/guides/*"'),
+  "The native English guide rewrite must appear before the generic English guide redirect",
+);
 assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/);
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>ابحث بصوتك/);
@@ -214,6 +248,7 @@ assert.match(robots, /OAI-SearchBot/);
 assert.match(robots, /https:\/\/tycoons-inv\.com\/sitemap\.xml/);
 assert.match(sitemap, /SITE_URL}\/projects\/\${projectSlug}/);
 assert.match(sitemap, /SITE_URL}\/units\/\${unit\.id}/);
+assert.match(sitemap, /SITE_URL}\/en\/guides\/\${guideSlug}/);
 assert.match(projectPage, /loadProjectPage\(slug\)/);
 assert.match(
   netlify,
@@ -244,6 +279,11 @@ async function validateRouteRecovery() {
       rawUrl: "https://tycoons-inv.com/guides/off-plan-buying-checklist/",
       queryStringParameters: { lang: "ar" },
     });
+    const englishGuideResponse = await handler({
+      path: "/en/guides/new-cairo-property-prices/",
+      rawUrl: "https://tycoons-inv.com/en/guides/new-cairo-property-prices/",
+      queryStringParameters: { lang: "en" },
+    });
     const unitResponse = await handler({
       path: `/units/${rows[0].id}`,
       rawUrl: `https://tycoons-inv.com/units/${rows[0].id}`,
@@ -252,6 +292,9 @@ async function validateRouteRecovery() {
     assert.match(projectResponse.body, /Mountain View Aliva \| Mountain View/);
     assert.match(projectResponse.body, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/projects\//);
     assert.match(guideResponse.body, /دليل شراء عقار Off-plan في مصر/);
+    assert.equal(englishGuideResponse.statusCode, 200);
+    assert.match(englishGuideResponse.body, /New Cairo Property Prices Guide 2026/);
+    assert.match(englishGuideResponse.body, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/new-cairo-property-prices\//);
     assert.equal(unitResponse.statusCode, 200);
     assert.match(unitResponse.body, /Standalone Villa/);
   } finally {

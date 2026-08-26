@@ -25,11 +25,11 @@ exports.handler = async function handler(event) {
   })();
   const route = originalPath.match(/^\/(ar|en)\/(projects|areas|developers)\/(.+?)\/?$/);
   const unitRoute = originalPath.match(/^\/units\/(.+?)\/?$/);
-  const guideRoute = originalPath.match(/^\/guides\/(.+?)\/?$/);
+  const guideRoute = originalPath.match(/^\/(?:(en)\/)?guides\/(.+?)\/?$/);
   const staticRoute = originalPath.match(/^\/(about|faq|methodology|corrections|contact)\/?$/);
   const directoryRoute = originalPath.match(/^\/(ar|en)\/?$/);
 
-  const lang = route?.[1] === "en" || directoryRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
+  const lang = route?.[1] === "en" || directoryRoute?.[1] === "en" || guideRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
   let type = String(params.type || "home");
   let rawSlug = String(params.slug || "");
 
@@ -41,7 +41,7 @@ exports.handler = async function handler(event) {
     rawSlug = unitRoute[1];
   } else if (guideRoute) {
     type = "guide";
-    rawSlug = guideRoute[1];
+    rawSlug = guideRoute[2];
   } else if (staticRoute) {
     type = "static";
     rawSlug = staticRoute[1];
@@ -53,7 +53,7 @@ exports.handler = async function handler(event) {
 
   try {
     let html = null;
-    if (type === "guide") html = renderGuide(slug);
+    if (type === "guide") html = renderGuide(slug, lang);
     if (type === "static") html = renderStaticPage(slug);
     if (!["guide", "static"].includes(type)) {
       const [units, projectsMeta] = await Promise.all([fetchUnits(), fetchProjectsMeta()]);

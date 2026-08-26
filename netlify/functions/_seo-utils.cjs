@@ -185,6 +185,90 @@ const AREA_SEARCH_CONTENT = {
       ],
     },
   },
+  "new-cairo": {
+    ar: {
+      title: ({ minFmt, plural }) => `مشاريع القاهرة الجديدة 2026 — الأسعار والمطورين (${plural}) من ${minFmt} | Tycoons`,
+      description: ({ minFmt, plural }) => `${plural} في القاهرة الجديدة والتجمع بأسعار تبدأ من ${minFmt}. قارن المطورين والمشاريع والوحدات وخطط السداد والتسليم في دليل محدث.`,
+      sections: [
+        [
+          "إزاي تقارن أسعار مشاريع القاهرة الجديدة؟",
+          "قارن وحدات من نفس النوع والمساحة والتشطيب وموعد التسليم، ثم راجع إجمالي سعر التقسيط والمقدم والدفعات الإضافية. سعر البداية أو سعر المتر وحده مش كفاية للحكم على الصفقة.",
+        ],
+        [
+          "مشروعات القاهرة الجديدة حسب المطور",
+          "الدليل التالي بيرتب المطورين ومشاريعهم ويربط كل مشروع بالوحدات والأسعار الظاهرة حاليًا. الأسعار والتوفر بيتأكدوا مع المطور وقت الطلب لأن القوائم بتتغير.",
+        ],
+      ],
+      faq: [
+        [
+          "إزاي أقارن أسعار القاهرة الجديدة بشكل عادل؟",
+          "ثبّت نوع الوحدة والمساحة والتشطيب والتسليم، وبعدها قارن السعر الكلي والمقدم ومدة التقسيط والدفعات والصيانة. المقارنة بين وحدتين مختلفتين في التسليم أو التشطيب ممكن تكون مضللة.",
+        ],
+        [
+          "فين ألاقي مشروعات القاهرة الجديدة حسب المطور؟",
+          "الصفحة بتجمع المطورين ومشاريعهم في القاهرة الجديدة وتربط كل مشروع بوحداته المتاحة. استخدم القائمة لمقارنة البدائل ثم أكّد السعر والتوفر قبل الحجز.",
+        ],
+      ],
+    },
+    en: {
+      title: ({ minFmt, plural }) => `New Cairo projects 2026 — prices and developers from ${minFmt} (${plural}) | Tycoons`,
+      description: ({ minFmt, plural }) => `${plural} in New Cairo starting from ${minFmt}. Compare developers, projects, units, payment plans and delivery in one updated guide.`,
+      sections: [
+        [
+          "How to compare New Cairo property prices",
+          "Compare units with the same type, size, finishing and delivery date, then review the total installment price, down payment and additional payments. A starting price or price per square metre alone does not describe the full deal.",
+        ],
+        [
+          "New Cairo projects by developer",
+          "The directory below groups developers and their New Cairo projects and links each project to its currently listed units and prices. Prices and availability are reconfirmed with the developer because inventory changes.",
+        ],
+      ],
+      faq: [
+        [
+          "How can I compare New Cairo property prices fairly?",
+          "Keep the unit type, size, finishing and delivery date consistent, then compare the total price, down payment, installment term, extra payments and maintenance. Comparing units with different delivery or finishing can be misleading.",
+        ],
+        [
+          "Where can I find New Cairo projects by developer?",
+          "This page groups New Cairo developers and projects and links each project to its available units. Use the list to compare alternatives, then reconfirm price and availability before reserving.",
+        ],
+      ],
+    },
+  },
+};
+
+// Project-specific answers are only enabled where Search Console shows a
+// distinct intent that the live inventory can answer safely. Values such as
+// prices and option counts are always derived from the current data load.
+const PROJECT_SEARCH_CONTENT = {
+  "mountain-view-icity-october--mountain-view": {
+    ar: {
+      title: ({ project }) => `${project.name} — الأسعار والموقع والوحدات | Tycoons`,
+      description: ({ project, location, priceSummary, unitCount }) => `${project.name} من ${project.developer} في ${location}. ${priceSummary} ${unitCount ? `قارن ${unitCount} خيار متاح وخطط السداد والتسليم` : "اطلب أحدث الأسعار وخطط السداد"}، مع توضيح طريقة التأكد من الموقع والـmaster plan.`,
+      sections: ({ project, location, priceSummary }) => [
+        [`أسعار ${project.name}`, `${priceSummary} الأرقام مبنية على الوحدات الظاهرة حاليًا في قاعدة بيانات Tycoons، وبتتأكد مع المطور وقت الطلب لأن الأسعار والتوفر بيتغيروا.`],
+        [`موقع ${project.name} والـmaster plan`, `سجل Tycoons بيصنّف المشروع في ${location}. لتحديد المرحلة والقطعة وأقرب مدخل بدقة، راجع الـmaster plan الرسمي الصادر من ${project.developer} قبل الحجز؛ الصفحة دي للمقارنة بين الوحدات وليست خريطة مساحية.`],
+      ],
+      faq: ({ project, location, priceSummary }) => [
+        [`ما هي أسعار ${project.name}؟`, `${priceSummary} السعر النهائي والتوفر بيتأكدوا مع المطور وقت الطلب.`],
+        [`أين يقع ${project.name}؟`, `المشروع مسجل عندنا في ${location}. موقع المرحلة والمدخل يختلف، لذلك راجع المخطط الرسمي للمطور قبل الحجز.`],
+        [`فين ألاقي master plan ${project.name}؟`, `استخدم النسخة الرسمية من ${project.developer} لتأكيد المراحل والمداخل. الصفحة تعرض الوحدات والأسعار للمقارنة ولا تستبدل المخطط المساحي الرسمي.`],
+      ],
+    },
+    en: {
+      title: ({ project }) => `${project.name} — prices, location and units | Tycoons`,
+      description: ({ project, location, priceSummary, unitCount }) => `${project.name} by ${project.developer} in ${location}. ${priceSummary} ${unitCount ? `Compare ${unitCount} available options, payment plans and delivery` : "Request current prices and payment plans"}, with guidance on confirming the location and master plan.`,
+      sections: ({ project, location, priceSummary }) => [
+        [`${project.name} prices`, `${priceSummary} These figures come from units currently listed in the Tycoons database and are reconfirmed with the developer because prices and availability change.`],
+        [`${project.name} location and master plan`, `The Tycoons record places the project in ${location}. Confirm the exact phase, plot and nearest entrance on the official ${project.developer} master plan before reserving; this page compares inventory and is not a surveyed map.`],
+      ],
+      faq: ({ project, location, priceSummary }) => [
+        [`What are the prices at ${project.name}?`, `${priceSummary} The final price and availability are reconfirmed with the developer on request.`],
+        [`Where is ${project.name} located?`, `Our record places the project in ${location}. The phase and entrance can vary, so check the developer's official plan before reserving.`],
+        [`Where can I find the ${project.name} master plan?`, `Use the official version from ${project.developer} to confirm phases and entrances. This page compares units and prices and does not replace the official surveyed plan.`],
+      ],
+    },
+  },
 };
 
 const GUIDES = {
@@ -263,6 +347,22 @@ const GUIDES = {
       ["الإدارة والتشغيل", "اسأل عن الجهة المشغلة، الخدمات العاملة فعليًا، الصيانة، وقواعد التأجير وإدخال الضيوف."],
       ["الموقع داخل القرية", "المسافة للشاطئ والإطلالة والخصوصية قد تصنع فرقًا أكبر من فرق بسيط في المساحة."],
       ["العائد الموسمي", "استخدم إشغالًا محافظًا وتكاليف صيانة وتجهيز واقعية. الإيجار المتوقع ليس دخلًا مضمونًا."],
+    ],
+  },
+};
+
+const ENGLISH_GUIDES = {
+  "new-cairo-property-prices": {
+    title: "New Cairo Property Prices Guide 2026",
+    description:
+      "A practical guide to comparing New Cairo property prices, payment plans, finishing and delivery without relying on a misleading starting price.",
+    summary:
+      "A starting price does not describe the full deal. Compare the same unit type, size, finishing and delivery date, then review the total installment price, down payment, payment schedule and maintenance. Tycoons listings show current inventory, but final price and availability are reconfirmed when you enquire.",
+    sections: [
+      ["Compare the same unit type", "Do not compare a ground-floor apartment with a garden to a penthouse, or a fully finished unit to a core-and-shell unit, using price per square metre alone."],
+      ["Separate price from financing", "A longer payment plan can include an implicit financing cost. Record the total price and timing of every payment before comparing alternatives."],
+      ["Check finishing and delivery", "Finishing, delivery timing, maintenance and additional payments can materially change the effective cost even when two advertised starting prices look similar."],
+      ["Verify the update date", "New Cairo inventory changes quickly. Treat any price without a recent update and availability confirmation as unsuitable for a final decision."],
     ],
   },
 };
@@ -600,7 +700,7 @@ ${[organizationSchema(), ...schemas]
 <style>${styles()}</style></head><body>
 <header><a href="/">TYCOONS INVESTMENTS</a><nav>
 <a href="/${lang}/">${ar ? "دليل المشاريع" : "Project directory"}</a>
-<a href="/guides/off-plan-buying-checklist">${ar ? "الأدلة" : "Guides"}</a>
+<a href="${ar ? "/guides/off-plan-buying-checklist" : "/en/guides/new-cairo-property-prices/"}">${ar ? "الأدلة" : "Guides"}</a>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
 <a href="https://wa.me/${WHATSAPP_NUMBER}">${ar ? "واتساب" : "WhatsApp"}</a>
 ${alternate ? `<a href="${escapeHtml(alternate)}" lang="${ar ? "en" : "ar"}" hreflang="${ar ? "en" : "ar-EG"}">${ar ? "English" : "العربية"}</a>` : ""}
@@ -675,9 +775,19 @@ function renderProject(projects, slug, lang) {
     [unit.unit_type, unit.bedrooms_text, unit.area_sqm, unit.starting_price].join("|"),
     unit,
   ])).values()].slice(0, 60);
-  const description = ar
+  const minPrice = projectMinPrice(project);
+  const maxPrice = projectMaxPrice(project);
+  const hasUnits = units.length > 0;
+  const priceSummary = hasUnits
+    ? (ar
+      ? `الأسعار الظاهرة بتبدأ من ${formatPrice(minPrice, lang)} وبتوصل إلى ${formatPrice(maxPrice, lang)} عبر ${units.length} خيار.`
+      : `Currently listed prices range from ${formatPrice(minPrice, lang)} to ${formatPrice(maxPrice, lang)} across ${units.length} options.`)
+    : (ar ? "لا توجد أسعار تفصيلية منشورة حاليًا." : "No detailed prices are currently published.");
+  const searchContent = PROJECT_SEARCH_CONTENT[slug]?.[lang];
+  const contentVars = { project, location, priceSummary, unitCount: units.length };
+  const description = searchContent?.description?.(contentVars) || (ar
     ? `${project.name} من ${project.developer} في ${location}. قارن الوحدات المتاحة والأسعار وخطط السداد والاستلام.`
-    : `${project.name} by ${project.developer} in ${location}. Compare available units, prices, payment plans and delivery.`;
+    : `${project.name} by ${project.developer} in ${location}. Compare available units, prices, payment plans and delivery.`);
   const crumbs = [
     { name: ar ? "الرئيسية" : "Home", path: "/" },
     { name: ar ? area.ar : area.en, path: `/${lang}/areas/${area.slug}` },
@@ -687,8 +797,10 @@ function renderProject(projects, slug, lang) {
   const message = encodeURIComponent(
     `Hello Tycoons Investments,\nI am interested in this project:\n\nProject: ${project.name}\nDeveloper: ${project.developer}\nLocation: ${location}\nStarting price: ${formatPrice(projectMinPrice(project), "en")}\nStatus: Available\n\nURL: ${SITE_URL}${path}\n\nPlease send me available options and details.\n\nSource: project_page\nPage: ${SITE_URL}${path}`,
   );
-  const minPrice = projectMinPrice(project);
-  const hasUnits = units.length > 0;
+  const extraSections = (searchContent?.sections?.(contentVars) || [])
+    .map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`)
+    .join("");
+  const projectFaq = searchContent?.faq?.(contentVars) || [];
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
   <section class="hero"><span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
   ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:cover;border-radius:20px" fetchpriority="high">` : ""}
@@ -696,17 +808,18 @@ function renderProject(projects, slug, lang) {
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
   <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
-  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث Availability" : "Request current availability"}</a></section>
+  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث Availability" : "Request current availability"}</a></section>${extraSections}
   <h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2>${
     hasUnits
       ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
   ${units.map((unit) => `<tr><td>${escapeHtml(clean(unit.unit_type))}</td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${escapeHtml(clean(unit.down_payment_text))}</td><td>${escapeHtml(clean(unit.installments_text))}</td><td>${escapeHtml(clean(unit.delivery_text))}</td></tr>`).join("")}
   </tbody></table></div>`
       : `<p class="note">${ar ? `لا توجد وحدات منشورة بأسعار تفصيلية لـ${project.name} حاليًا. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من ${project.developer}.` : `No units with detailed pricing are published for ${project.name} right now. Message us on WhatsApp and we'll send the latest price list and payment plans from ${project.developer}.`}</p>`
-  }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p></main>`;
+  }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p>
+  ${projectFaq.map(([question, answer]) => `<section><h2>${escapeHtml(question)}</h2><p>${escapeHtml(answer)}</p></section>`).join("")}</main>`;
   return renderPage({
     lang,
-    title: `${project.name} | ${project.developer} | Tycoons Investments`,
+    title: searchContent?.title?.(contentVars) || `${project.name} | ${project.developer} | Tycoons Investments`,
     description,
     path,
     alternatePath,
@@ -752,6 +865,13 @@ function renderProject(projects, slug, lang) {
           },
         })),
       },
+      ...(projectFaq.length
+        ? [{
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: projectFaq.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
+          }]
+        : []),
     ],
   });
 }
@@ -1100,23 +1220,31 @@ function renderCollection(projects, kind, slug, lang) {
   });
 }
 
-function renderGuide(slug) {
-  const guide = GUIDES[slug];
+function renderGuide(slug, lang = "ar") {
+  const ar = lang !== "en";
+  const guide = ar ? GUIDES[slug] : ENGLISH_GUIDES[slug];
   if (!guide) return null;
-  const path = `/guides/${slug}/`;
-  const body = `<main class="guide"><p class="crumbs"><a href="/">الرئيسية</a> / <a href="/guides/off-plan-buying-checklist">الأدلة</a> / ${escapeHtml(guide.title)}</p>
-  <section class="hero"><span class="eyebrow">دليل قرار عقاري · راجعه فريق Tycoons</span><h1>${escapeHtml(guide.title)}</h1><p class="lead">${escapeHtml(guide.description)}</p><div class="answer">${escapeHtml(guide.summary)}</div><p class="updated">آخر مراجعة: 26 يوليو 2026</p></section>
+  const path = ar ? `/guides/${slug}/` : `/en/guides/${slug}/`;
+  const alternatePath = ar && ENGLISH_GUIDES[slug]
+    ? `/en/guides/${slug}/`
+    : (!ar && GUIDES[slug] ? `/guides/${slug}/` : undefined);
+  const guideIndex = ar ? "/guides/off-plan-buying-checklist" : "/en/guides/new-cairo-property-prices/";
+  const modified = slug === "new-cairo-property-prices" ? "2026-08-26" : "2026-07-26";
+  const body = `<main class="guide"><p class="crumbs"><a href="/">${ar ? "الرئيسية" : "Home"}</a> / <a href="${guideIndex}">${ar ? "الأدلة" : "Guides"}</a> / ${escapeHtml(guide.title)}</p>
+  <section class="hero"><span class="eyebrow">${ar ? "دليل قرار عقاري · راجعه فريق Tycoons" : "Property decision guide · reviewed by Tycoons"}</span><h1>${escapeHtml(guide.title)}</h1><p class="lead">${escapeHtml(guide.description)}</p><div class="answer">${escapeHtml(guide.summary)}</div><p class="updated">${ar ? `آخر مراجعة: ${modified === "2026-08-26" ? "26 أغسطس 2026" : "26 يوليو 2026"}` : `Last reviewed: ${modified}`}</p></section>
   ${guide.sections.map(([title, text]) => `<section><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}
-  <section><h2>ملاحظة مهمة</h2><p>المحتوى تعليمي وليس استشارة قانونية أو مالية. الأسعار والتوفر والعوائد تتغير، ويفضل مراجعة العقد مع محامٍ مستقل وإعادة تأكيد البيانات وقت القرار.</p><p><a href="/methodology">اقرأ منهجية البيانات والحسابات</a></p></section></main>`;
+  <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المحتوى تعليمي وليس استشارة قانونية أو مالية. الأسعار والتوفر والعوائد تتغير، ويفضل مراجعة العقد مع محامٍ مستقل وإعادة تأكيد البيانات وقت القرار." : "This content is educational, not legal or financial advice. Prices, availability and returns change; reconfirm the data and have an independent lawyer review the contract before deciding."}</p><p><a href="/methodology">${ar ? "اقرأ منهجية البيانات والحسابات" : "Read our data and calculation methodology"}</a></p></section></main>`;
   return renderPage({
+    lang,
     title: `${guide.title} | Tycoons Investments`,
     description: guide.description,
     path,
+    alternatePath,
     body,
     schemas: [
       breadcrumbSchema([
-        { name: "الرئيسية", path: "/" },
-        { name: "الأدلة", path: "/guides/off-plan-buying-checklist/" },
+        { name: ar ? "الرئيسية" : "Home", path: "/" },
+        { name: ar ? "الأدلة" : "Guides", path: guideIndex },
         { name: guide.title, path },
       ]),
       {
@@ -1124,9 +1252,9 @@ function renderGuide(slug) {
         "@type": "Article",
         headline: guide.title,
         description: guide.description,
-        datePublished: "2026-07-26",
-        dateModified: "2026-07-26",
-        inLanguage: "ar-EG",
+        datePublished: ar ? "2026-07-26" : modified,
+        dateModified: modified,
+        inLanguage: ar ? "ar-EG" : "en",
         image: `${SITE_URL}/images/hero.webp`,
         author: { "@type": "Organization", name: "Tycoons Investments", url: `${SITE_URL}/about` },
         reviewedBy: { "@type": "Organization", name: "Tycoons Investments" },
@@ -1226,6 +1354,7 @@ module.exports = {
   CACHE_HEADERS,
   AREAS,
   GUIDES,
+  ENGLISH_GUIDES,
   slugify,
   areaFor,
   fetchUnits,

@@ -4,6 +4,7 @@ const {
   SITE_URL,
   CACHE_HEADERS,
   GUIDES,
+  ENGLISH_GUIDES,
   areaFor,
   slugify,
   escapeHtml,
@@ -63,6 +64,9 @@ exports.handler = async function handler() {
 
     for (const guideSlug of Object.keys(GUIDES)) {
       urls.set(`${SITE_URL}/guides/${guideSlug}/`, "2026-07-26");
+    }
+    for (const guideSlug of Object.keys(ENGLISH_GUIDES)) {
+      urls.set(`${SITE_URL}/en/guides/${guideSlug}/`, "2026-08-26");
     }
     for (const project of projects) {
       const projectSlug = String(project.slug || "").trim();
