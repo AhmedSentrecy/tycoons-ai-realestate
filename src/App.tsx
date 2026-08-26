@@ -11,6 +11,7 @@ const SearchPage = lazy(() => import('./pages/SearchPage'))
 const SalesWarRoom = lazy(() => import('./pages/SalesWarRoom'))
 const SalesWarRoomOwner = lazy(() => import('./pages/SalesWarRoomOwner'))
 const SalesWarRoomAdmin = lazy(() => import('./pages/SalesWarRoomAdmin'))
+const SalesWarRoomTeamMonitor = lazy(() => import('./pages/SalesWarRoomTeamMonitor'))
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/sales-war-room/a/:slug" element={<SalesWarRoom />} />
+        <Route path="/sales-war-room/monitor/:slug" element={<SalesWarRoomTeamMonitor />} />
         <Route path="/sales-war-room/admin" element={<SalesWarRoomOwner />} />
         <Route path="/sales-war-room/owner" element={<SalesWarRoomOwner />} />
         <Route path="/sales-war-room/team-admin" element={<SalesWarRoomAdmin />} />
