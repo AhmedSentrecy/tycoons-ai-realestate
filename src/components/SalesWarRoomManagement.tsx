@@ -3,9 +3,9 @@ import { salesWarRoomApi } from "../lib/salesWarRoomApi";
 
 type Mode = "owner" | "admin";
 
-const stages = ["New Lead","Contacted","Warm","Hot / Very Potential","Meeting Scheduled","Meeting Held","Negotiation / Closing","Won","Lost / Dead"];
+const stages = ["New Lead","Contacted","Cold","Warm","Hot / Very Potential","Hold","Meeting Scheduled","Meeting Held","Negotiation / Closing","Won","Lost / Dead"];
 const stageAr: Record<string,string> = {
-  "New Lead":"ليد جديد","Contacted":"تم التواصل","Warm":"Warm","Hot / Very Potential":"Hot / قوي جدًا","Meeting Scheduled":"ميعاد متحدد","Meeting Held":"تم الاجتماع","Negotiation / Closing":"تفاوض / Closing","Won":"مكسب","Lost / Dead":"خسارة / Dead"
+  "New Lead":"ليد جديد","Contacted":"تم التواصل","Cold":"Cold","Warm":"Warm","Hot / Very Potential":"Hot / قوي جدًا","Hold":"Hold","Meeting Scheduled":"ميعاد متحدد","Meeting Held":"تم الاجتماع","Negotiation / Closing":"تفاوض / Closing","Won":"مكسب","Lost / Dead":"خسارة / Dead"
 };
 
 const fmt = (d: Date) => d.toISOString().slice(0, 10);
