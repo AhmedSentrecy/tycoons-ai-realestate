@@ -114,6 +114,94 @@ export default function SalesWarRoomSalesOutcome(){
     return()=>{document.getElementById(addonId)?.remove()};
   },[mode,location.pathname,Boolean(totals)]);
 
+  useEffect(()=>{
+    if(!totals||!(mode==="owner"||mode==="admin"))return;
+    let cancelled=false;
+
+    const patchScoreboard=()=>{
+      if(cancelled)return;
+      const tables=Array.from(document.querySelectorAll("main table"));
+      const table=tables.find((tbl)=>{
+        if(tbl.querySelector('th[data-sales-outcome-expected="1"]'))return true;
+        return Array.from(tbl.querySelectorAll("thead th")).some((th)=>String(th.textContent||"").trim()==="Sales");
+      });
+      if(!table)return;
+
+      const headRow=table.querySelector("thead tr");
+      if(!headRow)return;
+      const headers=Array.from(headRow.querySelectorAll("th")) as HTMLTableCellElement[];
+      let expectedHeader=headRow.querySelector('th[data-sales-outcome-expected="1"]') as HTMLTableCellElement|null;
+      let expectedIndex=expectedHeader?headers.indexOf(expectedHeader):headers.findIndex((th)=>String(th.textContent||"").trim()==="Sales");
+      if(expectedIndex<0)return;
+
+      if(!expectedHeader){
+        expectedHeader=headers[expectedIndex];
+        expectedHeader.dataset.salesOutcomeExpected="1";
+      }
+      expectedHeader.textContent=t("Expected","متوقع");
+
+      let wonHeader=headRow.querySelector('th[data-sales-outcome-won="1"]') as HTMLTableCellElement|null;
+      let lostHeader=headRow.querySelector('th[data-sales-outcome-lost="1"]') as HTMLTableCellElement|null;
+      if(!wonHeader){
+        wonHeader=document.createElement("th");
+        wonHeader.className=expectedHeader.className;
+        wonHeader.dataset.salesOutcomeWon="1";
+        expectedHeader.insertAdjacentElement("afterend",wonHeader);
+      }
+      if(!lostHeader){
+        lostHeader=document.createElement("th");
+        lostHeader.className=expectedHeader.className;
+        lostHeader.dataset.salesOutcomeLost="1";
+        wonHeader.insertAdjacentElement("afterend",lostHeader);
+      }
+      wonHeader.textContent=t("Won","مكسب");
+      lostHeader.textContent=t("Lost","خسارة");
+
+      const byName=new Map<string,any>();
+      for(const a of totals.agents||[]){
+        if(a.name_en)byName.set(String(a.name_en).trim().toLowerCase(),a);
+        if(a.name_ar)byName.set(String(a.name_ar).trim().toLowerCase(),a);
+      }
+
+      for(const row of Array.from(table.querySelectorAll("tbody tr"))){
+        const cells=Array.from(row.querySelectorAll("td")) as HTMLTableCellElement[];
+        const name=String(cells[0]?.textContent||"").trim().toLowerCase();
+        const agent=byName.get(name);
+        if(!agent)continue;
+
+        let expectedCell=row.querySelector('td[data-sales-outcome-expected="1"]') as HTMLTableCellElement|null;
+        if(!expectedCell){
+          expectedCell=cells[expectedIndex]||null;
+          if(!expectedCell)continue;
+          expectedCell.dataset.salesOutcomeExpected="1";
+        }
+        expectedCell.textContent=money(agent.expected_sales);
+        expectedCell.className=`${expectedCell.className} font-black`.trim();
+
+        let wonCell=row.querySelector('td[data-sales-outcome-won="1"]') as HTMLTableCellElement|null;
+        let lostCell=row.querySelector('td[data-sales-outcome-lost="1"]') as HTMLTableCellElement|null;
+        if(!wonCell){
+          wonCell=document.createElement("td");
+          wonCell.className=`${expectedCell.className} text-emerald-700`.trim();
+          wonCell.dataset.salesOutcomeWon="1";
+          expectedCell.insertAdjacentElement("afterend",wonCell);
+        }
+        if(!lostCell){
+          lostCell=document.createElement("td");
+          lostCell.className=`${expectedCell.className} text-red-600`.trim();
+          lostCell.dataset.salesOutcomeLost="1";
+          wonCell.insertAdjacentElement("afterend",lostCell);
+        }
+        wonCell.textContent=money(agent.won_sales);
+        lostCell.textContent=money(agent.lost_sales);
+      }
+    };
+
+    patchScoreboard();
+    const interval=window.setInterval(patchScoreboard,500);
+    return()=>{cancelled=true;window.clearInterval(interval)};
+  },[mode,totals,lang,location.pathname]);
+
   if(!target||!totals)return null;
 
   if(mode==="agent"||mode==="monitor"){
