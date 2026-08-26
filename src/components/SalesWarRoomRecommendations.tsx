@@ -127,11 +127,22 @@ export default function SalesWarRoomRecommendations(){
                 {loading?t("Matching…","جاري المطابقة…"):t("Find Best Units","طلع أفضل وحدات")}
               </button>
             </div>
-            {selected&&<div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-              <Info label={t("Expected Sale","Expected Sale")} value={money(selected.expected_value)}/>
-              <Info label={t("Budget","Budget")} value={selected.budget||"—"}/>
-              <Info label={t("Stage","Stage")} value={selected.stage}/>
-            </div>}
+            {selected&&<>
+              <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+                <Info label={t("Expected Sale","Expected Sale")} value={money(selected.expected_value)}/>
+                <Info label={t("Budget","Budget")} value={selected.budget||"—"}/>
+                <Info label={t("Stage","Stage")} value={selected.stage}/>
+              </div>
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <div className="text-[10px] font-black tracking-[.12em] text-slate-400">{t("CLIENT FEEDBACK","فيدباك العميل")}</div>
+                <div className="mt-2 whitespace-pre-wrap break-words text-sm font-bold leading-6 text-slate-800">{selected.notes||t("No feedback added yet.","مفيش Feedback متسجل لسه.")}</div>
+                {(selected.next_action||selected.next_action_date||selected.next_action_trigger)&&<div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+                  <Info label={t("Next Action","Next Action")} value={selected.next_action||"—"}/>
+                  <Info label={t("Follow-up Date","Follow-up Date")} value={selected.next_action_date||"—"}/>
+                  <Info label={t("Trigger","Trigger")} value={selected.next_action_trigger||"—"}/>
+                </div>}
+              </div>
+            </>}
           </div>
 
           {error&&<div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{error}</div>}
