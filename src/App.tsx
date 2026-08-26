@@ -11,7 +11,7 @@ const SearchPage = lazy(() => import('./pages/SearchPage'))
 const SalesWarRoom = lazy(() => import('./pages/SalesWarRoom'))
 const SalesWarRoomOwner = lazy(() => import('./pages/SalesWarRoomOwner'))
 const SalesWarRoomAdmin = lazy(() => import('./pages/SalesWarRoomAdmin'))
-const SalesWarRoomTeamMonitor = lazy(() => import('./pages/SalesWarRoomTeamMonitor'))
+const SalesWarRoomTeamMonitor = lazy(() => import('./pages/SalesWarRoomTeamMonitorClean'))
 
 export default function App() {
   return (
