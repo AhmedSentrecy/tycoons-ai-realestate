@@ -298,11 +298,16 @@ function renderProjectStatic(shell, project, projectUnits) {
   const minArea = areas.length ? Math.min(...areas) : 0;
   const maxArea = areas.length ? Math.max(...areas) : 0;
   const imageList = urls(project.image_url, project.gallery_urls, ...units.map((unit) => unit.image_url));
-  const title = text(project.seo_title) || `${project.name} | الأسعار والوحدات المتاحة`;
-  const description = text(project.seo_description) || text(project.description) ||
-    `اعرف أسعار ومساحات ${project.name} وخطط السداد والوحدات المتاحة.`;
+  const isIcityOctober = project.slug === "mountain-view-icity-october--mountain-view";
+  const title = isIcityOctober
+    ? `${project.name} — الأسعار والموقع والوحدات | Tycoons`
+    : text(project.seo_title) || `${project.name} | الأسعار والوحدات المتاحة`;
+  const description = isIcityOctober && prices.length
+    ? `${project.name} من ${project.developer} في ${project.location}. الأسعار الظاهرة من ${formatPrice(minPrice)} إلى ${formatPrice(highPrice)} جنيه عبر ${totalOptionCount} خيار، مع طريقة التأكد من الموقع والـmaster plan الرسمي.`
+    : text(project.seo_description) || text(project.description) ||
+      `اعرف أسعار ومساحات ${project.name} وخطط السداد والوحدات المتاحة.`;
   const storedFaq = arrayValue(project.faq);
-  const faq = storedFaq.length ? storedFaq : [
+  const baseFaq = storedFaq.length ? storedFaq : [
     {
       question: `ما أقل سعر ظاهر حاليًا في ${project.name}؟`,
       answer: `أقل سعر ظاهر حاليًا يبدأ من {{min_price}} جنيه، ويجب تأكيد السعر والتوفر وقت الطلب.`,
@@ -312,7 +317,19 @@ function renderProjectStatic(shell, project, projectUnits) {
       answer: `الوحدات الظاهرة حاليًا تشمل ${[...new Set(units.map((unit) => text(unit.unit_type)).filter(Boolean))].join("، ")}.`,
     }] : []),
   ];
-  const article = arrayValue(project.article_sections);
+  const faq = isIcityOctober
+    ? [...baseFaq, {
+        question: `فين ألاقي master plan ${project.name}؟`,
+        answer: `استخدم النسخة الرسمية من ${project.developer} لتأكيد المراحل والمداخل. الصفحة تعرض الوحدات والأسعار للمقارنة ولا تستبدل المخطط المساحي الرسمي.`,
+      }]
+    : baseFaq;
+  const storedArticle = arrayValue(project.article_sections);
+  const article = isIcityOctober
+    ? [...storedArticle, {
+        heading: `موقع ${project.name} والـmaster plan`,
+        paragraphs: [`سجل Tycoons بيصنّف المشروع في ${project.location}. لتحديد المرحلة والقطعة وأقرب مدخل بدقة، راجع الـmaster plan الرسمي الصادر من ${project.developer} قبل الحجز؛ الصفحة دي للمقارنة بين الوحدات وليست خريطة مساحية.`],
+      }]
+    : storedArticle;
   const developerPath = `/ar/developers/${slugify(project.developer)}`;
   const areaPath = `/ar/areas/${areaSlug(project.location)}`;
   const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]">

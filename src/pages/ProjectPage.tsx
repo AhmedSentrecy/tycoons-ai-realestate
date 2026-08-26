@@ -271,16 +271,19 @@ export default function ProjectPage() {
   }, [slug]);
 
   const contentLoading = loadedSlug !== slug;
+  const isIcityOctober = slug === "mountain-view-icity-october--mountain-view";
 
   useEffect(() => {
     if (!project) return;
     const pageUrl = `${SITE_URL}/projects/${slug}`;
-    const title =
-      content?.seo_title || `${project.project_name} | الأسعار والوحدات المتاحة`;
-    const description =
-      content?.seo_description ||
-      project.description ||
-      `اعرف أسعار ومساحات ${project.project_name} وخطط السداد والوحدات المتاحة.`;
+    const prices = projectUnits.map((unit) => unit.starting_price).filter((price) => price > 0);
+    const title = isIcityOctober
+      ? `${project.project_name} — الأسعار والموقع والوحدات | Tycoons`
+      : content?.seo_title || `${project.project_name} | الأسعار والوحدات المتاحة`;
+    const description = isIcityOctober && prices.length
+      ? `${project.project_name} من ${project.developer} في ${project.location}. الأسعار الظاهرة من ${formatPrice(Math.min(...prices))} إلى ${formatPrice(Math.max(...prices))} جنيه عبر ${projectUnits.length} خيار، مع طريقة التأكد من الموقع والـmaster plan الرسمي.`
+      : content?.seo_description || project.description ||
+        `اعرف أسعار ومساحات ${project.project_name} وخطط السداد والوحدات المتاحة.`;
     document.title = title;
     setMeta('meta[name="description"]', "content", description);
     setMeta('link[rel="canonical"]', "href", pageUrl);
@@ -289,7 +292,7 @@ export default function ProjectPage() {
     setMeta('meta[property="og:url"]', "content", pageUrl);
     setMeta('meta[property="og:type"]', "content", "article");
     window.scrollTo(0, 0);
-  }, [content, project, slug]);
+  }, [content, isIcityOctober, project, projectUnits, slug]);
 
   if (loading || contentLoading) {
     return (
@@ -352,7 +355,7 @@ export default function ProjectPage() {
   const message = encodeURIComponent(
     `Hello Tycoons Investments,\nI am interested in this project:\n\nProject: ${project.project_name}\nDeveloper: ${project.developer}\nLocation: ${project.location}\nStarting price: ${formatPrice(minPrice)} EGP\nStatus: Available\n\nURL: ${pageUrl}\n\nPlease send me available options and details.\n\nSource: project_page\nPage: ${pageUrl}`,
   );
-  const articleSections = content?.article_sections.length
+  const storedArticleSections = content?.article_sections.length
     ? content.article_sections
     : [
         {
@@ -363,7 +366,27 @@ export default function ProjectPage() {
           ],
         },
       ];
-  const faq = content?.faq || [];
+  const articleSections = isIcityOctober
+    ? [
+        ...storedArticleSections,
+        {
+          heading: `موقع ${project.project_name} والـmaster plan`,
+          paragraphs: [
+            `سجل Tycoons بيصنّف المشروع في ${project.location}. لتحديد المرحلة والقطعة وأقرب مدخل بدقة، راجع الـmaster plan الرسمي الصادر من ${project.developer} قبل الحجز؛ الصفحة دي للمقارنة بين الوحدات وليست خريطة مساحية.`,
+          ],
+        },
+      ]
+    : storedArticleSections;
+  const storedFaq = content?.faq || [];
+  const faq = isIcityOctober
+    ? [
+        ...storedFaq,
+        {
+          question: `فين ألاقي master plan ${project.project_name}؟`,
+          answer: `استخدم النسخة الرسمية من ${project.developer} لتأكيد المراحل والمداخل. الصفحة تعرض الوحدات والأسعار للمقارنة ولا تستبدل المخطط المساحي الرسمي.`,
+        },
+      ]
+    : storedFaq;
   const unitListItems = [
     ...priceRanges.map((range, index) => ({
       "@type": "ListItem",

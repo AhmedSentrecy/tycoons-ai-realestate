@@ -255,6 +255,11 @@ assert.match(sitemap, /SITE_URL}\/projects\/\${projectSlug}/);
 assert.match(sitemap, /SITE_URL}\/units\/\${unit\.id}/);
 assert.match(sitemap, /SITE_URL}\/en\/guides\/\${guideSlug}/);
 assert.match(projectPage, /loadProjectPage\(slug\)/);
+assert.match(projectPage, /mountain-view-icity-october--mountain-view/);
+assert.match(projectPage, /master plan.*رسمي/s);
+const dataPages = fs.readFileSync(path.join(root, "scripts/lib/data-pages.cjs"), "utf8");
+assert.match(dataPages, /mountain-view-icity-october--mountain-view/);
+assert.match(dataPages, /موقع \$\{project\.name\} والـmaster plan/);
 assert.match(
   netlify,
   /from = "\/units\/\*"\s+to = "\/\.netlify\/functions\/seo-page\?lang=ar&type=unit&slug=:splat"\s+status = 200/,
