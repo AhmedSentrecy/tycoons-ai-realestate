@@ -1,3 +1,3 @@
-Rebuild requested for Sales War Room per-agent Excel export.
-Timestamp: 2026-08-26T14:05:00+03:00
-Reason: add secure per-agent Excel export button; each agent can download only their own sales_pipeline clients as .xlsx.
+Rebuild requested for Sales War Room export button placement.
+Timestamp: 2026-08-26T14:08:00+03:00
+Reason: move Export Excel into the agent header beside the language button and give it a distinct amber color; remove the floating export position.
