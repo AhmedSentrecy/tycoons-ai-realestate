@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, MessageCircle, BadgeCheck, Banknote } from "luci
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
 import { regions } from "@/data/content";
+import { arabicAreaPath } from "@/lib/areaPaths";
 import {
   Accordion,
   AccordionContent,
@@ -193,7 +194,7 @@ export default function RegionPage() {
             {others.map((r) => (
               <Link
                 key={r.slug}
-                to={`/regions/${r.slug}`}
+                to={arabicAreaPath(r.slug)}
                 className="group relative min-h-[170px] overflow-hidden rounded-2xl"
               >
                 <img

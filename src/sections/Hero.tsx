@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { animate, motion, useInView } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import SmartSearchBar from "@/components/SmartSearchBar";
+import { HOME_H1_ACCENT, HOME_H1_LEAD } from "@/lib/homeSeo";
 import { useInventory } from "@/lib/inventory";
 
 const chips = [
@@ -81,8 +82,8 @@ export default function Hero() {
           transition={{ delay: 0.5, duration: 1, ease }}
           className="max-w-3xl text-balance text-[32px] font-extrabold leading-[1.25] text-white sm:text-5xl lg:text-[54px] lg:leading-[1.2]"
         >
-          ابحث بصوتك بأي حاجة تيجي في بالك،
-          <span className="gold-gradient-text block">وإحنا نوصّلك للعقار المناسب.</span>
+          {HOME_H1_LEAD}
+          <span className="gold-gradient-text block">{HOME_H1_ACCENT}</span>
         </motion.h1>
 
         <motion.p

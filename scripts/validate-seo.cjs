@@ -159,6 +159,10 @@ const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const robots = fs.readFileSync(path.join(root, "public/robots.txt"), "utf8");
 const sitemap = fs.readFileSync(path.join(root, "netlify/functions/sitemap.cjs"), "utf8");
 const projectPage = fs.readFileSync(path.join(root, "src/pages/ProjectPage.tsx"), "utf8");
+const hero = fs.readFileSync(path.join(root, "src/sections/Hero.tsx"), "utf8");
+const homeSeo = fs.readFileSync(path.join(root, "src/lib/homeSeo.ts"), "utf8");
+const regionPage = fs.readFileSync(path.join(root, "src/pages/RegionPage.tsx"), "utf8");
+const projectsSection = fs.readFileSync(path.join(root, "src/sections/Projects.tsx"), "utf8");
 
 assert.ok(
   netlify.indexOf('from = "/ar/projects/*"') < netlify.indexOf('from = "/*"'),
@@ -176,6 +180,11 @@ assert.doesNotMatch(
   /from = "\/(?:ar|en)"\s+to = "\/(?:ar|en)\/"\s+status = 301\s+force = true/,
   "Locale slash redirects must stay removed to prevent redirect loops",
 );
+assert.equal(
+  (netlify.match(/from = "\/en\/"\s+to = "\/\.netlify\/functions\/seo-page\?lang=en&type=home"\s+status = 200/g) || []).length,
+  1,
+  "The English homepage must have exactly one internal 200 rewrite",
+);
 assert.match(netlify, /from = "\/projects\/\*"\s+to = "\/404\.html"\s+status = 404/);
 assert.match(
   netlify,
@@ -187,6 +196,15 @@ assert.match(netlify, /from = "\/regions\/capital"\s+to = "\/ar\/areas\/new-capi
 assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/);
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>ابحث بصوتك/);
+const lead = homeSeo.match(/HOME_H1_LEAD = "([^"]+)"/)?.[1];
+const accent = homeSeo.match(/HOME_H1_ACCENT = "([^"]+)"/)?.[1];
+const staticH1 = index.match(/<h1>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
+assert.ok(lead && accent, "Homepage H1 copy must stay defined in src/lib/homeSeo.ts");
+assert.equal(staticH1, `${lead}${accent}`.trim(), "Static and hydrated homepage H1 copy must match");
+assert.match(hero, /HOME_H1_LEAD/);
+assert.match(hero, /HOME_H1_ACCENT/);
+assert.doesNotMatch(regionPage, /to=\{`\/regions\//, "Region cards must link directly to canonical area pages");
+assert.doesNotMatch(projectsSection, /`\/regions\//, "Project fallbacks must link directly to canonical area pages");
 assert.match(index, /<h2>قارن المشاريع والوحدات العقارية/);
 assert.match(robots, /OAI-SearchBot/);
 assert.match(robots, /https:\/\/tycoons-inv\.com\/sitemap\.xml/);

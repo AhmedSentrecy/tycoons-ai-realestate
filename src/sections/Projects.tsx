@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { BedDouble, Ruler, KeyRound, MessageCircle, ChevronRight, ChevronLeft } from "lucide-react";
 import { projects } from "@/data/projects";
 import { openProjectWhatsApp } from "@/lib/whatsapp";
+import { arabicAreaPath } from "@/lib/areaPaths";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -136,7 +137,7 @@ export default function Projects() {
 
               <div className="mt-4 flex gap-2">
                 <Link
-                  to={p.projectSlug ? `/projects/${p.projectSlug}` : `/regions/${p.regionSlug}`}
+                  to={p.projectSlug ? `/projects/${p.projectSlug}` : arabicAreaPath(p.regionSlug)}
                   className="flex flex-1 items-center justify-center rounded-full border border-white/20 py-2.5 text-[13px] font-semibold text-white transition-colors hover:bg-white/10"
                 >
                   تفاصيل المشروع
