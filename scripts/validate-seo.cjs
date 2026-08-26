@@ -231,6 +231,11 @@ assert.ok(
   netlify.indexOf('from = "/en/guides/new-cairo-property-prices/"') < netlify.indexOf('from = "/en/guides/*"'),
   "The native English guide rewrite must appear before the generic English guide redirect",
 );
+assert.match(
+  netlify,
+  /from = "\/en\/guides\/new-cairo-property-prices"\s+to = "\/\.netlify\/functions\/seo-page\?lang=en&type=guide&slug=new-cairo-property-prices"\s+status = 200/,
+  "The slashless English canonical variant must rewrite directly; redirecting it to a slash loops on Netlify",
+);
 assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/);
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>ابحث بصوتك/);

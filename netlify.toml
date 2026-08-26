@@ -304,9 +304,8 @@
 
 [[redirects]]
   from = "/en/guides/new-cairo-property-prices"
-  to = "/en/guides/new-cairo-property-prices/"
-  status = 301
-  force = true
+  to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=new-cairo-property-prices"
+  status = 200
 
 [[redirects]]
   from = "/en/guides/new-cairo-property-prices/"
