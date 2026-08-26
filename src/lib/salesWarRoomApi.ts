@@ -6,6 +6,7 @@ const LEADERS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales
 const OWNER_LEAD_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-owner-lead";
 const RECOMMENDATIONS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-recommendations";
 const TEAM_MONITOR_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-team-monitor";
+const SALES_TOTALS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-sales-totals";
 
 async function requestUrl(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
@@ -38,6 +39,7 @@ export const salesWarRoomApi = {
   teamMonitor: (token: string, slug: string) => requestUrl(`${TEAM_MONITOR_API}?slug=${encodeURIComponent(slug)}`, {
     headers: { "x-admin-token": token },
   }),
+  getSalesTotals: (token: string) => requestUrl(SALES_TOTALS_API, { headers: { "x-admin-token": token } }),
   getOwnerPipeline: (token: string) => requestUrl(OWNER_LEAD_API, { headers: { "x-admin-token": token } }),
   ownerUpdateLead: (token: string, body: Record<string, unknown>) => requestUrl(OWNER_LEAD_API, {
     method: "PATCH",
