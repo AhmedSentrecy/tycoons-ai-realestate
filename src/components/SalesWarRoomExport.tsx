@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 const EXPORT_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-export";
 
@@ -16,6 +17,7 @@ export default function SalesWarRoomExport() {
   const slug = routeSlug();
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
+  const [headerActions, setHeaderActions] = useState<Element | null>(null);
   const [lang, setLang] = useState<"en" | "ar">(
     (localStorage.getItem("warRoomLang") as "en" | "ar") || "en",
   );
@@ -23,10 +25,13 @@ export default function SalesWarRoomExport() {
 
   useEffect(() => {
     if (!slug) return;
-    const id = window.setInterval(() => {
+    const sync = () => {
       const next = (localStorage.getItem("warRoomLang") as "en" | "ar") || "en";
       setLang(next);
-    }, 1000);
+      setHeaderActions(document.querySelector("header > div.flex.gap-2"));
+    };
+    sync();
+    const id = window.setInterval(sync, 500);
     return () => window.clearInterval(id);
   }, [slug]);
 
@@ -69,25 +74,27 @@ export default function SalesWarRoomExport() {
     }
   }
 
-  if (!slug) return null;
+  if (!slug || !headerActions) return null;
 
-  return (
+  return createPortal(
     <>
       <button
         onClick={exportClients}
         disabled={downloading}
-        className="fixed bottom-5 start-5 z-[90] rounded-full bg-slate-950 px-4 py-3 text-xs font-black text-white shadow-2xl ring-4 ring-white/70 transition hover:-translate-y-0.5 disabled:opacity-60 md:px-5 md:text-sm"
+        className="rounded-full border border-amber-400 bg-amber-400 px-3 py-2 text-xs font-black text-slate-950 shadow-sm transition hover:bg-amber-300 disabled:opacity-60 md:px-4 md:text-sm"
+        title={t("Export all my clients to Excel", "تصدير كل عملائي إلى Excel")}
       >
         {downloading ? t("Exporting…", "جاري التصدير…") : `⬇ ${t("Export Excel", "تصدير Excel")}`}
       </button>
       {error && (
         <button
           onClick={() => setError("")}
-          className="fixed bottom-20 start-5 z-[91] max-w-[280px] rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-start text-xs font-bold text-red-700 shadow-lg"
+          className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700"
         >
           {error} · ✕
         </button>
       )}
-    </>
+    </>,
+    headerActions,
   );
 }
