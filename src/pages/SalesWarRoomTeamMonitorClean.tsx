@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import SalesWarRoomTeamMonitor from "./SalesWarRoomTeamMonitor";
 
 const hiddenMessages = [
@@ -12,25 +12,48 @@ const hiddenMessages = [
   "متابعة العملاء فقط. أرقام التليفونات مش موجودة أصلًا في الداتا الراجعة للأدمن.",
 ];
 
-function removeRestrictionMessaging() {
-  const nodes = Array.from(document.querySelectorAll("main div, main span, main p"));
-  for (const node of nodes) {
-    const text = (node.textContent || "").trim();
-    if (!hiddenMessages.includes(text)) continue;
-    node.remove();
-  }
+function cleanRestrictionMessaging() {
   document.title = "Tycoons Agent Dashboard";
+
+  for (const node of Array.from(document.querySelectorAll<HTMLElement>("main div, main span, main p"))) {
+    const text = (node.textContent || "").trim();
+    if (hiddenMessages.includes(text)) node.style.setProperty("display", "none", "important");
+  }
+
+  const header = document.querySelector("main header");
+  if (header) {
+    const actionArea = header.lastElementChild as HTMLElement | null;
+    const first = actionArea?.firstElementChild as HTMLElement | null;
+    if (first && /READ ONLY MONITOR|متابعة فقط/i.test((first.textContent || "").trim())) {
+      first.style.setProperty("display", "none", "important");
+    }
+
+    const next = header.nextElementSibling as HTMLElement | null;
+    if (next && /Monitoring access only|صلاحية متابعة فقط/.test(next.textContent || "")) {
+      next.style.setProperty("display", "none", "important");
+    }
+  }
 }
 
 export default function SalesWarRoomTeamMonitorClean() {
-  useEffect(() => {
-    removeRestrictionMessaging();
-    const observer = new MutationObserver(removeRestrictionMessaging);
-    observer.observe(document.body, { childList: true, subtree: true });
-    const timer = window.setInterval(removeRestrictionMessaging, 500);
+  useLayoutEffect(() => {
+    const style = document.createElement("style");
+    style.id = "team-admin-clean-view";
+    style.textContent = `
+      main header + div.border-amber-300.bg-amber-50 { display: none !important; }
+      main header span.bg-amber-100.text-amber-800 { display: none !important; }
+    `;
+    document.head.appendChild(style);
+
+    cleanRestrictionMessaging();
+    const observer = new MutationObserver(cleanRestrictionMessaging);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    const timer = window.setInterval(cleanRestrictionMessaging, 250);
+
     return () => {
       observer.disconnect();
       window.clearInterval(timer);
+      style.remove();
     };
   }, []);
 
