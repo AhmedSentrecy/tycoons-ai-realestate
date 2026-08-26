@@ -1,3 +1,3 @@
-Rebuild requested for Team Admin owner isolation.
-Timestamp: 2026-08-26T14:58:00+03:00
-Reason: hide Ahmed Sentrecy from Team Admin UI and enforce owner-agent exclusion in Team Admin summaries, sales totals, motivation leaders, and direct monitor access.
+Rebuild requested for Sales War Room pipeline stages.
+Timestamp: 2026-08-26T15:02:00+03:00
+Reason: add Cold and Hold as supported pipeline stages across Agent, Owner, Team Admin monitoring, Kanban, tabs, filters, and database validation.
