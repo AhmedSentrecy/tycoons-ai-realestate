@@ -124,6 +124,69 @@ const GENERIC_AREA_FACTS = {
   buyerNote: "راجع قرب المشروع من الطرق الرئيسية والخدمات القائمة فعليًا قبل المقارنة بمناطق تانية.",
 };
 
+// Search Console-backed intent copy. Keep this limited to areas where real query
+// data shows a clear need; generic area pages should not inherit keyword-heavy copy.
+const AREA_SEARCH_CONTENT = {
+  "mostakbal-city": {
+    ar: {
+      title: ({ minFmt, plural }) => `مشاريع مستقبل سيتي 2026 — الخريطة والأسعار (${plural}) من ${minFmt} | Tycoons`,
+      description: ({ minFmt, plural }) => `${plural} في مستقبل سيتي بأسعار تبدأ من ${minFmt}. اعرف موقع مستقبل سيتي وقارن المطورين والمشاريع والوحدات وخطط السداد في دليل واحد محدث.`,
+      sections: [
+        [
+          "موقع مستقبل سيتي فين؟",
+          "مستقبل سيتي موجودة شرق القاهرة على امتداد طريق القاهرة–السويس، وقريبة من مدينتي والقاهرة الجديدة. موقع كل مشروع داخل المدينة بيختلف، لذلك راجع المخطط الرسمي للمطور قبل الحجز.",
+        ],
+        [
+          "خريطة مشاريع مستقبل سيتي والمطورين",
+          "الدليل التالي بيرتب مشاريع مستقبل سيتي حسب المطور ويربط كل مشروع بصفحته ووحداته المتاحة. ده دليل تنقّل بين المشاريع، مش خريطة مساحية؛ حدود ومراحل كل مشروع تتأكد من الـmaster plan الرسمي للمطور.",
+        ],
+      ],
+      faq: [
+        [
+          "موقع مستقبل سيتي فين؟",
+          "مستقبل سيتي شرق القاهرة على امتداد طريق القاهرة–السويس، بالقرب من مدينتي والقاهرة الجديدة. راجع موقع المشروع نفسه داخل المدينة لأن المراحل والمداخل بتختلف.",
+        ],
+        [
+          "إزاي أشوف خريطة مشاريع مستقبل سيتي؟",
+          "استخدم دليل المطورين والمشاريع في الصفحة للانتقال لكل مشروع. ولتحديد المرحلة والقطعة والمداخل بدقة، راجع الـmaster plan الرسمي الصادر من المطور قبل الحجز.",
+        ],
+        [
+          "هل الاستثمار العقاري في مستقبل سيتي مناسب؟",
+          "ممكن يناسب اللي يقبل فترة تطوير وتسليم ويقارن على المدى المتوسط أو الطويل، لكن العائد مش مضمون. راجع سجل تسليم المطور والسيولة المتوقعة وتوقيت تشغيل الخدمات وخطة السداد قبل القرار.",
+        ],
+      ],
+    },
+    en: {
+      title: ({ minFmt, plural }) => `Mostakbal City projects 2026 — map, developers and prices from ${minFmt} (${plural}) | Tycoons`,
+      description: ({ minFmt, plural }) => `${plural} in Mostakbal City starting from ${minFmt}. Find the location and compare developers, projects, units and payment plans in one updated guide.`,
+      sections: [
+        [
+          "Where is Mostakbal City?",
+          "Mostakbal City is in East Cairo along the Cairo–Suez Road, near Madinaty and New Cairo. Each project occupies a different part of the city, so confirm the exact phase on the developer's official master plan before reserving.",
+        ],
+        [
+          "Mostakbal City projects and developers map",
+          "The directory below groups Mostakbal City projects by developer and links to each project's available units. It is a navigation map, not a surveyed geographic plan; confirm boundaries, phases and entrances on the developer's official master plan.",
+        ],
+      ],
+      faq: [
+        [
+          "Where is Mostakbal City located?",
+          "Mostakbal City is in East Cairo along the Cairo–Suez Road, near Madinaty and New Cairo. Confirm the project's exact phase and entrance because locations vary within the city.",
+        ],
+        [
+          "How can I see a map of Mostakbal City projects?",
+          "Use the developer and project directory on this page to open each project. For exact phases, plots and entrances, check the official master plan issued by the developer before reserving.",
+        ],
+        [
+          "Is Mostakbal City suitable for property investment?",
+          "It may suit buyers who accept a development and delivery period and are comparing a medium- or long-term horizon, but returns are not guaranteed. Review the developer's delivery record, expected liquidity, service activation and payment plan first.",
+        ],
+      ],
+    },
+  },
+};
+
 const GUIDES = {
   "off-plan-buying-checklist": {
     title: "دليل شراء عقار Off-plan في مصر",
@@ -917,19 +980,20 @@ function renderCollection(projects, kind, slug, lang) {
   const min = Math.min(...matches.map(projectMinPrice));
   const max = Math.max(...matches.map(projectMaxPrice));
   const minFmt = formatPrice(min, lang);
-  const title = ar
+  const searchContent = kind === "area" ? AREA_SEARCH_CONTENT[area.slug]?.[lang] : null;
+  const title = searchContent?.title?.({ minFmt, plural }) || (ar
     ? `مشاريع ${label} 2026 — أسعار من ${minFmt} (${plural}) | Tycoons`
-    : `${label} projects 2026 — prices from ${minFmt} (${plural}) | Tycoons`;
-  const description = ar
+    : `${label} projects 2026 — prices from ${minFmt} (${plural}) | Tycoons`);
+  const description = searchContent?.description?.({ minFmt, plural }) || (ar
     ? `${plural} في ${label} بأسعار تبدأ من ${minFmt}. قارن السعر والمساحة وخطة السداد والاستلام لكل مشروع في مكان واحد.`
-    : `${plural} in ${label} starting from ${minFmt}. Compare price, size, payment plan and delivery for each project in one place.`;
+    : `${plural} in ${label} starting from ${minFmt}. Compare price, size, payment plan and delivery for each project in one place.`);
   const crumbs = [
     { name: ar ? "الرئيسية" : "Home", path: "/" },
     { name: label, path },
   ];
   const contextSection =
     kind === "area"
-      ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>`
+      ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${(searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}`
       : "";
   const projectUnitCount = matches.reduce((total, project) => total + project.units.length, 0);
   const branches = kind === "area"
@@ -975,6 +1039,7 @@ function renderCollection(projects, kind, slug, lang) {
               ? `عندنا ${plural} مسجّلة حاليًا في ${label} في قاعدة بياناتنا، وبيتم تحديثها باستمرار — شوف القائمة كاملة تحت.`
               : `We currently have ${plural} listed in ${label} in our database, updated continuously — see the full list below.`,
           ],
+          ...(searchContent?.faq || []),
         ]
       : [];
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(label)}</h1>
