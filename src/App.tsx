@@ -10,6 +10,7 @@ const FaqPage = lazy(() => import('./pages/FaqPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
 const SalesWarRoom = lazy(() => import('./pages/SalesWarRoom'))
+const SalesWarRoomLead = lazy(() => import('./pages/SalesWarRoomLead'))
 const SalesWarRoomOwner = lazy(() => import('./pages/SalesWarRoomOwner'))
 const SalesWarRoomAdmin = lazy(() => import('./pages/SalesWarRoomAdmin'))
 const SalesWarRoomTeamMonitor = lazy(() => import('./pages/SalesWarRoomTeamMonitorClean'))
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/sales-war-room/app" element={<SalesWarRoomAppEntry />} />
+        <Route path="/sales-war-room/a/:slug/lead/:leadId" element={<SalesWarRoomLead />} />
         <Route path="/sales-war-room/a/:slug" element={<SalesWarRoom />} />
         <Route path="/sales-war-room/monitor/:slug" element={<SalesWarRoomTeamMonitor />} />
         <Route path="/sales-war-room/admin" element={<SalesWarRoomOwner />} />
