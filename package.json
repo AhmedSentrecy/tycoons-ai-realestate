@@ -1,7 +1,7 @@
 {
-  "name": "my-app",
+  "name": "tycoons-ai-realestate",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "packageManager": "yarn@1.22.22",
   "type": "module",
   "scripts": {
@@ -14,9 +14,17 @@
     "test:agent-ready": "node scripts/validate-agent-readiness.mjs",
     "check": "npm run test:search && npm run test:mcp && npm run test:realtime && npm run test:seo && npm run test:agent-ready && npm run build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "mobile:sync": "npm run build && cap sync",
+    "mobile:add:ios": "cap add ios",
+    "mobile:add:android": "cap add android",
+    "mobile:ios": "npm run build && cap sync ios && cap open ios",
+    "mobile:android": "npm run build && cap sync android && cap open android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -66,6 +74,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
