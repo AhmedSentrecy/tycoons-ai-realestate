@@ -13,6 +13,9 @@ on:
       - 'capacitor.config.ts'
       - '.github/workflows/android-apk.yml'
 
+permissions:
+  contents: write
+
 concurrency:
   group: android-apk-${{ github.ref }}
   cancel-in-progress: true
@@ -56,15 +59,37 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Prepare APK artifact
+      - name: Prepare Android downloads
         run: |
           mkdir -p mobile-build
-          cp android/app/build/outputs/apk/debug/app-debug.apk mobile-build/Tycoons-Sales-War-Room-debug.apk
+          cp android/app/build/outputs/apk/debug/app-debug.apk mobile-build/Tycoons-Sales-War-Room.apk
+          cd mobile-build
+          zip -9 Tycoons-Sales-War-Room.zip Tycoons-Sales-War-Room.apk
 
-      - name: Upload APK
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: Tycoons-Sales-War-Room-Android
-          path: mobile-build/Tycoons-Sales-War-Room-debug.apk
+          path: |
+            mobile-build/Tycoons-Sales-War-Room.apk
+            mobile-build/Tycoons-Sales-War-Room.zip
           retention-days: 14
           if-no-files-found: error
+
+      - name: Publish stable direct-download release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view war-room-latest >/dev/null 2>&1; then
+            gh release upload war-room-latest \
+              mobile-build/Tycoons-Sales-War-Room.apk \
+              mobile-build/Tycoons-Sales-War-Room.zip \
+              --clobber
+          else
+            gh release create war-room-latest \
+              mobile-build/Tycoons-Sales-War-Room.apk \
+              mobile-build/Tycoons-Sales-War-Room.zip \
+              --target "$GITHUB_SHA" \
+              --title "Tycoons Sales War Room - Latest Android" \
+              --notes "Latest cloud-built Android test version. This release is updated automatically after each successful Android build."
+          fi
