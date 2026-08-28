@@ -1,3 +1,3 @@
-Rebuild requested for Tycoons Sales War Room mobile and management updates.
-Timestamp: 2026-08-28T17:54:00+03:00
-Reason: deploy local follow-up notifications, native WhatsApp launch, Super Admin naming, and Mostafa Amr scoped team control for Ahmed Yehia and Nour Mohamed.
+Rebuild requested for Tycoons Sales War Room notification-center restructure.
+Timestamp: 2026-08-28T18:41:00+03:00
+Reason: deploy persistent in-app follow-up inbox, dedicated lead deep links, notification-tap routing, remove notification test UI, and remove the custom Paste button while preserving native paste.
