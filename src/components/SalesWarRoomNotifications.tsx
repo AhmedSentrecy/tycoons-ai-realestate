@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { LocalNotifications } from '@capacitor/local-notifications'
 import { useLocation, useNavigate } from 'react-router'
@@ -28,7 +28,22 @@ export default function SalesWarRoomNotifications() {
   const navigate = useNavigate()
   const syncingRef = useRef(false)
   const slug = activeAgentSlug(location.pathname)
-  const token = slug ? (localStorage.getItem(`warRoomAgentToken:${slug}`) || '') : ''
+  const [token,setToken] = useState(() => slug ? (localStorage.getItem(`warRoomAgentToken:${slug}`) || '') : '')
+
+  useEffect(() => {
+    const readToken = () => slug ? (localStorage.getItem(`warRoomAgentToken:${slug}`) || '') : ''
+    const refresh = () => setToken(prev => {
+      const next = readToken()
+      return prev === next ? prev : next
+    })
+    refresh()
+    const timer = window.setInterval(refresh, 800)
+    window.addEventListener('storage', refresh)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('storage', refresh)
+    }
+  }, [slug])
 
   useEffect(() => {
     const routeSlug = routeAgentSlug(location.pathname)
