@@ -4,9 +4,28 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 const CHANNEL_ID = 'sales-followups'
 const IDS_KEY = (slug: string) => `warRoomNotificationIds:${slug}`
 const SENT_KEY = (leadId: string, date: string) => `warRoomNotificationSent:${leadId}:${date}`
+const INBOX_KEY = (slug: string) => `warRoomNotificationInbox:${slug}`
+
+export type WarRoomNotificationItem = {
+  id: string
+  leadId: string
+  slug: string
+  clientName: string
+  title: string
+  body: string
+  date: string
+  route: string
+  createdAt: string
+  readAt: string | null
+}
 
 function nativeApp() {
   return Capacitor.isNativePlatform()
+}
+
+function todayLocal() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
 function hashId(value: string) {
@@ -16,6 +35,78 @@ function hashId(value: string) {
     hash = Math.imul(hash, 16777619)
   }
   return 1000 + (Math.abs(hash) % 2_000_000_000)
+}
+
+function readInbox(slug: string): WarRoomNotificationItem[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(INBOX_KEY(slug)) || '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeInbox(slug: string, items: WarRoomNotificationItem[]) {
+  localStorage.setItem(INBOX_KEY(slug), JSON.stringify(items.slice(0, 100)))
+  window.dispatchEvent(new CustomEvent('war-room-notifications-changed', { detail: { slug } }))
+}
+
+export function getNotificationInbox(slug: string) {
+  return readInbox(slug)
+}
+
+export function markNotificationRead(slug: string, id: string) {
+  const now = new Date().toISOString()
+  writeInbox(slug, readInbox(slug).map(item => item.id === id ? { ...item, readAt: item.readAt || now } : item))
+}
+
+export function markAllNotificationsRead(slug: string) {
+  const now = new Date().toISOString()
+  writeInbox(slug, readInbox(slug).map(item => ({ ...item, readAt: item.readAt || now })))
+}
+
+export function syncNotificationInbox(slug: string, pipeline: any[]) {
+  if (!slug || !Array.isArray(pipeline)) return [] as WarRoomNotificationItem[]
+
+  const today = todayLocal()
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - 30)
+  const cutoffDate = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`
+
+  const existing = readInbox(slug).filter(item => item.date >= cutoffDate)
+  const byId = new Map(existing.map(item => [item.id, item]))
+
+  for (const lead of pipeline) {
+    if (!lead?.id || !lead?.next_action_date) continue
+    if (['Won', 'Lost / Dead'].includes(String(lead.stage || ''))) continue
+
+    const date = String(lead.next_action_date)
+    if (date > today || date < cutoffDate) continue
+
+    const leadId = String(lead.id)
+    const id = `${leadId}:${date}`
+    const stage = String(lead.stage || '').trim()
+    const nextAction = String(lead.next_action || '').trim()
+    const body = [stage, nextAction].filter(Boolean).join(' · ') || 'Follow-up due'
+    const old = byId.get(id)
+
+    byId.set(id, {
+      id,
+      leadId,
+      slug,
+      clientName: String(lead.client_name || 'Client'),
+      title: `Follow up with ${lead.client_name || 'client'}`,
+      body,
+      date,
+      route: `/sales-war-room/a/${slug}/lead/${encodeURIComponent(leadId)}`,
+      createdAt: old?.createdAt || new Date().toISOString(),
+      readAt: old?.readAt || null,
+    })
+  }
+
+  const items = Array.from(byId.values()).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+  writeInbox(slug, items)
+  return items
 }
 
 async function prepareChannel() {
@@ -43,31 +134,8 @@ export async function ensureNotificationPermission() {
   return true
 }
 
-export async function sendTestNotification() {
-  if (!(await ensureNotificationPermission())) {
-    return { ok: false as const, reason: 'permission_denied' }
-  }
-
-  await LocalNotifications.schedule({
-    notifications: [
-      {
-        id: 987654321,
-        title: 'Tycoons Sales War Room',
-        body: 'Notifications are working ✅',
-        schedule: { at: new Date(Date.now() + 4_000) },
-        channelId: CHANNEL_ID,
-        extra: {
-          tycoons: true,
-          route: '/sales-war-room/app',
-        },
-      },
-    ],
-  })
-
-  return { ok: true as const }
-}
-
 export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
+  syncNotificationInbox(slug, pipeline)
   if (!nativeApp() || !slug || !Array.isArray(pipeline)) return
   if (!(await ensureNotificationPermission())) return
 
@@ -88,7 +156,7 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
   }
 
   const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const today = todayLocal()
   const active = pipeline
     .filter((lead: any) => lead?.id && lead?.next_action_date)
     .filter((lead: any) => !['Won', 'Lost / Dead'].includes(String(lead.stage || '')))
@@ -116,6 +184,7 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
     const nextAction = String(lead.next_action || '').trim()
     const stage = String(lead.stage || '').trim()
     const body = [stage, nextAction].filter(Boolean).join(' · ') || 'Follow-up due'
+    const route = `/sales-war-room/a/${slug}/lead/${encodeURIComponent(String(lead.id))}`
 
     notifications.push({
       id,
@@ -127,7 +196,7 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
         tycoons: true,
         leadId: lead.id,
         slug,
-        route: `/sales-war-room/a/${slug}?lead=${encodeURIComponent(String(lead.id))}`,
+        route,
       },
     })
   }
