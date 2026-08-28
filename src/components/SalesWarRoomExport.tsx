@@ -18,6 +18,7 @@ export default function SalesWarRoomExport() {
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const [headerActions, setHeaderActions] = useState<Element | null>(null);
+  const [managerControlled,setManagerControlled]=useState(false);
   const [lang, setLang] = useState<"en" | "ar">(
     (localStorage.getItem("warRoomLang") as "en" | "ar") || "en",
   );
@@ -28,6 +29,7 @@ export default function SalesWarRoomExport() {
     const sync = () => {
       const next = (localStorage.getItem("warRoomLang") as "en" | "ar") || "en";
       setLang(next);
+      setManagerControlled(sessionStorage.getItem("warRoomControlReturnTo")==="/sales-war-room/manager");
       setHeaderActions(document.querySelector("header > div.flex.gap-2"));
     };
     sync();
@@ -36,7 +38,7 @@ export default function SalesWarRoomExport() {
   }, [slug]);
 
   async function exportClients() {
-    if (!slug || downloading) return;
+    if (!slug || downloading || managerControlled) return;
     const token = localStorage.getItem(`warRoomAgentToken:${slug}`) || "";
     if (!token) {
       setError(t("Open the agent dashboard first.", "افتح داشبورد الـAgent الأول."));
@@ -74,7 +76,7 @@ export default function SalesWarRoomExport() {
     }
   }
 
-  if (!slug || !headerActions) return null;
+  if (!slug || !headerActions || managerControlled) return null;
 
   return createPortal(
     <>
