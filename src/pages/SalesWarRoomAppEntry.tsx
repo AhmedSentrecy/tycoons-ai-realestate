@@ -88,8 +88,8 @@ export default function SalesWarRoomAppEntry() {
 
         <section className="mt-4 grid gap-3 sm:grid-cols-2">
           <button onClick={() => navigate('/sales-war-room/admin')} className="rounded-3xl bg-[#10261f] p-5 text-start text-white shadow-sm transition active:scale-[.98]">
-            <div className="text-xs font-black tracking-[.12em] text-emerald-200">OWNER</div>
-            <div className="mt-2 text-xl font-black">{t('Owner Dashboard', 'Owner Dashboard')}</div>
+            <div className="text-xs font-black tracking-[.12em] text-emerald-200">SUPER ADMIN</div>
+            <div className="mt-2 text-xl font-black">{t('Super Admin', 'Super Admin')}</div>
             <div className="mt-1 text-xs text-emerald-100/70">{t('Full team control', 'تحكم كامل في الفريق')}</div>
           </button>
           <button onClick={() => navigate('/sales-war-room/team-admin')} className="rounded-3xl border bg-white p-5 text-start shadow-sm transition active:scale-[.98]">
