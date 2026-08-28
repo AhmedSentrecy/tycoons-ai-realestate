@@ -10,11 +10,11 @@ const monthStart=()=>{const d=new Date();d.setDate(1);return fmt(d)};
 const money=(n:number)=>n>=1_000_000_000?`EGP ${(n/1_000_000_000).toFixed(1)}B`:n>=1_000_000?`EGP ${(n/1_000_000).toFixed(1)}M`:`EGP ${Math.round(n).toLocaleString()}`;
 
 type Tab="overview"|"pipeline"|"agents";
-type ControlScope="owner"|"supervisor";
+type ControlScope="owner"|"manager";
 
 export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope}){
-  const supervisor=scope==="supervisor";
-  const tokenKey=supervisor?"warRoomAgentToken:mostafa-amr":"warRoomAdminToken";
+  const manager=scope==="manager";
+  const tokenKey=manager?"warRoomManagerToken":"warRoomAdminToken";
   const [token,setToken]=useState(()=>localStorage.getItem(tokenKey)||"");
   const [password,setPassword]=useState("");
   const [lang,setLang]=useState<"en"|"ar">((localStorage.getItem("warRoomLang") as "en"|"ar")||"en");
@@ -38,7 +38,8 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
   const [savingLead,setSavingLead]=useState(false);
   const [newAgent,setNewAgent]=useState({name_en:"",name_ar:"",slug:""});
   const t=(en:string,ar:string)=>lang==="ar"?ar:en;
-  const title=supervisor?"Team Control":"Super Admin";
+  const title=manager?"Manager":"Super Admin";
+  const tabs:Tab[]=manager?["overview","agents"]:["overview","pipeline","agents"];
 
   useEffect(()=>{
     document.title=`Tycoons Sales War Room ${title}`;
@@ -47,52 +48,44 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
   },[title]);
   useEffect(()=>{localStorage.setItem("warRoomLang",lang);document.documentElement.dir=lang==="ar"?"rtl":"ltr"},[lang]);
   useEffect(()=>{if(token)void loadOverview()},[token,from,to]);
-  useEffect(()=>{if(token&&tab==="pipeline"&&!pipelineLoaded&&!pipelineLoading)void loadPipeline()},[tab,token,pipelineLoaded,pipelineLoading]);
+  useEffect(()=>{if(!manager&&token&&tab==="pipeline"&&!pipelineLoaded&&!pipelineLoading)void loadPipeline()},[tab,token,pipelineLoaded,pipelineLoading,manager]);
 
   async function login(){
-    if(supervisor){window.location.href="/sales-war-room/a/mostafa-amr";return;}
     if(!password||loggingIn)return;
     try{
       setLoggingIn(true);setError("");
-      const r=await salesWarRoomApi.adminLogin(password);
+      const r=manager?await salesWarRoomApi.managerLogin(password):await salesWarRoomApi.adminLogin(password);
       localStorage.setItem(tokenKey,r.token);setToken(r.token);setPassword("");
     }catch(e:any){setError(e.message==="invalid_credentials"?t("Wrong password","الباسورد غير صحيح"):e.message)}
     finally{setLoggingIn(false)}
   }
 
   function logout(){
-    if(supervisor){window.location.href="/sales-war-room/a/mostafa-amr";return;}
     localStorage.removeItem(tokenKey);setToken("");setData(null);setSalesTotals(null);setPipeline([]);setPipelineLoaded(false);setTab("overview");
   }
 
   async function loadOverview(){
     try{
       setLoading(true);setError("");
-      if(supervisor){
-        const summary=await salesWarRoomApi.supervisorSummary(token,from,to);
-        setData(summary);
-        setSalesTotals({team:summary?.team_sales||{}});
-      }else{
-        const [summary,totals]=await Promise.all([
-          salesWarRoomApi.adminSummary(token,from,to),
-          salesWarRoomApi.getSalesTotals(token),
-        ]);
-        setData(summary);setSalesTotals(totals);
-      }
+      const [summary,totals]=await Promise.all([
+        salesWarRoomApi.adminSummary(token,from,to),
+        salesWarRoomApi.getSalesTotals(token),
+      ]);
+      setData(summary);setSalesTotals(totals);
     }catch(e:any){
-      if(["unauthorized","owner_only"].includes(e.message)&&!supervisor)logout();
+      if(["unauthorized","owner_only"].includes(e.message))logout();
       setError(e.message);
     }finally{setLoading(false)}
   }
 
   async function loadPipeline(force=false){
-    if((pipelineLoaded&&!force)||pipelineLoading)return;
+    if(manager||(pipelineLoaded&&!force)||pipelineLoading)return;
     try{
       setPipelineLoading(true);setError("");
-      const r=supervisor?await salesWarRoomApi.supervisorPipeline(token):await salesWarRoomApi.getOwnerPipeline(token);
+      const r=await salesWarRoomApi.getOwnerPipeline(token);
       setPipeline(r.pipeline||[]);setPipelineLoaded(true);setVisibleLimit(50);
     }catch(e:any){
-      if(["unauthorized","owner_only"].includes(e.message)&&!supervisor)logout();
+      if(["unauthorized","owner_only"].includes(e.message))logout();
       setError(e.message);
     }finally{setPipelineLoading(false)}
   }
@@ -101,15 +94,14 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
     if(openingSlug)return;
     try{
       setOpeningSlug(slug);setError("");
-      const r=supervisor?await salesWarRoomApi.supervisorAgentAccess(token,slug):await salesWarRoomApi.adminAgentAccess(token,slug);
+      const r=manager?await salesWarRoomApi.managerAgentAccess(token,slug):await salesWarRoomApi.adminAgentAccess(token,slug);
       localStorage.setItem(`warRoomAgentToken:${slug}`,r.token);
-      sessionStorage.setItem("warRoomControlReturnTo",supervisor?"/sales-war-room/supervisor":"/sales-war-room/admin");
+      sessionStorage.setItem("warRoomControlReturnTo",manager?"/sales-war-room/manager":"/sales-war-room/admin");
       window.location.href=`/sales-war-room/a/${slug}`;
     }catch(e:any){setError(e.message)}finally{setOpeningSlug("")}
   }
 
   async function addAgent(){
-    if(supervisor)return;
     if(!newAgent.name_en.trim()||!newAgent.slug.trim())return;
     try{
       setError("");
@@ -121,6 +113,7 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
   }
 
   function startEdit(x:any){
+    if(manager)return;
     setEditingId(x.id);
     setLeadDraft({
       id:x.id,client_name:x.client_name||"",phone:x.phone||"",budget:x.budget||"",stage:x.stage||"New Lead",
@@ -130,15 +123,14 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
   }
   function cancelEdit(){setEditingId("");setLeadDraft(null)}
   async function saveLead(){
-    if(!leadDraft||savingLead)return;
+    if(manager||!leadDraft||savingLead)return;
     if(!String(leadDraft.client_name||"").trim())return setError(t("Client name is required.","اسم العميل مطلوب."));
     if(leadDraft.stage==="Warm"&&(!String(leadDraft.next_action||"").trim()||(!leadDraft.next_action_date&&!String(leadDraft.next_action_trigger||"").trim())))return setError(t("Warm requires Next Action plus a Date or Trigger.","Warm لازم يكون له Next Action ومعاه Date أو Trigger."));
     const m=Number(leadDraft.expected_sale_m||0);if(!Number.isFinite(m)||m<0)return setError(t("Expected Sale must be valid.","Expected Sale لازم يكون رقم صحيح."));
     try{
       setSavingLead(true);setError("");
       const body={...leadDraft,expected_value:m*1_000_000,next_action_date:leadDraft.next_action_date||null};
-      if(supervisor)await salesWarRoomApi.supervisorUpdateLead(token,body);
-      else await salesWarRoomApi.ownerUpdateLead(token,body);
+      await salesWarRoomApi.ownerUpdateLead(token,body);
       cancelEdit();await loadPipeline(true);await loadOverview();
     }catch(e:any){setError(e.message)}finally{setSavingLead(false)}
   }
@@ -165,7 +157,8 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
   if(!token)return <main className="grid min-h-screen place-items-center bg-slate-950 p-4 text-white" dir={lang==="ar"?"rtl":"ltr"}>
     <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl">
       <div className="mb-6 flex items-center justify-between"><div><div className="text-xs font-black tracking-[.18em] text-slate-400">TYCOONS SALES WAR ROOM</div><h1 className="mt-1 text-2xl font-black">{title}</h1></div><button onClick={()=>setLang(lang==="ar"?"en":"ar")} className="rounded-full border border-white/20 px-3 py-2 text-xs font-black">{lang==="ar"?"EN":"عربي"}</button></div>
-      {supervisor?<><p className="mb-4 text-sm text-slate-300">{t("Login to Mostafa Amr's War Room first.","ادخل War Room مصطفى عمرو الأول.")}</p><button onClick={()=>void login()} className="w-full rounded-xl bg-white p-3 font-black text-slate-950">{t("Login as Mostafa","دخول مصطفى")}</button></>:<><input type="password" autoComplete="current-password" autoCapitalize="none" spellCheck={false} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&void login()} placeholder={t("Super Admin password","باسورد Super Admin")} className="w-full rounded-xl border border-white/10 bg-white/10 p-3 outline-none"/><button disabled={loggingIn||!password} onClick={()=>void login()} className="mt-3 w-full rounded-xl bg-white p-3 font-black text-slate-950 disabled:opacity-50">{loggingIn?t("Signing in…","جاري الدخول…"):t("Login","دخول")}</button></>}
+      <input type="password" autoComplete="current-password" autoCapitalize="none" spellCheck={false} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&void login()} placeholder={manager?t("Manager password","باسورد Manager"):t("Super Admin password","باسورد Super Admin")} className="w-full rounded-xl border border-white/10 bg-white/10 p-3 outline-none"/>
+      <button disabled={loggingIn||!password} onClick={()=>void login()} className="mt-3 w-full rounded-xl bg-white p-3 font-black text-slate-950 disabled:opacity-50">{loggingIn?t("Signing in…","جاري الدخول…"):t("Login","دخول")}</button>
       {error&&<div className="mt-3 text-sm text-red-300">{error}</div>}
     </div>
   </main>;
@@ -173,10 +166,10 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
   const teamTotals=salesTotals?.team||{};
   return <main className="min-h-screen bg-[#f3f5f7] text-slate-950" dir={lang==="ar"?"rtl":"ltr"}>
     <div className="mx-auto max-w-[1500px] p-3 pb-24 md:p-5">
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs font-black tracking-[.18em] text-slate-500">TYCOONS SALES WAR ROOM</div><h1 className="text-2xl font-black">{title}</h1>{supervisor&&<div className="mt-1 text-xs font-bold text-slate-400">Ahmed Yehia + Nour Mohamed</div>}</div><div className="flex gap-2"><button onClick={()=>setLang(lang==="ar"?"en":"ar")} className="rounded-full border bg-white px-4 py-2 text-sm font-black">{lang==="ar"?"EN":"عربي"}</button><button onClick={logout} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">{supervisor?t("My War Room","My War Room"):t("Logout","خروج")}</button></div></header>
+      <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs font-black tracking-[.18em] text-slate-500">TYCOONS SALES WAR ROOM</div><h1 className="text-2xl font-black">{title}</h1>{manager&&<div className="mt-1 text-xs font-bold text-slate-400">Ahmed Yehia · Nour Mohamed · Mostafa Amr</div>}</div><div className="flex gap-2"><button onClick={()=>setLang(lang==="ar"?"en":"ar")} className="rounded-full border bg-white px-4 py-2 text-sm font-black">{lang==="ar"?"EN":"عربي"}</button><button onClick={logout} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">{t("Logout","خروج")}</button></div></header>
 
-      <nav className="sticky top-2 z-30 mb-4 grid grid-cols-3 gap-2 rounded-2xl border bg-white/95 p-2 shadow-sm backdrop-blur">
-        {(["overview","pipeline","agents"] as Tab[]).map(x=><button key={x} onClick={()=>setTab(x)} className={`rounded-xl px-3 py-3 text-xs font-black ${tab===x?"bg-slate-950 text-white":"bg-slate-50"}`}>{x==="overview"?t("Overview","Overview"):x==="pipeline"?t("Pipeline Editor","Pipeline Editor"):t("Agents","Agents")}</button>)}
+      <nav className={`sticky top-2 z-30 mb-4 grid gap-2 rounded-2xl border bg-white/95 p-2 shadow-sm backdrop-blur ${manager?"grid-cols-2":"grid-cols-3"}`}>
+        {tabs.map(x=><button key={x} onClick={()=>setTab(x)} className={`rounded-xl px-3 py-3 text-xs font-black ${tab===x?"bg-slate-950 text-white":"bg-slate-50"}`}>{x==="overview"?t("Overview","Overview"):x==="pipeline"?t("Pipeline Editor","Pipeline Editor"):t("Agents","Agents")}</button>)}
       </nav>
 
       {error&&<div className="mb-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm font-bold text-red-800">{error}</div>}
@@ -189,13 +182,13 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
         {loading&&<div className="mt-3 text-center text-xs font-bold text-slate-400">{t("Refreshing…","جاري التحديث…")}</div>}
       </>}
 
-      {tab==="pipeline"&&<section className="rounded-3xl border bg-white p-4 shadow-sm">
+      {!manager&&tab==="pipeline"&&<section className="rounded-3xl border bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-4"><div><h2 className="text-lg font-black">Pipeline Editor</h2><p className="text-xs text-slate-500">{t("Loaded only when you open this tab to keep mobile fast.","بيتحمل بس لما تفتح التاب علشان الموبايل يفضل سريع.")}</p></div><button disabled={pipelineLoading} onClick={()=>void loadPipeline(true)} className="rounded-xl border bg-slate-50 px-4 py-2 text-xs font-black">{pipelineLoading?t("Loading…","جاري التحميل…"):t("Refresh Pipeline","Refresh Pipeline")}</button></div>
         <div className="mt-4 grid grid-cols-2 gap-2"><select value={leadAgentFilter} onChange={e=>{setLeadAgentFilter(e.target.value);setVisibleLimit(50)}} className="rounded-xl border p-3 text-sm font-bold"><option value="all">{t("All Agents","كل الـAgents")}</option>{(data?.agents||[]).map((a:any)=><option key={a.id} value={a.id}>{lang==="ar"?a.name_ar:a.name_en}</option>)}</select><select value={leadStageFilter} onChange={e=>{setLeadStageFilter(e.target.value);setVisibleLimit(50)}} className="rounded-xl border p-3 text-sm font-bold"><option value="all">{t("All Stages","كل المراحل")}</option>{stages.map(s=><option key={s} value={s}>{lang==="ar"?stageAr[s]:s}</option>)}</select></div>
         {pipelineLoading&&!pipelineLoaded?<div className="p-10 text-center font-bold text-slate-400">{t("Loading pipeline…","جاري تحميل الـPipeline…")}</div>:<div className="mt-4 space-y-2">{filteredLeads.slice(0,visibleLimit).map((x:any)=>editingId===x.id&&leadDraft?<LeadEdit key={x.id} d={leadDraft} setD={setLeadDraft} lang={lang} t={t} saving={savingLead} onSave={()=>void saveLead()} onCancel={cancelEdit}/>:<div key={x.id} className="rounded-2xl border bg-slate-50 p-3"><div className="flex items-start justify-between gap-3"><div><div className="font-black">{x.client_name}</div><div className="mt-1 text-xs font-bold text-slate-500">{lang==="ar"?x.agent?.name_ar:x.agent?.name_en} · {lang==="ar"?stageAr[x.stage]:x.stage}</div></div><button onClick={()=>startEdit(x)} className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-black text-white">✏️ {t("Edit","تعديل")}</button></div><div className="mt-2 grid grid-cols-2 gap-2 text-xs"><div><b>{t("Expected","متوقع")}:</b> {money(Number(x.expected_value||0))}</div><div><b>{t("Follow-up","Follow-up")}:</b> {x.next_action_date||"—"}</div></div><div className="mt-2 text-xs text-slate-600"><b>{t("Next","التالي")}:</b> {x.next_action||"—"}</div></div>)}{pipelineLoaded&&!filteredLeads.length&&<div className="p-10 text-center text-sm font-bold text-slate-400">{t("No matching leads.","مفيش Leads مطابقة.")}</div>}{filteredLeads.length>visibleLimit&&<button onClick={()=>setVisibleLimit(v=>v+50)} className="w-full rounded-xl border bg-white p-3 text-sm font-black">{t("Load 50 more","حمّل 50 كمان")} · {visibleLimit}/{filteredLeads.length}</button>}</div>}
       </section>}
 
-      {tab==="agents"&&<section className="space-y-4"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{rows.map((r:any)=><button key={r.id} onClick={()=>void openAgent(r.slug)} className="rounded-2xl border bg-white p-4 text-start shadow-sm"><div className="font-black">{lang==="ar"?r.name_ar:r.name_en}</div><div className="mt-2 text-xs text-slate-500">Calls {r.calls} · Warm {r.warm} · Hot {r.hot}</div><div className="mt-3 rounded-xl bg-slate-950 p-2 text-center text-xs font-black text-white">{t("Open Dashboard","افتح الداشبورد")}</div></button>)}</div>{!supervisor&&<div className="rounded-3xl border bg-white p-4"><h2 className="font-black">{t("Add User","إضافة User")}</h2><div className="mt-3 grid gap-2 md:grid-cols-4"><input value={newAgent.name_en} onChange={e=>setNewAgent({...newAgent,name_en:e.target.value})} placeholder="English name" className="rounded-xl border p-3"/><input value={newAgent.name_ar} onChange={e=>setNewAgent({...newAgent,name_ar:e.target.value})} placeholder="الاسم بالعربي" className="rounded-xl border p-3"/><input value={newAgent.slug} onChange={e=>setNewAgent({...newAgent,slug:e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,"-")})} placeholder="fixed-url-slug" className="rounded-xl border p-3"/><button onClick={()=>void addAgent()} className="rounded-xl bg-slate-950 p-3 font-black text-white">{t("Create Agent","إنشاء Agent")}</button></div></div>}</section>}
+      {tab==="agents"&&<section className="space-y-4"><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{rows.map((r:any)=><button key={r.id} onClick={()=>void openAgent(r.slug)} className="rounded-2xl border bg-white p-4 text-start shadow-sm"><div className="font-black">{lang==="ar"?r.name_ar:r.name_en}</div><div className="mt-2 text-xs text-slate-500">Calls {r.calls} · Warm {r.warm} · Hot {r.hot}</div><div className="mt-3 rounded-xl bg-slate-950 p-2 text-center text-xs font-black text-white">{t("Open Dashboard","افتح الداشبورد")}</div></button>)}</div><div className="rounded-3xl border bg-white p-4"><h2 className="font-black">{t("Add User","إضافة User")}</h2><div className="mt-3 grid gap-2 md:grid-cols-4"><input value={newAgent.name_en} onChange={e=>setNewAgent({...newAgent,name_en:e.target.value})} placeholder="English name" className="rounded-xl border p-3"/><input value={newAgent.name_ar} onChange={e=>setNewAgent({...newAgent,name_ar:e.target.value})} placeholder="الاسم بالعربي" className="rounded-xl border p-3"/><input value={newAgent.slug} onChange={e=>setNewAgent({...newAgent,slug:e.target.value.toLowerCase().replace(/[^a-z0-9-]/g,"-")})} placeholder="fixed-url-slug" className="rounded-xl border p-3"/><button onClick={()=>void addAgent()} className="rounded-xl bg-slate-950 p-3 font-black text-white">{t("Create Agent","إنشاء Agent")}</button></div></div></section>}
     </div>
   </main>
 }
