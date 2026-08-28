@@ -84,7 +84,7 @@ export default function SalesWarRoomNotifications() {
           if (item) markNotificationRead(slug, item.id)
         }
         if (typeof route === 'string' && route.startsWith('/sales-war-room/')) {
-          window.location.href = route
+          navigate(route)
         }
       }).then(listener => {
         if (cancelled) void listener.remove()
@@ -107,7 +107,7 @@ export default function SalesWarRoomNotifications() {
       document.removeEventListener('visibilitychange', onVisibility)
       if (actionHandle) void actionHandle.remove()
     }
-  }, [slug, token])
+  }, [slug, token, navigate])
 
   return null
 }
