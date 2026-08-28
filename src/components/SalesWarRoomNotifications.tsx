@@ -54,10 +54,45 @@ export default function SalesWarRoomNotifications() {
   }, [location.pathname, location.search, navigate])
 
   useEffect(() => {
-    if (!slug || !token) return
+    if (!Capacitor.isNativePlatform()) return
 
     let cancelled = false
     let actionHandle: { remove: () => Promise<void> } | undefined
+
+    void LocalNotifications.addListener('localNotificationActionPerformed', event => {
+      const extra = event.notification.extra || {}
+      const route = extra.route
+      const targetSlug = String(extra.slug || '')
+      const inboxId = String(extra.inboxId || '')
+      const leadId = String(extra.leadId || '')
+
+      if (targetSlug) {
+        if (inboxId) markNotificationRead(targetSlug, inboxId)
+        else if (leadId) {
+          const item = getNotificationInbox(targetSlug).find(x => x.leadId === leadId && !x.readAt)
+          if (item) markNotificationRead(targetSlug, item.id)
+        }
+        localStorage.setItem('warRoomLastAgent', targetSlug)
+      }
+
+      if (typeof route === 'string' && route.startsWith('/sales-war-room/')) {
+        navigate(route)
+      }
+    }).then(listener => {
+      if (cancelled) void listener.remove()
+      else actionHandle = listener
+    })
+
+    return () => {
+      cancelled = true
+      if (actionHandle) void actionHandle.remove()
+    }
+  }, [navigate])
+
+  useEffect(() => {
+    if (!slug || !token) return
+
+    let cancelled = false
 
     async function sync() {
       if (cancelled || syncingRef.current) return
@@ -75,23 +110,6 @@ export default function SalesWarRoomNotifications() {
 
     void sync()
 
-    if (Capacitor.isNativePlatform()) {
-      void LocalNotifications.addListener('localNotificationActionPerformed', event => {
-        const route = event.notification.extra?.route
-        const leadId = String(event.notification.extra?.leadId || '')
-        if (leadId) {
-          const item = getNotificationInbox(slug).find(x => x.leadId === leadId && !x.readAt)
-          if (item) markNotificationRead(slug, item.id)
-        }
-        if (typeof route === 'string' && route.startsWith('/sales-war-room/')) {
-          navigate(route)
-        }
-      }).then(listener => {
-        if (cancelled) void listener.remove()
-        else actionHandle = listener
-      })
-    }
-
     const onFocus = () => void sync()
     const onVisibility = () => {
       if (document.visibilityState === 'visible') void sync()
@@ -105,9 +123,8 @@ export default function SalesWarRoomNotifications() {
       window.clearInterval(timer)
       window.removeEventListener('focus', onFocus)
       document.removeEventListener('visibilitychange', onVisibility)
-      if (actionHandle) void actionHandle.remove()
     }
-  }, [slug, token, navigate])
+  }, [slug, token])
 
   return null
 }
