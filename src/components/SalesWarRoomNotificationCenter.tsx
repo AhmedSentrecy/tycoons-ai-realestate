@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { salesWarRoomApi } from '../lib/salesWarRoomApi'
 import {
@@ -52,7 +52,8 @@ export default function SalesWarRoomNotificationCenter() {
   const [syncing, setSyncing] = useState(false)
   const [openingId, setOpeningId] = useState('')
   const [error, setError] = useState('')
-  const [authTick, setAuthTick] = useState(0)
+  const [, setAuthTick] = useState(0)
+  const syncingRef = useRef(false)
   const lang = (localStorage.getItem('warRoomLang') as 'en' | 'ar') || 'en'
   const t = (en: string, ar: string) => (lang === 'ar' ? ar : en)
 
@@ -79,14 +80,14 @@ export default function SalesWarRoomNotificationCenter() {
   }, [])
 
   async function refreshCenter() {
-    if (mode === 'none' || syncing) return
+    if (mode === 'none' || syncingRef.current) return
     try {
+      syncingRef.current = true
       setSyncing(true)
       setError('')
 
       if (mode === 'agent') {
-        const local = getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' }))
-        setItems(local)
+        setItems(getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' })))
         return
       }
 
@@ -134,6 +135,7 @@ export default function SalesWarRoomNotificationCenter() {
         setItems(getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' })))
       }
     } finally {
+      syncingRef.current = false
       setSyncing(false)
     }
   }
@@ -148,23 +150,23 @@ export default function SalesWarRoomNotificationCenter() {
     } else {
       setItems([])
     }
-  }, [location.pathname, mode, agentSlug, authTick])
+  }, [location.pathname, mode, agentSlug])
 
   useEffect(() => {
     if (mode === 'none') return
-    const onChanged = () => {
-      if (mode === 'agent') setItems(getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' })))
-      else void refreshCenter()
+
+    if (mode === 'agent') {
+      const refreshLocal = () => setItems(getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' })))
+      window.addEventListener('war-room-notifications-changed', refreshLocal)
+      const timer = window.setInterval(refreshLocal, 15_000)
+      return () => {
+        window.clearInterval(timer)
+        window.removeEventListener('war-room-notifications-changed', refreshLocal)
+      }
     }
-    window.addEventListener('war-room-notifications-changed', onChanged)
-    const timer = window.setInterval(() => {
-      if (mode === 'agent') setItems(getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' })))
-      else void refreshCenter()
-    }, mode === 'agent' ? 15_000 : 60_000)
-    return () => {
-      window.clearInterval(timer)
-      window.removeEventListener('war-room-notifications-changed', onChanged)
-    }
+
+    const timer = window.setInterval(() => void refreshCenter(), 60_000)
+    return () => window.clearInterval(timer)
   }, [mode, agentSlug, ownerToken, mostafaToken])
 
   const unread = useMemo(() => items.filter(item => !item.readAt).length, [items])
@@ -200,7 +202,8 @@ export default function SalesWarRoomNotificationCenter() {
   function markAll() {
     const slugs = new Set(items.map(item => item.slug))
     for (const slug of slugs) markAllNotificationsRead(slug)
-    setItems(items.map(item => ({ ...item, readAt: item.readAt || new Date().toISOString() })))
+    const now = new Date().toISOString()
+    setItems(items.map(item => ({ ...item, readAt: item.readAt || now })))
   }
 
   const multiAgent = mode === 'owner' || mode === 'supervisor'
