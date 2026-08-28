@@ -25,7 +25,6 @@ export default function SalesWarRoomPasswordTools() {
         border-radius: 10px;
         background: rgba(15, 23, 42, .94);
         box-shadow: 0 6px 20px rgba(0,0,0,.22);
-        backdrop-filter: blur(8px);
       }
       .sales-war-room-password-tools button {
         appearance: none;
@@ -48,15 +47,12 @@ export default function SalesWarRoomPasswordTools() {
 
     const showButton = document.createElement('button')
     showButton.type = 'button'
-
     const pasteButton = document.createElement('button')
     pasteButton.type = 'button'
-
     tools.append(showButton, pasteButton)
     document.body.appendChild(tools)
 
     let input: HTMLInputElement | null = null
-    let observer: MutationObserver | null = null
 
     const isArabic = () => document.documentElement.dir === 'rtl'
     const labels = () => ({
@@ -90,8 +86,10 @@ export default function SalesWarRoomPasswordTools() {
         return
       }
       tools.style.display = 'flex'
-      tools.style.top = `${Math.max(4, rect.top + (rect.height - tools.offsetHeight) / 2)}px`
-      tools.style.left = `${Math.max(4, rect.right - tools.offsetWidth - 6)}px`
+      const top = Math.max(4, rect.top + (rect.height - tools.offsetHeight) / 2)
+      const left = Math.max(4, rect.right - tools.offsetWidth - 6)
+      tools.style.top = `${top}px`
+      tools.style.left = `${left}px`
     }
 
     function enhance() {
@@ -102,11 +100,11 @@ export default function SalesWarRoomPasswordTools() {
         return
       }
       input = found
-      input.dataset.warRoomPassword = 'true'
-      input.autocomplete = 'current-password'
-      input.setAttribute('autocapitalize', 'none')
-      input.setAttribute('spellcheck', 'false')
-      input.style.paddingInlineEnd = '132px'
+      if (input.dataset.warRoomPassword !== 'true') input.dataset.warRoomPassword = 'true'
+      if (input.autocomplete !== 'current-password') input.autocomplete = 'current-password'
+      if (input.getAttribute('autocapitalize') !== 'none') input.setAttribute('autocapitalize', 'none')
+      if (input.getAttribute('spellcheck') !== 'false') input.setAttribute('spellcheck', 'false')
+      if (input.style.paddingInlineEnd !== '132px') input.style.paddingInlineEnd = '132px'
       updateLabels()
       requestAnimationFrame(positionTools)
     }
@@ -120,7 +118,7 @@ export default function SalesWarRoomPasswordTools() {
       input.focus()
       try { if (start !== null && end !== null) input.setSelectionRange(start, end) } catch {}
       updateLabels()
-      positionTools()
+      requestAnimationFrame(positionTools)
     })
 
     pasteButton.addEventListener('click', async () => {
@@ -130,24 +128,29 @@ export default function SalesWarRoomPasswordTools() {
         const text = await navigator.clipboard.readText()
         if (text) setControlledInputValue(input, text)
       } catch {
-        // Native long-press paste remains available if clipboard permission is denied.
+        // Long-press paste remains available if clipboard access is unavailable.
       }
-      positionTools()
+      requestAnimationFrame(positionTools)
     })
 
-    observer = new MutationObserver(enhance)
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['type', 'style', 'class'] })
-    window.addEventListener('resize', positionTools)
-    window.addEventListener('scroll', positionTools, true)
-    document.addEventListener('focusin', enhance)
+    // Only observe DOM additions/removals. Watching style/type/class caused a feedback
+    // loop because this helper itself changes those attributes on password inputs.
+    const observer = new MutationObserver(() => requestAnimationFrame(enhance))
+    observer.observe(document.body, { childList: true, subtree: true })
+
+    const onFocus = () => requestAnimationFrame(enhance)
+    const onPosition = () => requestAnimationFrame(positionTools)
+    window.addEventListener('resize', onPosition)
+    window.addEventListener('scroll', onPosition, true)
+    document.addEventListener('focusin', onFocus)
 
     enhance()
 
     return () => {
-      observer?.disconnect()
-      window.removeEventListener('resize', positionTools)
-      window.removeEventListener('scroll', positionTools, true)
-      document.removeEventListener('focusin', enhance)
+      observer.disconnect()
+      window.removeEventListener('resize', onPosition)
+      window.removeEventListener('scroll', onPosition, true)
+      document.removeEventListener('focusin', onFocus)
       tools.remove()
       style.remove()
     }
