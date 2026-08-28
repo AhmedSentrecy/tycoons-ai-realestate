@@ -37,6 +37,14 @@ export default function SalesWarRoomNotifications() {
   const unread = useMemo(() => items.filter(item => !item.readAt).length, [items])
 
   useEffect(() => {
+    const routeSlug = routeAgentSlug(location.pathname)
+    const legacyLeadId = new URLSearchParams(location.search).get('lead')
+    if (routeSlug && legacyLeadId && !location.pathname.includes('/lead/')) {
+      navigate(`/sales-war-room/a/${routeSlug}/lead/${encodeURIComponent(legacyLeadId)}`, { replace: true })
+    }
+  }, [location.pathname, location.search, navigate])
+
+  useEffect(() => {
     if (!slug || !token) {
       setItems([])
       setOpen(false)
