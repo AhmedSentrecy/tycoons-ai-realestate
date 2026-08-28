@@ -26,9 +26,23 @@ export default function SalesWarRoomNotificationCenter() {
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState<WarRoomNotificationItem[]>([])
   const slug = activeAgentSlug(location.pathname)
-  const token = slug ? (localStorage.getItem(`warRoomAgentToken:${slug}`) || '') : ''
+  const [token,setToken] = useState(() => slug ? (localStorage.getItem(`warRoomAgentToken:${slug}`) || '') : '')
   const lang = (localStorage.getItem('warRoomLang') as 'en' | 'ar') || 'en'
   const t = (en: string, ar: string) => (lang === 'ar' ? ar : en)
+
+  useEffect(() => {
+    const refreshToken = () => {
+      const next = slug ? (localStorage.getItem(`warRoomAgentToken:${slug}`) || '') : ''
+      setToken(prev => prev === next ? prev : next)
+    }
+    refreshToken()
+    const timer = window.setInterval(refreshToken, 800)
+    window.addEventListener('storage', refreshToken)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('storage', refreshToken)
+    }
+  }, [slug])
 
   useEffect(() => {
     if (!slug || !token) {
