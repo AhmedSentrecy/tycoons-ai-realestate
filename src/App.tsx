@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
-import { Routes, Route } from 'react-router'
+import { Navigate, Routes, Route } from 'react-router'
+import { Capacitor } from '@capacitor/core'
 import Home from './pages/Home'
 
 const RegionPage = lazy(() => import('./pages/RegionPage'))
@@ -12,8 +13,11 @@ const SalesWarRoom = lazy(() => import('./pages/SalesWarRoom'))
 const SalesWarRoomOwner = lazy(() => import('./pages/SalesWarRoomOwner'))
 const SalesWarRoomAdmin = lazy(() => import('./pages/SalesWarRoomAdmin'))
 const SalesWarRoomTeamMonitor = lazy(() => import('./pages/SalesWarRoomTeamMonitorClean'))
+const SalesWarRoomAppEntry = lazy(() => import('./pages/SalesWarRoomAppEntry'))
 
 export default function App() {
+  const nativeApp = Capacitor.isNativePlatform()
+
   return (
     <Suspense
       fallback={
@@ -23,13 +27,14 @@ export default function App() {
       }
     >
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={nativeApp ? <Navigate to="/sales-war-room/app" replace /> : <Home />} />
         <Route path="/projects/:slug" element={<ProjectPage />} />
         <Route path="/units/:id" element={<UnitPage />} />
         <Route path="/regions/:slug" element={<RegionPage />} />
         <Route path="/faq" element={<FaqPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/search" element={<SearchPage />} />
+        <Route path="/sales-war-room/app" element={<SalesWarRoomAppEntry />} />
         <Route path="/sales-war-room/a/:slug" element={<SalesWarRoom />} />
         <Route path="/sales-war-room/monitor/:slug" element={<SalesWarRoomTeamMonitor />} />
         <Route path="/sales-war-room/admin" element={<SalesWarRoomOwner />} />
