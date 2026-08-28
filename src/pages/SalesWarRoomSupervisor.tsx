@@ -1,5 +1,5 @@
-import SalesWarRoomControlDashboard from '../components/SalesWarRoomControlDashboard'
+import { Navigate } from 'react-router'
 
 export default function SalesWarRoomSupervisor() {
-  return <SalesWarRoomControlDashboard scope="supervisor" />
+  return <Navigate to="/sales-war-room/a/mostafa-amr" replace />
 }
