@@ -8,6 +8,7 @@ import { VoiceSessionProvider } from './contexts/VoiceSessionContext.tsx'
 import SalesWarRoomRecommendations from './components/SalesWarRoomRecommendations.tsx'
 import SalesWarRoomExport from './components/SalesWarRoomExport.tsx'
 import SalesWarRoomSalesOutcome from './components/SalesWarRoomSalesOutcome.tsx'
+import SalesWarRoomPasswordTools from './components/SalesWarRoomPasswordTools.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')!).render(
         <SalesWarRoomRecommendations />
         <SalesWarRoomExport />
         <SalesWarRoomSalesOutcome />
+        <SalesWarRoomPasswordTools />
       </VoiceSessionProvider>
     </BrowserRouter>
   </StrictMode>,
