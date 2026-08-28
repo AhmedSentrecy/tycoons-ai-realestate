@@ -14,8 +14,8 @@ export default function SalesWarRoomBackNavigation() {
     const path = location.pathname
     if (path === '/sales-war-room/admin' || path === '/sales-war-room/owner') {
       sessionStorage.setItem('warRoomControlReturnTo', '/sales-war-room/admin')
-    } else if (path === '/sales-war-room/supervisor') {
-      sessionStorage.setItem('warRoomControlReturnTo', '/sales-war-room/supervisor')
+    } else if (path === '/sales-war-room/manager') {
+      sessionStorage.setItem('warRoomControlReturnTo', '/sales-war-room/manager')
     } else if (path === '/sales-war-room/app' || path === '/sales-war-room/app/') {
       sessionStorage.removeItem('warRoomControlReturnTo')
     }
@@ -31,9 +31,9 @@ export default function SalesWarRoomBackNavigation() {
       const ownerToken = localStorage.getItem('warRoomAdminToken') || ''
       if (ownerToken) return { route: requested, label: 'Super Admin' }
     }
-    if (requested === '/sales-war-room/supervisor') {
-      const supervisorToken = localStorage.getItem('warRoomAgentToken:mostafa-amr') || ''
-      if (supervisorToken) return { route: requested, label: 'Team Control' }
+    if (requested === '/sales-war-room/manager') {
+      const managerToken = localStorage.getItem('warRoomManagerToken') || ''
+      if (managerToken) return { route: requested, label: 'Manager' }
     }
     return null
   }, [location.pathname, tick])
