@@ -15,7 +15,7 @@ const SalesWarRoomOwner = lazy(() => import('./pages/SalesWarRoomOwner'))
 const SalesWarRoomAdmin = lazy(() => import('./pages/SalesWarRoomAdmin'))
 const SalesWarRoomTeamMonitor = lazy(() => import('./pages/SalesWarRoomTeamMonitorClean'))
 const SalesWarRoomAppEntry = lazy(() => import('./pages/SalesWarRoomAppEntry'))
-const SalesWarRoomSupervisor = lazy(() => import('./pages/SalesWarRoomSupervisor'))
+const SalesWarRoomManager = lazy(() => import('./pages/SalesWarRoomManager'))
 
 export default function App() {
   const nativeApp = Capacitor.isNativePlatform()
@@ -42,8 +42,9 @@ export default function App() {
         <Route path="/sales-war-room/monitor/:slug" element={<SalesWarRoomTeamMonitor />} />
         <Route path="/sales-war-room/admin" element={<SalesWarRoomOwner />} />
         <Route path="/sales-war-room/owner" element={<SalesWarRoomOwner />} />
+        <Route path="/sales-war-room/manager" element={<SalesWarRoomManager />} />
         <Route path="/sales-war-room/team-admin" element={<SalesWarRoomAdmin />} />
-        <Route path="/sales-war-room/supervisor" element={<SalesWarRoomSupervisor />} />
+        <Route path="/sales-war-room/supervisor" element={<Navigate to="/sales-war-room/a/mostafa-amr" replace />} />
       </Routes>
     </Suspense>
   )
