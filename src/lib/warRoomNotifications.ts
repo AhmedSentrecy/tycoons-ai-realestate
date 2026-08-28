@@ -181,10 +181,12 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
     const id = hashId(`${slug}:${lead.id}:${date}`)
     ids.push(id)
 
+    const leadId = String(lead.id)
+    const inboxId = `${leadId}:${date}`
     const nextAction = String(lead.next_action || '').trim()
     const stage = String(lead.stage || '').trim()
     const body = [stage, nextAction].filter(Boolean).join(' · ') || 'Follow-up due'
-    const route = `/sales-war-room/a/${slug}/lead/${encodeURIComponent(String(lead.id))}`
+    const route = `/sales-war-room/a/${slug}/lead/${encodeURIComponent(leadId)}`
 
     notifications.push({
       id,
@@ -194,8 +196,10 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
       channelId: CHANNEL_ID,
       extra: {
         tycoons: true,
-        leadId: lead.id,
+        leadId,
         slug,
+        date,
+        inboxId,
         route,
       },
     })
