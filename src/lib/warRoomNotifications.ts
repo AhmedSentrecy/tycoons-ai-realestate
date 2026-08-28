@@ -19,6 +19,10 @@ export type WarRoomNotificationItem = {
   readAt: string | null
 }
 
+type FollowupSyncOptions = {
+  agentName?: string
+}
+
 function nativeApp() {
   return Capacitor.isNativePlatform()
 }
@@ -134,7 +138,7 @@ export async function ensureNotificationPermission() {
   return true
 }
 
-export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
+export async function syncFollowupNotifications(slug: string, pipeline: any[], options: FollowupSyncOptions = {}) {
   syncNotificationInbox(slug, pipeline)
   if (!nativeApp() || !slug || !Array.isArray(pipeline)) return
   if (!(await ensureNotificationPermission())) return
@@ -165,6 +169,7 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
 
   const notifications: any[] = []
   const ids: number[] = []
+  const agentName = String(options.agentName || '').trim()
 
   for (const lead of active) {
     const date = String(lead.next_action_date)
@@ -187,11 +192,12 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
     const stage = String(lead.stage || '').trim()
     const body = [stage, nextAction].filter(Boolean).join(' · ') || 'Follow-up due'
     const route = `/sales-war-room/a/${slug}/lead/${encodeURIComponent(leadId)}`
+    const clientName = String(lead.client_name || 'client')
 
     notifications.push({
       id,
-      title: `Follow up with ${lead.client_name || 'client'}`,
-      body,
+      title: agentName ? `${agentName} · ${clientName}` : `Follow up with ${clientName}`,
+      body: agentName ? `Follow-up · ${body}` : body,
       schedule: { at },
       channelId: CHANNEL_ID,
       extra: {
@@ -201,6 +207,7 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
         date,
         inboxId,
         route,
+        agentName,
       },
     })
   }
