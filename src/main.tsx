@@ -13,6 +13,7 @@ import SalesWarRoomNotifications from './components/SalesWarRoomNotifications.ts
 import SalesWarRoomNotificationCenter from './components/SalesWarRoomNotificationCenter.tsx'
 import SalesWarRoomNativeLinks from './components/SalesWarRoomNativeLinks.tsx'
 import SalesWarRoomSupervisorAccess from './components/SalesWarRoomSupervisorAccess.tsx'
+import SalesWarRoomBackNavigation from './components/SalesWarRoomBackNavigation.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -27,6 +28,7 @@ createRoot(document.getElementById('root')!).render(
         <SalesWarRoomNotificationCenter />
         <SalesWarRoomNativeLinks />
         <SalesWarRoomSupervisorAccess />
+        <SalesWarRoomBackNavigation />
       </VoiceSessionProvider>
     </BrowserRouter>
   </StrictMode>,
