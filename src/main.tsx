@@ -12,7 +12,6 @@ import SalesWarRoomPasswordTools from './components/SalesWarRoomPasswordTools.ts
 import SalesWarRoomNotifications from './components/SalesWarRoomNotifications.tsx'
 import SalesWarRoomNotificationCenter from './components/SalesWarRoomNotificationCenter.tsx'
 import SalesWarRoomNativeLinks from './components/SalesWarRoomNativeLinks.tsx'
-import SalesWarRoomSupervisorAccess from './components/SalesWarRoomSupervisorAccess.tsx'
 import SalesWarRoomBackNavigation from './components/SalesWarRoomBackNavigation.tsx'
 
 createRoot(document.getElementById('root')!).render(
@@ -27,7 +26,6 @@ createRoot(document.getElementById('root')!).render(
         <SalesWarRoomNotifications />
         <SalesWarRoomNotificationCenter />
         <SalesWarRoomNativeLinks />
-        <SalesWarRoomSupervisorAccess />
         <SalesWarRoomBackNavigation />
       </VoiceSessionProvider>
     </BrowserRouter>
