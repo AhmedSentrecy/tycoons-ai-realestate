@@ -1,11 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
+import { salesWarRoomApi } from '../lib/salesWarRoomApi'
 import {
   getNotificationInbox,
   markAllNotificationsRead,
   markNotificationRead,
+  syncNotificationInbox,
   type WarRoomNotificationItem,
 } from '../lib/warRoomNotifications'
+
+type ViewNotificationItem = WarRoomNotificationItem & {
+  agentName: string
+}
+
+type CenterMode = 'agent' | 'owner' | 'supervisor' | 'none'
 
 function routeAgentSlug(pathname: string) {
   return pathname.match(/^\/sales-war-room\/a\/([^/]+)/)?.[1] || ''
@@ -20,86 +28,197 @@ function activeAgentSlug(pathname: string) {
   return ''
 }
 
+function todayLocal() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function monthStartLocal() {
+  const d = new Date()
+  d.setDate(1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+}
+
+function displayAgentName(agent: any, lang: 'en' | 'ar') {
+  if (lang === 'ar') return String(agent?.name_ar || agent?.name_en || agent?.slug || 'Agent')
+  return String(agent?.name_en || agent?.name_ar || agent?.slug || 'Agent')
+}
+
 export default function SalesWarRoomNotificationCenter() {
   const location = useLocation()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [items, setItems] = useState<WarRoomNotificationItem[]>([])
-  const slug = activeAgentSlug(location.pathname)
-  const [token,setToken] = useState(() => slug ? (localStorage.getItem(`warRoomAgentToken:${slug}`) || '') : '')
+  const [items, setItems] = useState<ViewNotificationItem[]>([])
+  const [syncing, setSyncing] = useState(false)
+  const [openingId, setOpeningId] = useState('')
+  const [error, setError] = useState('')
+  const [authTick, setAuthTick] = useState(0)
   const lang = (localStorage.getItem('warRoomLang') as 'en' | 'ar') || 'en'
   const t = (en: string, ar: string) => (lang === 'ar' ? ar : en)
 
+  const ownerToken = localStorage.getItem('warRoomAdminToken') || ''
+  const mostafaToken = localStorage.getItem('warRoomAgentToken:mostafa-amr') || ''
+  const agentSlug = activeAgentSlug(location.pathname)
+  const agentToken = agentSlug ? (localStorage.getItem(`warRoomAgentToken:${agentSlug}`) || '') : ''
+
+  const mode: CenterMode = (() => {
+    if ((location.pathname === '/sales-war-room/admin' || location.pathname === '/sales-war-room/owner') && ownerToken) return 'owner'
+    if (location.pathname === '/sales-war-room/supervisor' && mostafaToken) return 'supervisor'
+    if (agentSlug && agentToken) return 'agent'
+    return 'none'
+  })()
+
   useEffect(() => {
-    const refreshToken = () => {
-      const next = slug ? (localStorage.getItem(`warRoomAgentToken:${slug}`) || '') : ''
-      setToken(prev => prev === next ? prev : next)
-    }
-    refreshToken()
-    const timer = window.setInterval(refreshToken, 800)
-    window.addEventListener('storage', refreshToken)
+    const refreshAuth = () => setAuthTick(v => v + 1)
+    const timer = window.setInterval(refreshAuth, 1200)
+    window.addEventListener('storage', refreshAuth)
     return () => {
       window.clearInterval(timer)
-      window.removeEventListener('storage', refreshToken)
+      window.removeEventListener('storage', refreshAuth)
     }
-  }, [slug])
+  }, [])
+
+  async function refreshCenter() {
+    if (mode === 'none' || syncing) return
+    try {
+      setSyncing(true)
+      setError('')
+
+      if (mode === 'agent') {
+        const local = getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' }))
+        setItems(local)
+        return
+      }
+
+      if (mode === 'owner') {
+        const [agentResponse, pipelineResponse] = await Promise.all([
+          salesWarRoomApi.adminAgents(ownerToken),
+          salesWarRoomApi.getOwnerPipeline(ownerToken),
+        ])
+        const agents = Array.isArray(agentResponse) ? agentResponse : (agentResponse?.agents || [])
+        const pipeline = pipelineResponse?.pipeline || []
+        const merged: ViewNotificationItem[] = []
+
+        for (const agent of agents) {
+          const agentPipeline = pipeline.filter((lead: any) => lead.agent_id === agent.id)
+          const synced = syncNotificationInbox(agent.slug, agentPipeline)
+          const agentName = displayAgentName(agent, lang)
+          merged.push(...synced.map(item => ({ ...item, agentName })))
+        }
+
+        merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+        setItems(merged)
+        return
+      }
+
+      const [summary, pipelineResponse] = await Promise.all([
+        salesWarRoomApi.supervisorSummary(mostafaToken, monthStartLocal(), todayLocal()),
+        salesWarRoomApi.supervisorPipeline(mostafaToken),
+      ])
+      const agents = summary?.agents || []
+      const pipeline = pipelineResponse?.pipeline || []
+      const merged: ViewNotificationItem[] = []
+
+      for (const agent of agents) {
+        const agentPipeline = pipeline.filter((lead: any) => lead.agent_id === agent.id)
+        const synced = syncNotificationInbox(agent.slug, agentPipeline)
+        const agentName = displayAgentName(agent, lang)
+        merged.push(...synced.map(item => ({ ...item, agentName })))
+      }
+
+      merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+      setItems(merged)
+    } catch (e: any) {
+      setError(e?.message || t('Could not refresh notifications', 'تعذر تحديث التنبيهات'))
+      if (mode === 'agent') {
+        setItems(getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' })))
+      }
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   useEffect(() => {
-    if (!slug || !token) {
+    setOpen(false)
+    setError('')
+    if (mode === 'agent') {
+      setItems(getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' })))
+    } else if (mode !== 'none') {
+      void refreshCenter()
+    } else {
       setItems([])
-      setOpen(false)
-      return
     }
+  }, [location.pathname, mode, agentSlug, authTick])
 
-    const refresh = () => setItems(getNotificationInbox(slug))
-    refresh()
-
-    const onChanged = (event: Event) => {
-      const detail = (event as CustomEvent<{ slug?: string }>).detail
-      if (!detail?.slug || detail.slug === slug) refresh()
+  useEffect(() => {
+    if (mode === 'none') return
+    const onChanged = () => {
+      if (mode === 'agent') setItems(getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' })))
+      else void refreshCenter()
     }
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === `warRoomNotificationInbox:${slug}`) refresh()
-    }
-
     window.addEventListener('war-room-notifications-changed', onChanged)
-    window.addEventListener('storage', onStorage)
-    const timer = window.setInterval(refresh, 15_000)
-
+    const timer = window.setInterval(() => {
+      if (mode === 'agent') setItems(getNotificationInbox(agentSlug).map(item => ({ ...item, agentName: '' })))
+      else void refreshCenter()
+    }, mode === 'agent' ? 15_000 : 60_000)
     return () => {
       window.clearInterval(timer)
       window.removeEventListener('war-room-notifications-changed', onChanged)
-      window.removeEventListener('storage', onStorage)
     }
-  }, [slug, token])
+  }, [mode, agentSlug, ownerToken, mostafaToken])
 
   const unread = useMemo(() => items.filter(item => !item.readAt).length, [items])
 
-  if (!slug || !token) return null
+  if (mode === 'none') return null
 
-  function openItem(item: WarRoomNotificationItem) {
-    markNotificationRead(slug, item.id)
-    setItems(getNotificationInbox(slug))
-    setOpen(false)
-    navigate(item.route)
+  async function openItem(item: ViewNotificationItem) {
+    if (openingId) return
+    try {
+      setOpeningId(item.id)
+      setError('')
+      markNotificationRead(item.slug, item.id)
+
+      if (mode === 'owner') {
+        const access = await salesWarRoomApi.adminAgentAccess(ownerToken, item.slug)
+        localStorage.setItem(`warRoomAgentToken:${item.slug}`, access.token)
+        sessionStorage.setItem('warRoomControlReturnTo', '/sales-war-room/admin')
+      } else if (mode === 'supervisor') {
+        const access = await salesWarRoomApi.supervisorAgentAccess(mostafaToken, item.slug)
+        localStorage.setItem(`warRoomAgentToken:${item.slug}`, access.token)
+        sessionStorage.setItem('warRoomControlReturnTo', '/sales-war-room/supervisor')
+      }
+
+      setOpen(false)
+      navigate(item.route)
+    } catch (e: any) {
+      setError(e?.message || t('Could not open lead', 'تعذر فتح الـLead'))
+    } finally {
+      setOpeningId('')
+    }
   }
 
   function markAll() {
-    markAllNotificationsRead(slug)
-    setItems(getNotificationInbox(slug))
+    const slugs = new Set(items.map(item => item.slug))
+    for (const slug of slugs) markAllNotificationsRead(slug)
+    setItems(items.map(item => ({ ...item, readAt: item.readAt || new Date().toISOString() })))
   }
+
+  const multiAgent = mode === 'owner' || mode === 'supervisor'
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(value => !value)}
+        onClick={() => {
+          setOpen(value => !value)
+          if (!open && multiAgent) void refreshCenter()
+        }}
         aria-label={t('Notifications', 'التنبيهات')}
-        className="fixed bottom-[max(18px,env(safe-area-inset-bottom))] end-4 z-[2147482000] grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-2xl text-white shadow-2xl ring-1 ring-white/20 active:scale-95"
+        className="fixed bottom-[max(18px,env(safe-area-inset-bottom))] left-4 z-[2147482000] grid h-14 w-14 place-items-center rounded-full bg-slate-950 text-2xl text-white shadow-2xl ring-1 ring-white/20 active:scale-95"
       >
         🔔
         {unread > 0 && (
-          <span className="absolute -end-1 -top-1 min-w-6 rounded-full bg-red-600 px-1.5 py-1 text-center text-[10px] font-black leading-none text-white">
+          <span className="absolute -right-1 -top-1 min-w-6 rounded-full bg-red-600 px-1.5 py-1 text-center text-[10px] font-black leading-none text-white">
             {unread > 99 ? '99+' : unread}
           </span>
         )}
@@ -109,13 +228,14 @@ export default function SalesWarRoomNotificationCenter() {
         <div className="fixed inset-0 z-[2147481900] bg-slate-950/25" onClick={() => setOpen(false)}>
           <section
             onClick={event => event.stopPropagation()}
-            className="absolute bottom-[max(84px,calc(env(safe-area-inset-bottom)+76px))] end-3 w-[min(420px,calc(100vw-24px))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
+            className="absolute bottom-[max(84px,calc(env(safe-area-inset-bottom)+76px))] left-3 w-[min(430px,calc(100vw-24px))] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl"
             dir={lang === 'ar' ? 'rtl' : 'ltr'}
           >
             <header className="flex items-center justify-between gap-3 border-b p-4">
               <div>
                 <div className="text-[10px] font-black tracking-[.16em] text-slate-400">SALES WAR ROOM</div>
                 <h2 className="text-lg font-black">{t('Notifications', 'التنبيهات')}</h2>
+                {multiAgent && <div className="mt-0.5 text-[10px] font-bold text-slate-400">{mode === 'owner' ? t('All agents', 'كل الـAgents') : 'Ahmed Yehia + Nour Mohamed'}</div>}
               </div>
               <div className="flex items-center gap-2">
                 {items.length > 0 && unread > 0 && (
@@ -127,8 +247,12 @@ export default function SalesWarRoomNotificationCenter() {
               </div>
             </header>
 
-            <div className="max-h-[min(62vh,560px)] overflow-y-auto p-2">
-              {items.length === 0 ? (
+            {error && <div className="border-b bg-red-50 px-4 py-2 text-xs font-bold text-red-700">{error}</div>}
+
+            <div className="max-h-[min(64vh,580px)] overflow-y-auto p-2">
+              {syncing && items.length === 0 ? (
+                <div className="p-8 text-center text-sm font-bold text-slate-400">{t('Refreshing notifications…', 'جاري تحديث التنبيهات…')}</div>
+              ) : items.length === 0 ? (
                 <div className="p-8 text-center">
                   <div className="text-3xl">🔔</div>
                   <div className="mt-2 font-black text-slate-700">{t('No follow-up notifications yet', 'مفيش تنبيهات متابعة لسه')}</div>
@@ -138,10 +262,16 @@ export default function SalesWarRoomNotificationCenter() {
                 items.map(item => (
                   <button
                     type="button"
-                    key={item.id}
-                    onClick={() => openItem(item)}
-                    className={`mb-2 w-full rounded-2xl border p-3 text-start active:scale-[.99] ${item.readAt ? 'bg-white' : 'border-amber-200 bg-amber-50'}`}
+                    key={`${item.slug}:${item.id}`}
+                    disabled={Boolean(openingId)}
+                    onClick={() => void openItem(item)}
+                    className={`mb-2 w-full rounded-2xl border p-3 text-start active:scale-[.99] disabled:opacity-60 ${item.readAt ? 'bg-white' : 'border-amber-200 bg-amber-50'}`}
                   >
+                    {multiAgent && (
+                      <div className="mb-2 inline-flex rounded-full bg-slate-950 px-2.5 py-1 text-[10px] font-black text-white">
+                        👤 {item.agentName}
+                      </div>
+                    )}
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate font-black text-slate-950">{item.clientName}</div>
@@ -151,7 +281,7 @@ export default function SalesWarRoomNotificationCenter() {
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-black text-slate-400">
                       <span>{item.date}</span>
-                      <span>{t('Open lead →', 'افتح الـLead ←')}</span>
+                      <span>{openingId === item.id ? t('Opening…', 'جاري الفتح…') : t('Open lead →', 'افتح الـLead ←')}</span>
                     </div>
                   </button>
                 ))
