@@ -7,6 +7,7 @@ const OWNER_LEAD_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sa
 const RECOMMENDATIONS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-recommendations";
 const TEAM_MONITOR_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-team-monitor";
 const SALES_TOTALS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-sales-totals";
+const SUPERVISOR_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-supervisor";
 
 async function requestUrl(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
@@ -59,4 +60,8 @@ export const salesWarRoomApi = {
     headers: { "x-admin-token": token },
     body: JSON.stringify({ slug }),
   }),
+  supervisorSummary: (token: string, from: string, to: string) => requestUrl(`${SUPERVISOR_API}/summary?from=${from}&to=${to}`, { headers: agentHeaders(token) }),
+  supervisorPipeline: (token: string) => requestUrl(`${SUPERVISOR_API}/pipeline`, { headers: agentHeaders(token) }),
+  supervisorUpdateLead: (token: string, body: Record<string, unknown>) => requestUrl(`${SUPERVISOR_API}/lead`, { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
+  supervisorAgentAccess: (token: string, slug: string) => requestUrl(`${SUPERVISOR_API}/agent-access`, { method: "POST", headers: agentHeaders(token), body: JSON.stringify({ slug }) }),
 };
