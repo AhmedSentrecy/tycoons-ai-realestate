@@ -5,7 +5,7 @@ import {
   getNotificationInbox,
   markAllNotificationsRead,
   markNotificationRead,
-  syncFollowupNotifications,
+  syncNotificationInbox,
   type WarRoomNotificationItem,
 } from '../lib/warRoomNotifications'
 
@@ -13,7 +13,7 @@ type ViewNotificationItem = WarRoomNotificationItem & {
   agentName: string
 }
 
-type CenterMode = 'agent' | 'owner' | 'supervisor' | 'none'
+type CenterMode = 'agent' | 'owner' | 'manager' | 'none'
 
 function routeAgentSlug(pathname: string) {
   return pathname.match(/^\/sales-war-room\/a\/([^/]+)/)?.[1] || ''
@@ -26,17 +26,6 @@ function activeAgentSlug(pathname: string) {
     return localStorage.getItem('warRoomLastAgent') || ''
   }
   return ''
-}
-
-function todayLocal() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function monthStartLocal() {
-  const d = new Date()
-  d.setDate(1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 
 function displayAgentName(agent: any, lang: 'en' | 'ar') {
@@ -58,13 +47,13 @@ export default function SalesWarRoomNotificationCenter() {
   const t = (en: string, ar: string) => (lang === 'ar' ? ar : en)
 
   const ownerToken = localStorage.getItem('warRoomAdminToken') || ''
-  const mostafaToken = localStorage.getItem('warRoomAgentToken:mostafa-amr') || ''
+  const managerToken = localStorage.getItem('warRoomManagerToken') || ''
   const agentSlug = activeAgentSlug(location.pathname)
   const agentToken = agentSlug ? (localStorage.getItem(`warRoomAgentToken:${agentSlug}`) || '') : ''
 
   const mode: CenterMode = (() => {
     if ((location.pathname === '/sales-war-room/admin' || location.pathname === '/sales-war-room/owner') && ownerToken) return 'owner'
-    if (location.pathname === '/sales-war-room/supervisor' && mostafaToken) return 'supervisor'
+    if (location.pathname === '/sales-war-room/manager' && managerToken) return 'manager'
     if (agentSlug && agentToken) return 'agent'
     return 'none'
   })()
@@ -79,11 +68,16 @@ export default function SalesWarRoomNotificationCenter() {
     }
   }, [])
 
-  async function syncAgentForManager(agent: any, pipeline: any[]) {
-    const agentName = displayAgentName(agent, lang)
-    const agentPipeline = pipeline.filter((lead: any) => lead.agent_id === agent.id)
-    await syncFollowupNotifications(agent.slug, agentPipeline, { agentName })
-    return getNotificationInbox(agent.slug).map(item => ({ ...item, agentName }))
+  function mergeTeamInbox(agents: any[], pipeline: any[]) {
+    const merged: ViewNotificationItem[] = []
+    for (const agent of agents) {
+      const agentPipeline = pipeline.filter((lead: any) => lead.agent_id === agent.id)
+      const synced = syncNotificationInbox(agent.slug, agentPipeline)
+      const agentName = displayAgentName(agent, lang)
+      merged.push(...synced.map(item => ({ ...item, agentName })))
+    }
+    merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+    return merged
   }
 
   async function refreshCenter() {
@@ -104,32 +98,12 @@ export default function SalesWarRoomNotificationCenter() {
           salesWarRoomApi.getOwnerPipeline(ownerToken),
         ])
         const agents = Array.isArray(agentResponse) ? agentResponse : (agentResponse?.agents || [])
-        const pipeline = pipelineResponse?.pipeline || []
-        const merged: ViewNotificationItem[] = []
-
-        for (const agent of agents) {
-          merged.push(...await syncAgentForManager(agent, pipeline))
-        }
-
-        merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
-        setItems(merged)
+        setItems(mergeTeamInbox(agents, pipelineResponse?.pipeline || []))
         return
       }
 
-      const [summary, pipelineResponse] = await Promise.all([
-        salesWarRoomApi.supervisorSummary(mostafaToken, monthStartLocal(), todayLocal()),
-        salesWarRoomApi.supervisorPipeline(mostafaToken),
-      ])
-      const agents = summary?.agents || pipelineResponse?.agents || []
-      const pipeline = pipelineResponse?.pipeline || []
-      const merged: ViewNotificationItem[] = []
-
-      for (const agent of agents) {
-        merged.push(...await syncAgentForManager(agent, pipeline))
-      }
-
-      merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
-      setItems(merged)
+      const response = await salesWarRoomApi.managerPipeline(managerToken)
+      setItems(mergeTeamInbox(response?.agents || [], response?.pipeline || []))
     } catch (e: any) {
       setError(e?.message || t('Could not refresh notifications', 'تعذر تحديث التنبيهات'))
       if (mode === 'agent') {
@@ -168,7 +142,7 @@ export default function SalesWarRoomNotificationCenter() {
 
     const timer = window.setInterval(() => void refreshCenter(), 60_000)
     return () => window.clearInterval(timer)
-  }, [mode, agentSlug, ownerToken, mostafaToken])
+  }, [mode, agentSlug, ownerToken, managerToken])
 
   const unread = useMemo(() => items.filter(item => !item.readAt).length, [items])
 
@@ -185,10 +159,10 @@ export default function SalesWarRoomNotificationCenter() {
         const access = await salesWarRoomApi.adminAgentAccess(ownerToken, item.slug)
         localStorage.setItem(`warRoomAgentToken:${item.slug}`, access.token)
         sessionStorage.setItem('warRoomControlReturnTo', '/sales-war-room/admin')
-      } else if (mode === 'supervisor') {
-        const access = await salesWarRoomApi.supervisorAgentAccess(mostafaToken, item.slug)
+      } else if (mode === 'manager') {
+        const access = await salesWarRoomApi.managerAgentAccess(managerToken, item.slug)
         localStorage.setItem(`warRoomAgentToken:${item.slug}`, access.token)
-        sessionStorage.setItem('warRoomControlReturnTo', '/sales-war-room/supervisor')
+        sessionStorage.setItem('warRoomControlReturnTo', '/sales-war-room/manager')
       }
 
       setOpen(false)
@@ -207,7 +181,7 @@ export default function SalesWarRoomNotificationCenter() {
     setItems(items.map(item => ({ ...item, readAt: item.readAt || now })))
   }
 
-  const multiAgent = mode === 'owner' || mode === 'supervisor'
+  const multiAgent = mode === 'owner' || mode === 'manager'
 
   return (
     <>
@@ -239,7 +213,7 @@ export default function SalesWarRoomNotificationCenter() {
               <div>
                 <div className="text-[10px] font-black tracking-[.16em] text-slate-400">SALES WAR ROOM</div>
                 <h2 className="text-lg font-black">{t('Notifications', 'التنبيهات')}</h2>
-                {multiAgent && <div className="mt-0.5 text-[10px] font-bold text-slate-400">{mode === 'owner' ? t('All agents', 'كل الـAgents') : 'Ahmed Yehia + Nour Mohamed'}</div>}
+                {multiAgent && <div className="mt-0.5 text-[10px] font-bold text-slate-400">{mode === 'owner' ? t('All agents', 'كل الـAgents') : t('Managed sales team', 'فريق المبيعات')}</div>}
               </div>
               <div className="flex items-center gap-2">
                 {items.length > 0 && unread > 0 && (
