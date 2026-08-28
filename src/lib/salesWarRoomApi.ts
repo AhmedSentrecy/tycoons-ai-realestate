@@ -7,7 +7,7 @@ const OWNER_LEAD_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sa
 const RECOMMENDATIONS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-recommendations";
 const TEAM_MONITOR_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-team-monitor";
 const SALES_TOTALS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-sales-totals";
-const SUPERVISOR_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-supervisor";
+const MANAGER_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-manager";
 
 async function requestUrl(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
@@ -24,6 +24,7 @@ async function request(path: string, options: RequestInit = {}) {
 }
 
 const agentHeaders = (token: string) => ({ "x-agent-token": token });
+const managerHeaders = (token: string) => ({ "x-manager-token": token });
 
 export const salesWarRoomApi = {
   agentLogin: (slug: string, password: string) => request("agent-login", { method: "POST", body: JSON.stringify({ slug, password }) }),
@@ -60,8 +61,11 @@ export const salesWarRoomApi = {
     headers: { "x-admin-token": token },
     body: JSON.stringify({ slug }),
   }),
-  supervisorSummary: (token: string, from: string, to: string) => requestUrl(`${SUPERVISOR_API}/summary?from=${from}&to=${to}`, { headers: agentHeaders(token) }),
-  supervisorPipeline: (token: string) => requestUrl(`${SUPERVISOR_API}/pipeline`, { headers: agentHeaders(token) }),
-  supervisorUpdateLead: (token: string, body: Record<string, unknown>) => requestUrl(`${SUPERVISOR_API}/lead`, { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
-  supervisorAgentAccess: (token: string, slug: string) => requestUrl(`${SUPERVISOR_API}/agent-access`, { method: "POST", headers: agentHeaders(token), body: JSON.stringify({ slug }) }),
+  managerLogin: (password: string) => requestUrl(`${MANAGER_API}/login`, { method: "POST", body: JSON.stringify({ password }) }),
+  managerPipeline: (token: string) => requestUrl(`${MANAGER_API}/pipeline`, { headers: managerHeaders(token) }),
+  managerAgentAccess: (token: string, slug: string) => requestUrl(`${MANAGER_API}/agent-access`, {
+    method: "POST",
+    headers: managerHeaders(token),
+    body: JSON.stringify({ slug }),
+  }),
 };
