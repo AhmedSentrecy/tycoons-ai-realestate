@@ -1,7 +1,4 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Capacitor } from '@capacitor/core'
-import { sendTestNotification } from '../lib/warRoomNotifications'
 
 const agents = [
   { slug: 'ahmed-yehia', name: 'Ahmed Yehia', nameAr: 'أحمد يحيى' },
@@ -14,28 +11,10 @@ export default function SalesWarRoomAppEntry() {
   const navigate = useNavigate()
   const lang = (localStorage.getItem('warRoomLang') as 'en' | 'ar') || 'en'
   const t = (en: string, ar: string) => (lang === 'ar' ? ar : en)
-  const nativeApp = Capacitor.isNativePlatform()
-  const [testingNotification, setTestingNotification] = useState(false)
-  const [notificationMessage, setNotificationMessage] = useState('')
 
   function openAgent(slug: string) {
     localStorage.setItem('warRoomLastAgent', slug)
     navigate(`/sales-war-room/a/${slug}`)
-  }
-
-  async function testNotification() {
-    try {
-      setTestingNotification(true)
-      setNotificationMessage('')
-      const result = await sendTestNotification()
-      setNotificationMessage(result.ok
-        ? t('Test scheduled — minimize the app for 4 seconds.', 'التجربة اتجدولت — اقفل التطبيق للشاشة الرئيسية 4 ثواني.')
-        : t('Notification permission is disabled.', 'صلاحية الـNotifications مقفولة.'))
-    } catch {
-      setNotificationMessage(t('Could not schedule the test notification.', 'مقدرناش نجدول Notification التجربة.'))
-    } finally {
-      setTestingNotification(false)
-    }
   }
 
   return (
@@ -54,19 +33,6 @@ export default function SalesWarRoomAppEntry() {
           <h2 className="mt-2 text-3xl font-black leading-tight">{t('Win the day. Protect the pipeline.', 'اكسب اليوم. واحمي الـPipeline.')}</h2>
           <p className="mt-3 text-sm leading-6 text-slate-300">{t('Calls, follow-ups, pipeline, Smart Match and team performance in one app.', 'المكالمات والمتابعات والـPipeline وSmart Match وأداء الفريق في تطبيق واحد.')}</p>
         </section>
-
-        {nativeApp && <section className="mt-4 rounded-3xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-black tracking-[.12em] text-emerald-700">🔔 {t('NOTIFICATIONS', 'NOTIFICATIONS')}</div>
-              <div className="mt-1 text-sm font-bold text-slate-700">{t('Follow-up reminders are scheduled from the agent pipeline.', 'تنبيهات الـFollow-up بتتجدول من Pipeline الـAgent.')}</div>
-            </div>
-            <button disabled={testingNotification} onClick={testNotification} className="shrink-0 rounded-xl bg-slate-950 px-4 py-3 text-xs font-black text-white disabled:opacity-50">
-              {testingNotification ? t('Scheduling…', 'جاري…') : t('Test Notification', 'جرب Notification')}
-            </button>
-          </div>
-          {notificationMessage && <div className="mt-3 rounded-xl bg-white p-3 text-xs font-bold text-slate-700">{notificationMessage}</div>}
-        </section>}
 
         <section className="mt-4 rounded-3xl border bg-white p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between">
