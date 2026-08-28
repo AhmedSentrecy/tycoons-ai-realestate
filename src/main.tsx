@@ -9,6 +9,7 @@ import SalesWarRoomRecommendations from './components/SalesWarRoomRecommendation
 import SalesWarRoomExport from './components/SalesWarRoomExport.tsx'
 import SalesWarRoomSalesOutcome from './components/SalesWarRoomSalesOutcome.tsx'
 import SalesWarRoomPasswordTools from './components/SalesWarRoomPasswordTools.tsx'
+import SalesWarRoomNotifications from './components/SalesWarRoomNotifications.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -19,6 +20,7 @@ createRoot(document.getElementById('root')!).render(
         <SalesWarRoomExport />
         <SalesWarRoomSalesOutcome />
         <SalesWarRoomPasswordTools />
+        <SalesWarRoomNotifications />
       </VoiceSessionProvider>
     </BrowserRouter>
   </StrictMode>,
