@@ -5,7 +5,7 @@ import {
   getNotificationInbox,
   markAllNotificationsRead,
   markNotificationRead,
-  syncNotificationInbox,
+  syncFollowupNotifications,
   type WarRoomNotificationItem,
 } from '../lib/warRoomNotifications'
 
@@ -79,6 +79,13 @@ export default function SalesWarRoomNotificationCenter() {
     }
   }, [])
 
+  async function syncAgentForManager(agent: any, pipeline: any[]) {
+    const agentName = displayAgentName(agent, lang)
+    const agentPipeline = pipeline.filter((lead: any) => lead.agent_id === agent.id)
+    await syncFollowupNotifications(agent.slug, agentPipeline, { agentName })
+    return getNotificationInbox(agent.slug).map(item => ({ ...item, agentName }))
+  }
+
   async function refreshCenter() {
     if (mode === 'none' || syncingRef.current) return
     try {
@@ -101,10 +108,7 @@ export default function SalesWarRoomNotificationCenter() {
         const merged: ViewNotificationItem[] = []
 
         for (const agent of agents) {
-          const agentPipeline = pipeline.filter((lead: any) => lead.agent_id === agent.id)
-          const synced = syncNotificationInbox(agent.slug, agentPipeline)
-          const agentName = displayAgentName(agent, lang)
-          merged.push(...synced.map(item => ({ ...item, agentName })))
+          merged.push(...await syncAgentForManager(agent, pipeline))
         }
 
         merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
@@ -116,15 +120,12 @@ export default function SalesWarRoomNotificationCenter() {
         salesWarRoomApi.supervisorSummary(mostafaToken, monthStartLocal(), todayLocal()),
         salesWarRoomApi.supervisorPipeline(mostafaToken),
       ])
-      const agents = summary?.agents || []
+      const agents = summary?.agents || pipelineResponse?.agents || []
       const pipeline = pipelineResponse?.pipeline || []
       const merged: ViewNotificationItem[] = []
 
       for (const agent of agents) {
-        const agentPipeline = pipeline.filter((lead: any) => lead.agent_id === agent.id)
-        const synced = syncNotificationInbox(agent.slug, agentPipeline)
-        const agentName = displayAgentName(agent, lang)
-        merged.push(...synced.map(item => ({ ...item, agentName })))
+        merged.push(...await syncAgentForManager(agent, pipeline))
       }
 
       merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
