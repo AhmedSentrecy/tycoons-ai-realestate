@@ -99,7 +99,8 @@ export default function SalesWarRoomNotifications() {
       try {
         syncingRef.current = true
         const agentData = await salesWarRoomApi.getAgent(slug, token)
-        if (Capacitor.isNativePlatform()) await syncFollowupNotifications(slug, agentData.pipeline || [])
+        const managerControlled = sessionStorage.getItem('warRoomControlReturnTo') === '/sales-war-room/manager'
+        if (Capacitor.isNativePlatform() && !managerControlled) await syncFollowupNotifications(slug, agentData.pipeline || [])
         else syncNotificationInbox(slug, agentData.pipeline || [])
       } catch {
         // Dashboard owns authentication/error handling.
