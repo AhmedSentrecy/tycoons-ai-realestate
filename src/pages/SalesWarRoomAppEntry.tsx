@@ -58,7 +58,12 @@ export default function SalesWarRoomAppEntry() {
             <div className="mt-2 text-xl font-black">{t('Super Admin', 'Super Admin')}</div>
             <div className="mt-1 text-xs text-emerald-100/70">{t('Full team control', 'تحكم كامل في الفريق')}</div>
           </button>
-          <button onClick={() => navigate('/sales-war-room/team-admin')} className="rounded-3xl border bg-white p-5 text-start shadow-sm transition active:scale-[.98]">
+          <button onClick={() => navigate('/sales-war-room/manager')} className="rounded-3xl bg-slate-900 p-5 text-start text-white shadow-sm transition active:scale-[.98]">
+            <div className="text-xs font-black tracking-[.12em] text-amber-300">MANAGER</div>
+            <div className="mt-2 text-xl font-black">{t('Manager', 'Manager')}</div>
+            <div className="mt-1 text-xs text-slate-300">{t('Manage sales team dashboards', 'إدارة داشبورد فريق المبيعات')}</div>
+          </button>
+          <button onClick={() => navigate('/sales-war-room/team-admin')} className="rounded-3xl border bg-white p-5 text-start shadow-sm transition active:scale-[.98] sm:col-span-2">
             <div className="text-xs font-black tracking-[.12em] text-amber-600">TEAM ADMIN</div>
             <div className="mt-2 text-xl font-black">{t('Team Dashboard', 'Team Dashboard')}</div>
             <div className="mt-1 text-xs text-slate-500">{t('Team performance monitoring', 'متابعة أداء الفريق')}</div>
