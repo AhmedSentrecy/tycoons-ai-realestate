@@ -1,13 +1,5 @@
 import { useEffect } from 'react'
 
-function setControlledInputValue(input: HTMLInputElement, value: string) {
-  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
-  if (setter) setter.call(input, value)
-  else input.value = value
-  input.dispatchEvent(new Event('input', { bubbles: true }))
-  input.dispatchEvent(new Event('change', { bubbles: true }))
-}
-
 export default function SalesWarRoomPasswordTools() {
   useEffect(() => {
     if (!window.location.pathname.startsWith('/sales-war-room/')) return
@@ -20,7 +12,6 @@ export default function SalesWarRoomPasswordTools() {
         z-index: 2147483000;
         display: flex;
         align-items: center;
-        gap: 6px;
         padding: 4px;
         border-radius: 10px;
         background: rgba(15, 23, 42, .94);
@@ -47,9 +38,7 @@ export default function SalesWarRoomPasswordTools() {
 
     const showButton = document.createElement('button')
     showButton.type = 'button'
-    const pasteButton = document.createElement('button')
-    pasteButton.type = 'button'
-    tools.append(showButton, pasteButton)
+    tools.append(showButton)
     document.body.appendChild(tools)
 
     let input: HTMLInputElement | null = null
@@ -58,7 +47,6 @@ export default function SalesWarRoomPasswordTools() {
     const labels = () => ({
       show: isArabic() ? '👁 إظهار' : '👁 Show',
       hide: isArabic() ? '🙈 إخفاء' : '🙈 Hide',
-      paste: isArabic() ? '📋 لصق' : '📋 Paste',
     })
 
     function visiblePasswordInput() {
@@ -72,7 +60,6 @@ export default function SalesWarRoomPasswordTools() {
     function updateLabels() {
       const l = labels()
       showButton.textContent = input?.type === 'text' ? l.hide : l.show
-      pasteButton.textContent = l.paste
     }
 
     function positionTools() {
@@ -104,7 +91,7 @@ export default function SalesWarRoomPasswordTools() {
       if (input.autocomplete !== 'current-password') input.autocomplete = 'current-password'
       if (input.getAttribute('autocapitalize') !== 'none') input.setAttribute('autocapitalize', 'none')
       if (input.getAttribute('spellcheck') !== 'false') input.setAttribute('spellcheck', 'false')
-      if (input.style.paddingInlineEnd !== '132px') input.style.paddingInlineEnd = '132px'
+      if (input.style.paddingInlineEnd !== '78px') input.style.paddingInlineEnd = '78px'
       updateLabels()
       requestAnimationFrame(positionTools)
     }
@@ -121,20 +108,7 @@ export default function SalesWarRoomPasswordTools() {
       requestAnimationFrame(positionTools)
     })
 
-    pasteButton.addEventListener('click', async () => {
-      if (!input) return
-      input.focus()
-      try {
-        const text = await navigator.clipboard.readText()
-        if (text) setControlledInputValue(input, text)
-      } catch {
-        // Long-press paste remains available if clipboard access is unavailable.
-      }
-      requestAnimationFrame(positionTools)
-    })
-
-    // Only observe DOM additions/removals. Watching style/type/class caused a feedback
-    // loop because this helper itself changes those attributes on password inputs.
+    // Native long-press/context-menu paste remains available on the input.
     const observer = new MutationObserver(() => requestAnimationFrame(enhance))
     observer.observe(document.body, { childList: true, subtree: true })
 
