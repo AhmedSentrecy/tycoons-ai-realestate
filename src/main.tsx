@@ -15,6 +15,10 @@ import SalesWarRoomNotificationCenter from './components/SalesWarRoomNotificatio
 import SalesWarRoomNativeLinks from './components/SalesWarRoomNativeLinks.tsx'
 import SalesWarRoomBackNavigation from './components/SalesWarRoomBackNavigation.tsx'
 
+if (window.location.pathname.startsWith('/sales-war-room')) {
+  document.body.classList.add('sales-war-room-active')
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
