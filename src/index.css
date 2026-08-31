@@ -219,3 +219,24 @@ div.rounded-xl.border-2.border-slate-400.bg-white.p-3.shadow-sm
   label:has(input[type="number"][step="0.1"]) {
   display: none;
 }
+
+/* Sales War Room on iOS: prevent page-wide horizontal panning. */
+body.sales-war-room-active,
+body.sales-war-room-active #root {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body.sales-war-room-active {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* iOS zooms the WKWebView when a focused form control is below 16px. */
+@media (max-width: 640px) {
+  body.sales-war-room-active input,
+  body.sales-war-room-active textarea,
+  body.sales-war-room-active select {
+    font-size: 16px !important;
+  }
+}
