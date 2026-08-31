@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/ios-unsigned.yml'
+      - '.ios-build-trigger'
 
 permissions:
   contents: write
