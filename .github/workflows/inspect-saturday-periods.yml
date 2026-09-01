@@ -12,12 +12,13 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          for f in ['src/pages/SalesWarRoom.tsx','src/components/SalesWarRoomControlDashboard.tsx']:
-              s=Path(f).read_text()
-              print('\nFILE',f,'LEN',len(s))
-              for needle in ['Weekly Review','Motivation Board','tab==="overview"','TEAM PERFORMANCE WINDOW','SalesWarRoomMeetingAnalytics']:
-                  i=s.find(needle)
-                  if i>=0:
-                      print('\nMARK',needle,'AT',i)
-                      print(s[max(0,i-1400):min(len(s),i+2600)].replace('\n','\\n'))
+          s=Path('src/pages/SalesWarRoom.tsx').read_text()
+          print('LEN',len(s),'weekly refs',s.count('weekly.'))
+          pos=0
+          while True:
+              i=s.find('weekly.',pos)
+              if i<0: break
+              print('\nAT',i)
+              print(s[max(0,i-900):min(len(s),i+1200)].replace('\n','\\n'))
+              pos=i+7
           PY
