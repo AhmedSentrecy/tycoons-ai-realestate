@@ -1,0 +1,360 @@
+name: Patch Follow-up Time
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-followup-time.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+
+      - name: Patch follow-up date + time support
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              s = p.read_text()
+              count = s.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected 1 match, found {count}: {old[:100]!r}')
+              p.write_text(s.replace(old, new, 1))
+
+          # Agent dashboard: store, edit and display a follow-up time alongside the date.
+          path = 'src/pages/SalesWarRoom.tsx'
+          replace_once(path,
+          '''  next_action_date:string;\n  next_action_trigger:string;''',
+          '''  next_action_date:string;\n  next_action_time:string;\n  next_action_trigger:string;''')
+          replace_once(path,
+          '''const emptyLead:LeadDraft={client_name:"",phone:"",budget:"",expected_value:"",stage:"New Lead",next_action:"",next_action_date:"",next_action_trigger:"",notes:""};''',
+          '''const emptyLead:LeadDraft={client_name:"",phone:"",budget:"",expected_value:"",stage:"New Lead",next_action:"",next_action_date:"",next_action_time:"",next_action_trigger:"",notes:""};''')
+          replace_once(path,
+          '''await salesWarRoomApi.addLead(token,{slug,...lead,expected_value:millionsToEgp(lead.expected_value),next_action_date:lead.next_action_date||null});''',
+          '''await salesWarRoomApi.addLead(token,{slug,...lead,expected_value:millionsToEgp(lead.expected_value),next_action_date:lead.next_action_date||null,next_action_time:lead.next_action_date?(lead.next_action_time||null):null});''')
+          replace_once(path,
+          '''next_action:x.next_action||"",next_action_date:x.next_action_date||"",next_action_trigger:x.next_action_trigger||"",notes:x.notes||""})''',
+          '''next_action:x.next_action||"",next_action_date:x.next_action_date||"",next_action_time:String(x.next_action_time||"").slice(0,5),next_action_trigger:x.next_action_trigger||"",notes:x.notes||""})''')
+          replace_once(path,
+          '''await salesWarRoomApi.updateLead(token,{id:editingId,...editLead,expected_value:millionsToEgp(editLead.expected_value),next_action_date:editLead.next_action_date||null});''',
+          '''await salesWarRoomApi.updateLead(token,{id:editingId,...editLead,expected_value:millionsToEgp(editLead.expected_value),next_action_date:editLead.next_action_date||null,next_action_time:editLead.next_action_date?(editLead.next_action_time||null):null});''')
+          replace_once(path,
+          '''<input type="date" value={lead.next_action_date} min={todayLocal()} onChange={e=>setLead({...lead,next_action_date:e.target.value})} className="rounded-xl border p-3"/><input value={lead.next_action_trigger}''',
+          '''<input type="date" value={lead.next_action_date} min={todayLocal()} onChange={e=>setLead({...lead,next_action_date:e.target.value,next_action_time:e.target.value?lead.next_action_time:""})} className="rounded-xl border p-3"/><input type="time" value={lead.next_action_time} disabled={!lead.next_action_date} onChange={e=>setLead({...lead,next_action_time:e.target.value})} aria-label={t("Follow-up time","وقت المتابعة")} className="rounded-xl border p-3 disabled:bg-slate-100 disabled:text-slate-400"/><input value={lead.next_action_trigger}''')
+          replace_once(path,
+          '''<td className="p-3" dir="ltr">{x.next_action_date||"—"}</td>''',
+          '''<td className="p-3" dir="ltr">{x.next_action_date?`${x.next_action_date}${x.next_action_time?` · ${String(x.next_action_time).slice(0,5)}`:""}`:"—"}</td>''')
+          replace_once(path,
+          '''{x.expected_value?<div className="mt-1 text-xs font-black text-emerald-700">{formatEgp(x.expected_value)}</div>:null}<div className="mt-2 text-xs">{x.next_action||"—"}</div>''',
+          '''{x.expected_value?<div className="mt-1 text-xs font-black text-emerald-700">{formatEgp(x.expected_value)}</div>:null}{x.next_action_time?<div className="mt-1 text-[10px] font-black text-slate-500">⏰ {String(x.next_action_time).slice(0,5)}</div>:null}<div className="mt-2 text-xs">{x.next_action||"—"}</div>''')
+          replace_once(path,
+          '''<span dir="ltr">{x.next_action_date}</span>{dueToday?<span className="ms-2 font-black text-amber-700">''',
+          '''<span dir="ltr">{x.next_action_date}{x.next_action_time?` · ${String(x.next_action_time).slice(0,5)}`:""}</span>{dueToday?<span className="ms-2 font-black text-amber-700">''')
+          replace_once(path,
+          '''<label className="text-[10px] font-black text-slate-500">{t("FOLLOW-UP DATE","تاريخ الـFOLLOW-UP")}<input type="date" value={draft.next_action_date} onChange={e=>setDraft({...draft,next_action_date:e.target.value})} className="mt-1 w-full rounded-lg border p-2 text-xs"/></label><input value={draft.next_action_trigger}''',
+          '''<label className="text-[10px] font-black text-slate-500">{t("FOLLOW-UP DATE","تاريخ الـFOLLOW-UP")}<input type="date" value={draft.next_action_date} onChange={e=>setDraft({...draft,next_action_date:e.target.value,next_action_time:e.target.value?draft.next_action_time:""})} className="mt-1 w-full rounded-lg border p-2 text-xs"/></label><label className="text-[10px] font-black text-slate-500">{t("FOLLOW-UP TIME","وقت الـFOLLOW-UP")}<input type="time" value={draft.next_action_time} disabled={!draft.next_action_date} onChange={e=>setDraft({...draft,next_action_time:e.target.value})} className="mt-1 w-full rounded-lg border p-2 text-xs disabled:bg-slate-100"/></label><input value={draft.next_action_trigger}''')
+
+          # Direct lead page.
+          path = 'src/pages/SalesWarRoomLead.tsx'
+          replace_once(path,
+          '''next_action:lead.next_action||'',next_action_date:lead.next_action_date||'',next_action_trigger:lead.next_action_trigger||'',notes:lead.notes||''''',
+          '''next_action:lead.next_action||'',next_action_date:lead.next_action_date||'',next_action_time:String(lead.next_action_time||'').slice(0,5),next_action_trigger:lead.next_action_trigger||'',notes:lead.notes||'' ''')
+          # remove the intentional separator space added above while keeping exact syntax
+          p=Path(path); s=p.read_text(); s=s.replace("notes:lead.notes||'' })", "notes:lead.notes||''})"); p.write_text(s)
+          replace_once(path,
+          '''next_action_date:draft.next_action_date||null,\n        next_action_trigger:draft.next_action_trigger,''',
+          '''next_action_date:draft.next_action_date||null,\n        next_action_time:draft.next_action_date?(draft.next_action_time||null):null,\n        next_action_trigger:draft.next_action_trigger,''')
+          replace_once(path,
+          '''<Metric label={t('Follow-up','Follow-up')} value={lead.next_action_date||'—'}/>''',
+          '''<Metric label={t('Follow-up','Follow-up')} value={lead.next_action_date?`${lead.next_action_date}${lead.next_action_time?` · ${String(lead.next_action_time).slice(0,5)}`:''}`:'—'}/>''')
+          replace_once(path,
+          '''<label className="text-xs font-black text-slate-500">{t('Follow-up Date','تاريخ المتابعة')}<input type="date" value={draft.next_action_date||''} onChange={e=>setDraft({...draft,next_action_date:e.target.value})} className="mt-1 w-full rounded-xl border p-3 text-slate-950"/></label>\n          <input value={draft.next_action_trigger||''}''',
+          '''<label className="text-xs font-black text-slate-500">{t('Follow-up Date','تاريخ المتابعة')}<input type="date" value={draft.next_action_date||''} onChange={e=>setDraft({...draft,next_action_date:e.target.value,next_action_time:e.target.value?draft.next_action_time:''})} className="mt-1 w-full rounded-xl border p-3 text-slate-950"/></label>\n          <label className="text-xs font-black text-slate-500">{t('Follow-up Time','وقت المتابعة')}<input type="time" value={draft.next_action_time||''} disabled={!draft.next_action_date} onChange={e=>setDraft({...draft,next_action_time:e.target.value})} className="mt-1 w-full rounded-xl border p-3 text-slate-950 disabled:bg-slate-100"/></label>\n          <input value={draft.next_action_trigger||''}''')
+
+          # Super Admin pipeline editor.
+          path = 'src/components/SalesWarRoomControlDashboard.tsx'
+          replace_once(path,
+          '''next_action_date:x.next_action_date||"",next_action_trigger:x.next_action_trigger||"",notes:x.notes||""''',
+          '''next_action_date:x.next_action_date||"",next_action_time:String(x.next_action_time||"").slice(0,5),next_action_trigger:x.next_action_trigger||"",notes:x.notes||""''')
+          replace_once(path,
+          '''const body={...leadDraft,expected_value:m*1_000_000,next_action_date:leadDraft.next_action_date||null};''',
+          '''const body={...leadDraft,expected_value:m*1_000_000,next_action_date:leadDraft.next_action_date||null,next_action_time:leadDraft.next_action_date?(leadDraft.next_action_time||null):null};''')
+          replace_once(path,
+          '''<b>{t("Follow-up","Follow-up")}:</b> {x.next_action_date||"—"}''',
+          '''<b>{t("Follow-up","Follow-up")}:</b> {x.next_action_date?`${x.next_action_date}${x.next_action_time?` · ${String(x.next_action_time).slice(0,5)}`:""}`:"—"}''')
+          replace_once(path,
+          '''<input type="date" value={d.next_action_date} onChange={e=>setD({...d,next_action_date:e.target.value})} className="rounded-xl border p-3"/><input value={d.next_action_trigger}''',
+          '''<input type="date" value={d.next_action_date} onChange={e=>setD({...d,next_action_date:e.target.value,next_action_time:e.target.value?d.next_action_time:""})} className="rounded-xl border p-3"/><input type="time" value={d.next_action_time||""} disabled={!d.next_action_date} onChange={e=>setD({...d,next_action_time:e.target.value})} className="rounded-xl border p-3 disabled:bg-slate-100"/><input value={d.next_action_trigger}''')
+
+          # Notification center shows the exact due time and sorts by it.
+          path = 'src/components/SalesWarRoomNotificationCenter.tsx'
+          replace_once(path,
+          '''merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))''',
+          '''merged.sort((a, b) => `${b.date}T${b.time || '00:00'}`.localeCompare(`${a.date}T${a.time || '00:00'}`) || b.createdAt.localeCompare(a.createdAt))''')
+          replace_once(path,
+          '''<span>{item.date}</span>''',
+          '''<span>{item.date}{item.time ? ` · ${item.time}` : ''}</span>''')
+
+          # Notification scheduler: exact local date+time; old leads without a time stay at 09:00.
+          Path('src/lib/warRoomNotifications.ts').write_text(r'''import { Capacitor } from '@capacitor/core'
+          import { LocalNotifications } from '@capacitor/local-notifications'
+
+          const CHANNEL_ID = 'sales-followups'
+          const IDS_KEY = (slug: string) => `warRoomNotificationIds:${slug}`
+          const SENT_KEY = (leadId: string, dueKey: string) => `warRoomNotificationSent:${leadId}:${dueKey}`
+          const INBOX_KEY = (slug: string) => `warRoomNotificationInbox:${slug}`
+
+          export type WarRoomNotificationItem = {
+            id: string
+            leadId: string
+            slug: string
+            clientName: string
+            title: string
+            body: string
+            date: string
+            time: string
+            route: string
+            createdAt: string
+            readAt: string | null
+          }
+
+          function nativeApp() {
+            return Capacitor.isNativePlatform()
+          }
+
+          function todayLocal() {
+            const now = new Date()
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+          }
+
+          function normalizeTime(value: any) {
+            const raw = String(value || '').trim()
+            return /^\d{2}:\d{2}/.test(raw) ? raw.slice(0, 5) : '09:00'
+          }
+
+          function dueAt(date: string, time: string) {
+            return new Date(`${date}T${time}:00`)
+          }
+
+          function hashId(value: string) {
+            let hash = 2166136261
+            for (let i = 0; i < value.length; i++) {
+              hash ^= value.charCodeAt(i)
+              hash = Math.imul(hash, 16777619)
+            }
+            return 1000 + (Math.abs(hash) % 2_000_000_000)
+          }
+
+          function readInbox(slug: string): WarRoomNotificationItem[] {
+            try {
+              const parsed = JSON.parse(localStorage.getItem(INBOX_KEY(slug)) || '[]')
+              return Array.isArray(parsed) ? parsed : []
+            } catch {
+              return []
+            }
+          }
+
+          function writeInbox(slug: string, items: WarRoomNotificationItem[]) {
+            localStorage.setItem(INBOX_KEY(slug), JSON.stringify(items.slice(0, 100)))
+            window.dispatchEvent(new CustomEvent('war-room-notifications-changed', { detail: { slug } }))
+          }
+
+          export function getNotificationInbox(slug: string) {
+            return readInbox(slug)
+          }
+
+          export function markNotificationRead(slug: string, id: string) {
+            const now = new Date().toISOString()
+            writeInbox(slug, readInbox(slug).map(item => item.id === id ? { ...item, readAt: item.readAt || now } : item))
+          }
+
+          export function markAllNotificationsRead(slug: string) {
+            const now = new Date().toISOString()
+            writeInbox(slug, readInbox(slug).map(item => ({ ...item, readAt: item.readAt || now })))
+          }
+
+          export function syncNotificationInbox(slug: string, pipeline: any[]) {
+            if (!slug || !Array.isArray(pipeline)) return [] as WarRoomNotificationItem[]
+
+            const now = new Date()
+            const cutoff = new Date()
+            cutoff.setDate(cutoff.getDate() - 30)
+            const cutoffDate = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`
+            const existing = readInbox(slug)
+            const byId = new Map(existing.map(item => [item.id, item]))
+            const items: WarRoomNotificationItem[] = []
+
+            for (const lead of pipeline) {
+              if (!lead?.id || !lead?.next_action_date) continue
+              if (['Won', 'Lost / Dead'].includes(String(lead.stage || ''))) continue
+
+              const date = String(lead.next_action_date)
+              if (date < cutoffDate) continue
+              const time = normalizeTime(lead.next_action_time)
+              const scheduled = dueAt(date, time)
+              if (!Number.isFinite(scheduled.getTime()) || scheduled.getTime() > now.getTime()) continue
+
+              const leadId = String(lead.id)
+              const id = `${leadId}:${date}:${time}`
+              const legacyId = `${leadId}:${date}`
+              const stage = String(lead.stage || '').trim()
+              const nextAction = String(lead.next_action || '').trim()
+              const body = [stage, nextAction].filter(Boolean).join(' · ') || 'Follow-up due'
+              const old = byId.get(id) || byId.get(legacyId)
+
+              items.push({
+                id,
+                leadId,
+                slug,
+                clientName: String(lead.client_name || 'Client'),
+                title: `Follow up with ${lead.client_name || 'client'}`,
+                body,
+                date,
+                time,
+                route: `/sales-war-room/a/${slug}/lead/${encodeURIComponent(leadId)}`,
+                createdAt: old?.createdAt || new Date().toISOString(),
+                readAt: old?.readAt || null,
+              })
+            }
+
+            items.sort((a, b) => `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`) || b.createdAt.localeCompare(a.createdAt))
+            writeInbox(slug, items)
+            return items
+          }
+
+          async function prepareChannel() {
+            if (!nativeApp() || Capacitor.getPlatform() !== 'android') return
+            try {
+              await LocalNotifications.createChannel({
+                id: CHANNEL_ID,
+                name: 'Sales Follow-ups',
+                description: 'Tycoons Sales War Room client follow-up reminders',
+                importance: 4,
+              })
+            } catch {
+              // Channel may already exist.
+            }
+          }
+
+          export async function ensureNotificationPermission() {
+            if (!nativeApp()) return false
+            let permission = await LocalNotifications.checkPermissions()
+            if (permission.display !== 'granted') {
+              permission = await LocalNotifications.requestPermissions()
+            }
+            if (permission.display !== 'granted') return false
+            await prepareChannel()
+            return true
+          }
+
+          export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
+            syncNotificationInbox(slug, pipeline)
+            if (!nativeApp() || !slug || !Array.isArray(pipeline)) return
+            if (!(await ensureNotificationPermission())) return
+
+            const previousIds = (() => {
+              try {
+                return JSON.parse(localStorage.getItem(IDS_KEY(slug)) || '[]') as number[]
+              } catch {
+                return [] as number[]
+              }
+            })()
+
+            if (previousIds.length) {
+              try {
+                await LocalNotifications.cancel({ notifications: previousIds.map(id => ({ id })) })
+              } catch {
+                // Ignore stale IDs.
+              }
+            }
+
+            const now = new Date()
+            const today = todayLocal()
+            const active = pipeline
+              .filter((lead: any) => lead?.id && lead?.next_action_date)
+              .filter((lead: any) => !['Won', 'Lost / Dead'].includes(String(lead.stage || '')))
+              .sort((a: any, b: any) => `${a.next_action_date}T${normalizeTime(a.next_action_time)}`.localeCompare(`${b.next_action_date}T${normalizeTime(b.next_action_time)}`))
+              .slice(0, 50)
+
+            const notifications: any[] = []
+            const ids: number[] = []
+
+            for (const lead of active) {
+              const date = String(lead.next_action_date)
+              if (date < today) continue
+
+              const time = normalizeTime(lead.next_action_time)
+              const key = `${date}T${time}`
+              let at = dueAt(date, time)
+              if (!Number.isFinite(at.getTime())) continue
+
+              if (at.getTime() <= now.getTime()) {
+                if (localStorage.getItem(SENT_KEY(String(lead.id), key))) continue
+                at = new Date(Date.now() + 6_000)
+                localStorage.setItem(SENT_KEY(String(lead.id), key), '1')
+              }
+
+              const id = hashId(`${slug}:${lead.id}:${key}`)
+              ids.push(id)
+
+              const leadId = String(lead.id)
+              const inboxId = `${leadId}:${date}:${time}`
+              const nextAction = String(lead.next_action || '').trim()
+              const stage = String(lead.stage || '').trim()
+              const body = [stage, nextAction].filter(Boolean).join(' · ') || 'Follow-up due'
+              const route = `/sales-war-room/a/${slug}/lead/${encodeURIComponent(leadId)}`
+
+              notifications.push({
+                id,
+                title: `Follow up with ${lead.client_name || 'client'}`,
+                body,
+                schedule: { at },
+                channelId: CHANNEL_ID,
+                extra: {
+                  tycoons: true,
+                  leadId,
+                  slug,
+                  date,
+                  time,
+                  inboxId,
+                  route,
+                },
+              })
+            }
+
+            if (notifications.length) {
+              await LocalNotifications.schedule({ notifications })
+            }
+            localStorage.setItem(IDS_KEY(slug), JSON.stringify(ids))
+          }
+          '''.replace('\n          ', '\n').lstrip())
+          PY
+
+      - name: Install dependencies
+        run: yarn install --non-interactive
+
+      - name: Build web app
+        run: yarn build
+
+      - name: Commit patched source
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/SalesWarRoom.tsx src/pages/SalesWarRoomLead.tsx src/components/SalesWarRoomControlDashboard.tsx src/components/SalesWarRoomNotificationCenter.tsx src/lib/warRoomNotifications.ts
+          git commit -m "Add timed follow-up notifications"
+          git push origin HEAD:main
