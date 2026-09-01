@@ -2,16 +2,6 @@ name: Android APK
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'src/**'
-      - 'public/**'
-      - 'package.json'
-      - 'yarn.lock'
-      - 'capacitor.config.ts'
-      - '.github/workflows/android-apk.yml'
 
 permissions:
   contents: write
@@ -91,5 +81,5 @@ jobs:
               mobile-build/Tycoons-Sales-War-Room.zip \
               --target "$GITHUB_SHA" \
               --title "Tycoons Sales War Room - Latest Android" \
-              --notes "Latest cloud-built Android test version. This release is updated automatically after each successful Android build."
+              --notes "Latest cloud-built Android test version. This release is updated manually while War Room changes are being finalized."
           fi
