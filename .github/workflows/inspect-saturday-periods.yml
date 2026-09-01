@@ -1,0 +1,23 @@
+name: Inspect Saturday Periods
+on:
+  push:
+    branches: [war-room-saturday-periods]
+    paths: ['.github/workflows/inspect-saturday-periods.yml']
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect markers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for f in ['src/pages/SalesWarRoom.tsx','src/components/SalesWarRoomControlDashboard.tsx']:
+              s=Path(f).read_text()
+              print('\nFILE',f,'LEN',len(s))
+              for needle in ['Weekly Review','Motivation Board','tab==="overview"','TEAM PERFORMANCE WINDOW','SalesWarRoomMeetingAnalytics']:
+                  i=s.find(needle)
+                  if i>=0:
+                      print('\nMARK',needle,'AT',i)
+                      print(s[max(0,i-1400):min(len(s),i+2600)].replace('\n','\\n'))
+          PY
