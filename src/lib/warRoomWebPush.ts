@@ -1,4 +1,8 @@
 const WEB_PUSH_API = 'https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-web-push'
+const SCOPE_KEY = 'warRoomWebPushScope'
+
+export type WebPushScope = 'agent' | 'manager' | 'owner'
+export type WebPushSession = { type: WebPushScope; token: string }
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -17,6 +21,12 @@ async function requestJson(url: string, options: RequestInit = {}) {
   return data
 }
 
+function sessionHeaders(session: WebPushSession) {
+  if (session.type === 'manager') return { 'x-manager-token': session.token }
+  if (session.type === 'owner') return { 'x-admin-token': session.token }
+  return { 'x-agent-token': session.token }
+}
+
 export function webPushSupported() {
   return typeof window !== 'undefined'
     && window.isSecureContext
@@ -25,18 +35,20 @@ export function webPushSupported() {
     && 'PushManager' in window
 }
 
-export async function getWebPushState(): Promise<'unsupported' | 'denied' | 'enabled' | 'idle'> {
+export async function getWebPushState(scope?: WebPushScope): Promise<'unsupported' | 'denied' | 'enabled' | 'idle'> {
   if (!webPushSupported()) return 'unsupported'
   if (Notification.permission === 'denied') return 'denied'
   const registration = await navigator.serviceWorker.getRegistration('/war-room-sw.js')
     || await navigator.serviceWorker.getRegistration('/')
   const subscription = registration ? await registration.pushManager.getSubscription() : null
-  return subscription ? 'enabled' : 'idle'
+  if (!subscription) return 'idle'
+  if (scope && localStorage.getItem(SCOPE_KEY) !== scope) return 'idle'
+  return 'enabled'
 }
 
-export async function enableWebPush(agentToken: string) {
+export async function enableWebPush(session: WebPushSession) {
   if (!webPushSupported()) throw new Error('web_push_unsupported')
-  if (!agentToken) throw new Error('agent_session_required')
+  if (!session?.token) throw new Error('push_session_required')
 
   const permission = Notification.permission === 'granted'
     ? 'granted'
@@ -60,15 +72,16 @@ export async function enableWebPush(agentToken: string) {
 
   await requestJson(`${WEB_PUSH_API}/subscribe`, {
     method: 'POST',
-    headers: { 'x-agent-token': agentToken },
+    headers: sessionHeaders(session),
     body: JSON.stringify({ subscription: subscription.toJSON(), userAgent: navigator.userAgent }),
   })
 
+  localStorage.setItem(SCOPE_KEY, session.type)
   return subscription
 }
 
-export async function disableWebPush(agentToken: string) {
-  if (!webPushSupported()) return
+export async function disableWebPush(session: WebPushSession) {
+  if (!webPushSupported() || !session?.token) return
   const registration = await navigator.serviceWorker.getRegistration('/war-room-sw.js')
     || await navigator.serviceWorker.getRegistration('/')
   const subscription = registration ? await registration.pushManager.getSubscription() : null
@@ -77,10 +90,11 @@ export async function disableWebPush(agentToken: string) {
   try {
     await requestJson(`${WEB_PUSH_API}/subscribe`, {
       method: 'DELETE',
-      headers: { 'x-agent-token': agentToken },
+      headers: sessionHeaders(session),
       body: JSON.stringify({ endpoint }),
     })
   } finally {
     await subscription.unsubscribe()
+    localStorage.removeItem(SCOPE_KEY)
   }
 }
