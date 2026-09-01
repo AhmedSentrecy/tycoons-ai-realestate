@@ -1,0 +1,55 @@
+name: Patch Saturday Periods
+on:
+  push:
+    branches: [war-room-saturday-periods]
+    paths: ['.github/workflows/patch-saturday-periods.yml']
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+      - name: Patch dashboards
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          def rep(s,old,new,label):
+              n=s.count(old)
+              if n!=1: raise SystemExit(f'{label}: expected 1 match, got {n}')
+              return s.replace(old,new,1)
+
+          p=Path('src/pages/SalesWarRoom.tsx')
+          s=p.read_text()
+          s=rep(s,'import SalesWarRoomActivityLedger from "../components/SalesWarRoomActivityLedger";','import SalesWarRoomActivityLedger from "../components/SalesWarRoomActivityLedger";\nimport SalesWarRoomPeriodResults from "../components/SalesWarRoomPeriodResults";','agent import')
+          weekly='  const weekly=(()=>{const rows=data?.weekScores||[];let wins=0,losses=0,calls=0,potential=0,meetings=0,sales=0;rows.forEach((r:any)=>{for(let i=1;i<=4;i++){calls+=Number(r[`match${i}_calls`]||0);if(r[`match${i}_status`]==="win")wins++;if(r[`match${i}_status`]==="loss")losses++}potential+=Number(r.potential_cases||0);meetings+=Number(r.meetings_scheduled||0);sales+=Number(r.sales_volume||0)});return{wins,losses,calls,potential,meetings,sales,total:wins+losses}})();\n'
+          s=rep(s,weekly,'','old weekly calculation')
+          old='<section className="mt-4 grid gap-3 md:grid-cols-2"><div className="rounded-3xl border bg-white p-4"><h2 className="font-black">{t("Weekly Review","مراجعة الأسبوع")}</h2><div className="mt-3 grid grid-cols-2 gap-2 text-sm"><Metric label={t("Calls","Calls")} value={weekly.calls}/><Metric label={t("Potential","Potential")} value={weekly.potential}/><Metric label={t("Wins","Wins")} value={weekly.wins}/><Metric label={t("Losses","Losses")} value={weekly.losses}/><Metric label={t("Meetings","Meetings")} value={weekly.meetings}/><Metric label={t("Sales","Sales")} value={`EGP ${Number(weekly.sales).toLocaleString()}`}/></div></div><div className="rounded-3xl border bg-white p-4"><h2 className="font-black">{t("Operating Rules","قواعد التشغيل")}</h2><ol className="mt-3 space-y-2 text-sm text-slate-700"><li><b>1.</b> {t("No Carryover","مفيش تعويض")}</li><li><b>2.</b> {t("Every Match Starts 0–0","كل Match بيبدأ 0–0")}</li><li><b>3.</b> {t("Warm Pipeline Must Stay Above 10","Warm Pipeline لازم يفضل فوق 10")}</li><li><b>4.</b> {t("Hot Cases Do Not Stop Pipeline Building","Hot Cases ما توقفش بناء Pipeline")}</li><li><b>5.</b> {t("First Priority = Pipeline","الأولوية الأولى = Pipeline")}</li></ol></div></section>'
+          new='<SalesWarRoomPeriodResults mode="agent" token={token} lang={lang}/><section className="mt-4 rounded-3xl border bg-white p-4"><h2 className="font-black">{t("Operating Rules","قواعد التشغيل")}</h2><ol className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-2"><li><b>1.</b> {t("No Carryover","مفيش تعويض")}</li><li><b>2.</b> {t("Every Match Starts 0–0","كل Match بيبدأ 0–0")}</li><li><b>3.</b> {t("Warm Pipeline Must Stay Above 10","Warm Pipeline لازم يفضل فوق 10")}</li><li><b>4.</b> {t("Hot Cases Do Not Stop Pipeline Building","Hot Cases ما توقفش بناء Pipeline")}</li><li><b>5.</b> {t("First Priority = Pipeline","الأولوية الأولى = Pipeline")}</li></ol></section>'
+          s=rep(s,old,new,'weekly review section')
+          p.write_text(s)
+
+          p=Path('src/components/SalesWarRoomControlDashboard.tsx')
+          s=p.read_text()
+          s=rep(s,'import SalesWarRoomMeetingAnalytics from "./SalesWarRoomMeetingAnalytics";','import SalesWarRoomMeetingAnalytics from "./SalesWarRoomMeetingAnalytics";\nimport SalesWarRoomPeriodResults from "./SalesWarRoomPeriodResults";','control import')
+          marker='        <section className="grid gap-3 rounded-3xl bg-slate-950 p-4 text-white md:grid-cols-[1fr_auto]"><div><div className="text-xs font-black text-slate-400">{t("TEAM PERFORMANCE WINDOW","فترة أداء الفريق")}</div><div className="mt-2 text-2xl font-black">{from} → {to}</div></div><div className="flex gap-2"><label className="text-xs"><span className="mb-1 block text-slate-400">{t("From","من")}</span><input type="date" value={from} onChange={e=>setFrom(e.target.value)} className="max-w-[145px] rounded-xl bg-white p-2 text-slate-950"/></label><label className="text-xs"><span className="mb-1 block text-slate-400">{t("To","إلى")}</span><input type="date" value={to} onChange={e=>setTo(e.target.value)} className="max-w-[145px] rounded-xl bg-white p-2 text-slate-950"/></label></div></section>'
+          s=rep(s,marker,marker+'\n        <SalesWarRoomPeriodResults mode="control" scope={scope} token={token} lang={lang}/>','control period panel')
+          p.write_text(s)
+          PY
+      - name: Install dependencies
+        run: yarn install --non-interactive
+      - name: Build web app
+        run: yarn build
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/SalesWarRoom.tsx src/components/SalesWarRoomControlDashboard.tsx
+          git commit -m "Show Saturday weekly and monthly results"
+          git push origin HEAD:war-room-saturday-periods
