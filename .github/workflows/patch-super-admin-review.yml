@@ -1,0 +1,97 @@
+name: Patch Super Admin Review
+
+on:
+  push:
+    branches: [war-room-meeting-analytics]
+    paths:
+      - '.github/workflows/patch-super-admin-review.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'yarn'
+      - name: Patch Super Admin-only analytics and single motivation leader
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def rep(s, old, new, label):
+              n=s.count(old)
+              if n!=1:
+                  raise SystemExit(f'{label}: expected 1 match, got {n}')
+              return s.replace(old,new,1)
+
+          # Super Admin only analytics tab.
+          p=Path('src/components/SalesWarRoomControlDashboard.tsx')
+          s=p.read_text()
+          s=rep(s,
+            '  const tabs:Tab[]=manager?["overview","analytics","agents"]:["overview","analytics","pipeline","agents"];',
+            '  const tabs:Tab[]=manager?["overview","agents"]:["overview","analytics","pipeline","agents"];',
+            'manager tabs')
+          s=rep(s,
+            '${manager?"grid-cols-3":"grid-cols-4"}',
+            '${manager?"grid-cols-2":"grid-cols-4"}',
+            'manager nav cols')
+          s=rep(s,
+            '{tab==="analytics"&&<SalesWarRoomMeetingAnalytics scope={scope} token={token} lang={lang}/>}',
+            '{!manager&&tab==="analytics"&&<SalesWarRoomMeetingAnalytics scope={scope} token={token} lang={lang}/>}',
+            'analytics owner guard')
+          p.write_text(s)
+
+          # One leader only on the Motivation Board, even if old payloads contain ties.
+          p=Path('src/pages/SalesWarRoom.tsx')
+          s=p.read_text()
+          s=rep(s,
+            '  const leaderNames=(items:any[]|undefined)=>items?.length?items.map(x=>lang==="ar"?x.name_ar:x.name_en).join(" + "):t("No leader yet","لسه مفيش متصدر");',
+            '  const leaderNames=(items:any[]|undefined)=>items?.length?(lang==="ar"?(items[0].name_ar||items[0].name_en):(items[0].name_en||items[0].name_ar)):t("No leader yet","لسه مفيش متصدر");',
+            'single motivation leader')
+          p.write_text(s)
+
+          # Meeting analytics API is owner-only now.
+          p=Path('src/lib/salesWarRoomApi.ts')
+          s=p.read_text()
+          s=rep(s,
+            '  getMeetingAnalytics: (scope: "owner" | "manager", token: string) => requestUrl(MEETING_ANALYTICS_API, { headers: controlHeaders(scope, token) }),',
+            '  getMeetingAnalytics: (token: string) => requestUrl(MEETING_ANALYTICS_API, { headers: { "x-admin-token": token } }),',
+            'owner analytics api')
+          p.write_text(s)
+
+          # Add automatic meeting review and attention leads to Super Admin analytics.
+          p=Path('src/components/SalesWarRoomMeetingAnalytics.tsx')
+          s=p.read_text()
+          s=rep(s,
+            '      try{setLoading(true);setError("");const r=await salesWarRoomApi.getMeetingAnalytics(scope,token);if(!cancelled)setData(r)}',
+            '      try{setLoading(true);setError("");const r=await salesWarRoomApi.getMeetingAnalytics(token);if(!cancelled)setData(r)}',
+            'analytics fetch')
+
+          marker='  const sortedAgents=useMemo(()=>[...agents].sort((a:any,b:any)=>Number(b?.[period]?.qualified_leads||0)-Number(a?.[period]?.qualified_leads||0)||Number(b?.[period]?.calls||0)-Number(a?.[period]?.calls||0)),[agents,period]);\n'
+          insert='''  const meetingReview=useMemo(()=>{\n    const agentName=(a:any)=>lang==="ar"?(a?.name_ar||a?.name_en||a?.slug):(a?.name_en||a?.name_ar||a?.slug);\n    const scored=(agents||[]).map((a:any)=>{\n      const m=a?.[period]||{};const p=a?.previous?.[period]||{};\n      const qDelta=Number(m.qualified_leads||0)-Number(p.qualified_leads||0);\n      const convDelta=Number(m.call_to_qualified_pct||0)-Number(p.call_to_qualified_pct||0);\n      const callsDelta=Number(m.calls||0)-Number(p.calls||0);\n      return {a,m,p,qDelta,convDelta,callsDelta,score:qDelta*100+convDelta*5+callsDelta/50};\n    });\n    const improver=[...scored].sort((x:any,y:any)=>y.score-x.score||String(agentName(x.a)).localeCompare(String(agentName(y.a))))[0]||null;\n    const negative=scored.filter((x:any)=>x.qDelta<0||x.convDelta<0||x.callsDelta<0);\n    const decliner=[...negative].sort((x:any,y:any)=>x.score-y.score||String(agentName(x.a)).localeCompare(String(agentName(y.a))))[0]||null;\n    const chain=[\n      {label:t("Calls → Potential","Calls → Potential"),from:Number(current.calls||0),to:Number(current.potential_cases||0)},\n      {label:t("Potential → Qualified","Potential → Qualified"),from:Number(current.potential_cases||0),to:Number(current.qualified_leads||0)},\n      {label:t("Qualified → Meetings","Qualified → Meetings"),from:Number(current.qualified_leads||0),to:Number(current.meetings_held||0)},\n      {label:t("Meetings → Deals","Meetings → Deals"),from:Number(current.meetings_held||0),to:Number(current.deals_won||0)},\n    ].filter((x:any)=>x.from>0).map((x:any)=>({...x,rate:Math.round((x.to/x.from)*1000)/10}));\n    const leak=[...chain].sort((a:any,b:any)=>a.rate-b.rate)[0]||null;\n    const followRisk=[...(agents||[])].sort((a:any,b:any)=>Number(b?.current?.overdue||0)-Number(a?.current?.overdue||0)||Number(a?.current?.followup_coverage_pct||0)-Number(b?.current?.followup_coverage_pct||0))[0]||null;\n    const attention=Array.isArray(data?.attention_leads)?data.attention_leads:[];\n    return {agentName,improver,decliner,leak,followRisk,attention};\n  },[agents,period,current,previous,data,lang]);\n'''
+          s=rep(s,marker,marker+'\n'+insert,'meeting review memo')
+
+          current_pipeline='''    <div className="rounded-3xl border bg-white p-4 shadow-sm">\n      <div className="text-[10px] font-black tracking-[.14em] text-slate-400">CURRENT PIPELINE</div>'''
+          review='''    <div className="rounded-3xl border border-slate-300 bg-white p-4 shadow-sm">\n      <div className="flex flex-wrap items-start justify-between gap-3">\n        <div><div className="text-[10px] font-black tracking-[.14em] text-slate-400">MEETING REVIEW</div><h3 className="text-lg font-black">{t("What changed, where are we leaking, and what needs action?","إيه اللي اتحسن وإيه اللي اتراجع وفين التسريب وإيه اللي محتاج تدخل؟")}</h3></div>\n        <div className="rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-black text-slate-500">{periodLabel} · {compareLabel}</div>\n      </div>\n      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">\n        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3"><div className="text-[10px] font-black text-emerald-700">BEST MOMENTUM</div><div className="mt-1 font-black">{meetingReview.improver?meetingReview.agentName(meetingReview.improver.a):"—"}</div><div className="mt-1 text-[11px] font-bold text-emerald-800">{meetingReview.improver?`${meetingReview.improver.qDelta>=0?"+":""}${meetingReview.improver.qDelta} Qualified · ${meetingReview.improver.callsDelta>=0?"+":""}${meetingReview.improver.callsDelta} Calls`:t("No comparison data yet","مفيش بيانات مقارنة كفاية")}</div></div>\n        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3"><div className="text-[10px] font-black text-amber-700">NEEDS ATTENTION</div><div className="mt-1 font-black">{meetingReview.decliner?meetingReview.agentName(meetingReview.decliner.a):t("No clear decline","مفيش تراجع واضح")}</div><div className="mt-1 text-[11px] font-bold text-amber-800">{meetingReview.decliner?`${meetingReview.decliner.qDelta} Qualified · ${meetingReview.decliner.convDelta.toFixed(1)} pts Call→Q`:t("No negative trend in this window","مفيش اتجاه سلبي واضح في الفترة دي")}</div></div>\n        <div className="rounded-2xl border border-red-200 bg-red-50 p-3"><div className="text-[10px] font-black text-red-700">BIGGEST FUNNEL LEAK</div><div className="mt-1 font-black">{meetingReview.leak?.label||"—"}</div><div className="mt-1 text-[11px] font-bold text-red-800">{meetingReview.leak?`${meetingReview.leak.rate}% ${t("conversion","تحويل")}`:t("Not enough funnel volume yet","الحجم لسه مش كفاية للحكم")}</div></div>\n        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div className="text-[10px] font-black text-slate-500">FOLLOW-UP RISK</div><div className="mt-1 font-black">{meetingReview.followRisk?meetingReview.agentName(meetingReview.followRisk):"—"}</div><div className="mt-1 text-[11px] font-bold text-slate-600">{meetingReview.followRisk?`${Number(meetingReview.followRisk.current?.overdue||0)} Overdue · ${Number(meetingReview.followRisk.current?.followup_coverage_pct||0)}% Coverage`:"—"}</div></div>\n      </div>\n      <div className="mt-4 rounded-2xl border bg-slate-50 p-3">\n        <div className="flex items-center justify-between gap-3"><div><div className="text-[10px] font-black text-slate-400">LEADS NEEDING ATTENTION</div><div className="font-black">{t("Stuck, overdue or missing follow-up","ليدز واقفة أو متأخرة أو من غير متابعة")}</div></div><div className="rounded-full bg-white px-2.5 py-1 text-xs font-black">{meetingReview.attention.length}</div></div>\n        <div className="mt-3 grid gap-2 lg:grid-cols-2">\n          {meetingReview.attention.length?meetingReview.attention.slice(0,8).map((lead:any)=><div key={lead.id} className="rounded-xl border bg-white p-3"><div className="flex items-start justify-between gap-3"><div><div className="font-black">{lead.client_name}</div><div className="mt-0.5 text-[10px] font-bold text-slate-400">{lang==="ar"?(lead.agent_name_ar||lead.agent_name_en):lead.agent_name_en} · {lang==="ar"?(stageAr[lead.stage]||lead.stage):lead.stage}</div></div><div className="flex flex-wrap justify-end gap-1">{(lead.issues||[]).map((issue:string)=><span key={issue} className={`rounded-full px-2 py-1 text-[9px] font-black ${issue==="overdue"?"bg-red-100 text-red-700":issue==="dormant"?"bg-amber-100 text-amber-700":"bg-slate-200 text-slate-700"}`}>{issue==="overdue"?t("OVERDUE","متأخر"):issue==="dormant"?t("7+ DAYS","+7 أيام"):t("NO FOLLOW-UP","بدون متابعة")}</span>)}</div></div><div className="mt-2 text-[10px] font-bold text-slate-400">{t("Last update","آخر تعديل")}: {new Date(lead.updated_at).toLocaleString(lang==="ar"?"ar-EG":"en-GB",{timeZone:"Africa/Cairo",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</div></div>):<div className="rounded-xl border border-dashed bg-white p-4 text-center text-xs font-bold text-slate-400 lg:col-span-2">{t("No leads need intervention right now.","مفيش ليدز محتاجة تدخل دلوقتي.")}</div>}\n        </div>\n      </div>\n    </div>\n\n'''
+          s=rep(s,current_pipeline,review+current_pipeline,'meeting review section')
+          p.write_text(s)
+          PY
+      - name: Install dependencies
+        run: yarn install --non-interactive
+      - name: Build web app
+        run: yarn build
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/SalesWarRoomControlDashboard.tsx src/pages/SalesWarRoom.tsx src/lib/salesWarRoomApi.ts src/components/SalesWarRoomMeetingAnalytics.tsx
+          git commit -m "Restrict meeting analytics to Super Admin and add meeting review"
+          git push origin HEAD:war-room-meeting-analytics
