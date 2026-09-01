@@ -21,7 +21,7 @@ async function requestJson(url: string, options: RequestInit = {}) {
   return data
 }
 
-function sessionHeaders(session: WebPushSession) {
+function sessionHeaders(session: WebPushSession): Record<string, string> {
   if (session.type === 'manager') return { 'x-manager-token': session.token }
   if (session.type === 'owner') return { 'x-admin-token': session.token }
   return { 'x-agent-token': session.token }
