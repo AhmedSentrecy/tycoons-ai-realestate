@@ -74,3 +74,5 @@ jobs:
           git add src/components/SalesWarRoomNotificationCenter.tsx
           git commit -m "Enable manager and super admin desktop push"
           git push origin HEAD:main
+
+# retry after web push typing fix
