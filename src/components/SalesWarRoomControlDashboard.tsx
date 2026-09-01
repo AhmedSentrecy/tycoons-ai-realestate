@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { salesWarRoomApi } from "../lib/salesWarRoomApi";
+import SalesWarRoomMeetingAnalytics from "./SalesWarRoomMeetingAnalytics";
 
 const stages = ["New Lead","Contacted","Cold","Warm","Hot / Very Potential","Hold","Meeting Scheduled","Meeting Held","Negotiation / Closing","Won","Lost / Dead"];
 const stageAr: Record<string,string> = {
@@ -9,7 +10,7 @@ const fmt=(d:Date)=>d.toISOString().slice(0,10);
 const monthStart=()=>{const d=new Date();d.setDate(1);return fmt(d)};
 const money=(n:number)=>n>=1_000_000_000?`EGP ${(n/1_000_000_000).toFixed(1)}B`:n>=1_000_000?`EGP ${(n/1_000_000).toFixed(1)}M`:`EGP ${Math.round(n).toLocaleString()}`;
 
-type Tab="overview"|"pipeline"|"agents";
+type Tab="overview"|"analytics"|"pipeline"|"agents";
 type ControlScope="owner"|"manager";
 
 export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope}){
@@ -39,7 +40,7 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
   const [newAgent,setNewAgent]=useState({name_en:"",name_ar:"",slug:""});
   const t=(en:string,ar:string)=>lang==="ar"?ar:en;
   const title=manager?"Manager":"Super Admin";
-  const tabs:Tab[]=manager?["overview","agents"]:["overview","pipeline","agents"];
+  const tabs:Tab[]=manager?["overview","analytics","agents"]:["overview","analytics","pipeline","agents"];
 
   useEffect(()=>{
     document.title=`Tycoons Sales War Room ${title}`;
@@ -168,11 +169,13 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
     <div className="mx-auto max-w-[1500px] p-3 pb-24 md:p-5">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs font-black tracking-[.18em] text-slate-500">TYCOONS SALES WAR ROOM</div><h1 className="text-2xl font-black">{title}</h1>{manager&&<div className="mt-1 text-xs font-bold text-slate-400">Ahmed Yehia · Nour Mohamed · Mostafa Amr</div>}</div><div className="flex gap-2"><button onClick={()=>setLang(lang==="ar"?"en":"ar")} className="rounded-full border bg-white px-4 py-2 text-sm font-black">{lang==="ar"?"EN":"عربي"}</button><button onClick={logout} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">{t("Logout","خروج")}</button></div></header>
 
-      <nav className={`sticky top-2 z-30 mb-4 grid gap-2 rounded-2xl border bg-white/95 p-2 shadow-sm backdrop-blur ${manager?"grid-cols-2":"grid-cols-3"}`}>
-        {tabs.map(x=><button key={x} onClick={()=>setTab(x)} className={`rounded-xl px-3 py-3 text-xs font-black ${tab===x?"bg-slate-950 text-white":"bg-slate-50"}`}>{x==="overview"?t("Overview","Overview"):x==="pipeline"?t("Pipeline Editor","Pipeline Editor"):t("Agents","Agents")}</button>)}
+      <nav className={`sticky top-2 z-30 mb-4 grid gap-2 rounded-2xl border bg-white/95 p-2 shadow-sm backdrop-blur ${manager?"grid-cols-3":"grid-cols-4"}`}>
+        {tabs.map(x=><button key={x} onClick={()=>setTab(x)} className={`rounded-xl px-3 py-3 text-xs font-black ${tab===x?"bg-slate-950 text-white":"bg-slate-50"}`}>{x==="overview"?t("Overview","Overview"):x==="analytics"?t("Meeting Analytics","Meeting Analytics"):x==="pipeline"?t("Pipeline Editor","Pipeline Editor"):t("Agents","Agents")}</button>)}
       </nav>
 
       {error&&<div className="mb-3 rounded-xl border border-red-300 bg-red-50 p-3 text-sm font-bold text-red-800">{error}</div>}
+
+      {tab==="analytics"&&<SalesWarRoomMeetingAnalytics scope={scope} token={token} lang={lang}/>}
 
       {tab==="overview"&&<>
         <section className="grid gap-3 rounded-3xl bg-slate-950 p-4 text-white md:grid-cols-[1fr_auto]"><div><div className="text-xs font-black text-slate-400">{t("TEAM PERFORMANCE WINDOW","فترة أداء الفريق")}</div><div className="mt-2 text-2xl font-black">{from} → {to}</div></div><div className="flex gap-2"><label className="text-xs"><span className="mb-1 block text-slate-400">{t("From","من")}</span><input type="date" value={from} onChange={e=>setFrom(e.target.value)} className="max-w-[145px] rounded-xl bg-white p-2 text-slate-950"/></label><label className="text-xs"><span className="mb-1 block text-slate-400">{t("To","إلى")}</span><input type="date" value={to} onChange={e=>setTo(e.target.value)} className="max-w-[145px] rounded-xl bg-white p-2 text-slate-950"/></label></div></section>

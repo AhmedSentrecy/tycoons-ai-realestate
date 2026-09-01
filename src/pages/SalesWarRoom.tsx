@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { salesWarRoomApi } from "../lib/salesWarRoomApi";
+import SalesWarRoomActivityLedger from "../components/SalesWarRoomActivityLedger";
 
 const stages = ["New Lead","Contacted","Cold","Warm","Hot / Very Potential","Hold","Meeting Scheduled","Meeting Held","Negotiation / Closing","Won","Lost / Dead"];
 const ar: Record<string,string> = {
@@ -147,6 +148,8 @@ export default function SalesWarRoom(){
         {pipelineView==="table"&&<TableView pipeline={pipeline} ar={ar} lang={lang} t={t} startEdit={startEdit}/>} 
         {pipelineView==="calendar"&&<CalendarView pipeline={pipeline} ar={ar} lang={lang} t={t} startEdit={startEdit}/>} 
         {pipelineView==="funnel"&&<FunnelView pipeline={pipeline} stages={stages} ar={ar} lang={lang} t={t}/>} 
+
+        <SalesWarRoomActivityLedger pipeline={pipeline} token={token} lang={lang}/>
 
         <div className="mt-5 border-t pt-4"><h3 className="mb-3 font-black">+ {t("Add Lead","إضافة Lead")}</h3><div className="grid gap-2 md:grid-cols-5"><input value={lead.client_name} onChange={e=>setLead({...lead,client_name:e.target.value})} placeholder={t("Client name","اسم العميل")} className="rounded-xl border p-3"/><input value={lead.phone} onChange={e=>setLead({...lead,phone:e.target.value})} placeholder={t("Phone","الموبايل")} className="rounded-xl border p-3"/><input value={lead.budget} onChange={e=>setLead({...lead,budget:e.target.value})} placeholder={t("Budget","الميزانية")} className="rounded-xl border p-3"/><input type="number" min="0" step="0.1" value={lead.expected_value} onChange={e=>setLead({...lead,expected_value:e.target.value})} placeholder={t("Expected Sale (M EGP)","Expected Sale بالمليون")} className="rounded-xl border p-3"/><select value={lead.stage} onChange={e=>setLead({...lead,stage:e.target.value})} className="rounded-xl border p-3">{stages.map(s=><option key={s} value={s}>{lang==="ar"?ar[s]:s}</option>)}</select><input value={lead.next_action} onChange={e=>setLead({...lead,next_action:e.target.value})} placeholder={t("Next action","الخطوة الجاية")} className="rounded-xl border p-3 md:col-span-2"/><input type="date" value={lead.next_action_date} min={todayLocal()} onChange={e=>setLead({...lead,next_action_date:e.target.value,next_action_time:e.target.value?(lead.next_action_time||"09:00"):""})} className="rounded-xl border p-3"/><input type="time" value={lead.next_action_time} disabled={!lead.next_action_date} onChange={e=>setLead({...lead,next_action_time:e.target.value})} aria-label={t("Follow-up time","وقت المتابعة")} className="rounded-xl border p-3 disabled:bg-slate-100 disabled:text-slate-400"/><input value={lead.next_action_trigger} onChange={e=>setLead({...lead,next_action_trigger:e.target.value})} placeholder={t("Trigger (optional)","Trigger اختياري")} className="rounded-xl border p-3"/><button onClick={addLead} className="rounded-xl bg-slate-950 p-3 font-black text-white">{t("Add to Pipeline","ضيف للـPipeline")}</button><textarea value={lead.notes} onChange={e=>setLead({...lead,notes:e.target.value})} placeholder={t("Full feedback / client context / competing offers","الفيدباك كامل / سياق العميل / العروض المنافسة")} className="min-h-[96px] rounded-xl border p-3 md:col-span-5"/></div></div>
       </section>
