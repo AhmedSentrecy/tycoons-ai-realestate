@@ -8,6 +8,8 @@ const RECOMMENDATIONS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/
 const TEAM_MONITOR_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-team-monitor";
 const SALES_TOTALS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-sales-totals";
 const MANAGER_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-manager";
+const MEETING_ANALYTICS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-meeting-analytics";
+const LEAD_ACTIVITY_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-lead-activity";
 
 async function requestUrl(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
@@ -25,6 +27,7 @@ async function request(path: string, options: RequestInit = {}) {
 
 const agentHeaders = (token: string) => ({ "x-agent-token": token });
 const managerHeaders = (token: string) => ({ "x-manager-token": token });
+const controlHeaders = (scope: "owner" | "manager", token: string) => scope === "manager" ? managerHeaders(token) : { "x-admin-token": token };
 
 export const salesWarRoomApi = {
   agentLogin: (slug: string, password: string) => request("agent-login", { method: "POST", body: JSON.stringify({ slug, password }) }),
@@ -33,6 +36,11 @@ export const salesWarRoomApi = {
   patchScore: (token: string, body: Record<string, unknown>) => request("score", { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
   addLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "POST", headers: agentHeaders(token), body: JSON.stringify(body) }),
   updateLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
+  getLeadActivity: (token: string, leadId: string) => requestUrl(`${LEAD_ACTIVITY_API}?lead_id=${encodeURIComponent(leadId)}`, { headers: agentHeaders(token) }),
+  addLeadFeedback: (token: string, leadId: string, body: string) => requestUrl(LEAD_ACTIVITY_API, { method: "POST", headers: agentHeaders(token), body: JSON.stringify({ lead_id: leadId, body }) }),
+  getControlLeadActivity: (scope: "owner" | "manager", token: string, leadId: string) => requestUrl(`${LEAD_ACTIVITY_API}?lead_id=${encodeURIComponent(leadId)}`, { headers: controlHeaders(scope, token) }),
+  addControlLeadFeedback: (scope: "owner" | "manager", token: string, leadId: string, body: string) => requestUrl(LEAD_ACTIVITY_API, { method: "POST", headers: controlHeaders(scope, token), body: JSON.stringify({ lead_id: leadId, body }) }),
+  getMeetingAnalytics: (scope: "owner" | "manager", token: string) => requestUrl(MEETING_ANALYTICS_API, { headers: controlHeaders(scope, token) }),
   getRecommendations: (token: string, leadId: string, owner = false) => requestUrl(RECOMMENDATIONS_API, {
     method: "POST",
     headers: owner ? { "x-admin-token": token } : agentHeaders(token),
