@@ -10,6 +10,7 @@ const SALES_TOTALS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/
 const MANAGER_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-manager";
 const MEETING_ANALYTICS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-meeting-analytics";
 const LEAD_ACTIVITY_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-lead-activity";
+const PERIOD_RESULTS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-period-results";
 
 async function requestUrl(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
@@ -33,6 +34,8 @@ export const salesWarRoomApi = {
   agentLogin: (slug: string, password: string) => request("agent-login", { method: "POST", body: JSON.stringify({ slug, password }) }),
   getAgent: (slug: string, token: string, date?: string) => request(`agent?slug=${encodeURIComponent(slug)}${date ? `&date=${date}` : ""}`, { headers: agentHeaders(token) }),
   getLeaders: (token: string) => requestUrl(LEADERS_API, { headers: agentHeaders(token) }),
+  getAgentPeriodResults: (token: string) => requestUrl(PERIOD_RESULTS_API, { headers: agentHeaders(token) }),
+  getControlPeriodResults: (scope: "owner" | "manager", token: string) => requestUrl(PERIOD_RESULTS_API, { headers: controlHeaders(scope, token) }),
   patchScore: (token: string, body: Record<string, unknown>) => request("score", { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
   addLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "POST", headers: agentHeaders(token), body: JSON.stringify(body) }),
   updateLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
