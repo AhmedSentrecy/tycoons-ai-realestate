@@ -8,6 +8,7 @@ import {
   syncNotificationInbox,
   type WarRoomNotificationItem,
 } from '../lib/warRoomNotifications'
+import { enableWebPush, getWebPushState, webPushSupported } from '../lib/warRoomWebPush'
 
 type ViewNotificationItem = WarRoomNotificationItem & {
   agentName: string
@@ -41,6 +42,8 @@ export default function SalesWarRoomNotificationCenter() {
   const [syncing, setSyncing] = useState(false)
   const [openingId, setOpeningId] = useState('')
   const [error, setError] = useState('')
+  const [pushState, setPushState] = useState<'unsupported' | 'denied' | 'enabled' | 'idle' | 'busy'>('idle')
+  const [pushMessage, setPushMessage] = useState('')
   const [, setAuthTick] = useState(0)
   const syncingRef = useRef(false)
   const lang = (localStorage.getItem('warRoomLang') as 'en' | 'ar') || 'en'
@@ -50,6 +53,7 @@ export default function SalesWarRoomNotificationCenter() {
   const managerToken = localStorage.getItem('warRoomManagerToken') || ''
   const agentSlug = activeAgentSlug(location.pathname)
   const agentToken = agentSlug ? (localStorage.getItem(`warRoomAgentToken:${agentSlug}`) || '') : ''
+  const controlSession = Boolean(ownerToken || managerToken || sessionStorage.getItem('warRoomControlReturnTo'))
 
   const mode: CenterMode = (() => {
     if ((location.pathname === '/sales-war-room/admin' || location.pathname === '/sales-war-room/owner') && ownerToken) return 'owner'
@@ -67,6 +71,19 @@ export default function SalesWarRoomNotificationCenter() {
       window.removeEventListener('storage', refreshAuth)
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    if (mode !== 'agent' || controlSession || !webPushSupported()) {
+      setPushState('unsupported')
+      setPushMessage('')
+      return
+    }
+    void getWebPushState()
+      .then(state => { if (!cancelled) setPushState(state) })
+      .catch(() => { if (!cancelled) setPushState('idle') })
+    return () => { cancelled = true }
+  }, [mode, agentSlug, agentToken, controlSession])
 
   function mergeTeamInbox(agents: any[], pipeline: any[]) {
     const merged: ViewNotificationItem[] = []
@@ -143,6 +160,33 @@ export default function SalesWarRoomNotificationCenter() {
     const timer = window.setInterval(() => void refreshCenter(), 60_000)
     return () => window.clearInterval(timer)
   }, [mode, agentSlug, ownerToken, managerToken])
+
+  async function enableDesktopNotifications() {
+    if (pushState !== 'idle' || !agentToken) return
+    try {
+      setPushState('busy')
+      setPushMessage('')
+      setError('')
+      await enableWebPush(agentToken)
+      setPushState('enabled')
+      setPushMessage(t('Desktop notifications are enabled on this computer.', 'تنبيهات الديسكتوب اتفعلت على الجهاز ده.'))
+    } catch (e: any) {
+      const code = String(e?.message || e || '')
+      if (code === 'notifications_denied') {
+        setPushState('denied')
+        setError(t('Chrome notifications are blocked. Allow notifications for this site from Chrome settings.', 'تنبيهات Chrome مقفولة. اسمح للموقع بالتنبيهات من إعدادات Chrome.'))
+        return
+      }
+      if (code === 'direct_agent_session_required') {
+        setPushState('unsupported')
+        setError(t('Desktop push can only be enabled from the agent’s direct login, not through Manager or Owner access.', 'تنبيهات الديسكتوب تتفعل من دخول الـAgent المباشر فقط، مش من دخول Manager أو Owner.'))
+        return
+      }
+      const state = await getWebPushState().catch(() => 'idle' as const)
+      setPushState(state)
+      setError(t('Could not enable desktop notifications. Try again.', 'معرفناش نفعل تنبيهات الديسكتوب. جرّب تاني.'))
+    }
+  }
 
   const unread = useMemo(() => items.filter(item => !item.readAt).length, [items])
 
@@ -226,6 +270,23 @@ export default function SalesWarRoomNotificationCenter() {
             </header>
 
             {error && <div className="border-b bg-red-50 px-4 py-2 text-xs font-bold text-red-700">{error}</div>}
+
+            {mode === 'agent' && !controlSession && (
+              <div className="border-b bg-slate-50 p-3">
+                <button
+                  type="button"
+                  disabled={pushState !== 'idle'}
+                  onClick={() => void enableDesktopNotifications()}
+                  className={`w-full rounded-xl px-3 py-2.5 text-xs font-black transition ${pushState === 'enabled' ? 'bg-emerald-600 text-white' : pushState === 'denied' || pushState === 'unsupported' ? 'bg-slate-200 text-slate-500' : 'bg-slate-950 text-white disabled:opacity-70'}`}
+                >
+                  {pushState === 'enabled' ? t('✓ Desktop notifications ON', '✓ تنبيهات الديسكتوب شغالة') : pushState === 'busy' ? t('Enabling…', 'جاري التفعيل…') : pushState === 'denied' ? t('Notifications blocked in Chrome', 'التنبيهات مقفولة في Chrome') : pushState === 'unsupported' ? t('Desktop notifications unavailable', 'تنبيهات الديسكتوب غير متاحة') : t('Enable Desktop Notifications', 'فعّل تنبيهات الديسكتوب')}
+                </button>
+                <div className="mt-1.5 text-[10px] font-bold leading-4 text-slate-400">
+                  {t('Follow-up reminders can appear in Windows even when this War Room tab is not open.', 'تنبيهات الـFollow-up تقدر تظهر في Windows حتى لو تاب الـWar Room مش مفتوحة.')}
+                </div>
+                {pushMessage && <div className="mt-1 text-[10px] font-black text-emerald-700">{pushMessage}</div>}
+              </div>
+            )}
 
             <div className="max-h-[min(64vh,580px)] overflow-y-auto p-2">
               {syncing && items.length === 0 ? (
