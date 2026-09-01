@@ -40,7 +40,7 @@ export const salesWarRoomApi = {
   addLeadFeedback: (token: string, leadId: string, body: string) => requestUrl(LEAD_ACTIVITY_API, { method: "POST", headers: agentHeaders(token), body: JSON.stringify({ lead_id: leadId, body }) }),
   getControlLeadActivity: (scope: "owner" | "manager", token: string, leadId: string) => requestUrl(`${LEAD_ACTIVITY_API}?lead_id=${encodeURIComponent(leadId)}`, { headers: controlHeaders(scope, token) }),
   addControlLeadFeedback: (scope: "owner" | "manager", token: string, leadId: string, body: string) => requestUrl(LEAD_ACTIVITY_API, { method: "POST", headers: controlHeaders(scope, token), body: JSON.stringify({ lead_id: leadId, body }) }),
-  getMeetingAnalytics: (scope: "owner" | "manager", token: string) => requestUrl(MEETING_ANALYTICS_API, { headers: controlHeaders(scope, token) }),
+  getMeetingAnalytics: (token: string) => requestUrl(MEETING_ANALYTICS_API, { headers: { "x-admin-token": token } }),
   getRecommendations: (token: string, leadId: string, owner = false) => requestUrl(RECOMMENDATIONS_API, {
     method: "POST",
     headers: owner ? { "x-admin-token": token } : agentHeaders(token),

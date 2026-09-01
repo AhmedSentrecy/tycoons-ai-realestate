@@ -42,7 +42,7 @@ export default function SalesWarRoomMeetingAnalytics({scope,token,lang}:Props){
   useEffect(()=>{
     let cancelled=false;
     async function run(){
-      try{setLoading(true);setError("");const r=await salesWarRoomApi.getMeetingAnalytics(scope,token);if(!cancelled)setData(r)}
+      try{setLoading(true);setError("");const r=await salesWarRoomApi.getMeetingAnalytics(token);if(!cancelled)setData(r)}
       catch(e:any){if(!cancelled)setError(e.message||"analytics_error")}
       finally{if(!cancelled)setLoading(false)}
     }
@@ -60,6 +60,30 @@ export default function SalesWarRoomMeetingAnalytics({scope,token,lang}:Props){
   const compareLabel=period==="today"?t("vs yesterday","مقارنة بأمس"):period==="week"?t("vs same days last week","مقارنة بنفس أيام الأسبوع اللي فات"):t("vs same days last month","مقارنة بنفس أيام الشهر اللي فات");
 
   const sortedAgents=useMemo(()=>[...agents].sort((a:any,b:any)=>Number(b?.[period]?.qualified_leads||0)-Number(a?.[period]?.qualified_leads||0)||Number(b?.[period]?.calls||0)-Number(a?.[period]?.calls||0)),[agents,period]);
+
+  const meetingReview=useMemo(()=>{
+    const agentName=(a:any)=>lang==="ar"?(a?.name_ar||a?.name_en||a?.slug):(a?.name_en||a?.name_ar||a?.slug);
+    const scored=(agents||[]).map((a:any)=>{
+      const m=a?.[period]||{};const p=a?.previous?.[period]||{};
+      const qDelta=Number(m.qualified_leads||0)-Number(p.qualified_leads||0);
+      const convDelta=Number(m.call_to_qualified_pct||0)-Number(p.call_to_qualified_pct||0);
+      const callsDelta=Number(m.calls||0)-Number(p.calls||0);
+      return {a,m,p,qDelta,convDelta,callsDelta,score:qDelta*100+convDelta*5+callsDelta/50};
+    });
+    const improver=[...scored].sort((x:any,y:any)=>y.score-x.score||String(agentName(x.a)).localeCompare(String(agentName(y.a))))[0]||null;
+    const negative=scored.filter((x:any)=>x.qDelta<0||x.convDelta<0||x.callsDelta<0);
+    const decliner=[...negative].sort((x:any,y:any)=>x.score-y.score||String(agentName(x.a)).localeCompare(String(agentName(y.a))))[0]||null;
+    const chain=[
+      {label:t("Calls → Potential","Calls → Potential"),from:Number(current.calls||0),to:Number(current.potential_cases||0)},
+      {label:t("Potential → Qualified","Potential → Qualified"),from:Number(current.potential_cases||0),to:Number(current.qualified_leads||0)},
+      {label:t("Qualified → Meetings","Qualified → Meetings"),from:Number(current.qualified_leads||0),to:Number(current.meetings_held||0)},
+      {label:t("Meetings → Deals","Meetings → Deals"),from:Number(current.meetings_held||0),to:Number(current.deals_won||0)},
+    ].filter((x:any)=>x.from>0).map((x:any)=>({...x,rate:Math.round((x.to/x.from)*1000)/10}));
+    const leak=[...chain].sort((a:any,b:any)=>a.rate-b.rate)[0]||null;
+    const followRisk=[...(agents||[])].sort((a:any,b:any)=>Number(b?.current?.overdue||0)-Number(a?.current?.overdue||0)||Number(a?.current?.followup_coverage_pct||0)-Number(b?.current?.followup_coverage_pct||0))[0]||null;
+    const attention=Array.isArray(data?.attention_leads)?data.attention_leads:[];
+    return {agentName,improver,decliner,leak,followRisk,attention};
+  },[agents,period,current,previous,data,lang]);
 
   if(loading&&!data)return <section className="mt-4 rounded-3xl border bg-white p-8 text-center text-sm font-black text-slate-400">{t("Loading meeting analytics…","جاري تحميل Meeting Analytics…")}</section>;
   if(error&&!data)return <section className="mt-4 rounded-3xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-800">{error}</section>;
@@ -128,6 +152,25 @@ export default function SalesWarRoomMeetingAnalytics({scope,token,lang}:Props){
           <thead><tr className="border-b text-[10px] font-black uppercase text-slate-400"><th className="p-2">{t("Agent","Agent")}</th><th className="p-2">Calls</th><th className="p-2">Potential</th><th className="p-2">Qualified</th><th className="p-2">Call→Q</th><th className="p-2">Feedbacks</th><th className="p-2">Touched</th><th className="p-2">Warm / Hot</th><th className="p-2">Overdue</th><th className="p-2">Coverage</th></tr></thead>
           <tbody>{sortedAgents.map((a:any)=>{const m=a?.[period]||{};const p=a?.previous?.[period]||{};return <tr key={a.id} className="border-b last:border-0"><td className="p-2 font-black">{lang==="ar"?(a.name_ar||a.name_en):a.name_en}</td><td className="p-2"><div className="font-black">{num(m.calls)}</div><Delta current={Number(m.calls||0)} previous={Number(p.calls||0)}/></td><td className="p-2"><div className="font-black">{num(m.potential_cases)}</div><div className="text-[10px] text-slate-400">{Number(m.call_to_potential_pct||0)}%</div></td><td className="p-2"><div className="font-black">{num(m.qualified_leads)}</div><Delta current={Number(m.qualified_leads||0)} previous={Number(p.qualified_leads||0)}/></td><td className="p-2 font-black">{Number(m.call_to_qualified_pct||0)}%</td><td className="p-2 font-black">{num(m.feedbacks)}</td><td className="p-2 font-black">{num(m.touched_leads)}</td><td className="p-2 font-black">{a.current?.warm||0} / {a.current?.hot||0}</td><td className={`p-2 font-black ${Number(a.current?.overdue||0)>0?"text-red-600":""}`}>{a.current?.overdue||0}</td><td className="p-2 font-black">{Number(a.current?.followup_coverage_pct||0)}%</td></tr>})}</tbody>
         </table>
+      </div>
+    </div>
+
+    <div className="rounded-3xl border border-slate-300 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div><div className="text-[10px] font-black tracking-[.14em] text-slate-400">MEETING REVIEW</div><h3 className="text-lg font-black">{t("What changed, where are we leaking, and what needs action?","إيه اللي اتحسن وإيه اللي اتراجع وفين التسريب وإيه اللي محتاج تدخل؟")}</h3></div>
+        <div className="rounded-full bg-slate-100 px-3 py-1.5 text-[10px] font-black text-slate-500">{periodLabel} · {compareLabel}</div>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3"><div className="text-[10px] font-black text-emerald-700">BEST MOMENTUM</div><div className="mt-1 font-black">{meetingReview.improver?meetingReview.agentName(meetingReview.improver.a):"—"}</div><div className="mt-1 text-[11px] font-bold text-emerald-800">{meetingReview.improver?`${meetingReview.improver.qDelta>=0?"+":""}${meetingReview.improver.qDelta} Qualified · ${meetingReview.improver.callsDelta>=0?"+":""}${meetingReview.improver.callsDelta} Calls`:t("No comparison data yet","مفيش بيانات مقارنة كفاية")}</div></div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3"><div className="text-[10px] font-black text-amber-700">NEEDS ATTENTION</div><div className="mt-1 font-black">{meetingReview.decliner?meetingReview.agentName(meetingReview.decliner.a):t("No clear decline","مفيش تراجع واضح")}</div><div className="mt-1 text-[11px] font-bold text-amber-800">{meetingReview.decliner?`${meetingReview.decliner.qDelta} Qualified · ${meetingReview.decliner.convDelta.toFixed(1)} pts Call→Q`:t("No negative trend in this window","مفيش اتجاه سلبي واضح في الفترة دي")}</div></div>
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-3"><div className="text-[10px] font-black text-red-700">BIGGEST FUNNEL LEAK</div><div className="mt-1 font-black">{meetingReview.leak?.label||"—"}</div><div className="mt-1 text-[11px] font-bold text-red-800">{meetingReview.leak?`${meetingReview.leak.rate}% ${t("conversion","تحويل")}`:t("Not enough funnel volume yet","الحجم لسه مش كفاية للحكم")}</div></div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3"><div className="text-[10px] font-black text-slate-500">FOLLOW-UP RISK</div><div className="mt-1 font-black">{meetingReview.followRisk?meetingReview.agentName(meetingReview.followRisk):"—"}</div><div className="mt-1 text-[11px] font-bold text-slate-600">{meetingReview.followRisk?`${Number(meetingReview.followRisk.current?.overdue||0)} Overdue · ${Number(meetingReview.followRisk.current?.followup_coverage_pct||0)}% Coverage`:"—"}</div></div>
+      </div>
+      <div className="mt-4 rounded-2xl border bg-slate-50 p-3">
+        <div className="flex items-center justify-between gap-3"><div><div className="text-[10px] font-black text-slate-400">LEADS NEEDING ATTENTION</div><div className="font-black">{t("Stuck, overdue or missing follow-up","ليدز واقفة أو متأخرة أو من غير متابعة")}</div></div><div className="rounded-full bg-white px-2.5 py-1 text-xs font-black">{meetingReview.attention.length}</div></div>
+        <div className="mt-3 grid gap-2 lg:grid-cols-2">
+          {meetingReview.attention.length?meetingReview.attention.slice(0,8).map((lead:any)=><div key={lead.id} className="rounded-xl border bg-white p-3"><div className="flex items-start justify-between gap-3"><div><div className="font-black">{lead.client_name}</div><div className="mt-0.5 text-[10px] font-bold text-slate-400">{lang==="ar"?(lead.agent_name_ar||lead.agent_name_en):lead.agent_name_en} · {lang==="ar"?(stageAr[lead.stage]||lead.stage):lead.stage}</div></div><div className="flex flex-wrap justify-end gap-1">{(lead.issues||[]).map((issue:string)=><span key={issue} className={`rounded-full px-2 py-1 text-[9px] font-black ${issue==="overdue"?"bg-red-100 text-red-700":issue==="dormant"?"bg-amber-100 text-amber-700":"bg-slate-200 text-slate-700"}`}>{issue==="overdue"?t("OVERDUE","متأخر"):issue==="dormant"?t("7+ DAYS","+7 أيام"):t("NO FOLLOW-UP","بدون متابعة")}</span>)}</div></div><div className="mt-2 text-[10px] font-bold text-slate-400">{t("Last update","آخر تعديل")}: {new Date(lead.updated_at).toLocaleString(lang==="ar"?"ar-EG":"en-GB",{timeZone:"Africa/Cairo",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</div></div>):<div className="rounded-xl border border-dashed bg-white p-4 text-center text-xs font-bold text-slate-400 lg:col-span-2">{t("No leads need intervention right now.","مفيش ليدز محتاجة تدخل دلوقتي.")}</div>}
+        </div>
       </div>
     </div>
 

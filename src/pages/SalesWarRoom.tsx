@@ -110,7 +110,7 @@ export default function SalesWarRoom(){
   if(err&&!data)return <main className="grid min-h-screen place-items-center bg-slate-950 p-4 text-white"><div className="text-center"><div>{t("Dashboard unavailable","الداشبورد غير متاحة")}</div><div className="mt-2 text-sm text-red-300">{err}</div><button onClick={clearSession} className="mt-4 rounded-xl bg-white px-4 py-2 font-black text-slate-950">{t("Sign in again","دخول من جديد")}</button></div></main>;
 
   const name=lang==="ar"?data.agent.name_ar:data.agent.name_en;
-  const leaderNames=(items:any[]|undefined)=>items?.length?items.map(x=>lang==="ar"?x.name_ar:x.name_en).join(" + "):t("No leader yet","لسه مفيش متصدر");
+  const leaderNames=(items:any[]|undefined)=>items?.length?(lang==="ar"?(items[0].name_ar||items[0].name_en):(items[0].name_en||items[0].name_ar)):t("No leader yet","لسه مفيش متصدر");
 
   return <main className="min-h-screen bg-[#f3f5f7] text-[#111317]" dir={lang==="ar"?"rtl":"ltr"}>
     <div className="mx-auto max-w-[1600px] p-3 md:p-5">
