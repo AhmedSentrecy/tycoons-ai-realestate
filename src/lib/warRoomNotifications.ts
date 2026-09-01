@@ -14,6 +14,7 @@ export type WarRoomNotificationItem = {
   title: string
   body: string
   date: string
+  time: string
   route: string
   createdAt: string
   readAt: string | null
@@ -26,6 +27,15 @@ function nativeApp() {
 function todayLocal() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+function normalizeTime(value: any) {
+  const raw = String(value || '').trim()
+  return /^\d{2}:\d{2}/.test(raw) ? raw.slice(0, 5) : '09:00'
+}
+
+function dueAt(date: string, time: string) {
+  return new Date(`${date}T${time}:00`)
 }
 
 function hashId(value: string) {
@@ -68,43 +78,41 @@ export function markAllNotificationsRead(slug: string) {
 export function syncNotificationInbox(slug: string, pipeline: any[]) {
   if (!slug || !Array.isArray(pipeline)) return [] as WarRoomNotificationItem[]
 
-  const today = todayLocal()
+  const now = new Date()
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 30)
   const cutoffDate = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`
-
-  const existing = readInbox(slug).filter(item => item.date >= cutoffDate)
+  const existing = readInbox(slug)
   const byId = new Map(existing.map(item => [item.id, item]))
+  const items: WarRoomNotificationItem[] = []
 
   for (const lead of pipeline) {
     if (!lead?.id || !lead?.next_action_date) continue
     if (['Won', 'Lost / Dead'].includes(String(lead.stage || ''))) continue
-
     const date = String(lead.next_action_date)
-    if (date > today || date < cutoffDate) continue
+    if (date < cutoffDate) continue
+    const time = normalizeTime(lead.next_action_time)
+    const scheduled = dueAt(date, time)
+    if (!Number.isFinite(scheduled.getTime()) || scheduled.getTime() > now.getTime()) continue
 
     const leadId = String(lead.id)
-    const id = `${leadId}:${date}`
+    const id = `${leadId}:${date}:${time}`
+    const old = byId.get(id) || byId.get(`${leadId}:${date}`)
     const stage = String(lead.stage || '').trim()
     const nextAction = String(lead.next_action || '').trim()
     const body = [stage, nextAction].filter(Boolean).join(' · ') || 'Follow-up due'
-    const old = byId.get(id)
-
-    byId.set(id, {
-      id,
-      leadId,
-      slug,
+    items.push({
+      id, leadId, slug,
       clientName: String(lead.client_name || 'Client'),
       title: `Follow up with ${lead.client_name || 'client'}`,
-      body,
-      date,
+      body, date, time,
       route: `/sales-war-room/a/${slug}/lead/${encodeURIComponent(leadId)}`,
       createdAt: old?.createdAt || new Date().toISOString(),
       readAt: old?.readAt || null,
     })
   }
 
-  const items = Array.from(byId.values()).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+  items.sort((a, b) => `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`) || b.createdAt.localeCompare(a.createdAt))
   writeInbox(slug, items)
   return items
 }
@@ -140,19 +148,12 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
   if (!(await ensureNotificationPermission())) return
 
   const previousIds = (() => {
-    try {
-      return JSON.parse(localStorage.getItem(IDS_KEY(slug)) || '[]') as number[]
-    } catch {
-      return [] as number[]
-    }
+    try { return JSON.parse(localStorage.getItem(IDS_KEY(slug)) || '[]') as number[] }
+    catch { return [] as number[] }
   })()
-
   if (previousIds.length) {
-    try {
-      await LocalNotifications.cancel({ notifications: previousIds.map(id => ({ id })) })
-    } catch {
-      // Ignore stale IDs.
-    }
+    try { await LocalNotifications.cancel({ notifications: previousIds.map(id => ({ id })) }) }
+    catch { /* Ignore stale IDs. */ }
   }
 
   const now = new Date()
@@ -160,53 +161,43 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
   const active = pipeline
     .filter((lead: any) => lead?.id && lead?.next_action_date)
     .filter((lead: any) => !['Won', 'Lost / Dead'].includes(String(lead.stage || '')))
-    .sort((a: any, b: any) => String(a.next_action_date).localeCompare(String(b.next_action_date)))
+    .sort((a: any, b: any) => `${a.next_action_date}T${normalizeTime(a.next_action_time)}`.localeCompare(`${b.next_action_date}T${normalizeTime(b.next_action_time)}`))
     .slice(0, 50)
 
   const notifications: any[] = []
   const ids: number[] = []
-
   for (const lead of active) {
     const date = String(lead.next_action_date)
-    let at = new Date(`${date}T09:00:00`)
-
     if (date < today) continue
+    const time = normalizeTime(lead.next_action_time)
+    const dueKey = `${date}T${time}`
+    let at = dueAt(date, time)
+    if (!Number.isFinite(at.getTime())) continue
 
-    if (date === today && at.getTime() <= now.getTime()) {
-      if (localStorage.getItem(SENT_KEY(String(lead.id), date))) continue
+    if (at.getTime() <= now.getTime()) {
+      if (localStorage.getItem(SENT_KEY(String(lead.id), dueKey))) continue
       at = new Date(Date.now() + 6_000)
-      localStorage.setItem(SENT_KEY(String(lead.id), date), '1')
+      localStorage.setItem(SENT_KEY(String(lead.id), dueKey), '1')
     }
 
-    const id = hashId(`${slug}:${lead.id}:${date}`)
+    const id = hashId(`${slug}:${lead.id}:${dueKey}`)
     ids.push(id)
-
     const leadId = String(lead.id)
-    const inboxId = `${leadId}:${date}`
+    const inboxId = `${leadId}:${date}:${time}`
     const nextAction = String(lead.next_action || '').trim()
     const stage = String(lead.stage || '').trim()
     const body = [stage, nextAction].filter(Boolean).join(' · ') || 'Follow-up due'
     const route = `/sales-war-room/a/${slug}/lead/${encodeURIComponent(leadId)}`
-
     notifications.push({
       id,
       title: `Follow up with ${lead.client_name || 'client'}`,
       body,
       schedule: { at },
       channelId: CHANNEL_ID,
-      extra: {
-        tycoons: true,
-        leadId,
-        slug,
-        date,
-        inboxId,
-        route,
-      },
+      extra: { tycoons: true, leadId, slug, date, time, inboxId, route },
     })
   }
 
-  if (notifications.length) {
-    await LocalNotifications.schedule({ notifications })
-  }
+  if (notifications.length) await LocalNotifications.schedule({ notifications })
   localStorage.setItem(IDS_KEY(slug), JSON.stringify(ids))
 }

@@ -77,7 +77,7 @@ export default function SalesWarRoomLead(){
     if(!lead)return
     setDraft({
       client_name:lead.client_name||'',phone:lead.phone||'',budget:lead.budget||'',stage:lead.stage||'New Lead',
-      next_action:lead.next_action||'',next_action_date:lead.next_action_date||'',next_action_trigger:lead.next_action_trigger||'',notes:lead.notes||''
+      next_action:lead.next_action||'',next_action_date:lead.next_action_date||'',next_action_time:String(lead.next_action_time||'').slice(0,5),next_action_trigger:lead.next_action_trigger||'',notes:lead.notes||''
     })
     setEditing(true)
   }
@@ -96,6 +96,7 @@ export default function SalesWarRoomLead(){
         stage:draft.stage,
         next_action:draft.next_action,
         next_action_date:draft.next_action_date||null,
+        next_action_time:draft.next_action_date?(draft.next_action_time||'09:00'):null,
         next_action_trigger:draft.next_action_trigger,
         notes:draft.notes,
       })
@@ -139,7 +140,7 @@ export default function SalesWarRoomLead(){
         <div className="mt-5 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
           <Metric label={t('Budget','Budget')} value={lead.budget||'—'}/>
           <Metric label={t('Expected Sale','Expected Sale')} value={formatEgp(lead.expected_value)}/>
-          <Metric label={t('Follow-up','Follow-up')} value={lead.next_action_date||'—'}/>
+          <Metric label={t('Follow-up','Follow-up')} value={lead.next_action_date?`${lead.next_action_date}${lead.next_action_time?` · ${String(lead.next_action_time).slice(0,5)}`:''}`:'—'}/>
           <Metric label={t('Trigger','Trigger')} value={lead.next_action_trigger||'—'}/>
         </div>
       </section>
@@ -161,7 +162,8 @@ export default function SalesWarRoomLead(){
           <input value={draft.budget||''} onChange={e=>setDraft({...draft,budget:e.target.value})} placeholder={t('Budget','الميزانية')} className="rounded-xl border p-3"/>
           <select value={draft.stage||'New Lead'} onChange={e=>setDraft({...draft,stage:e.target.value})} className="rounded-xl border bg-white p-3 font-bold">{stages.map(s=><option key={s} value={s}>{s}</option>)}</select>
           <input value={draft.next_action||''} onChange={e=>setDraft({...draft,next_action:e.target.value})} placeholder={t('Next Action','الخطوة الجاية')} className="rounded-xl border p-3 md:col-span-2"/>
-          <label className="text-xs font-black text-slate-500">{t('Follow-up Date','تاريخ المتابعة')}<input type="date" value={draft.next_action_date||''} onChange={e=>setDraft({...draft,next_action_date:e.target.value})} className="mt-1 w-full rounded-xl border p-3 text-slate-950"/></label>
+          <label className="text-xs font-black text-slate-500">{t('Follow-up Date','تاريخ المتابعة')}<input type="date" value={draft.next_action_date||''} onChange={e=>setDraft({...draft,next_action_date:e.target.value,next_action_time:e.target.value?(draft.next_action_time||'09:00'):''})} className="mt-1 w-full rounded-xl border p-3 text-slate-950"/></label>
+          <label className="text-xs font-black text-slate-500">{t('Follow-up Time','وقت المتابعة')}<input type="time" value={draft.next_action_time||''} disabled={!draft.next_action_date} onChange={e=>setDraft({...draft,next_action_time:e.target.value})} className="mt-1 w-full rounded-xl border p-3 text-slate-950 disabled:bg-slate-100"/></label>
           <input value={draft.next_action_trigger||''} onChange={e=>setDraft({...draft,next_action_trigger:e.target.value})} placeholder="Trigger" className="rounded-xl border p-3"/>
           <textarea value={draft.notes||''} onChange={e=>setDraft({...draft,notes:e.target.value})} placeholder={t('Client Feedback / Notes','الفيدباك / الملاحظات')} className="min-h-[130px] rounded-xl border p-3 md:col-span-2"/>
         </div>

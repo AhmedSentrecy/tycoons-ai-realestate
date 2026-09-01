@@ -76,7 +76,7 @@ export default function SalesWarRoomNotificationCenter() {
       const agentName = displayAgentName(agent, lang)
       merged.push(...synced.map(item => ({ ...item, agentName })))
     }
-    merged.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+    merged.sort((a, b) => `${b.date}T${b.time || '00:00'}`.localeCompare(`${a.date}T${a.time || '00:00'}`) || b.createdAt.localeCompare(a.createdAt))
     return merged
   }
 
@@ -258,7 +258,7 @@ export default function SalesWarRoomNotificationCenter() {
                       {!item.readAt && <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-red-600" />}
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-2 text-[10px] font-black text-slate-400">
-                      <span>{item.date}</span>
+                      <span>{item.date}{item.time ? ` · ${item.time}` : ''}</span>
                       <span>{openingId === item.id ? t('Opening…', 'جاري الفتح…') : t('Open lead →', 'افتح الـLead ←')}</span>
                     </div>
                   </button>
