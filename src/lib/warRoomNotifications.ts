@@ -3,7 +3,8 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 
 const CHANNEL_ID = 'sales-followups'
 const IDS_KEY = (slug: string) => `warRoomNotificationIds:${slug}`
-const SENT_KEY = (leadId: string, date: string) => `warRoomNotificationSent:${leadId}:${date}`
+const SCHEDULE_KEY = (slug: string) => `warRoomNotificationSchedule:${slug}`
+const SENT_KEY = (leadId: string, dueKey: string) => `warRoomNotificationSent:${leadId}:${dueKey}`
 const INBOX_KEY = (slug: string) => `warRoomNotificationInbox:${slug}`
 
 export type WarRoomNotificationItem = {
@@ -147,6 +148,25 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
   if (!nativeApp() || !slug || !Array.isArray(pipeline)) return
   if (!(await ensureNotificationPermission())) return
 
+  const now = new Date()
+  const today = todayLocal()
+  const active = pipeline
+    .filter((lead: any) => lead?.id && lead?.next_action_date)
+    .filter((lead: any) => !['Won', 'Lost / Dead'].includes(String(lead.stage || '')))
+    .filter((lead: any) => String(lead.next_action_date) >= today)
+    .sort((a: any, b: any) => `${a.next_action_date}T${normalizeTime(a.next_action_time)}`.localeCompare(`${b.next_action_date}T${normalizeTime(b.next_action_time)}`))
+    .slice(0, 50)
+
+  const fingerprint = JSON.stringify(active.map((lead: any) => ({
+    id: String(lead.id),
+    date: String(lead.next_action_date),
+    time: normalizeTime(lead.next_action_time),
+    stage: String(lead.stage || ''),
+    nextAction: String(lead.next_action || ''),
+  })))
+
+  if (localStorage.getItem(SCHEDULE_KEY(slug)) === fingerprint) return
+
   const previousIds = (() => {
     try { return JSON.parse(localStorage.getItem(IDS_KEY(slug)) || '[]') as number[] }
     catch { return [] as number[] }
@@ -156,32 +176,26 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
     catch { /* Ignore stale IDs. */ }
   }
 
-  const now = new Date()
-  const today = todayLocal()
-  const active = pipeline
-    .filter((lead: any) => lead?.id && lead?.next_action_date)
-    .filter((lead: any) => !['Won', 'Lost / Dead'].includes(String(lead.stage || '')))
-    .sort((a: any, b: any) => `${a.next_action_date}T${normalizeTime(a.next_action_time)}`.localeCompare(`${b.next_action_date}T${normalizeTime(b.next_action_time)}`))
-    .slice(0, 50)
-
   const notifications: any[] = []
   const ids: number[] = []
+  const scheduledSentKeys: string[] = []
+
   for (const lead of active) {
     const date = String(lead.next_action_date)
-    if (date < today) continue
     const time = normalizeTime(lead.next_action_time)
     const dueKey = `${date}T${time}`
     let at = dueAt(date, time)
     if (!Number.isFinite(at.getTime())) continue
 
+    const sentKey = SENT_KEY(String(lead.id), dueKey)
     if (at.getTime() <= now.getTime()) {
-      if (localStorage.getItem(SENT_KEY(String(lead.id), dueKey))) continue
+      if (localStorage.getItem(sentKey)) continue
       at = new Date(Date.now() + 6_000)
-      localStorage.setItem(SENT_KEY(String(lead.id), dueKey), '1')
     }
 
     const id = hashId(`${slug}:${lead.id}:${dueKey}`)
     ids.push(id)
+    scheduledSentKeys.push(sentKey)
     const leadId = String(lead.id)
     const inboxId = `${leadId}:${date}:${time}`
     const nextAction = String(lead.next_action || '').trim()
@@ -198,6 +212,10 @@ export async function syncFollowupNotifications(slug: string, pipeline: any[]) {
     })
   }
 
-  if (notifications.length) await LocalNotifications.schedule({ notifications })
+  if (notifications.length) {
+    await LocalNotifications.schedule({ notifications })
+    for (const key of scheduledSentKeys) localStorage.setItem(key, '1')
+  }
   localStorage.setItem(IDS_KEY(slug), JSON.stringify(ids))
+  localStorage.setItem(SCHEDULE_KEY(slug), fingerprint)
 }
