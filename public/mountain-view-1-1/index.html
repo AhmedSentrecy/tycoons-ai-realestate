@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#001a70" />
     <meta
       name="description"
-      content="إطلاق Mountain View 1.1 في التجمع الخامس بجوار الرحاب، وحدات كاملة التشطيب واستلام خلال 12 شهرًا."
+      content="Mountain View 1.1 new launch in New Cairo beside Al Rehab, with fully finished homes and delivery within 12 months."
     />
     <title>Mountain View 1.1 | New Launch</title>
     <style>
@@ -74,6 +74,25 @@
         gap: 18px;
       }
       .topbar img { width: min(225px, 56vw); }
+      .topbar-actions { display: flex; align-items: center; gap: 10px; }
+      .language-switch {
+        display: inline-flex;
+        padding: 3px;
+        border: 1px solid rgba(255,255,255,.34);
+        background: rgba(255,255,255,.1);
+      }
+      .language-switch button {
+        min-width: 48px;
+        min-height: 36px;
+        border: 0;
+        background: transparent;
+        color: rgba(255,255,255,.76);
+        font: inherit;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .language-switch button[aria-pressed="true"] { background: #fff; color: var(--navy); }
       .hero { position: relative; overflow: hidden; background: linear-gradient(135deg, #fff 0%, #fff 62%, var(--blue-soft) 100%); }
       .hero-inner {
         width: min(1120px, calc(100% - 36px));
@@ -167,6 +186,10 @@
       .sticky { display: none; }
       @media (max-width: 760px) {
         .topbar { min-height: 72px; }
+        .topbar img { width: min(185px, 44vw); }
+        .topbar-actions { gap: 6px; }
+        .language-switch button { min-width: 40px; min-height: 34px; font-size: 13px; }
+        .launch-badge { display: none; }
         .hero-inner { grid-template-columns: 1fr; gap: 38px; padding: 46px 0 52px; }
         .video-frame { max-width: 500px; justify-self: center; }
         .facts { grid-template-columns: 1fr; padding: 38px 0; }
@@ -206,67 +229,104 @@
       <div class="brand-bar">
         <div class="topbar">
           <img src="./mountain-view-logo.png" alt="Mountain View" />
-          <span class="launch-badge">NEW LAUNCH</span>
+          <div class="topbar-actions">
+            <span class="launch-badge">NEW LAUNCH</span>
+            <div class="language-switch" role="group" aria-label="Language">
+              <button type="button" data-language="en" aria-pressed="true">EN</button>
+              <button type="button" data-language="ar" aria-pressed="false">عربي</button>
+            </div>
+          </div>
         </div>
       </div>
       <section class="hero">
         <div class="hero-inner">
           <div class="hero-copy">
-            <div class="location"><span class="pin">●</span> التجمع الخامس · بجوار الرحاب مباشرة</div>
+            <div class="location"><span class="pin">●</span><span data-en="New Cairo · Directly beside Al Rehab" data-ar="التجمع الخامس · بجوار الرحاب مباشرة">New Cairo · Directly beside Al Rehab</span></div>
             <h1>Mountain View <span>1.1</span></h1>
-            <p class="lead">وحدات كاملة التشطيب واستلام خلال 12 شهرًا، في قلب القاهرة الجديدة أمام بوابة 1 الرحاب.</p>
-            <a class="cta" href="https://wa.me/201200704344?text=%D9%85%D9%87%D8%AA%D9%85%20%D8%A8%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84%20Mountain%20View%201.1" target="_blank" rel="noreferrer">اطلب التفاصيل على واتساب ←</a>
+            <p class="lead" data-en="Fully finished homes with delivery within 12 months, in the heart of New Cairo opposite Al Rehab Gate 1." data-ar="وحدات كاملة التشطيب واستلام خلال 12 شهرًا، في قلب القاهرة الجديدة أمام بوابة 1 الرحاب.">Fully finished homes with delivery within 12 months, in the heart of New Cairo opposite Al Rehab Gate 1.</p>
+            <a class="cta whatsapp-link" href="https://wa.me/201200704344?text=I%20am%20interested%20in%20Mountain%20View%201.1" target="_blank" rel="noreferrer" data-en="Get details on WhatsApp →" data-ar="اطلب التفاصيل على واتساب ←">Get details on WhatsApp →</a>
           </div>
           <div class="video-frame">
-            <video src="./mountain-view-launch-web.mp4" poster="./mountain-view-villa.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="فيديو إطلاق Mountain View 1.1"></video>
+            <video src="./mountain-view-launch-web.mp4" poster="./mountain-view-villa.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="Mountain View 1.1 launch video"></video>
           </div>
         </div>
       </section>
 
-      <section class="wrap facts" aria-label="أهم تفاصيل المشروع">
-        <article class="fact"><small>التشطيب</small><strong>كامل التشطيب</strong></article>
-        <article class="fact"><small>الاستلام</small><strong>خلال 12 شهرًا</strong></article>
-        <article class="fact"><small>الموقع</small><strong>بجوار الرحاب مباشرة</strong></article>
+      <section class="wrap facts" aria-label="Project highlights">
+        <article class="fact"><small data-en="Finishing" data-ar="التشطيب">Finishing</small><strong data-en="Fully finished" data-ar="كامل التشطيب">Fully finished</strong></article>
+        <article class="fact"><small data-en="Delivery" data-ar="الاستلام">Delivery</small><strong data-en="Within 12 months" data-ar="خلال 12 شهرًا">Within 12 months</strong></article>
+        <article class="fact"><small data-en="Location" data-ar="الموقع">Location</small><strong data-en="Directly beside Al Rehab" data-ar="بجوار الرحاب مباشرة">Directly beside Al Rehab</strong></article>
       </section>
 
       <section class="visual-section">
         <div class="wrap visual-grid">
           <div>
             <p class="eyebrow">MULTI-FAMILY &amp; VILLAS</p>
-            <h2>مساحات تبدأ من 140 م² وتصل إلى 670 م²</h2>
-            <p class="section-copy">اختيارات متنوعة بين الشقق، وحدات بحديقة أو روف، وفلل مستقلة بمساحات مختلفة.</p>
+            <h2 data-en="Homes from 140 sqm to 670 sqm" data-ar="مساحات تبدأ من 140 م² وتصل إلى 670 م²">Homes from 140 sqm to 670 sqm</h2>
+            <p class="section-copy" data-en="A diverse collection of apartments, garden and roof homes, and standalone villas in a range of sizes." data-ar="اختيارات متنوعة بين الشقق، وحدات بحديقة أو روف، وفلل مستقلة بمساحات مختلفة.">A diverse collection of apartments, garden and roof homes, and standalone villas in a range of sizes.</p>
           </div>
-          <div class="villa-frame"><img src="./mountain-view-villa.jpg" alt="فيلا في Mountain View" loading="lazy" /></div>
+          <div class="villa-frame"><img src="./mountain-view-villa.jpg" alt="Mountain View villa" loading="lazy" /></div>
         </div>
       </section>
 
       <section class="wrap units">
         <article class="unit-card">
-          <h3>Multi-Family Units</h3>
+          <h3 data-en="Multi-Family Homes" data-ar="وحدات Multi-Family">Multi-Family Homes</h3>
           <ul>
-            <li>شقة Millennial · 3 غرف · 140 م²</li>
-            <li>iVilla Garden · من 235 إلى 265 م²</li>
-            <li>Sky Garden · من 235 إلى 255 م²</li>
-            <li>Roof Garden · من 215 إلى 255 م²</li>
+            <li data-en="Millennial Apartment · 3 Bedrooms · 140 sqm" data-ar="شقة Millennial · 3 غرف · 140 م²">Millennial Apartment · 3 Bedrooms · 140 sqm</li>
+            <li data-en="iVilla Garden · 235–265 sqm" data-ar="iVilla Garden · من 235 إلى 265 م²">iVilla Garden · 235–265 sqm</li>
+            <li data-en="Sky Garden · 235–255 sqm" data-ar="Sky Garden · من 235 إلى 255 م²">Sky Garden · 235–255 sqm</li>
+            <li data-en="Roof Garden · 215–255 sqm" data-ar="Roof Garden · من 215 إلى 255 م²">Roof Garden · 215–255 sqm</li>
           </ul>
         </article>
         <article class="unit-card">
-          <h3>Villas</h3>
+          <h3 data-en="Villas" data-ar="الفلل">Villas</h3>
           <ul>
-            <li>Crown Palace · 670 م²</li>
-            <li>MV House · 540 م²</li>
-            <li>Valley View Villa · 455 م²</li>
-            <li>Mansion · 350 م²</li>
-            <li>Luxury Plus · 4 غرف · 285 م²</li>
-            <li>Luxury Plus · 3 غرف · 255 م²</li>
+            <li data-en="Crown Palace · 670 sqm" data-ar="Crown Palace · 670 م²">Crown Palace · 670 sqm</li>
+            <li data-en="MV House · 540 sqm" data-ar="MV House · 540 م²">MV House · 540 sqm</li>
+            <li data-en="Valley View Villa · 455 sqm" data-ar="Valley View Villa · 455 م²">Valley View Villa · 455 sqm</li>
+            <li data-en="Mansion · 350 sqm" data-ar="Mansion · 350 م²">Mansion · 350 sqm</li>
+            <li data-en="Luxury Plus · 4 Bedrooms · 285 sqm" data-ar="Luxury Plus · 4 غرف · 285 م²">Luxury Plus · 4 Bedrooms · 285 sqm</li>
+            <li data-en="Luxury Plus · 3 Bedrooms · 255 sqm" data-ar="Luxury Plus · 3 غرف · 255 م²">Luxury Plus · 3 Bedrooms · 255 sqm</li>
           </ul>
         </article>
       </section>
     </main>
 
-    <a class="sticky" href="https://wa.me/201200704344?text=%D9%85%D9%87%D8%AA%D9%85%20%D8%A8%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84%20Mountain%20View%201.1" target="_blank" rel="noreferrer">تفاصيل Mountain View على واتساب</a>
+    <a class="sticky whatsapp-link" href="https://wa.me/201200704344?text=I%20am%20interested%20in%20Mountain%20View%201.1" target="_blank" rel="noreferrer" data-en="Mountain View details on WhatsApp" data-ar="تفاصيل Mountain View على واتساب">Mountain View details on WhatsApp</a>
 
     <script>
+      var whatsappMessages = {
+        en: 'I am interested in Mountain View 1.1',
+        ar: 'مهتم بتفاصيل Mountain View 1.1'
+      };
+
+      function setLanguage(language) {
+        var isArabic = language === 'ar';
+        document.documentElement.lang = language;
+        document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
+
+        document.querySelectorAll('[data-en][data-ar]').forEach(function (element) {
+          element.textContent = element.getAttribute('data-' + language);
+        });
+
+        document.querySelectorAll('[data-language]').forEach(function (button) {
+          button.setAttribute('aria-pressed', button.getAttribute('data-language') === language ? 'true' : 'false');
+        });
+
+        document.querySelectorAll('.whatsapp-link').forEach(function (link) {
+          link.href = 'https://wa.me/201200704344?text=' + encodeURIComponent(whatsappMessages[language]);
+        });
+      }
+
+      document.querySelectorAll('[data-language]').forEach(function (button) {
+        button.addEventListener('click', function () {
+          setLanguage(button.getAttribute('data-language'));
+        });
+      });
+
+      setLanguage('en');
+
       window.setTimeout(function () {
         document.getElementById('splash').classList.add('is-hidden');
       }, 1550);
