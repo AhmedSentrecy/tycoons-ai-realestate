@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#07111b" />
+    <meta
+      name="description"
+      content="إطلاق Mountain View 1.1 في التجمع الخامس بجوار الرحاب، وحدات كاملة التشطيب واستلام خلال 12 شهرًا."
+    />
+    <title>Mountain View 1.1 | New Launch</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #07111b;
+        --panel: #0d1924;
+        --gold: #d7b36c;
+        --muted: rgba(255, 255, 255, 0.68);
+        --line: rgba(255, 255, 255, 0.12);
+        --whatsapp: #21c063;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--ink);
+        color: #fff;
+        font-family: Arial, Tahoma, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      a { color: inherit; text-decoration: none; }
+      img, video { display: block; max-width: 100%; }
+
+      .splash {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        background:
+          radial-gradient(circle at 50% 45%, rgba(215, 179, 108, 0.12), transparent 32%),
+          var(--ink);
+        transition: opacity 650ms ease, visibility 650ms ease, transform 650ms ease;
+      }
+      .splash.is-hidden { opacity: 0; visibility: hidden; transform: scale(1.035); }
+      .splash img {
+        width: min(330px, 80vw);
+        animation: logo-in 1.55s ease both;
+      }
+      @keyframes logo-in {
+        0% { opacity: 0; transform: translateY(12px) scale(0.96); }
+        35%, 78% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-5px) scale(1.02); }
+      }
+
+      .hero { position: relative; min-height: 88svh; overflow: hidden; }
+      .hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(7, 17, 27, 0.16), rgba(7, 17, 27, 0.18) 40%, var(--ink) 100%);
+        pointer-events: none;
+      }
+      .hero-inner {
+        position: relative;
+        z-index: 1;
+        width: min(1120px, calc(100% - 36px));
+        min-height: 88svh;
+        margin: auto;
+        padding: 24px 0 58px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+      .topbar img { width: min(220px, 55vw); filter: drop-shadow(0 6px 20px rgba(0,0,0,.32)); }
+      .launch-badge {
+        border: 1px solid rgba(255,255,255,.26);
+        border-radius: 999px;
+        padding: 9px 14px;
+        background: rgba(0,0,0,.28);
+        backdrop-filter: blur(12px);
+        font-size: 13px;
+        font-weight: 800;
+        white-space: nowrap;
+      }
+      .hero-copy { max-width: 680px; }
+      .location {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+        border: 1px solid rgba(255,255,255,.24);
+        border-radius: 999px;
+        padding: 10px 14px;
+        background: rgba(0,0,0,.3);
+        backdrop-filter: blur(12px);
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .pin { color: var(--gold); }
+      h1 { margin: 0; font-size: clamp(42px, 8vw, 80px); line-height: 1.06; letter-spacing: -0.045em; }
+      h1 span { color: var(--gold); }
+      .lead { margin: 18px 0 0; max-width: 620px; color: rgba(255,255,255,.86); font-size: clamp(18px, 2.2vw, 23px); line-height: 1.75; font-weight: 700; }
+      .cta {
+        display: inline-flex;
+        min-height: 56px;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 26px;
+        padding: 14px 24px;
+        border-radius: 999px;
+        background: var(--whatsapp);
+        color: #fff;
+        font-weight: 900;
+        box-shadow: 0 18px 50px rgba(33,192,99,.28);
+        transition: transform 160ms ease, filter 160ms ease;
+      }
+      .cta:hover { transform: translateY(-2px); filter: brightness(.96); }
+
+      .wrap { width: min(1120px, calc(100% - 36px)); margin: auto; }
+      .facts { padding: 54px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+      .fact { padding: 22px; border: 1px solid var(--line); border-radius: 24px; background: rgba(255,255,255,.05); }
+      .fact small { color: rgba(255,255,255,.5); font-size: 14px; }
+      .fact strong { display: block; margin-top: 8px; font-size: 19px; }
+
+      .visual-section { border-block: 1px solid var(--line); background: var(--panel); }
+      .visual-grid { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 56px; padding: 72px 0; }
+      .eyebrow { margin: 0; color: var(--gold); font-size: 13px; font-weight: 900; letter-spacing: .18em; }
+      h2 { margin: 14px 0 0; font-size: clamp(30px, 4.4vw, 52px); line-height: 1.25; }
+      .section-copy { margin: 18px 0 0; color: var(--muted); font-size: 17px; line-height: 1.85; }
+      .villa-frame { padding: 8px; border: 1px solid var(--line); border-radius: 32px; background: rgba(0,0,0,.2); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
+      .villa-frame img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 25px; }
+
+      .units { padding: 70px 0 120px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+      .unit-card { padding: 28px; border: 1px solid var(--line); border-radius: 30px; background: rgba(255,255,255,.045); }
+      .unit-card h3 { margin: 0; font-size: 25px; }
+      .unit-card ul { margin: 24px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+      .unit-card li { position: relative; padding: 14px 42px 14px 16px; border-radius: 16px; background: rgba(0,0,0,.2); font-size: 15px; font-weight: 700; line-height: 1.55; }
+      .unit-card li::before { content: "✓"; position: absolute; right: 16px; color: var(--gold); font-weight: 900; }
+
+      .sticky { display: none; }
+      @media (max-width: 760px) {
+        .hero { min-height: 84svh; }
+        .hero-inner { min-height: 84svh; padding-bottom: 44px; }
+        .hero video { object-position: center; }
+        .facts { grid-template-columns: 1fr; padding: 38px 0; }
+        .visual-grid, .units { grid-template-columns: 1fr; }
+        .visual-grid { gap: 32px; padding: 50px 0; }
+        .units { padding: 48px 0 108px; }
+        .cta { width: 100%; }
+        .sticky {
+          position: fixed;
+          inset-inline: 14px;
+          bottom: max(14px, env(safe-area-inset-bottom));
+          z-index: 20;
+          display: flex;
+          min-height: 56px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 999px;
+          background: var(--whatsapp);
+          box-shadow: 0 16px 50px rgba(0,0,0,.48);
+          font-weight: 900;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        .splash img { animation: none; }
+        .cta { transition: none; }
+      }
+    </style>
+    <noscript><style>.splash{display:none}</style></noscript>
+  </head>
+  <body>
+    <div class="splash" id="splash" aria-hidden="true">
+      <img src="./mountain-view-logo.png" alt="" />
+    </div>
+
+    <main>
+      <section class="hero">
+        <video src="./mountain-view-launch-web.mp4" poster="./mountain-view-villa.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="فيديو إطلاق Mountain View 1.1"></video>
+        <div class="hero-inner">
+          <div class="topbar">
+            <img src="./mountain-view-logo.png" alt="Mountain View" />
+            <span class="launch-badge">NEW LAUNCH</span>
+          </div>
+          <div class="hero-copy">
+            <div class="location"><span class="pin">●</span> التجمع الخامس · بجوار الرحاب مباشرة</div>
+            <h1>Mountain View <span>1.1</span></h1>
+            <p class="lead">وحدات كاملة التشطيب واستلام خلال 12 شهرًا، في قلب القاهرة الجديدة أمام بوابة 1 الرحاب.</p>
+            <a class="cta" href="https://wa.me/201200704344?text=%D9%85%D9%87%D8%AA%D9%85%20%D8%A8%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84%20Mountain%20View%201.1" target="_blank" rel="noreferrer">اطلب التفاصيل على واتساب ←</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="wrap facts" aria-label="أهم تفاصيل المشروع">
+        <article class="fact"><small>التشطيب</small><strong>كامل التشطيب</strong></article>
+        <article class="fact"><small>الاستلام</small><strong>خلال 12 شهرًا</strong></article>
+        <article class="fact"><small>الموقع</small><strong>بجوار الرحاب مباشرة</strong></article>
+      </section>
+
+      <section class="visual-section">
+        <div class="wrap visual-grid">
+          <div>
+            <p class="eyebrow">MULTI-FAMILY &amp; VILLAS</p>
+            <h2>مساحات تبدأ من 140 م² وتصل إلى 670 م²</h2>
+            <p class="section-copy">اختيارات متنوعة بين الشقق، وحدات بحديقة أو روف، وفلل مستقلة بمساحات مختلفة.</p>
+          </div>
+          <div class="villa-frame"><img src="./mountain-view-villa.jpg" alt="فيلا في Mountain View" loading="lazy" /></div>
+        </div>
+      </section>
+
+      <section class="wrap units">
+        <article class="unit-card">
+          <h3>Multi-Family Units</h3>
+          <ul>
+            <li>شقة Millennial · 3 غرف · 140 م²</li>
+            <li>iVilla Garden · من 235 إلى 265 م²</li>
+            <li>Sky Garden · من 235 إلى 255 م²</li>
+            <li>Roof Garden · من 215 إلى 255 م²</li>
+          </ul>
+        </article>
+        <article class="unit-card">
+          <h3>Villas</h3>
+          <ul>
+            <li>Crown Palace · 670 م²</li>
+            <li>MV House · 540 م²</li>
+            <li>Valley View Villa · 455 م²</li>
+            <li>Mansion · 350 م²</li>
+            <li>Luxury Plus · 4 غرف · 285 م²</li>
+            <li>Luxury Plus · 3 غرف · 255 م²</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <a class="sticky" href="https://wa.me/201200704344?text=%D9%85%D9%87%D8%AA%D9%85%20%D8%A8%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84%20Mountain%20View%201.1" target="_blank" rel="noreferrer">تفاصيل Mountain View على واتساب</a>
+
+    <script>
+      window.setTimeout(function () {
+        document.getElementById('splash').classList.add('is-hidden');
+      }, 1550);
+    </script>
+  </body>
+</html>
