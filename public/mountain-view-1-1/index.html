@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#07111b" />
+    <meta name="theme-color" content="#001a70" />
     <meta
       name="description"
       content="إطلاق Mountain View 1.1 في التجمع الخامس بجوار الرحاب، وحدات كاملة التشطيب واستلام خلال 12 شهرًا."
@@ -12,12 +12,16 @@
     <title>Mountain View 1.1 | New Launch</title>
     <style>
       :root {
-        color-scheme: dark;
-        --ink: #07111b;
-        --panel: #0d1924;
-        --gold: #d7b36c;
-        --muted: rgba(255, 255, 255, 0.68);
-        --line: rgba(255, 255, 255, 0.12);
+        color-scheme: light;
+        --navy: #001a70;
+        --blue: #003da6;
+        --blue-soft: #eef3fb;
+        --paper: #ffffff;
+        --panel: #f6f6f6;
+        --ink: #101522;
+        --bronze: #b48965;
+        --muted: #666d7c;
+        --line: #e3e7ee;
         --whatsapp: #21c063;
       }
 
@@ -25,8 +29,8 @@
       html { scroll-behavior: smooth; }
       body {
         margin: 0;
-        background: var(--ink);
-        color: #fff;
+        background: var(--paper);
+        color: var(--ink);
         font-family: Arial, Tahoma, sans-serif;
         -webkit-font-smoothing: antialiased;
       }
@@ -41,8 +45,8 @@
         place-items: center;
         padding: 28px;
         background:
-          radial-gradient(circle at 50% 45%, rgba(215, 179, 108, 0.12), transparent 32%),
-          var(--ink);
+          radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.12), transparent 34%),
+          var(--navy);
         transition: opacity 650ms ease, visibility 650ms ease, transform 650ms ease;
       }
       .splash.is-hidden { opacity: 0; visibility: hidden; transform: scale(1.035); }
@@ -56,36 +60,38 @@
         100% { opacity: 0; transform: translateY(-5px) scale(1.02); }
       }
 
-      .hero { position: relative; min-height: 88svh; overflow: hidden; }
-      .hero video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-      .hero::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg, rgba(7, 17, 27, 0.16), rgba(7, 17, 27, 0.18) 40%, var(--ink) 100%);
-        pointer-events: none;
+      .brand-bar {
+        background: var(--navy);
+        box-shadow: 0 10px 30px rgba(0, 26, 112, .13);
       }
-      .hero-inner {
-        position: relative;
-        z-index: 1;
+      .topbar {
         width: min(1120px, calc(100% - 36px));
-        min-height: 88svh;
+        min-height: 82px;
         margin: auto;
-        padding: 24px 0 58px;
         display: flex;
-        flex-direction: column;
+        align-items: center;
         justify-content: space-between;
+        gap: 18px;
       }
-      .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-      .topbar img { width: min(220px, 55vw); filter: drop-shadow(0 6px 20px rgba(0,0,0,.32)); }
+      .topbar img { width: min(225px, 56vw); }
+      .hero { position: relative; overflow: hidden; background: linear-gradient(135deg, #fff 0%, #fff 62%, var(--blue-soft) 100%); }
+      .hero-inner {
+        width: min(1120px, calc(100% - 36px));
+        margin: auto;
+        padding: 66px 0 72px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(360px, 520px);
+        align-items: center;
+        gap: 58px;
+      }
       .launch-badge {
-        border: 1px solid rgba(255,255,255,.26);
-        border-radius: 999px;
-        padding: 9px 14px;
-        background: rgba(0,0,0,.28);
-        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255,255,255,.34);
+        padding: 11px 16px;
+        background: var(--blue);
+        color: #fff;
         font-size: 13px;
         font-weight: 800;
+        letter-spacing: .12em;
         white-space: nowrap;
       }
       .hero-copy { max-width: 680px; }
@@ -94,18 +100,32 @@
         align-items: center;
         gap: 8px;
         margin-bottom: 16px;
-        border: 1px solid rgba(255,255,255,.24);
-        border-radius: 999px;
+        border: 1px solid #d7dfed;
         padding: 10px 14px;
-        background: rgba(0,0,0,.3);
-        backdrop-filter: blur(12px);
+        background: #fff;
+        color: var(--navy);
         font-size: 14px;
         font-weight: 800;
       }
-      .pin { color: var(--gold); }
-      h1 { margin: 0; font-size: clamp(42px, 8vw, 80px); line-height: 1.06; letter-spacing: -0.045em; }
-      h1 span { color: var(--gold); }
-      .lead { margin: 18px 0 0; max-width: 620px; color: rgba(255,255,255,.86); font-size: clamp(18px, 2.2vw, 23px); line-height: 1.75; font-weight: 700; }
+      .pin { color: var(--bronze); }
+      h1 { margin: 0; color: var(--navy); font-size: clamp(42px, 6vw, 72px); line-height: 1.06; letter-spacing: -0.045em; }
+      h1 span { color: var(--blue); }
+      .lead { margin: 18px 0 0; max-width: 620px; color: #343b49; font-size: clamp(18px, 2.2vw, 22px); line-height: 1.75; font-weight: 700; }
+      .video-frame {
+        width: 100%;
+        max-width: 520px;
+        justify-self: end;
+        padding: 8px;
+        border: 1px solid #dbe2ec;
+        background: #fff;
+        box-shadow: 0 24px 60px rgba(0, 26, 112, .16);
+      }
+      .video-frame video {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+        background: #000;
+      }
       .cta {
         display: inline-flex;
         min-height: 56px;
@@ -114,7 +134,7 @@
         gap: 10px;
         margin-top: 26px;
         padding: 14px 24px;
-        border-radius: 999px;
+        border-radius: 4px;
         background: var(--whatsapp);
         color: #fff;
         font-weight: 900;
@@ -124,31 +144,31 @@
       .cta:hover { transform: translateY(-2px); filter: brightness(.96); }
 
       .wrap { width: min(1120px, calc(100% - 36px)); margin: auto; }
-      .facts { padding: 54px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-      .fact { padding: 22px; border: 1px solid var(--line); border-radius: 24px; background: rgba(255,255,255,.05); }
-      .fact small { color: rgba(255,255,255,.5); font-size: 14px; }
-      .fact strong { display: block; margin-top: 8px; font-size: 19px; }
+      .facts { padding: 52px 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      .fact { padding: 24px; border: 1px solid var(--line); border-top: 3px solid var(--blue); background: #fff; box-shadow: 0 10px 30px rgba(0, 26, 112, .06); }
+      .fact small { color: var(--muted); font-size: 14px; }
+      .fact strong { display: block; margin-top: 8px; color: var(--navy); font-size: 19px; }
 
       .visual-section { border-block: 1px solid var(--line); background: var(--panel); }
       .visual-grid { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 56px; padding: 72px 0; }
-      .eyebrow { margin: 0; color: var(--gold); font-size: 13px; font-weight: 900; letter-spacing: .18em; }
-      h2 { margin: 14px 0 0; font-size: clamp(30px, 4.4vw, 52px); line-height: 1.25; }
+      .eyebrow { margin: 0; color: var(--blue); font-size: 13px; font-weight: 900; letter-spacing: .18em; }
+      h2 { margin: 14px 0 0; color: var(--navy); font-size: clamp(30px, 4.4vw, 52px); line-height: 1.25; }
       .section-copy { margin: 18px 0 0; color: var(--muted); font-size: 17px; line-height: 1.85; }
-      .villa-frame { padding: 8px; border: 1px solid var(--line); border-radius: 32px; background: rgba(0,0,0,.2); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
-      .villa-frame img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 25px; }
+      .villa-frame { padding: 8px; border: 1px solid var(--line); background: #fff; box-shadow: 0 24px 70px rgba(0,26,112,.12); }
+      .villa-frame img { width: 100%; aspect-ratio: 1; object-fit: cover; }
 
       .units { padding: 70px 0 120px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-      .unit-card { padding: 28px; border: 1px solid var(--line); border-radius: 30px; background: rgba(255,255,255,.045); }
-      .unit-card h3 { margin: 0; font-size: 25px; }
+      .unit-card { padding: 28px; border: 1px solid var(--line); border-top: 4px solid var(--navy); background: #fff; box-shadow: 0 12px 36px rgba(0,26,112,.06); }
+      .unit-card h3 { margin: 0; color: var(--navy); font-size: 25px; }
       .unit-card ul { margin: 24px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
-      .unit-card li { position: relative; padding: 14px 42px 14px 16px; border-radius: 16px; background: rgba(0,0,0,.2); font-size: 15px; font-weight: 700; line-height: 1.55; }
-      .unit-card li::before { content: "✓"; position: absolute; right: 16px; color: var(--gold); font-weight: 900; }
+      .unit-card li { position: relative; padding: 14px 42px 14px 16px; background: var(--panel); color: #292f3c; font-size: 15px; font-weight: 700; line-height: 1.55; }
+      .unit-card li::before { content: "✓"; position: absolute; right: 16px; color: var(--blue); font-weight: 900; }
 
       .sticky { display: none; }
       @media (max-width: 760px) {
-        .hero { min-height: 84svh; }
-        .hero-inner { min-height: 84svh; padding-bottom: 44px; }
-        .hero video { object-position: center; }
+        .topbar { min-height: 72px; }
+        .hero-inner { grid-template-columns: 1fr; gap: 38px; padding: 46px 0 52px; }
+        .video-frame { max-width: 500px; justify-self: center; }
         .facts { grid-template-columns: 1fr; padding: 38px 0; }
         .visual-grid, .units { grid-template-columns: 1fr; }
         .visual-grid { gap: 32px; padding: 50px 0; }
@@ -163,7 +183,7 @@
           min-height: 56px;
           align-items: center;
           justify-content: center;
-          border-radius: 999px;
+          border-radius: 4px;
           background: var(--whatsapp);
           box-shadow: 0 16px 50px rgba(0,0,0,.48);
           font-weight: 900;
@@ -183,18 +203,22 @@
     </div>
 
     <main>
+      <div class="brand-bar">
+        <div class="topbar">
+          <img src="./mountain-view-logo.png" alt="Mountain View" />
+          <span class="launch-badge">NEW LAUNCH</span>
+        </div>
+      </div>
       <section class="hero">
-        <video src="./mountain-view-launch-web.mp4" poster="./mountain-view-villa.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="فيديو إطلاق Mountain View 1.1"></video>
         <div class="hero-inner">
-          <div class="topbar">
-            <img src="./mountain-view-logo.png" alt="Mountain View" />
-            <span class="launch-badge">NEW LAUNCH</span>
-          </div>
           <div class="hero-copy">
             <div class="location"><span class="pin">●</span> التجمع الخامس · بجوار الرحاب مباشرة</div>
             <h1>Mountain View <span>1.1</span></h1>
             <p class="lead">وحدات كاملة التشطيب واستلام خلال 12 شهرًا، في قلب القاهرة الجديدة أمام بوابة 1 الرحاب.</p>
             <a class="cta" href="https://wa.me/201200704344?text=%D9%85%D9%87%D8%AA%D9%85%20%D8%A8%D8%AA%D9%81%D8%A7%D8%B5%D9%8A%D9%84%20Mountain%20View%201.1" target="_blank" rel="noreferrer">اطلب التفاصيل على واتساب ←</a>
+          </div>
+          <div class="video-frame">
+            <video src="./mountain-view-launch-web.mp4" poster="./mountain-view-villa.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="فيديو إطلاق Mountain View 1.1"></video>
           </div>
         </div>
       </section>
