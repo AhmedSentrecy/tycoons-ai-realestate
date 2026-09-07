@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { salesWarRoomApi } from "../lib/salesWarRoomApi";
 import SalesWarRoomMeetingAnalytics from "./SalesWarRoomMeetingAnalytics";
 import SalesWarRoomPeriodResults from "./SalesWarRoomPeriodResults";
+import { formatSalesEgp, normalizeSalesTotals, salesInputToEgp } from "../lib/salesWarRoomMoney";
 
 const stages = ["New Lead","Contacted","Cold","Warm","Hot / Very Potential","Hold","Meeting Scheduled","Meeting Held","Negotiation / Closing","Won","Lost / Dead"];
 const stageAr: Record<string,string> = {
@@ -9,7 +10,7 @@ const stageAr: Record<string,string> = {
 };
 const fmt=(d:Date)=>d.toISOString().slice(0,10);
 const monthStart=()=>{const d=new Date();d.setDate(1);return fmt(d)};
-const money=(n:number)=>n>=1_000_000_000?`EGP ${(n/1_000_000_000).toFixed(1)}B`:n>=1_000_000?`EGP ${(n/1_000_000).toFixed(1)}M`:`EGP ${Math.round(n).toLocaleString()}`;
+const money=formatSalesEgp;
 
 type Tab="overview"|"analytics"|"pipeline"|"agents";
 type ControlScope="owner"|"manager";
@@ -73,7 +74,7 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
         salesWarRoomApi.adminSummary(token,from,to),
         salesWarRoomApi.getSalesTotals(token),
       ]);
-      setData(summary);setSalesTotals(totals);
+      setData(summary);setSalesTotals(normalizeSalesTotals(totals));
     }catch(e:any){
       if(["unauthorized","owner_only"].includes(e.message))logout();
       setError(e.message);
@@ -131,7 +132,7 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
     const m=Number(leadDraft.expected_sale_m||0);if(!Number.isFinite(m)||m<0)return setError(t("Expected Sale must be valid.","Expected Sale لازم يكون رقم صحيح."));
     try{
       setSavingLead(true);setError("");
-      const body={...leadDraft,expected_value:m*1_000_000,next_action_date:leadDraft.next_action_date||null,next_action_time:leadDraft.next_action_date?(leadDraft.next_action_time||"09:00"):null};
+      const body={...leadDraft,expected_value:salesInputToEgp(leadDraft.expected_sale_m),next_action_date:leadDraft.next_action_date||null,next_action_time:leadDraft.next_action_date?(leadDraft.next_action_time||"09:00"):null};
       await salesWarRoomApi.ownerUpdateLead(token,body);
       cancelEdit();await loadPipeline(true);await loadOverview();
     }catch(e:any){setError(e.message)}finally{setSavingLead(false)}
