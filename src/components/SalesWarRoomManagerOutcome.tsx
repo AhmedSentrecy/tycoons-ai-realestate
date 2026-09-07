@@ -2,14 +2,9 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router'
 import { salesWarRoomApi } from '../lib/salesWarRoomApi'
+import { formatSalesEgp, normalizeSalesTotals } from '../lib/salesWarRoomMoney'
 
-function money(value:any){
-  const n=Number(value||0)
-  if(n>=1_000_000_000){const v=n/1_000_000_000;return `EGP ${Number.isInteger(v)?v:v.toFixed(1)}B`}
-  if(n>=1_000_000){const v=n/1_000_000;return `EGP ${Number.isInteger(v)?v:v.toFixed(1)}M`}
-  if(n>=1_000){const v=n/1_000;return `EGP ${Number.isInteger(v)?v:v.toFixed(1)}K`}
-  return `EGP ${n.toLocaleString()}`
-}
+const money=formatSalesEgp
 
 export default function SalesWarRoomManagerOutcome(){
   const location=useLocation()
@@ -25,7 +20,7 @@ export default function SalesWarRoomManagerOutcome(){
     async function load(){
       const token=localStorage.getItem('warRoomManagerToken')||''
       if(!token){if(!cancelled)setTotals(null);return}
-      try{const data=await salesWarRoomApi.getSalesTotals(token);if(!cancelled)setTotals(data)}catch{if(!cancelled)setTotals(null)}
+      try{const data=await salesWarRoomApi.getSalesTotals(token);if(!cancelled)setTotals(normalizeSalesTotals(data))}catch{if(!cancelled)setTotals(null)}
     }
     void load()
     const timer=window.setInterval(()=>void load(),15000)
