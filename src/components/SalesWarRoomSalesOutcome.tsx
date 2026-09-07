@@ -2,20 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router";
 import { salesWarRoomApi } from "../lib/salesWarRoomApi";
+import { formatSalesEgp, normalizeSalesTotals, normalizeSalesValue } from "../lib/salesWarRoomMoney";
 
-function money(value:any){
-  const n=Number(value||0);
-  if(n>=1_000_000_000){const v=n/1_000_000_000;return `EGP ${Number.isInteger(v)?v:v.toFixed(1)}B`}
-  if(n>=1_000_000){const v=n/1_000_000;return `EGP ${Number.isInteger(v)?v:v.toFixed(1)}M`}
-  if(n>=1_000){const v=n/1_000;return `EGP ${Number.isInteger(v)?v:v.toFixed(1)}K`}
-  return `EGP ${n.toLocaleString()}`;
-}
+const money=formatSalesEgp;
 
 function calcPipeline(rows:any[]){
   let expected=0,won=0,lost=0,wonDeals=0;
   for(const x of rows||[]){
-    const exp=Number(x.expected_value||0);
-    const actual=Number(x.won_value||0);
+    const exp=normalizeSalesValue(x.expected_value);
+    const actual=normalizeSalesValue(x.won_value);
     if(["Warm","Hot / Very Potential"].includes(x.stage))expected+=exp;
     if(x.stage==="Won"){won+=actual||exp;wonDeals+=1;}
     if(x.stage==="Lost / Dead")lost+=exp;
@@ -74,7 +69,7 @@ export default function SalesWarRoomSalesOutcome(){
         const token=nextMode==="owner"?(localStorage.getItem("warRoomAdminToken")||""):(localStorage.getItem("warRoomLimitedAdminToken")||"");
         if(!token)return;
         const data=await salesWarRoomApi.getSalesTotals(token);
-        if(!cancelled)setTotals(data);
+        if(!cancelled)setTotals(normalizeSalesTotals(data));
       }catch{
         if(!cancelled)setTotals(null);
       }
