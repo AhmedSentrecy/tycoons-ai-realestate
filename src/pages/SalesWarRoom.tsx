@@ -3,6 +3,7 @@ import { useParams } from "react-router";
 import { salesWarRoomApi } from "../lib/salesWarRoomApi";
 import SalesWarRoomActivityLedger from "../components/SalesWarRoomActivityLedger";
 import SalesWarRoomPeriodResults from "../components/SalesWarRoomPeriodResults";
+import { formatSalesEgp, normalizeSalesValue, salesInputToEgp, salesValueToMillions } from "../lib/salesWarRoomMoney";
 
 const stages = ["New Lead","Contacted","Cold","Warm","Hot / Very Potential","Hold","Meeting Scheduled","Meeting Held","Negotiation / Closing","Won","Lost / Dead"];
 const ar: Record<string,string> = {
@@ -28,9 +29,9 @@ const emptyLead:LeadDraft={client_name:"",phone:"",budget:"",expected_value:"",s
 function phoneForCall(phone:string){return String(phone||"").replace(/[^\d+]/g,"")}
 function phoneForWhatsApp(phone:string){let digits=String(phone||"").replace(/\D/g,"");if(digits.startsWith("00"))digits=digits.slice(2);if(/^01\d{9}$/.test(digits))digits=`20${digits.slice(1)}`;return digits}
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
-function millionsToEgp(value:string){if(!String(value||"").trim())return null;const n=Number(value);return Number.isFinite(n)&&n>=0?Math.round(n*1_000_000):null}
-function valueToMillions(value:any){const n=Number(value||0);if(!n)return "";return String(n/1_000_000)}
-function formatEgp(value:any){const n=Number(value||0);if(n>=1_000_000_000){const v=n/1_000_000_000;return `EGP ${Number.isInteger(v)?v:v.toFixed(1)}B`}if(n>=1_000_000){const v=n/1_000_000;return `EGP ${Number.isInteger(v)?v:v.toFixed(1)}M`}if(n>=1_000){const v=n/1_000;return `EGP ${Number.isInteger(v)?v:v.toFixed(1)}K`}return `EGP ${n.toLocaleString()}`}
+const millionsToEgp=salesInputToEgp;
+const valueToMillions=salesValueToMillions;
+const formatEgp=formatSalesEgp;
 
 export default function SalesWarRoom(){
   const { slug = "" } = useParams();
@@ -90,8 +91,8 @@ export default function SalesWarRoom(){
   const todayCalls=matches.reduce((a,m)=>a+m.calls,0);
   const warm=pipeline.filter((l:any)=>l.stage==="Warm").length;
   const hot=pipeline.filter((l:any)=>l.stage==="Hot / Very Potential").length;
-  const expectedSales=pipeline.filter((l:any)=>["Warm","Hot / Very Potential"].includes(l.stage)).reduce((sum:number,l:any)=>sum+Number(l.expected_value||0),0);
-  const lostSales=pipeline.filter((l:any)=>l.stage==="Lost / Dead").reduce((sum:number,l:any)=>sum+Number(l.expected_value||0),0);
+  const expectedSales=pipeline.filter((l:any)=>["Warm","Hot / Very Potential"].includes(l.stage)).reduce((sum:number,l:any)=>sum+normalizeSalesValue(l.expected_value),0);
+  const lostSales=pipeline.filter((l:any)=>l.stage==="Lost / Dead").reduce((sum:number,l:any)=>sum+normalizeSalesValue(l.expected_value),0);
   const weekly=(()=>{const p=data?.periodResults?.agents?.[0]?.periods?.current_week||{};const wins=Number(p.wins||0),losses=Number(p.losses||0);return{wins,losses,calls:Number(p.calls||0),potential:Number(p.potential_cases||0),meetings:Number(p.meetings_scheduled||0),sales:Number(p.sales_volume||0),total:wins+losses}})();
 
   async function changeCalls(i:number,delta:number){const m=matches[i-1];if(m.status!=="open")return;for(let x=1;x<i;x++)if(matches[x-1].status==="open"){alert(t(`Finish Match ${x} first.`,`اقفل Match ${x} الأول.`));return}const calls=Math.max(0,Math.min(50,m.calls+delta));const body:any={slug,[`match${i}_calls`]:calls};if(calls===50)body[`match${i}_status`]="win";await salesWarRoomApi.patchScore(token,body);void load()}
