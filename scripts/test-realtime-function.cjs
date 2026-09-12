@@ -4,19 +4,6 @@ const path = require('node:path');
 
 const ORIGINAL_ENV = { ...process.env };
 const ORIGINAL_FETCH = global.fetch;
-const ORIGINAL_FORM_DATA = global.FormData;
-
-class TestFormData {
-  constructor() {
-    this.values = new Map();
-  }
-  set(key, value) {
-    this.values.set(key, value);
-  }
-  get(key) {
-    return this.values.get(key);
-  }
-}
 
 async function loadHandler() {
   const modulePath = path.resolve(__dirname, '../netlify/functions/openai-realtime-connect.js');
@@ -26,9 +13,8 @@ async function loadHandler() {
 }
 
 async function run() {
-  global.FormData = TestFormData;
-
-  process.env.OPENAI_REALTIME_MODEL = 'gpt-realtime-2.1';
+  process.env.OPENAI_LIVE_MODEL = 'gpt-live-1';
+  process.env.OPENAI_LIVE_BACKEND_MODEL = 'gpt-5.6-terra';
   delete process.env.OPENAI_API_KEY;
   let handler = await loadHandler();
 
@@ -36,7 +22,9 @@ async function run() {
   assert.equal(health.statusCode, 200);
   const healthBody = JSON.parse(health.body);
   assert.equal(healthBody.ok, true);
-  assert.equal(healthBody.model, 'gpt-realtime-2.1');
+  assert.equal(healthBody.service, 'openai-live-connect');
+  assert.equal(healthBody.model, 'gpt-live-1');
+  assert.equal(healthBody.backend_model, 'gpt-5.6-terra');
   assert.equal(healthBody.api_key_configured, false);
 
   const options = await handler({ httpMethod: 'OPTIONS', headers: {}, body: '' });
@@ -70,20 +58,24 @@ async function run() {
     'a=fingerprint:sha-256 00:11:22:33:44:55:66:77'
   ].join('\r\n') + '\r\n';
 
-  let capturedForm;
-  global.fetch = async (_url, options) => {
-    capturedForm = options.body;
+  let capturedUrl;
+  let capturedOptions;
+  global.fetch = async (url, options) => {
+    capturedUrl = url;
+    capturedOptions = options;
     return {
       ok: true,
       status: 201,
       headers: {
         get(name) {
-          if (String(name).toLowerCase() === 'content-type') return 'application/sdp';
-          if (String(name).toLowerCase() === 'location') return '/v1/realtime/calls/test';
+          if (String(name).toLowerCase() === 'content-type') return 'application/json; charset=utf-8';
           return null;
         }
       },
-      text: async () => 'v=0\r\ns=answer\r\n'
+      text: async () => JSON.stringify({
+        session: { id: 'live_test' },
+        transport: { type: 'webrtc', sdp: 'v=0\r\ns=answer\r\n' }
+      })
     };
   };
 
@@ -94,13 +86,19 @@ async function run() {
   });
 
   assert.equal(connected.statusCode, 201);
-  assert.match(connected.body, /^v=0/);
-  assert.equal(capturedForm.get('sdp'), validSdp);
-  const session = JSON.parse(capturedForm.get('session'));
-  assert.equal(session.model, 'gpt-realtime-2.1');
-  assert.equal(session.type, 'realtime');
-  assert.deepEqual(session.output_modalities, ['audio']);
-  assert.equal(session.tools.some((tool) => tool.name === 'search_properties'), true);
+  assert.equal(capturedUrl, 'https://api.openai.com/v1/live/sessions');
+  assert.equal(capturedOptions.headers['Content-Type'], 'application/json');
+  const request = JSON.parse(capturedOptions.body);
+  assert.equal(request.transport.type, 'webrtc');
+  assert.equal(request.transport.sdp, validSdp);
+  assert.equal(request.session.model, 'gpt-live-1');
+  assert.equal(request.session.audio.output.voice, 'stone');
+  assert.equal(request.session.delegation.type, 'responses');
+  assert.equal(request.session.delegation.responses.model, 'gpt-5.6-terra');
+  assert.equal(
+    request.session.delegation.responses.tools.some((tool) => tool.name === 'search_properties'),
+    true
+  );
 
   console.log('Realtime function tests passed');
 }
@@ -113,5 +111,4 @@ run()
   .finally(() => {
     process.env = ORIGINAL_ENV;
     global.fetch = ORIGINAL_FETCH;
-    global.FormData = ORIGINAL_FORM_DATA;
   });
