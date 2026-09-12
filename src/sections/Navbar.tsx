@@ -47,7 +47,7 @@ export default function Navbar() {
               className="h-6 w-6 object-contain"
             />
           </span>
-          <span className="leading-tight">
+          <span className="hidden leading-tight min-[360px]:block">
             <span
               className={`block text-[17px] font-bold tracking-[0.18em] transition-colors ${
                 scrolled ? "text-[#182420]" : "text-white"
@@ -93,26 +93,41 @@ export default function Navbar() {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
-          <a
-            href="/en/"
-            hrefLang="en"
-            lang="en"
-            aria-label="English project directory"
-            className={`hidden rounded-full px-4 py-2 text-xs font-semibold tracking-wide transition-colors sm:block ${
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div
+            aria-label="اختيار اللغة"
+            className={`flex items-center rounded-full p-1 text-[11px] font-semibold transition-colors ${
               scrolled ? "bg-[#ece3d0] text-[#5c4f33]" : "glass text-white/90"
             }`}
           >
-            EN
-          </a>
+            <a
+              href="/"
+              hrefLang="ar"
+              lang="ar"
+              aria-current="page"
+              className={`rounded-full px-2 py-1 ${scrolled ? "bg-white/75" : "bg-white/15"}`}
+            >
+              عربي
+            </a>
+            <a
+              href="/en/"
+              hrefLang="en"
+              lang="en"
+              aria-label="English project directory"
+              className="rounded-full px-2 py-1 transition-colors hover:bg-white/20"
+            >
+              EN
+            </a>
+          </div>
           <a
             href="https://wa.me/201200704344"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-2 rounded-full bg-[#1faa59] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(31,170,89,0.6)] transition-transform hover:scale-[1.04]"
+            aria-label="تواصل معنا على واتساب"
+            className="flex items-center gap-2 rounded-full bg-[#1faa59] px-3 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(31,170,89,0.6)] transition-transform hover:scale-[1.04] min-[430px]:px-5"
           >
             <MessageCircle className="h-4 w-4" />
-            واتساب
+            <span className="hidden min-[430px]:inline">واتساب</span>
           </a>
         </div>
       </div>
