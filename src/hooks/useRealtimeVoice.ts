@@ -30,11 +30,17 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
   const streamRef = useRef<MediaStream | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const connectingRef = useRef(false);
+  const speechTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
 
   const cleanup = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
     connectingRef.current = false;
+    if (speechTimerRef.current !== null) window.clearTimeout(speechTimerRef.current);
+    if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+    speechTimerRef.current = null;
+    closeTimerRef.current = null;
 
     try {
       dcRef.current?.close();
@@ -61,7 +67,8 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       if (dc.readyState !== "open") return;
       dc.send(
         JSON.stringify({
-          type: "conversation.item.create",
+          type: "response.item.create",
+          event_id: crypto.randomUUID(),
           item: {
             type: "function_call_output",
             call_id: callId,
@@ -69,7 +76,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
           },
         }),
       );
-      dc.send(JSON.stringify({ type: "response.create" }));
+      dc.send(JSON.stringify({ type: "response.create", event_id: crypto.randomUUID() }));
     },
     [],
   );
@@ -125,7 +132,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
 
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
-      dc.onopen = () => setState("connected");
+      dc.onopen = () => undefined;
       dc.onclose = () => setState((current) => (current === "idle" ? current : "unavailable"));
       dc.onerror = () => {
         setErrorMsg("حصلت مشكلة في الاتصال الصوتي");
@@ -135,46 +142,65 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       dc.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data);
+
+          const scheduleConnectedState = () => {
+            if (speechTimerRef.current !== null) window.clearTimeout(speechTimerRef.current);
+            speechTimerRef.current = window.setTimeout(() => {
+              setState((current) => (current === "speaking" || current === "listening" ? "connected" : current));
+            }, 900);
+          };
+
+          const handleFunctionCall = (item: Record<string, unknown>) => {
+            if (item.type !== "function_call" || item.name !== "search_properties") return;
+            const callId = typeof item.call_id === "string" ? item.call_id : "";
+            if (!callId) return;
+
+            let args: Record<string, unknown> = {};
+            try {
+              args = JSON.parse(typeof item.arguments === "string" ? item.arguments : "{}");
+            } catch {
+              sendFunctionOutput(dc, callId, { ok: false, error: "invalid_arguments" });
+              return;
+            }
+
+            const query = typeof args.query === "string" ? args.query.trim() : "";
+            if (!query) {
+              sendFunctionOutput(dc, callId, { ok: false, error: "missing_query" });
+              return;
+            }
+
+            const callbackPayload = onSearchQuery(query);
+            const payload = callbackPayload ?? getLastSearchVoicePayload();
+            sendFunctionOutput(dc, callId, {
+              ok: true,
+              note: "النتائج ظهرت للعميل على الشاشة",
+              ...payload,
+            });
+          };
+
           switch (msg.type) {
-            case "input_audio_buffer.speech_started":
-              setState("listening");
-              break;
-            case "response.audio.delta":
-            case "response.audio_transcript.delta":
-            case "response.output_audio.delta":
-            case "response.output_audio_transcript.delta":
-              setState("speaking");
-              break;
-            case "response.audio_transcript.done":
-            case "response.output_audio_transcript.done":
-              setTranscript(msg.transcript || "");
+            case "session.started":
+              connectingRef.current = false;
               setState("connected");
               break;
-            case "conversation.item.input_audio_transcription.completed":
-              if (msg.transcript?.trim()) setTranscript(msg.transcript.trim());
+            case "session.input_transcript.delta":
+              setState("listening");
+              if (typeof msg.delta === "string") setTranscript(msg.delta);
+              scheduleConnectedState();
               break;
-            case "response.function_call_arguments.done": {
-              let args: Record<string, unknown> = {};
-              try {
-                args = JSON.parse(msg.arguments || "{}");
-              } catch {
-                sendFunctionOutput(dc, msg.call_id, { ok: false, error: "invalid_arguments" });
-                break;
-              }
-
-              if (msg.name === "search_properties") {
-                const query = typeof args.query === "string" ? args.query.trim() : "";
-                if (query) {
-                  const callbackPayload = onSearchQuery(query);
-                  const payload = callbackPayload ?? getLastSearchVoicePayload();
-                  sendFunctionOutput(dc, msg.call_id, {
-                    ok: true,
-                    note: "النتائج ظهرت للعميل على الشاشة",
-                    ...payload,
-                  });
-                } else {
-                  sendFunctionOutput(dc, msg.call_id, { ok: false, error: "missing_query" });
-                }
+            case "session.output_transcript.delta":
+              setState("speaking");
+              if (typeof msg.delta === "string") setTranscript(msg.delta);
+              scheduleConnectedState();
+              break;
+            case "session.closed":
+              cleanup();
+              setState("idle");
+              break;
+            case "response.event": {
+              const nested = msg.event;
+              if (nested?.type === "response.output_item.done" && nested.item) {
+                handleFunctionCall(nested.item);
               }
               break;
             }
@@ -220,12 +246,15 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
         signal: controller.signal,
       }).finally(() => window.clearTimeout(timeout));
 
-      const answerSdp = await response.text();
-      if (!response.ok) throw new Error(`connect ${response.status}: ${answerSdp.slice(0, 120)}`);
-      if (!answerSdp.trimStart().startsWith("v=0")) throw new Error("bad-answer");
+      const responseText = await response.text();
+      if (!response.ok) throw new Error(`connect ${response.status}: ${responseText.slice(0, 120)}`);
+      const result = JSON.parse(responseText);
+      const answerSdp = result?.transport?.sdp;
+      if (typeof answerSdp !== "string" || !answerSdp.trimStart().startsWith("v=0")) {
+        throw new Error("bad-answer");
+      }
 
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
-      connectingRef.current = false;
       return true;
     } catch (error: unknown) {
       cleanup();
@@ -244,6 +273,17 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
   }, [cleanup, onSearchQuery, sendFunctionOutput]);
 
   const disconnect = useCallback(() => {
+    const dc = dcRef.current;
+    if (dc?.readyState === "open") {
+      dc.send(JSON.stringify({ type: "session.close", event_id: crypto.randomUUID() }));
+      closeTimerRef.current = window.setTimeout(() => {
+        cleanup();
+        setState("idle");
+        setErrorMsg("");
+        setTranscript("");
+      }, 2_000);
+      return;
+    }
     cleanup();
     setState("idle");
     setErrorMsg("");
