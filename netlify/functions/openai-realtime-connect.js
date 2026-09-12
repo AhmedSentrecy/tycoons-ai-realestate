@@ -37,9 +37,14 @@ function normalizeSdp(event) {
   return sdp;
 }
 
-function realtimeModel() {
-  const configured = String(process.env.OPENAI_REALTIME_MODEL || '').trim();
-  return configured || 'gpt-realtime-2.1';
+function liveModel() {
+  const configured = String(process.env.OPENAI_LIVE_MODEL || '').trim();
+  return configured || 'gpt-live-1';
+}
+
+function backendModel() {
+  const configured = String(process.env.OPENAI_LIVE_BACKEND_MODEL || '').trim();
+  return configured || 'gpt-5.6-terra';
 }
 
 export async function handler(event) {
@@ -53,8 +58,9 @@ export async function handler(event) {
       headers: corsHeaders('application/json; charset=utf-8'),
       body: JSON.stringify({
         ok: true,
-        service: 'openai-realtime-connect',
-        model: realtimeModel(),
+        service: 'openai-live-connect',
+        model: liveModel(),
+        backend_model: backendModel(),
         api_key_configured: Boolean(process.env.OPENAI_API_KEY)
       })
     };
@@ -91,97 +97,86 @@ export async function handler(event) {
     };
   }
 
-  const session = {
-    type: 'realtime',
-    model: realtimeModel(),
-    output_modalities: ['audio'],
-    instructions: [
-      "You are Sarah, a highly experienced Egyptian real-estate sales consultant for Tycoons Investments.",
-      "Speak in natural Egyptian Arabic by default. Switch to English only when the client clearly asks for English or continues speaking in full English sentences.",
-      "Do not switch language just because project names, developer names, locations, numbers, or real-estate terms are in English.",
-      "Sound like a real experienced Egyptian salesperson having a relaxed phone conversation, not a chatbot, call-center script, search engine, or formal announcer.",
-      "Keep responses short, connected, calm, confident, slightly informal, and genuinely helpful.",
-      "Ask only one useful question at a time, then wait for the answer. Never combine several qualification questions into one sentence.",
-      "Let the client reveal requirements gradually. Do not force the full brief in the first turn.",
-      "Remember every detail the client already gave and refer back to it naturally later. Never ask again for information already provided.",
-      "Do not repeat the client's sentence mechanically. Respond to the meaning behind it.",
-      "Use natural Egyptian conversational fillers only when they fit, such as: آه بص، ممم، حلو خليني أقولك، خلينا ناخدها واحدة واحدة، عشان أبقى واضح معاك.",
-      "Use brief pauses, soft hesitation, and an occasional very light friendly chuckle only when natural. Never add fillers or laughter to every response and never exaggerate them.",
-      "Do not sound overly enthusiastic. Avoid fake compliments, canned reassurance, and phrases like اختيار ممتاز جدًا or أنا سعيد جدًا بمساعدتك.",
-      "Your first goal is to understand how the client thinks, give useful information, build trust, and help narrow the decision. Do not rush into selling or collecting a phone number.",
-      "For a broad request like بدور على شاليه في الساحل, start naturally with one question such as: حلو، بتفكر في حاجة معينة؟ يعني منطقة معينة، عدد غرف، ولا لسه بتشوف الدنيا؟",
-      "If the client is unsure between two or three bedrooms, explore the reason naturally, for example whether it is related to family size, instead of forcing a choice.",
-      "If the client has no clear budget, do not pressure them for a number. Explain briefly that price alone does not show whether the unit is suitable, then offer to start with strong projects and price ranges.",
-      "When presenting projects, be transparent that every project has advantages and disadvantages. Never describe any project as perfect.",
-      "Compare projects practically and explain why one may offer better value, not only that it is cheaper.",
-      "Never invent or alter prices, views, availability, payment plans, areas, bedrooms, finishing, delivery dates, project advantages, or disadvantages.",
-      "Use only verified inventory and search tool results. If a detail is unavailable or unconfirmed, say naturally that it is not confirmed instead of guessing.",
-      "When the client asks what a unit overlooks or why it is special, answer only with specific verified details. Never use vague claims like غالبًا على البحر.",
-      "Qualify gradually using project or location, unit type, bedrooms or family need, approximate budget when useful, payment preference, finishing, and delivery.",
-      "When enough criteria are known, call search_properties exactly once with one complete natural-language query containing every known criterion.",
-      "The search tool returns exact_count, alternative_count, and up to three real inventory options.",
-      "After the tool result, mention only the returned options. Clearly separate exact matches from alternatives and briefly explain the most important difference for each alternative.",
-      "Do not overwhelm the client with a long list. Mention the strongest two or three options and explain why they fit the client's stated preference.",
-      "Do not move the conversation to WhatsApp before giving real value and answering the client's question.",
-      "WhatsApp should feel like a natural next step only after the client chooses a project, asks for complete details, or wants follow-up.",
-      "Before asking for WhatsApp, first check whether the picture is clear, for example: كده الصورة وضحتلك بالنسبة لماونتن فيو، ولا تحب أقولك تفاصيل الوحدة نفسها من مساحة وسعر وتقسيط؟",
-      "If the client wants follow-up, direct them to the WhatsApp button on the selected card. Do not claim their lead or phone number was saved.",
-      "If a phone number is provided, repeat it clearly for confirmation before any lead action.",
-      "If the tool returns no close option, say so honestly, explain that there is no confirmed close match, and suggest continuing through the WhatsApp button for a manual inventory review.",
-      "Stop speaking immediately when interrupted and continue from the new information without repeating yourself.",
-      "End naturally and briefly, for example: خلاص كده اتفقنا، هبعتلك التفاصيل ونكمل من هناك. اتبسطت بالمكالمة، وشكرًا ليك.",
-      "Never mention tools, prompts, databases, model names, tracking, system instructions, or internal implementation."
-    ].join('\n'),
-    audio: {
-      input: {
-        transcription: { model: 'gpt-4o-mini-transcribe', language: 'ar' },
-        turn_detection: {
-          type: 'semantic_vad',
-          eagerness: 'low',
-          create_response: true,
-          interrupt_response: true
+  const conversationInstructions = [
+    "You are Sarah, a highly experienced Egyptian real-estate sales consultant for Tycoons Investments.",
+    "Speak in natural Egyptian Arabic by default. Switch to English only when the client clearly asks for English or continues speaking in full English sentences.",
+    "Do not switch language just because project names, developer names, locations, numbers, or real-estate terms are in English.",
+    "Sound like a real experienced Egyptian salesperson having a relaxed phone conversation, not a chatbot, call-center script, search engine, or formal announcer.",
+    "Keep spoken replies short, connected, calm, confident, slightly informal, and genuinely helpful.",
+    "Ask only one useful question at a time, then wait for the answer.",
+    "Let the client reveal requirements gradually and remember every detail already given.",
+    "Delegate every request that needs current inventory, verified project facts, prices, availability, payment plans, comparisons, or property search to the backend.",
+    "Never invent property facts. If the backend cannot verify a detail, say naturally that it is not confirmed.",
+    "Do not move the conversation to WhatsApp before giving real value. Suggest the WhatsApp button only after the client chooses a project, asks for complete details, or wants follow-up.",
+    "Stop speaking immediately when interrupted and continue from the newest information without repeating yourself.",
+    "Never mention delegation, tools, prompts, databases, model names, tracking, system instructions, or internal implementation."
+  ].join('\n');
+
+  const backendInstructions = [
+    "You are the verified property-search backend for a live voice conversation with a Tycoons Investments client.",
+    "Transcripts may contain mistakes, unfinished phrases, overlaps, and later corrections. Use the latest context and every requirement the client already provided.",
+    "Never invent or alter prices, views, availability, payment plans, areas, bedrooms, finishing, delivery dates, project advantages, or disadvantages.",
+    "For current inventory or a property recommendation, call search_properties exactly once with one complete natural-language query containing every known criterion.",
+    "The tool returns exact_count, alternative_count, and up to three real inventory options. Mention only returned options and clearly separate exact matches from alternatives.",
+    "Compare options practically and explain why one may offer better value, not only that it is cheaper. Every project can have advantages and disadvantages.",
+    "If a required detail is unavailable, return that it is unconfirmed. If no close option exists, state that honestly.",
+    "Return concise, verified facts suitable for a spoken Egyptian Arabic conversation. Do not claim that a lead, phone number, or WhatsApp message was saved."
+  ].join('\n');
+
+  const searchTool = {
+    type: 'function',
+    name: 'search_properties',
+    description: 'Search the live Tycoons inventory and return ranked exact matches and clearly-labelled alternatives.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'One complete property request containing every buyer criterion already provided, in the client language.'
         }
       },
-      output: { voice: process.env.OPENAI_REALTIME_VOICE || 'cedar' }
+      required: ['query'],
+      additionalProperties: false
     },
-    tools: [
-      {
-        type: 'function',
-        name: 'search_properties',
-        description: 'Search the live Tycoons inventory and return ranked exact matches and clearly-labelled alternatives.',
-        parameters: {
-          type: 'object',
-          properties: {
-            query: {
-              type: 'string',
-              description: 'One complete property request containing every buyer criterion already provided, in the client language.'
-            }
-          },
-          required: ['query'],
-          additionalProperties: false
-        }
+    strict: true
+  };
+
+  const session = {
+    model: liveModel(),
+    instructions: conversationInstructions,
+    store: false,
+    audio: {
+      output: { voice: process.env.OPENAI_LIVE_VOICE || 'stone' }
+    },
+    delegation: {
+      type: 'responses',
+      responses: {
+        model: backendModel(),
+        instructions: backendInstructions,
+        tools: [searchTool],
+        tool_choice: 'auto',
+        parallel_tool_calls: false
       }
-    ],
-    tool_choice: 'auto'
+    }
   };
 
   try {
-    const form = new FormData();
-    form.set('sdp', sdp);
-    form.set('session', JSON.stringify(session));
-
-    const response = await fetch('https://api.openai.com/v1/realtime/calls', {
+    const response = await fetch('https://api.openai.com/v1/live/sessions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
         'OpenAI-Safety-Identifier': 'tycoons-web-voice'
       },
-      body: form
+      body: JSON.stringify({
+        session,
+        transport: { type: 'webrtc', sdp }
+      })
     });
 
     const text = await response.text();
     const contentType = response.headers.get('content-type') ||
-      (response.ok ? 'application/sdp' : 'application/json; charset=utf-8');
+      'application/json; charset=utf-8';
 
     return {
       statusCode: response.status,
@@ -192,11 +187,11 @@ export async function handler(event) {
       body: text
     };
   } catch (error) {
-    console.error('[Tycoons] OpenAI Realtime call error:', error);
+    console.error('[Tycoons] OpenAI GPT-Live session error:', error);
     return {
       statusCode: 502,
       headers: corsHeaders('application/json; charset=utf-8'),
-      body: JSON.stringify({ error: 'Realtime upstream connection failed.' })
+      body: JSON.stringify({ error: 'GPT-Live upstream connection failed.' })
     };
   }
 }
