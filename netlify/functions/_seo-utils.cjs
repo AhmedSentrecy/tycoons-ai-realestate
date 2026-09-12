@@ -654,14 +654,14 @@ function styles() {
   return `
   :root{--green:#0d1f18;--gold:#c49b5f;--ink:#1b2420;--muted:#667168;--line:#e7ddc8;--warm:#f7f2ea}
   *{box-sizing:border-box}body{margin:0;background:var(--warm);color:var(--ink);font-family:Arial,"Noto Sans Arabic",sans-serif;line-height:1.75}a{color:inherit}
-  header{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px max(20px,calc((100% - 1180px)/2));background:var(--green);color:#fff}header a{text-decoration:none;font-weight:700}nav{display:flex;flex-wrap:wrap;gap:16px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px max(20px,calc((100% - 1180px)/2));background:var(--green);color:#fff}header a{text-decoration:none;font-weight:700}.brand{white-space:nowrap;letter-spacing:.03em}nav{display:flex;flex-wrap:wrap;align-items:center;gap:16px}.language-switch{display:inline-flex;align-items:center;gap:4px;padding:4px;border:1px solid rgba(255,255,255,.24);border-radius:999px}.language-switch a{padding:3px 8px;border-radius:999px;font-size:13px}.language-switch a[aria-current="page"]{background:rgba(255,255,255,.18)}
   main{width:min(1120px,calc(100% - 32px));margin:auto;padding:34px 0 70px}.hero,.panel,.card,.table,.answer{background:#fff;border:1px solid var(--line);border-radius:24px}
   .hero{padding:clamp(24px,5vw,52px)}h1{margin:8px 0 18px;font-size:clamp(32px,5vw,54px);line-height:1.2;color:var(--green)}h2{margin:40px 0 16px;color:var(--green)}.lead{font-size:18px;color:var(--muted)}.eyebrow{color:#8a6630;font-weight:800}
   .answer{padding:22px 24px;margin:24px 0;background:#fffaf1}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{padding:18px;text-decoration:none}.card img{width:100%;height:180px;object-fit:cover;border-radius:16px}.card p{color:var(--muted)}
   .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:24px}.fact{padding:14px;border:1px solid var(--line);border-radius:15px}.fact small{display:block;color:var(--muted)}.cta{display:inline-block;margin-top:18px;padding:11px 18px;border-radius:999px;background:#1faa59;color:#fff;text-decoration:none;font-weight:800}
   .table{overflow:auto}.table table{width:100%;min-width:760px;border-collapse:collapse}.table th,.table td{padding:13px 15px;text-align:start;border-bottom:1px solid var(--line)}.table th{background:#efe7d8}.updated,.note,.crumbs{font-size:13px;color:var(--muted)}
   .guide section{padding:22px 0;border-bottom:1px solid var(--line)}footer{padding:36px max(20px,calc((100% - 1180px)/2));background:var(--green);color:#fff}footer a{margin-inline-end:14px}
-  @media(max-width:800px){header{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}}
+  @media(max-width:800px){header{align-items:flex-start;flex-direction:column;gap:12px;padding:14px 16px}.brand{font-size:15px}nav{width:100%;gap:7px}nav>a{padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}.language-switch{margin-inline-start:auto}.language-switch a{font-size:12px}.grid{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}main{width:min(100% - 24px,1120px);padding:24px 0 54px}.hero{padding:24px 20px;border-radius:20px}h1{font-size:clamp(30px,9vw,40px)}h2{margin-top:32px;font-size:28px}.lead{font-size:16px}.card{padding:16px}}
   `;
 }
 
@@ -698,12 +698,12 @@ ${[organizationSchema(), ...schemas]
   .map((schema) => `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, "\\u003c")}</script>`)
   .join("")}
 <style>${styles()}</style></head><body>
-<header><a href="/">TYCOONS INVESTMENTS</a><nav>
+<header><a class="brand" href="/">TYCOONS INVESTMENTS</a><nav>
 <a href="/${lang}/">${ar ? "دليل المشاريع" : "Project directory"}</a>
 <a href="${ar ? "/guides/off-plan-buying-checklist" : "/en/guides/new-cairo-property-prices/"}">${ar ? "الأدلة" : "Guides"}</a>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
 <a href="https://wa.me/${WHATSAPP_NUMBER}">${ar ? "واتساب" : "WhatsApp"}</a>
-${alternate ? `<a href="${escapeHtml(alternate)}" lang="${ar ? "en" : "ar"}" hreflang="${ar ? "en" : "ar-EG"}">${ar ? "English" : "العربية"}</a>` : ""}
+${alternate ? `<span class="language-switch" aria-label="${ar ? "اختيار اللغة" : "Choose language"}"><a href="${escapeHtml(ar ? canonical : alternate)}" lang="ar" hreflang="ar-EG"${ar ? ` aria-current="page"` : ""}>العربية</a><a href="${escapeHtml(ar ? alternate : canonical)}" lang="en" hreflang="en"${ar ? "" : ` aria-current="page"`}>English</a></span>` : ""}
 </nav></header>${body}
 <footer><strong>Tycoons Investments</strong><p>${ar ? "بيانات الأسعار والتوفر استرشادية ويتم تأكيدها وقت الطلب. العوائد تقديرية وليست ضمانًا." : "Prices and availability are indicative and reconfirmed on request. Returns are estimates, not guarantees."}</p>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
