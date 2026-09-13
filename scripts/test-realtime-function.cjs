@@ -92,7 +92,7 @@ async function run() {
   assert.equal(request.transport.type, 'webrtc');
   assert.equal(request.transport.sdp, validSdp);
   assert.equal(request.session.model, 'gpt-live-1');
-  assert.equal(request.session.audio.output.voice, 'stone');
+  assert.equal(request.session.audio.output.voice, 'marin');
   assert.equal(request.session.delegation.type, 'responses');
   assert.equal(request.session.delegation.responses.model, 'gpt-5.6-terra');
   // Configuration regression checks, not a substitute for spoken conversation evals.

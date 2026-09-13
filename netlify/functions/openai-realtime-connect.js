@@ -61,6 +61,7 @@ export async function handler(event) {
         service: 'openai-live-connect',
         model: liveModel(),
         backend_model: backendModel(),
+        voice: process.env.OPENAI_LIVE_VOICE || 'marin',
         api_key_configured: Boolean(process.env.OPENAI_API_KEY)
       })
     };
@@ -164,7 +165,7 @@ export async function handler(event) {
     instructions: conversationInstructions,
     store: false,
     audio: {
-      output: { voice: process.env.OPENAI_LIVE_VOICE || 'stone' }
+      output: { voice: process.env.OPENAI_LIVE_VOICE || 'marin' }
     },
     delegation: {
       type: 'responses',
