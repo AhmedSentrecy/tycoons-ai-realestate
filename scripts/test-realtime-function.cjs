@@ -95,6 +95,21 @@ async function run() {
   assert.equal(request.session.audio.output.voice, 'stone');
   assert.equal(request.session.delegation.type, 'responses');
   assert.equal(request.session.delegation.responses.model, 'gpt-5.6-terra');
+  // Configuration regression checks, not a substitute for spoken conversation evals.
+  const livePrompt = request.session.instructions;
+  const backendPrompt = request.session.delegation.responses.instructions;
+  assert.match(livePrompt, /بالذكاء الاصطناعي/);
+  assert.match(livePrompt, /Backchannel policy:/);
+  assert.match(livePrompt, /Interruption policy:/);
+  assert.match(livePrompt, /Delegation policy:/);
+  assert.match(livePrompt, /لا تعتبر السكوت موافقة/);
+  assert.match(backendPrompt, /QUALIFICATION:/);
+  assert.match(backendPrompt, /down payment separately from total price/);
+  assert.match(backendPrompt, /purchase timeline separately from delivery date/);
+  assert.match(backendPrompt, /Exclude the client's name, phone/);
+  assert.match(backendPrompt, /that is not inventory evidence/);
+  assert.match(backendPrompt, /Respect refusal and withdrawal/);
+  assert.equal(request.session.store, false);
   assert.equal(
     request.session.delegation.responses.tools.some((tool) => tool.name === 'search_properties'),
     true
