@@ -1,3 +1,4 @@
+import { tr, localeHref } from "@/lib/homeLanguage";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 
@@ -38,12 +39,11 @@ export default function Developers() {
       >
         <div className="mb-3 flex items-center justify-center gap-2.5">
           <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
-          <span className="text-sm font-medium text-[#a3854e]">شركاء موثوقون</span>
+          <span className="text-sm font-medium text-[#a3854e]">{tr("شركاء موثوقون")}</span>
         </div>
-        <h2 className="text-2xl font-extrabold text-[#1b2420] sm:text-3xl">مطوّرون موثوقون</h2>
+        <h2 className="text-2xl font-extrabold text-[#1b2420] sm:text-3xl">{tr("مطوّرون موثوقون")}</h2>
         <p className="mx-auto mt-3 max-w-md font-light text-[#6d7a72]">
-          كل الوحدات مباشرة من المطوّر — بيانات وأسعار موثّقة، من غير وسطاء وهميين.
-        </p>
+          {tr("كل الوحدات مباشرة من المطوّر — بيانات وأسعار موثّقة، من غير وسطاء وهميين.")}</p>
       </motion.div>
 
       <div className="relative">
@@ -52,7 +52,7 @@ export default function Developers() {
         <div className="flex w-max animate-marquee gap-14 pl-14">
           {row.map((d, i) => (
             <div key={i} className="flex items-center gap-14">
-              <a href={`/ar/developers/${slugify(d)}`} className="whitespace-nowrap text-xl font-bold tracking-wide text-[#3a4a41]/55 transition-colors hover:text-[#14352a]">
+              <a href={localeHref(`/ar/developers/${slugify(d)}`)} className="whitespace-nowrap text-xl font-bold tracking-wide text-[#3a4a41]/55 transition-colors hover:text-[#14352a]">
                 {d}
               </a>
               <span className="h-2 w-2 rotate-45 bg-[#c49b5f]/50" />
@@ -63,11 +63,10 @@ export default function Developers() {
 
       <div className="mt-8 flex justify-center px-5">
         <a
-          href="/ar/#developers"
+          href={localeHref("/ar/#developers")}
           className="inline-flex items-center gap-2 rounded-full border border-[#b9995f]/45 bg-white/65 px-5 py-2.5 text-sm font-bold text-[#493d27] transition hover:border-[#a3854e] hover:bg-white"
         >
-          استكشف كل المطورين ومشاريعهم
-          <ArrowLeft className="h-4 w-4" />
+          {tr("استكشف كل المطورين ومشاريعهم")}<ArrowLeft className="h-4 w-4" />
         </a>
       </div>
     </section>

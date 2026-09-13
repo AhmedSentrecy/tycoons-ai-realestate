@@ -1,17 +1,18 @@
+import { tr, localeHref, isEnglish } from "@/lib/homeLanguage";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 
+export default function Navbar() {
 const links = [
-  { label: "الرئيسية", to: "/", external: false },
-  { label: "دليل المشاريع", to: "/ar/", external: true },
-  { label: "المطورون", to: "/ar/#developers", external: true },
-  { label: "من نحن", to: "/about", external: false },
-  { label: "الأسئلة الشائعة", to: "/faq", external: false },
+  { label: tr("الرئيسية"), to: isEnglish() ? "/en/" : "/", external: true },
+  { label: tr("دليل المشاريع"), to: localeHref("/ar/"), external: true },
+  { label: tr("المطورون"), to: localeHref("/ar/#developers"), external: true },
+  { label: tr("من نحن"), to: isEnglish() ? "/en/#about" : "/about", external: true },
+  { label: tr("الأسئلة الشائعة"), to: isEnglish() ? "/en/#faq" : "/faq", external: true },
 ];
 
-export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function Navbar() {
     >
       <div className="mx-auto flex h-[64px] max-w-6xl items-center justify-between px-5 lg:px-8">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3">
+        <a href={isEnglish() ? "/en/" : "/"} className="flex items-center gap-3">
           <span
             className={`grid h-10 w-10 place-items-center rounded-xl transition-colors ${
               scrolled ? "bg-[#14352a]" : "glass"
@@ -63,7 +64,7 @@ export default function Navbar() {
               INVESTMENTS
             </span>
           </span>
-        </Link>
+        </a>
 
         {/* Links */}
         <nav className="hidden items-center gap-8 lg:flex">
@@ -95,7 +96,7 @@ export default function Navbar() {
         {/* Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
           <div
-            aria-label="اختيار اللغة"
+            aria-label={tr("اختيار اللغة")}
             className={`flex items-center rounded-full p-1 text-[11px] font-semibold transition-colors ${
               scrolled ? "bg-[#ece3d0] text-[#5c4f33]" : "glass text-white/90"
             }`}
@@ -104,16 +105,16 @@ export default function Navbar() {
               href="/"
               hrefLang="ar"
               lang="ar"
-              aria-current="page"
+              aria-current={!isEnglish() ? "page" : undefined}
               className={`rounded-full px-2 py-1 ${scrolled ? "bg-white/75" : "bg-white/15"}`}
             >
-              عربي
-            </a>
+              {tr("عربي")}</a>
             <a
               href="/en/"
               hrefLang="en"
               lang="en"
-              aria-label="English project directory"
+              aria-label="English homepage"
+              aria-current={isEnglish() ? "page" : undefined}
               className="rounded-full px-2 py-1 transition-colors hover:bg-white/20"
             >
               EN
@@ -123,11 +124,11 @@ export default function Navbar() {
             href="https://wa.me/201200704344"
             target="_blank"
             rel="noreferrer"
-            aria-label="تواصل معنا على واتساب"
+            aria-label={tr("تواصل معنا على واتساب")}
             className="flex items-center gap-2 rounded-full bg-[#1faa59] px-3 py-2.5 text-sm font-semibold text-white shadow-[0_10px_30px_-8px_rgba(31,170,89,0.6)] transition-transform hover:scale-[1.04] min-[430px]:px-5"
           >
             <MessageCircle className="h-4 w-4" />
-            <span className="hidden min-[430px]:inline">واتساب</span>
+            <span className="hidden min-[430px]:inline">{tr("واتساب")}</span>
           </a>
         </div>
       </div>

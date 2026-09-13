@@ -35,6 +35,7 @@ async function writePage(relativePath, html) {
 
 async function main() {
   const shell = await fs.readFile(path.join(dist, "index.html"), "utf8");
+  await writePage("en/index.html", require("./lib/english-home.cjs")(shell));
   const [projects, units] = await Promise.all([
     fetchRows("projects", "id,name,slug,developer,location,description,status,min_price,down_payment_text,installments_text,delivery_text,hero_text,seo_title,seo_description,seo_keywords,targeting,article_sections,faq,highlights,image_url,gallery_urls,video_url,last_updated_at"),
     fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,brochure_url,video_url,last_updated_at", { availability_status: "eq.available", project_id: "not.is.null" }),

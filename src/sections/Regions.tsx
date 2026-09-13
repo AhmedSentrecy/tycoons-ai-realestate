@@ -1,14 +1,15 @@
+import { tr, localeHref } from "@/lib/homeLanguage";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 const regions = [
-  { name: "الساحل الشمالي", count: "شوف المتاح المحدث", image: "/images/region-sahel.webp", areaSlug: "north-coast", wide: true },
-  { name: "التجمع / القاهرة الجديدة", count: "شوف المتاح المحدث", image: "/images/region-newcairo.webp", areaSlug: "new-cairo", wide: false },
-  { name: "الشيخ زايد", count: "شوف المتاح المحدث", image: "/images/region-zayed.webp", areaSlug: "sheikh-zayed", wide: false },
-  { name: "العين السخنة", count: "شوف المتاح المحدث", image: "/images/region-sokhna.webp", areaSlug: "ain-sokhna", wide: false },
-  { name: "العاصمة الإدارية", count: "شوف المتاح المحدث", image: "/images/region-capital.webp", areaSlug: "new-capital", wide: false },
+  { name: tr("الساحل الشمالي"), count: tr("شوف المتاح المحدث"), image: "/images/region-sahel.webp", areaSlug: "north-coast", wide: true },
+  { name: tr("التجمع / القاهرة الجديدة"), count: tr("شوف المتاح المحدث"), image: "/images/region-newcairo.webp", areaSlug: "new-cairo", wide: false },
+  { name: tr("الشيخ زايد"), count: tr("شوف المتاح المحدث"), image: "/images/region-zayed.webp", areaSlug: "sheikh-zayed", wide: false },
+  { name: tr("العين السخنة"), count: tr("شوف المتاح المحدث"), image: "/images/region-sokhna.webp", areaSlug: "ain-sokhna", wide: false },
+  { name: tr("العاصمة الإدارية"), count: tr("شوف المتاح المحدث"), image: "/images/region-capital.webp", areaSlug: "new-capital", wide: false },
 ];
 
 export default function Regions() {
@@ -24,18 +25,17 @@ export default function Regions() {
         >
           <div className="mb-4 flex items-center gap-2.5">
             <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
-            <span className="text-sm font-medium text-[#a3854e]">استكشف بالمنطقة</span>
+            <span className="text-sm font-medium text-[#a3854e]">{tr("استكشف بالمنطقة")}</span>
           </div>
-          <h2 className="text-3xl font-extrabold text-[#1b2420] sm:text-4xl">مناطق مميّزة</h2>
+          <h2 className="text-3xl font-extrabold text-[#1b2420] sm:text-4xl">{tr("مناطق مميّزة")}</h2>
           <p className="mt-3 text-sm font-light leading-relaxed text-[#6d7a72]">
-            اختار منطقة والمساعد يبدأ البحث فيها فورًا.
-          </p>
+            {tr("اختار منطقة والمساعد يبدأ البحث فيها فورًا.")}</p>
         </motion.div>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {regions.map((r, i) => (
             <motion.div
-              key={r.name}
+              key={tr(r.name)}
               initial={{ opacity: 0, y: 36 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
@@ -43,14 +43,14 @@ export default function Regions() {
               className={r.wide ? "sm:col-span-2 lg:row-span-2 lg:h-full" : ""}
             >
               <a
-                href={`/ar/areas/${r.areaSlug}`}
+                href={localeHref(`/ar/areas/${r.areaSlug}`)}
                 className={`group relative block overflow-hidden rounded-3xl ${
                   r.wide ? "min-h-[230px] lg:h-full lg:min-h-[430px]" : "min-h-[205px]"
                 }`}
               >
                 <img
                   src={r.image}
-                  alt={r.name}
+                  alt={tr(r.name)}
                   width={1012}
                   height={733}
                   loading="lazy"
@@ -62,7 +62,7 @@ export default function Regions() {
                 <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">
                   <div>
                     <h3 className={`font-extrabold text-white ${r.wide ? "text-2xl" : "text-lg"}`}>
-                      {r.name}
+                      {tr(r.name)}
                     </h3>
                     <p className="mt-1.5 text-sm font-light text-white/70">{r.count}</p>
                   </div>

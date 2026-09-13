@@ -1,3 +1,4 @@
+import { tr } from "@/lib/homeLanguage";
 import { motion } from "framer-motion";
 import { ShieldCheck, Wallet, MessageCircle } from "lucide-react";
 
@@ -6,18 +7,18 @@ const ease = [0.22, 1, 0.36, 1] as const;
 const features = [
   {
     icon: ShieldCheck,
-    title: "موثّق من المطوّر",
-    desc: "كل وحدة مباشرة من الشركة المطوّرة — مفيش إعلانات مكررة ولا أسعار وهمية.",
+    title: tr("موثّق من المطوّر"),
+    desc: tr("كل وحدة مباشرة من الشركة المطوّرة — مفيش إعلانات مكررة ولا أسعار وهمية."),
   },
   {
     icon: Wallet,
-    title: "أقساط تناسبك",
-    desc: "خطط سداد لحد ١٠ سنين، وحاسبة قسط شفافة على كل مشروع.",
+    title: tr("أقساط تناسبك"),
+    desc: tr("خطط سداد لحد ١٠ سنين، وحاسبة قسط شفافة على كل مشروع."),
   },
   {
     icon: MessageCircle,
-    title: "رد فوري على واتساب",
-    desc: "المساعد بيكمّل معاك على واتساب بتفاصيل الوحدة اللي عايزها.",
+    title: tr("رد فوري على واتساب"),
+    desc: tr("المساعد بيكمّل معاك على واتساب بتفاصيل الوحدة اللي عايزها."),
   },
 ];
 

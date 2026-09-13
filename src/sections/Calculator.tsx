@@ -1,3 +1,4 @@
+import { tr } from "@/lib/homeLanguage";
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Calculator as CalcIcon, MessageCircle } from "lucide-react";
@@ -48,32 +49,31 @@ export default function Calculator({
           >
             <div className="mb-4 flex items-center gap-2.5">
               <span className="h-2 w-2 rounded-full bg-[#d9b87c]" />
-              <span className="text-sm font-medium text-[#d9b87c]">خطّط قبل ما تسأل</span>
+              <span className="text-sm font-medium text-[#d9b87c]">{tr("خطّط قبل ما تسأل")}</span>
             </div>
-            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">حاسبة الأقساط</h2>
+            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">{tr("حاسبة الأقساط")}</h2>
             <p className="mt-3 max-w-md text-sm font-light leading-relaxed text-white/60">
-              اعرف القسط الشهري التقريبي قبل ما تكلّم أي حد — حرّك المؤشرات وشوف النتيجة لحظيًا.
-            </p>
+              {tr("اعرف القسط الشهري التقريبي قبل ما تكلّم أي حد — حرّك المؤشرات وشوف النتيجة لحظيًا.")}</p>
 
             <div className="mt-7 grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-gradient-to-br from-[#c49b5f] to-[#a37c43] p-4 shadow-[0_24px_60px_-20px_rgba(196,155,95,0.45)]">
-                <div className="text-[13px] font-medium text-[#2b2113]/75">القسط الشهري التقريبي</div>
+                <div className="text-[13px] font-medium text-[#2b2113]/75">{tr("القسط الشهري التقريبي")}</div>
                 <div
                   dir="ltr"
                   className="mt-2 text-2xl font-extrabold text-[#1d1608] sm:text-3xl"
                 >
                   {fmt(monthly)}
-                  <span className="ml-1 text-base font-semibold">ج.م</span>
+                  <span className="ml-1 text-base font-semibold">{tr("ج.م")}</span>
                 </div>
               </div>
               <div className="rounded-2xl border border-white/12 bg-white/[0.05] p-4">
-                <div className="text-[13px] font-medium text-white/55">قيمة المقدم</div>
+                <div className="text-[13px] font-medium text-white/55">{tr("قيمة المقدم")}</div>
                 <div
                   dir="ltr"
                   className="mt-2 text-2xl font-extrabold text-white sm:text-3xl"
                 >
                   {fmt(downAmount)}
-                  <span className="ml-1 text-base font-semibold text-white/70">ج.م</span>
+                  <span className="ml-1 text-base font-semibold text-white/70">{tr("ج.م")}</span>
                 </div>
               </div>
             </div>
@@ -85,8 +85,7 @@ export default function Calculator({
               className="mt-6 inline-flex items-center gap-2.5 rounded-full bg-[#1faa59] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_40px_-10px_rgba(31,170,89,0.6)] transition-transform hover:scale-[1.04]"
             >
               <MessageCircle className="h-4 w-4" />
-              اسأل عن خطة السداد على واتساب
-            </a>
+              {tr("اسأل عن خطة السداد على واتساب")}</a>
           </motion.div>
 
           {/* Controls */}
@@ -101,13 +100,13 @@ export default function Calculator({
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#c49b5f]/20 text-[#d9b87c]">
                 <CalcIcon className="h-5 w-5" />
               </div>
-              <span className="text-lg font-bold text-white">جرّب بنفسك</span>
+              <span className="text-lg font-bold text-white">{tr("جرّب بنفسك")}</span>
             </div>
 
             {[
               {
-                label: "سعر الوحدة",
-                value: `${fmt(price)} ج.م`,
+                label: tr("سعر الوحدة"),
+                value: tr(`${fmt(price)} ج.م`),
                 min: 1_000_000,
                 max: 100_000_000,
                 step: 500_000,
@@ -115,7 +114,7 @@ export default function Calculator({
                 set: setPrice,
               },
               {
-                label: "المقدم",
+                label: tr("المقدم"),
                 value: `${down.toLocaleString("en-US")}%`,
                 min: 1,
                 max: 50,
@@ -124,8 +123,8 @@ export default function Calculator({
                 set: setDown,
               },
               {
-                label: "مدة التقسيط",
-                value: `${years.toLocaleString("en-US")} سنين`,
+                label: tr("مدة التقسيط"),
+                value: tr(`${years.toLocaleString("en-US")} سنين`),
                 min: 1,
                 max: 15,
                 step: 1,

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Mic, PhoneOff, Volume2, X } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useRealtimeVoice } from "@/hooks/useRealtimeVoice";
+import VoiceContactReview from "@/components/VoiceContactReview";
 
 type VoiceSessionValue = ReturnType<typeof useRealtimeVoice> & { active: boolean };
 const VoiceSessionContext = createContext<VoiceSessionValue | null>(null);
@@ -42,6 +43,7 @@ export function VoiceSessionProvider({ children }: { children: ReactNode }) {
   return (
     <VoiceSessionContext.Provider value={value}>
       {children}
+      {!active && voice.voiceDraft && <VoiceContactReview key={voice.voiceDraft.id} draft={voice.voiceDraft} close={voice.clearVoiceDraft} />}
       {active && (
         <aside aria-label="المحادثة الصوتية" className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[90] mx-auto max-w-2xl rounded-2xl border border-[#d6b77d]/45 bg-[#102d25]/95 p-3 text-white shadow-[0_18px_60px_rgba(3,17,12,0.42)] backdrop-blur-xl sm:inset-x-6 sm:p-4">
           {confirmEnd ? (
@@ -63,9 +65,12 @@ export function VoiceSessionProvider({ children }: { children: ReactNode }) {
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-semibold text-[#d6b77d]">مساعد Tycoons الصوتي</p>
                 <p className="truncate text-sm font-bold">{status}</p>
+                <p className={voice.remainingSeconds <= 30 ? "text-xs font-bold text-amber-300" : "text-xs text-white/65"}>
+                  {Math.floor(voice.remainingSeconds / 60)}:{String(voice.remainingSeconds % 60).padStart(2, "0")} — {voice.remainingSeconds <= 30 ? "المحادثة هتنتهي تلقائيًا" : "الحد الأقصى 4 دقايق"}
+                </p>
                 {voice.transcript && <p className="mt-0.5 truncate text-xs text-white/65">{voice.transcript}</p>}
               </div>
-              <button type="button" onClick={() => setConfirmEnd(true)} className="hidden items-center gap-2 rounded-full border border-white/20 px-4 py-2 text-xs font-bold transition-colors hover:border-[#d6b77d]/60 hover:bg-white/10 sm:flex">
+              <button type="button" onClick={endSession} className="flex shrink-0 items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs font-bold transition-colors hover:border-[#d6b77d]/60 hover:bg-white/10">
                 <PhoneOff aria-hidden="true" className="h-4 w-4" /> إنهاء المحادثة
               </button>
               <button type="button" aria-label="إنهاء المحادثة الصوتية" onClick={() => setConfirmEnd(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/20 text-white/80 hover:bg-white/10">

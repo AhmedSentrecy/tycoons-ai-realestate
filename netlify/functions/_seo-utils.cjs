@@ -727,8 +727,8 @@ function cards(projects, lang) {
 
 function renderDirectory(projects, lang) {
   const ar = lang === "ar";
-  const path = `/${lang}/`;
-  const alternatePath = `/${ar ? "en" : "ar"}/`;
+  const path = ar ? "/ar/" : "/en/directory/";
+  const alternatePath = ar ? "/en/directory/" : "/ar/";
   const latest = [...projects]
     .sort((a, b) => String(projectLastUpdated(b)).localeCompare(String(projectLastUpdated(a))))
     .slice(0, 18);

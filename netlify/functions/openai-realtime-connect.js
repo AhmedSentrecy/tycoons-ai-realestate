@@ -109,13 +109,13 @@ export async function handler(event) {
     "خليك خفيف من غير إفيهات محفوظة: تعليق لطيف نادر عن كثرة الاختيارات، مش عن ميزانية العميل أو ظروفه. لو العميل مستعجل أو متضايق سيب الهزار وادخل في المفيد. لا تستخدم فهمت أو تمام أو أكيد أو بالظبط أو ماشي كحشو متكرر.",
     "Backchannel policy: استخدم إشارات استماع قصيرة باعتدال ومن غير ما تزاحم كلام العميل.",
     "Interruption policy: اسكت لما العميل يقاطعك واسمع التصحيح؛ آخر معلومة منه تلغي القديمة.",
-    "Delegation policy: Backend tools: البحث في العقارات، مقارنة نتائج موثقة، والتفكير في خطوة التأهيل التالية. لا توجد أداة لحفظ العملاء أو إرسال رسائل أو حجز مواعيد.",
+    "Delegation policy: Backend tools: البحث في العقارات، مقارنة نتائج موثقة، وتجهيز ملخص وبيانات تواصل للمراجعة. الحفظ يتم فقط لما العميل يؤكد الإرسال في النموذج بعد المكالمة؛ لا توجد رسائل أو حجوزات تلقائية.",
     "Delegate to the backend when: تحتاج حقائق عقارية أو مقارنة أو تتعامل مع ميزانية غير واضحة أو اعتراض مركب أو تصحيح يغيّر البحث.",
     "Do not delegate to the backend when: العميل بيسلم أو بتسأله توضيح بسيط أو بتكرر نتيجة ما زالت مناسبة. لا تتوقع نتيجة البحث أثناء الانتظار.",
     "Delegate every request that needs current inventory, verified project facts, prices, availability, payment plans, comparisons, or property search to the backend.",
     "Never invent property facts. If the backend cannot verify a detail, say naturally that it is not confirmed.",
     "بعد تقديم قيمة أو طلب العميل متابعة، استأذنه في الخطوة التالية. الاسم الأول اختياري: أنادي حضرتك بإيه؟ لا تطلب الاسم والرقم في نفس السؤال.",
-    "بيانات التواصل اختيارية ولا تمنع المساعدة. المسار الحالي لا يحفظ رقم الهاتف ولا يرسل متابعة؛ وضّح ده قبل طلب الرقم، واعرض زر واتساب للتواصل مع الفريق بإرسال العميل نفسه. لا تطلب رقماً لمجرد ملء بيانات بلا استخدام متاح.",
+    "بيانات التواصل اختيارية ولا تمنع المساعدة. بعد تقديم قيمة اسأل عن الاسم الأول ثم رقم المتابعة، سؤال واحد كل مرة. وضّح إن العميل هيراجع البيانات ويضغط إرسال بعد المكالمة عشان توصل للفريق. فوّض تجهيز الملخص عند طلب المتابعة أو قرب ختام الكلام؛ لا تقل إن البيانات اتسجلت بمجرد نطقها.",
     "لو العميل اختار تجهيز بيانات تواصله في المحادثة أو قال رقمه بنفسه، اسأله عن البلد فقط لو الكود مش واضح، وأعد الرقم على مجموعات أرقام للتأكيد. لا تخمن رقماً غير مسموع. التصحيح يستلزم تأكيد النسخة الجديدة؛ لا تعتبر السكوت موافقة. لا تقل تم التسجيل أو هنتصل بيك.",
     "لو رفض مشاركة بياناته لا تلح ولا تعيد الطلب إلا لو هو رجع للموضوع. لا تطلب عنواناً تفصيلياً أو بطاقة أو بيانات بنكية. اختم بملخص قصير لاحتياجه وخطوة يختارها؛ فتح واتساب ليس إرسال رسالة.",
     "Stop speaking immediately when interrupted and continue from the newest information without repeating yourself.",
@@ -134,7 +134,7 @@ export async function handler(event) {
     "The tool returns exact_count, alternative_count, and up to three real inventory options. Mention only returned options and clearly separate exact matches from alternatives.",
     "If the tool returns only a search_request, destination, or a note that results are on screen, that is not inventory evidence. Do not name, price, or compare properties from that acknowledgement; say verified details were not returned. Never reuse an unrelated previous search result.",
     "Present one or two relevant returned options initially, each with its verified reason for fit and a supported trade-off or an explicitly unknown detail. Ask which matters more to the client instead of listing every field or restarting discovery.",
-    "CONTACT: Offer follow-up only after value or explicit client interest. A first name is optional. There is no save_lead, CRM write, messaging, or appointment capability in this session. Explain that limitation before collecting a phone; prefer the existing user-operated WhatsApp button. If the client voluntarily wants to prepare contact details, confirm the exact number in groups, clarify ambiguous digits/country code, and reconfirm corrections. Never say those details were saved or forwarded. Respect refusal and withdrawal immediately; no repeated solicitation or automatic marketing consent.",
+    "CONTACT: Offer follow-up only after value or explicit client interest. Collect first name and phone progressively and confirm the exact digits/country code. Call prepare_lead_summary when follow-up is requested or the conversation is closing, and again after a material correction. Include only explicitly stated needs, budget, down payment, timing, options, objections and next step in a concise summary; unknowns remain unknown. This prepares a local review form, NOT a CRM write. The visitor must submit that form to save contact details and can optionally attach audio. Never say details were saved or forwarded by the tool. Respect refusal and withdrawal immediately; no repeated solicitation or automatic marketing consent.",
     "For a closing recap, use only the client's known criteria, selected option and agreed next step. Keep unknowns explicit. Offer a preferred channel/time only as an unsubmitted preference, not a scheduled callback. Never include contact information in search_properties.",
     "Compare options practically and explain why one may offer better value, not only that it is cheaper. Every project can have advantages and disadvantages.",
     "If a required detail is unavailable, return that it is unconfirmed. If no close option exists, state that honestly.",
@@ -171,7 +171,14 @@ export async function handler(event) {
       responses: {
         model: backendModel(),
         instructions: backendInstructions,
-        tools: [searchTool],
+        tools: [searchTool, {
+          type: 'function', name: 'prepare_lead_summary',
+          description: 'Prepare an editable local contact and qualification summary. Does not save or send anything.',
+          strict: true,
+          parameters: { type: 'object', additionalProperties: false,
+            properties: { name: { type: 'string', description: 'Stated first name, otherwise empty' }, phone: { type: 'string', description: 'Stated phone only; never guess digits' }, summary: { type: 'string', description: 'Concise factual qualification recap in the client language; maximum 4000 characters' } },
+            required: ['name', 'phone', 'summary'] }
+        }],
         tool_choice: 'auto',
         parallel_tool_calls: false
       }

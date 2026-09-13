@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import VoiceInquiryList from "./VoiceInquiryList";
 import { salesWarRoomApi } from "../lib/salesWarRoomApi";
 import SalesWarRoomMeetingAnalytics from "./SalesWarRoomMeetingAnalytics";
 import SalesWarRoomPeriodResults from "./SalesWarRoomPeriodResults";
@@ -168,6 +169,7 @@ export default function SalesWarRoomControlDashboard({scope}:{scope:ControlScope
 
   const teamTotals=salesTotals?.team||{};
   return <main className="min-h-screen bg-[#f3f5f7] text-slate-950" dir={lang==="ar"?"rtl":"ltr"}>
+    {!manager && <details className="mx-auto max-w-6xl p-3"><summary className="cursor-pointer rounded-xl bg-emerald-900 p-3 font-bold text-white">عملاء المساعد الذكي — التسجيلات والملخصات</summary><VoiceInquiryList token={token} owner /></details>}
     <div className="mx-auto max-w-[1500px] p-3 pb-24 md:p-5">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><div className="text-xs font-black tracking-[.18em] text-slate-500">TYCOONS SALES WAR ROOM</div><h1 className="text-2xl font-black">{title}</h1>{manager&&<div className="mt-1 text-xs font-bold text-slate-400">Ahmed Yehia · Nour Mohamed · Mostafa Amr</div>}</div><div className="flex gap-2"><button onClick={()=>setLang(lang==="ar"?"en":"ar")} className="rounded-full border bg-white px-4 py-2 text-sm font-black">{lang==="ar"?"EN":"عربي"}</button><button onClick={logout} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">{t("Logout","خروج")}</button></div></header>
 

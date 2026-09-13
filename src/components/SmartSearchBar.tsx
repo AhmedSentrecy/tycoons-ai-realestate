@@ -1,3 +1,4 @@
+import { tr } from "@/lib/homeLanguage";
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router";
@@ -75,17 +76,17 @@ export default function SmartSearchBar({ compact = false, initialQuery = "" }: P
   }, [openResults]);
 
   const voiceStatus = realtime.state === "connecting"
-    ? "بنوصل المساعد الصوتي..."
+    ? tr("بنوصل المساعد الصوتي...")
     : realtime.state === "speaking"
-      ? "المساعد بيرد عليك..."
-      : "بنسمعك... اتكلم دلوقتي";
+      ? tr("المساعد بيرد عليك...")
+      : tr("بنسمعك... اتكلم دلوقتي");
 
   return (
     <div className="w-full">
       <form
         role="search"
         onSubmit={onSubmit}
-        aria-label="البحث في الوحدات العقارية المتاحة"
+        aria-label={tr("البحث في الوحدات العقارية المتاحة")}
         {...WEBMCP_FORM_ATTRS}
         className={`flex items-center gap-2 rounded-2xl border border-white/25 bg-white px-3 shadow-[0_18px_55px_-24px_rgba(7,25,17,0.5)] sm:gap-3 sm:px-4 ${
           compact ? "py-2.5" : "py-3.5"
@@ -98,23 +99,23 @@ export default function SmartSearchBar({ compact = false, initialQuery = "" }: P
           id={compact ? "tycoons-search-query-page" : "tycoons-search-query"}
           enterKeyHint="search"
           autoComplete="off"
-          aria-label="اكتب طلبك: نوع الوحدة والمنطقة والميزانية"
+          aria-label={tr("اكتب طلبك: نوع الوحدة والمنطقة والميزانية")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="مثال: شقة في التجمع تحت 10 مليون ومقدم 5%"
+          placeholder={tr("مثال: شقة في التجمع تحت 10 مليون ومقدم 5%")}
           {...WEBMCP_QUERY_ATTRS}
           className="min-w-0 flex-1 bg-transparent text-[14px] text-[#22312b] outline-none placeholder:text-[#8c9891] sm:text-[15px]"
         />
 
         {query && (
-          <button type="button" aria-label="مسح البحث" onClick={() => setQuery("")} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#8c9891] transition-colors hover:bg-[#f1ebdc]">
+          <button type="button" aria-label={tr("مسح البحث")} onClick={() => setQuery("")} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#8c9891] transition-colors hover:bg-[#f1ebdc]">
             <X aria-hidden="true" className="h-4 w-4" />
           </button>
         )}
 
         <button
           type="button"
-          aria-label="بحث صوتي"
+          aria-label={tr("بحث صوتي")}
           aria-pressed={listening || realtimeActive}
           onClick={handleMic}
           className={`relative grid shrink-0 place-items-center rounded-full border transition-all ${compact ? "h-10 w-10" : "h-11 w-11"} ${
@@ -132,13 +133,13 @@ export default function SmartSearchBar({ compact = false, initialQuery = "" }: P
         <button
           type="submit"
           disabled={inventory.loading || !query.trim()}
-          aria-label="اعرض نتائج البحث"
+          aria-label={tr("اعرض نتائج البحث")}
           className={`flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#14352a] font-semibold text-[#efe3c6] transition-all hover:bg-[#1d4839] disabled:cursor-not-allowed disabled:opacity-50 ${
             compact ? "h-10 px-4 sm:px-5" : "h-11 px-4 sm:h-auto sm:px-6 sm:py-3"
           }`}
         >
           {inventory.loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          <span className={compact ? "hidden sm:inline" : "hidden min-[390px]:inline"}>اعرض النتائج</span>
+          <span className={compact ? "hidden sm:inline" : "hidden min-[390px]:inline"}>{tr("اعرض النتائج")}</span>
         </button>
       </form>
 

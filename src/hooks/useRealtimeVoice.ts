@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getLastSearchVoicePayload } from "@/hooks/usePropertySearch";
+import { beginVoiceRecording } from "@/lib/voiceRecording";
+import type { VoiceDraft } from "@/lib/voiceRecording";
 
 const CONNECT_URL =
   (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.
@@ -23,6 +25,11 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
   const [state, setState] = useState<RealtimeState>("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [transcript, setTranscript] = useState("");
+  const [voiceDraft, setVoiceDraft] = useState<VoiceDraft | null>(null);
+  const recordingRef = useRef<ReturnType<typeof beginVoiceRecording> | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(240);
+  const sessionDeadlineRef = useRef(0);
+  const sessionTimerRef = useRef<number | null>(null);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dcRef = useRef<RTCDataChannel | null>(null);
@@ -30,10 +37,17 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
   const streamRef = useRef<MediaStream | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const connectingRef = useRef(false);
+  const generationRef = useRef(0);
   const speechTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
 
   const cleanup = useCallback(() => {
+    generationRef.current += 1;
+    recordingRef.current?.stop();
+    recordingRef.current = null;
+    if (sessionTimerRef.current !== null) window.clearInterval(sessionTimerRef.current);
+    sessionTimerRef.current = null;
+    sessionDeadlineRef.current = 0;
     abortRef.current?.abort();
     abortRef.current = null;
     connectingRef.current = false;
@@ -61,6 +75,28 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
   }, []);
 
   useEffect(() => cleanup, [cleanup]);
+
+  const endImmediately = useCallback(() => {
+    try {
+      if (dcRef.current?.readyState === "open") dcRef.current.send(JSON.stringify({ type: "session.close", event_id: crypto.randomUUID() }));
+    } finally {
+      cleanup();
+      setState("idle");
+      setTranscript("");
+    }
+  }, [cleanup]);
+
+  useEffect(() => {
+    const closeOnLeave = () => endImmediately();
+    // Background tabs on mobile can suspend timers. Close instead of leaving a paid session open.
+    const closeWhenHidden = () => { if (document.hidden) closeOnLeave(); };
+    window.addEventListener("pagehide", closeOnLeave);
+    document.addEventListener("visibilitychange", closeWhenHidden);
+    return () => {
+      window.removeEventListener("pagehide", closeOnLeave);
+      document.removeEventListener("visibilitychange", closeWhenHidden);
+    };
+  }, [endImmediately]);
 
   const sendFunctionOutput = useCallback(
     (dc: RTCDataChannel, callId: string, output: Record<string, unknown>) => {
@@ -100,6 +136,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
     try {
       cleanup();
       connectingRef.current = true;
+      const generation = generationRef.current;
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -108,7 +145,12 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
           autoGainControl: true,
         },
       });
+      if (generation !== generationRef.current) { stream.getTracks().forEach(track => track.stop()); return false; }
       streamRef.current = stream;
+      closeTimerRef.current = window.setTimeout(() => {
+        if (!sessionDeadlineRef.current) { endImmediately(); setErrorMsg("الاتصال أخد وقت طويل. جرّب تاني."); }
+      }, 20_000);
+      recordingRef.current = beginVoiceRecording(stream, setVoiceDraft);
 
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
@@ -119,6 +161,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       audioRef.current = audioEl;
       pc.ontrack = (event) => {
         audioEl.srcObject = event.streams[0] || new MediaStream([event.track]);
+        recordingRef.current?.addRemote(audioEl.srcObject as MediaStream);
         void audioEl.play().catch(() => undefined);
       };
       pc.onconnectionstatechange = () => {
@@ -151,6 +194,13 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
           };
 
           const handleFunctionCall = (item: Record<string, unknown>) => {
+            if (item.type === "function_call" && item.name === "prepare_lead_summary" && typeof item.call_id === "string") {
+              try {
+                recordingRef.current?.qualify(JSON.parse(String(item.arguments || "{}")));
+                sendFunctionOutput(dc, item.call_id, { prepared: true, saved: false, next_step: "Client must review and submit the contact form after ending the call. Nothing has been sent." });
+              } catch { sendFunctionOutput(dc, item.call_id, { error: "invalid_arguments" }); }
+              return;
+            }
             if (item.type !== "function_call" || item.name !== "search_properties") return;
             const callId = typeof item.call_id === "string" ? item.call_id : "";
             if (!callId) return;
@@ -180,15 +230,28 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
 
           switch (msg.type) {
             case "session.started":
+              if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
+              closeTimerRef.current = null;
               connectingRef.current = false;
               setState("connected");
+              if (!sessionDeadlineRef.current) {
+                sessionDeadlineRef.current = Date.now() + 240_000;
+                setRemainingSeconds(240);
+                sessionTimerRef.current = window.setInterval(() => {
+                  const left = Math.max(0, Math.ceil((sessionDeadlineRef.current - Date.now()) / 1000));
+                  setRemainingSeconds(left);
+                  if (left === 0) endImmediately();
+                }, 250);
+              }
               break;
             case "session.input_transcript.delta":
+              if (typeof msg.delta === "string") recordingRef.current?.append("client",msg.delta);
               setState("listening");
               if (typeof msg.delta === "string") setTranscript(msg.delta);
               scheduleConnectedState();
               break;
             case "session.output_transcript.delta":
+              if (typeof msg.delta === "string") recordingRef.current?.append("assistant",msg.delta);
               setState("speaking");
               if (typeof msg.delta === "string") setTranscript(msg.delta);
               scheduleConnectedState();
@@ -270,25 +333,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       }
       return false;
     }
-  }, [cleanup, onSearchQuery, sendFunctionOutput]);
+  }, [cleanup, endImmediately, onSearchQuery, sendFunctionOutput]);
 
-  const disconnect = useCallback(() => {
-    const dc = dcRef.current;
-    if (dc?.readyState === "open") {
-      dc.send(JSON.stringify({ type: "session.close", event_id: crypto.randomUUID() }));
-      closeTimerRef.current = window.setTimeout(() => {
-        cleanup();
-        setState("idle");
-        setErrorMsg("");
-        setTranscript("");
-      }, 2_000);
-      return;
-    }
-    cleanup();
-    setState("idle");
-    setErrorMsg("");
-    setTranscript("");
-  }, [cleanup]);
-
-  return { state, errorMsg, transcript, connect, disconnect };
+  return { state, errorMsg, transcript, remainingSeconds, voiceDraft, clearVoiceDraft: () => setVoiceDraft(null), connect, disconnect: endImmediately };
 }

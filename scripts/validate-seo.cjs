@@ -210,7 +210,7 @@ assert.doesNotMatch(
   "Locale slash redirects must stay removed to prevent redirect loops",
 );
 assert.equal(
-  (netlify.match(/from = "\/en\/"\s+to = "\/\.netlify\/functions\/seo-page\?lang=en&type=home"\s+status = 200/g) || []).length,
+  (netlify.match(/from = "\/en\/"\s+to = "\/en\/index\.html"\s+status = 200/g) || []).length,
   1,
   "The English homepage must have exactly one internal 200 rewrite",
 );

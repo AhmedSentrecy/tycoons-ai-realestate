@@ -1,3 +1,4 @@
+import { tr } from "@/lib/homeLanguage";
 import { useEffect, useRef, useState } from "react";
 import { animate, motion, useInView } from "framer-motion";
 import { ChevronDown } from "lucide-react";
@@ -6,10 +7,10 @@ import { HOME_H1_ACCENT, HOME_H1_LEAD } from "@/lib/homeSeo";
 import { useInventory } from "@/lib/inventory";
 
 const chips = [
-  "شاليه في الساحل تحت 20 مليون",
-  "آي فيلا في التجمع 3 غرف",
-  "شقة تحت 7 مليون",
-  "استلام فوري متشطب",
+  tr("شاليه في الساحل تحت 20 مليون"),
+  tr("آي فيلا في التجمع 3 غرف"),
+  tr("شقة تحت 7 مليون"),
+  tr("استلام فوري متشطب"),
 ];
 
 function Counter({ target, suffix }: { target: number; suffix: string }) {
@@ -29,7 +30,7 @@ function Counter({ target, suffix }: { target: number; suffix: string }) {
 
   return (
     <span ref={ref} className="tabular-nums">
-      {value.toLocaleString("ar-EG")}
+      {tr(value.toLocaleString("ar-EG"))}
       {suffix}
     </span>
   );
@@ -40,17 +41,17 @@ const ease = [0.22, 1, 0.36, 1] as const;
 export default function Hero() {
   const { stats } = useInventory();
   const liveStats = [
-    { value: stats.units, suffix: "+", label: "وحدة متاحة" },
-    { value: stats.projects, suffix: "", label: "مشروع" },
-    { value: stats.developers, suffix: "", label: "مطوّر" },
-    { value: stats.locations, suffix: "", label: "منطقة وموقع" },
+    { value: stats.units, suffix: "+", label: tr("وحدة متاحة") },
+    { value: stats.projects, suffix: "", label: tr("مشروع") },
+    { value: stats.developers, suffix: "", label: tr("مطوّر") },
+    { value: stats.locations, suffix: "", label: tr("منطقة وموقع") },
   ];
 
   return (
     <section className="relative min-h-[86svh] overflow-hidden">
       <motion.img
         src="/images/hero.webp"
-        alt="فيلا فاخرة على الساحل الشمالي"
+        alt={tr("فيلا فاخرة على الساحل الشمالي")}
         width={1767}
         height={1080}
         decoding="async"
@@ -72,8 +73,7 @@ export default function Hero() {
         >
           <span className="h-2 w-2 animate-pulse-dot rounded-full bg-[#d9b87c]" />
           <span className="text-sm font-medium tracking-wide text-[#e3cfa0]">
-            بحث عقاري بالذكاء الاصطناعي
-          </span>
+            {tr("بحث عقاري بالذكاء الاصطناعي")}</span>
         </motion.div>
 
         <motion.h1
@@ -82,8 +82,8 @@ export default function Hero() {
           transition={{ delay: 0.5, duration: 1, ease }}
           className="max-w-3xl text-balance text-[32px] font-extrabold leading-[1.25] text-white sm:text-5xl lg:text-[54px] lg:leading-[1.2]"
         >
-          {HOME_H1_LEAD}
-          <span className="gold-gradient-text block">{HOME_H1_ACCENT}</span>
+          {tr(HOME_H1_LEAD)}
+          <span className="gold-gradient-text block">{tr(HOME_H1_ACCENT)}</span>
         </motion.h1>
 
         <motion.p
@@ -92,9 +92,7 @@ export default function Hero() {
           transition={{ delay: 0.7, duration: 0.9, ease }}
           className="mt-4 max-w-xl text-sm font-light leading-relaxed text-white/75 sm:text-base"
         >
-          اكتب أو اتكلم بطريقتك — «عايز شاليه في الساحل تحت 20 مليون» — وشوف الوحدات
-          المطابقة والبدائل القريبة من المخزون المحدث.
-        </motion.p>
+          {tr("اكتب أو اتكلم بطريقتك — «عايز شاليه في الساحل تحت 20 مليون» — وشوف الوحدات المطابقة والبدائل القريبة من المخزون المحدث.")}</motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -104,10 +102,9 @@ export default function Hero() {
         >
           <SmartSearchBar />
           <p className="mt-3 px-2 text-xs leading-relaxed text-white/65">
-            هتنتقل لصفحة نتائج كاملة تعرض المشاريع المطابقة والبدائل والفروق عن طلبك.
-          </p>
+            {tr("هتنتقل لصفحة نتائج كاملة تعرض المشاريع المطابقة والبدائل والفروق عن طلبك.")}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 px-2 pb-1">
-            <span className="text-xs text-white/55">جرّب:</span>
+            <span className="text-xs text-white/55">{tr("جرّب:")}</span>
             {chips.map((chip) => (
               <button
                 type="button"

@@ -28,6 +28,11 @@
 
 [[redirects]]
   from = "/en/"
+  to = "/en/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/en/directory/"
   to = "/.netlify/functions/seo-page?lang=en&type=home"
   status = 200
 

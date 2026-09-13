@@ -30,6 +30,7 @@ export default function App() {
     >
       <Routes>
         <Route path="/" element={nativeApp ? <Navigate to="/sales-war-room/app" replace /> : <Home />} />
+        <Route path="/en/" element={<Home />} />
         <Route path="/projects/:slug" element={<ProjectPage />} />
         <Route path="/units/:id" element={<UnitPage />} />
         <Route path="/regions/:slug" element={<RegionPage />} />
