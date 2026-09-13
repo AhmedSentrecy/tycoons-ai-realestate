@@ -150,6 +150,13 @@ export default function SalesWarRoomLead(){
         <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className="rounded-2xl bg-emerald-600 p-4 text-center font-black text-white">WhatsApp</a>
       </section>}
 
+      <section className="mt-4 rounded-2xl border bg-white p-4 shadow-sm" aria-label={t('AI conversation','محادثة المساعد الذكي')}>
+        <h2 className="font-black">{t('AI conversation','محادثة المساعد الذكي')}</h2>
+        <p className="mt-2 text-sm text-slate-500">{t('No saved recording or AI summary is available. Recording and private storage are not enabled yet.','لا يوجد تسجيل محفوظ أو ملخص من المساعد حاليًا. التسجيل والتخزين الخاص لم يتم تفعيلهما بعد.')}</p>
+        <audio controls preload="none" className="mt-3 w-full" aria-label={t('Recording player — no recording available','مشغّل التسجيل — لا يوجد تسجيل متاح')} />
+        <p className="mt-2 text-xs text-slate-500">{t('Playback, pause and seeking will be available when a private recording is connected.','التشغيل والإيقاف المؤقت والتقديم والتأخير هتتاح عند ربط التسجيل الخاص.')}</p>
+      </section>
+
       {!editing?<section className="mt-4 space-y-3">
         <Info title={t('Phone','Phone')} value={phone||'—'}/>
         <Info title={t('Next Action','Next Action')} value={lead.next_action||'—'}/>
