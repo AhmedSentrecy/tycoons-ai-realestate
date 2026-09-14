@@ -51,7 +51,7 @@ function promoteStructuredMatches(result: SearchOutput): SearchOutput {
   };
 }
 
-function optionPayload(item: RankedInventoryUnit) {
+export function optionPayload(item: RankedInventoryUnit) {
   return {
     match: item.exact ? "exact" : "alternative",
     project: item.unit.project_name,
@@ -61,8 +61,12 @@ function optionPayload(item: RankedInventoryUnit) {
     bedrooms: item.unit.bedrooms_text,
     area_sqm: item.unit.area_sqm,
     starting_price_egp: item.unit.starting_price,
+    down_payment: item.unit.down_payment_text,
+    installments: item.unit.installments_text,
     delivery: item.unit.delivery_text,
     finishing: item.unit.finishing,
+    availability: item.unit.availability_status,
+    project_url: item.unit.project_slug ? `/projects/${item.unit.project_slug}` : null,
     reasons: item.matchReasons,
     differences: item.differences,
     estimated_monthly_installment_egp: item.paymentEstimate?.monthlyInstallment ?? null,
@@ -70,7 +74,7 @@ function optionPayload(item: RankedInventoryUnit) {
   };
 }
 
-function voicePayload(result: SearchOutput): Record<string, unknown> {
+export function voicePayload(result: SearchOutput): Record<string, unknown> {
   const options = [...result.exact, ...result.alternatives].slice(0, 3).map(optionPayload);
   return {
     search_request: result.query,
@@ -83,8 +87,14 @@ function voicePayload(result: SearchOutput): Record<string, unknown> {
   };
 }
 
-function runSearch(units: ReturnType<typeof useInventory>["units"], query: string): SearchOutput {
+export function runSearch(units: ReturnType<typeof useInventory>["units"], query: string): SearchOutput {
   return promoteStructuredMatches(searchInventory(units, query));
+}
+
+export function searchInventoryForVoice(units: ReturnType<typeof useInventory>["units"], query: string): Record<string, unknown> {
+  const result = runSearch(units, query);
+  lastVoicePayload = voicePayload(result);
+  return lastVoicePayload;
 }
 
 export function getLastSearchVoicePayload(): Record<string, unknown> {

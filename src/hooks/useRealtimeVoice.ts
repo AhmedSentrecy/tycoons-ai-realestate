@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getLastSearchVoicePayload } from "@/hooks/usePropertySearch";
 import { beginVoiceRecording } from "@/lib/voiceRecording";
 import type { VoiceDraft } from "@/lib/voiceRecording";
 
@@ -18,7 +17,7 @@ export type RealtimeState =
   | "unavailable";
 
 interface RealtimeOptions {
-  onSearchQuery: (query: string) => Record<string, unknown> | void;
+  onSearchQuery: (query: string) => Promise<Record<string, unknown>>;
 }
 
 export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
@@ -193,7 +192,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
             }, 900);
           };
 
-          const handleFunctionCall = (item: Record<string, unknown>) => {
+          const handleFunctionCall = async (item: Record<string, unknown>) => {
             if (item.type === "function_call" && item.name === "prepare_lead_summary" && typeof item.call_id === "string") {
               try {
                 recordingRef.current?.qualify(JSON.parse(String(item.arguments || "{}")));
@@ -219,13 +218,20 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               return;
             }
 
-            const callbackPayload = onSearchQuery(query);
-            const payload = callbackPayload ?? getLastSearchVoicePayload();
-            sendFunctionOutput(dc, callId, {
-              ok: true,
-              note: "النتائج ظهرت للعميل على الشاشة",
-              ...payload,
-            });
+            try {
+              const payload = await onSearchQuery(query);
+              sendFunctionOutput(dc, callId, {
+                ok: true,
+                note: "النتائج الحقيقية من المخزون ظهرت على الشاشة وموجودة في options أدناه. اقرأ للعميل أنسب اختيارين، مع السعر والمساحة والمقدم والتقسيط، وميّز البدائل بوضوح.",
+                ...payload,
+              });
+            } catch {
+              sendFunctionOutput(dc, callId, {
+                ok: false,
+                error: "inventory_unavailable",
+                instruction: "تعذر تحميل المخزون الآن. قل للعميل إن البيانات غير متاحة مؤقتًا من غير ذكر مشاريع أو أسعار.",
+              });
+            }
           };
 
           switch (msg.type) {
@@ -263,7 +269,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
             case "response.event": {
               const nested = msg.event;
               if (nested?.type === "response.output_item.done" && nested.item) {
-                handleFunctionCall(nested.item);
+                void handleFunctionCall(nested.item);
               }
               break;
             }

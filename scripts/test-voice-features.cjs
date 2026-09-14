@@ -24,5 +24,7 @@ const session=recContext.exports.beginVoiceRecording({},draft=>{assert.equal(com
 session.addRemote({});session.append('client','Hello');session.append('client',' there');session.append('assistant','Hi');session.qualify({name:'Test',summary:'Synthetic test'});session.stop();session.stop();
 assert.equal(sourceCount,2);assert.equal(closeCount,1);assert.equal(recording.state,'inactive');assert.equal(completed.transcript[0].text,'Hello there');assert.equal(completed.summary,'Synthetic test');assert.ok(completed.audio.size>0);
 const hook=fs.readFileSync('src/hooks/useRealtimeVoice.ts','utf8');
-assert.match(hook,/Date\.now\(\) \+ 240_000/);assert.match(hook,/if \(left === 0\) endImmediately\(\)/);assert.match(hook,/visibilitychange/);assert.match(hook,/getTracks\(\).*stop/s);
+assert.match(hook,/Date\.now\(\) \+ 240_000/);assert.match(hook,/if \(left === 0\) endImmediately\(\)/);assert.match(hook,/visibilitychange/);assert.match(hook,/getTracks\(\).*stop/s);assert.match(hook,/await onSearchQuery\(query\)/);assert.doesNotMatch(hook,/callbackPayload \?\? getLastSearchVoicePayload/);
+const voiceContext=fs.readFileSync('src/contexts/VoiceSessionContext.tsx','utf8');assert.match(voiceContext,/searchInventoryForVoice\(units, clean\)/);
+const propertyHook=fs.readFileSync('src/hooks/usePropertySearch.ts','utf8');assert.match(propertyHook,/down_payment: item\.unit\.down_payment_text/);assert.match(propertyHook,/installments: item\.unit\.installments_text/);
 console.log('Voice recording mocks, locale and timeout configuration checks passed');

@@ -4,6 +4,8 @@ import { Mic, PhoneOff, Volume2, X } from "lucide-react";
 import { useNavigate } from "react-router";
 import { useRealtimeVoice } from "@/hooks/useRealtimeVoice";
 import VoiceContactReview from "@/components/VoiceContactReview";
+import { loadInventory } from "@/lib/inventory";
+import { searchInventoryForVoice } from "@/hooks/usePropertySearch";
 
 type VoiceSessionValue = ReturnType<typeof useRealtimeVoice> & { active: boolean };
 const VoiceSessionContext = createContext<VoiceSessionValue | null>(null);
@@ -18,10 +20,15 @@ export function VoiceSessionProvider({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [confirmEnd, setConfirmEnd] = useState(false);
 
-  const onSearchQuery = useCallback((text: string) => {
+  const onSearchQuery = useCallback(async (text: string) => {
     const clean = text.trim();
-    if (clean) navigate(`/search?q=${encodeURIComponent(clean)}`);
-    return { search_request: clean, destination: "/search" };
+    if (!clean) throw new Error("missing query");
+    navigate(`/search?q=${encodeURIComponent(clean)}`);
+    const units = await loadInventory(false);
+    return {
+      ...searchInventoryForVoice(units, clean),
+      destination: "/search",
+    };
   }, [navigate]);
 
   const voice = useRealtimeVoice({ onSearchQuery });
