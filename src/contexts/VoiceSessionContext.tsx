@@ -52,7 +52,7 @@ export function VoiceSessionProvider({ children }: { children: ReactNode }) {
       {children}
       {!active && voice.voiceDraft && <VoiceContactReview key={voice.voiceDraft.id} draft={voice.voiceDraft} close={voice.clearVoiceDraft} />}
       {active && (
-        <aside aria-label="المحادثة الصوتية" className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[90] mx-auto max-w-2xl rounded-2xl border border-[#d6b77d]/45 bg-[#102d25]/95 p-3 text-white shadow-[0_18px_60px_rgba(3,17,12,0.42)] backdrop-blur-xl sm:inset-x-6 sm:p-4">
+        <aside aria-label="المحادثة الصوتية" className="fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-[90] mx-auto max-w-2xl rounded-2xl border border-[#d6b77d]/45 bg-[#102d25]/95 p-2.5 text-white shadow-[0_18px_60px_rgba(3,17,12,0.42)] backdrop-blur-xl sm:inset-x-6 sm:bottom-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4">
           {confirmEnd ? (
             <div role="dialog" aria-label="تأكيد إنهاء المحادثة" className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-bold">إنهاء المحادثة الصوتية وإيقاف الميكروفون؟</p>
@@ -64,8 +64,8 @@ export function VoiceSessionProvider({ children }: { children: ReactNode }) {
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3">
-              <div className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#d6b77d]/15 text-[#e7c98f]">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="relative grid h-10 w-10 sm:h-11 sm:w-11 shrink-0 place-items-center rounded-full bg-[#d6b77d]/15 text-[#e7c98f]">
                 <span className="absolute inset-0 animate-ping rounded-full bg-[#d6b77d]/10" />
                 {voice.state === "speaking" ? <Volume2 aria-hidden="true" className="relative h-5 w-5" /> : <Mic aria-hidden="true" className="relative h-5 w-5" />}
               </div>
@@ -78,9 +78,11 @@ export function VoiceSessionProvider({ children }: { children: ReactNode }) {
                 {voice.transcript && <p className="mt-0.5 truncate text-xs text-white/65">{voice.transcript}</p>}
               </div>
               <button type="button" onClick={endSession} className="flex shrink-0 items-center gap-2 rounded-full border border-white/20 px-3 py-2 text-xs font-bold transition-colors hover:border-[#d6b77d]/60 hover:bg-white/10">
-                <PhoneOff aria-hidden="true" className="h-4 w-4" /> إنهاء المحادثة
+                <PhoneOff aria-hidden="true" className="h-4 w-4" />
+                <span className="hidden sm:inline">إنهاء المحادثة</span>
+                <span className="sm:hidden">إنهاء</span>
               </button>
-              <button type="button" aria-label="إنهاء المحادثة الصوتية" onClick={() => setConfirmEnd(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/20 text-white/80 hover:bg-white/10">
+              <button type="button" aria-label="إنهاء المحادثة الصوتية" onClick={() => setConfirmEnd(true)} className="hidden h-10 w-10 shrink-0 place-items-center rounded-full border border-white/20 text-white/80 hover:bg-white/10">
                 <X aria-hidden="true" className="h-5 w-5" />
               </button>
             </div>
