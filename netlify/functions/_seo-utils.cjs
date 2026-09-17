@@ -1056,7 +1056,7 @@ function renderUnit(projects, unitId, lang = "ar") {
     description,
     path,
     body,
-    image: clean(unit.image_url, ""),
+    image: clean(unit.image_url, "") || clean(project.image_url, ""),
     schemas: [
       breadcrumbSchema(crumbs),
       {

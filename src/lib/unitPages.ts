@@ -27,6 +27,8 @@ export interface UnitPageData {
   brochure_url: string;
   video_url: string;
   last_updated_at: string;
+  project_image_url: string;
+  project_gallery_urls: string;
 }
 
 function text(value: unknown) {
@@ -99,7 +101,7 @@ export async function loadUnitPage(id: string): Promise<UnitPageData | null> {
 
   const projectId = text(unit.project_id);
   const projectParams = new URLSearchParams({
-    select: "name,slug",
+    select: "name,slug,image_url,gallery_urls",
     id: `eq.${projectId}`,
     limit: "1",
   });
@@ -128,5 +130,7 @@ export async function loadUnitPage(id: string): Promise<UnitPageData | null> {
     brochure_url: text(unit.brochure_url),
     video_url: text(unit.video_url),
     last_updated_at: text(unit.last_updated_at),
+    project_image_url: text(project?.image_url),
+    project_gallery_urls: text(project?.gallery_urls),
   };
 }

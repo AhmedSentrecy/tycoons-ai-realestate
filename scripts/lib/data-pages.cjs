@@ -483,7 +483,9 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
   };
   const description = `${unitType} في ${text(unit.project_name)} بسعر يبدأ من ${formatPrice(unit.starting_price)} جنيه. اعرف المساحة وخطة السداد والتشطيب.`;
   const intro = pick(UNIT_INTRO_BANK, unit.id, "intro")(introVars);
-  const imageList = urls(unit.image_url, unit.gallery_urls);
+  const ownImages = urls(unit.image_url, unit.gallery_urls);
+  // Media is uploaded per project; a unit without its own photos shows its project's gallery.
+  const imageList = ownImages.length ? ownImages : urls(project.image_url, project.gallery_urls);
   const faqItems = renderUnitFaq(introVars, unit.id);
   const alternates = siblings
     .slice()

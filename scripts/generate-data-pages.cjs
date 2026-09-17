@@ -87,6 +87,7 @@ async function main() {
   }
   const redirects = [
     "/sales-war-room/* /index.html 200!",
+    "/admin/media /index.html 200!",
     ...[...aliases.entries()]
       .filter(([, canonicalSlug]) => normalizedProjects.some((project) => project.slug === canonicalSlug))
       .flatMap(([oldSlug, canonicalSlug]) => [

@@ -79,9 +79,15 @@ export default function UnitPage() {
 
   const images = useMemo(() => {
     if (!unit) return [];
-    return [...new Set([
+    const own = [...new Set([
       unit.image_url,
       ...unit.gallery_urls.split(",").map((url) => url.trim()),
+    ].filter(Boolean))];
+    if (own.length) return own;
+    // Media is uploaded per project; a unit without its own photos shows its project's gallery.
+    return [...new Set([
+      unit.project_image_url,
+      ...unit.project_gallery_urls.split(",").map((url) => url.trim()),
     ].filter(Boolean))];
   }, [unit]);
 

@@ -199,12 +199,17 @@ async function fetchPage(offset: number): Promise<InventoryUnit[]> {
   return rows.map(normalizeUnit).filter((unit): unit is InventoryUnit => Boolean(unit));
 }
 
-async function fetchProjectSlugs(): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
+interface ProjectMediaRef {
+  slug: string;
+  images: string[];
+}
+
+async function fetchProjectSlugs(): Promise<Map<string, ProjectMediaRef>> {
+  const map = new Map<string, ProjectMediaRef>();
   try {
     for (let offset = 0; offset < 2000; offset += PAGE_SIZE) {
       const params = new URLSearchParams({
-        select: "id,slug",
+        select: "id,slug,image_url,gallery_urls",
         limit: String(PAGE_SIZE),
         offset: String(offset),
       });
@@ -216,7 +221,7 @@ async function fetchProjectSlugs(): Promise<Map<string, string>> {
       for (const row of rows) {
         const id = text(row.id);
         const slug = text(row.slug);
-        if (id && slug) map.set(id, slug);
+        if (id) map.set(id, { slug, images: parseImages(text(row.image_url), text(row.gallery_urls)) });
       }
       if (rows.length < PAGE_SIZE) break;
     }
@@ -240,7 +245,10 @@ export async function loadInventory(force = false): Promise<InventoryUnit[]> {
     }
     const slugMap = await slugsPromise;
     for (const unit of units) {
-      unit.project_slug = slugMap.get(unit.project_id) ?? "";
+      const project = slugMap.get(unit.project_id);
+      unit.project_slug = project?.slug ?? "";
+      // Media is uploaded per project; a unit without its own photos shows its project's gallery.
+      if (!unit.images.length && project?.images.length) unit.images = [...project.images];
     }
     cache = { units, fetchedAt: Date.now() };
     return units;
