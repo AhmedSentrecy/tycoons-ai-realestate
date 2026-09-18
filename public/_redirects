@@ -1,2 +1,3 @@
 /sales-war-room/*  /index.html  200!
-/admin/media  /index.html  200!
+/admin  /index.html  200!
+/admin/*  /index.html  200!

@@ -190,11 +190,6 @@
     X-Robots-Tag = "noindex, follow"
 
 [[redirects]]
-  from = "/admin"
-  to = "/404.html"
-  status = 404
-
-[[redirects]]
   from = "/admin.html"
   to = "/404.html"
   status = 404
