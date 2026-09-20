@@ -164,6 +164,8 @@ export const adminApi = {
     token: string,
     body: { target: MediaTarget; id: string; image_url: string; gallery_urls: string[]; video_url: string; brochure_url: string },
   ) => call<SubmitResult & { values: Omit<MediaFields, "id"> }>("save_media", body, token),
+  projectCreate: (token: string, values: { name: string; developer: string; location: string; description: string }) =>
+    call<SubmitResult>("project_create", { values }, token),
   unitCreate: (token: string, projectId: string, values: UnitValues) =>
     call<SubmitResult>("unit_create", { project_id: projectId, values }, token),
   unitUpdate: (token: string, id: string, values: UnitValues) => call<SubmitResult>("unit_update", { id, values }, token),
@@ -272,6 +274,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   cannot_disable_self: "مينفعش تقفل حسابك انت",
   unit_not_found: "الوحدة مش موجودة (ممكن تكون اتمسحت)",
   project_not_found: "المشروع مش موجود",
+  project_name_required: "اسم المشروع مطلوب",
+  developer_required: "اسم المطور مطلوب",
+  location_required: "المنطقة مطلوبة",
+  project_exists: "فيه مشروع بنفس الاسم والمطور موجود بالفعل",
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -318,6 +324,13 @@ export const UNIT_FIELD_LABELS: Record<string, string> = {
   video_url: "الفيديو",
   brochure_url: "البروشور",
   project_name: "المشروع",
+  name: "الاسم",
+  developer: "المطور",
+  slug: "الرابط",
+  status: "الحالة",
+  hero_text: "نص الهيرو",
+  seo_title: "عنوان SEO",
+  seo_description: "وصف SEO",
 };
 
 export function formatPrice(value: number | string | null | undefined) {

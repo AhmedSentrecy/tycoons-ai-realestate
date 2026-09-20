@@ -13,6 +13,7 @@ import {
 } from "../lib/adminApi";
 import { AdminContext } from "../components/admin/AdminContext";
 import ApprovalsTab from "../components/admin/ApprovalsTab";
+import ProjectForm, { type NewProject } from "../components/admin/ProjectForm";
 import MediaTab from "../components/admin/MediaTab";
 import SettingsDialog from "../components/admin/SettingsDialog";
 import UnitsTab from "../components/admin/UnitsTab";
@@ -183,6 +184,8 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
   const [loadError, setLoadError] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [projectFormOpen, setProjectFormOpen] = useState(false);
+  const [creatingProject, setCreatingProject] = useState(false);
   const [notice, setNotice] = useState<{ text: string; tone: "ok" | "error" } | null>(null);
 
   const notify = useCallback((text: string, tone: "ok" | "error" = "ok") => setNotice({ text, tone }), []);
@@ -232,6 +235,33 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
     () => ({ token, user, isOwner, notify, handleError, refreshPending: () => void load() }),
     [token, user, isOwner, notify, handleError, load],
   );
+
+  /** Creating a project applies immediately for the owner, or waits for approval for an editor. */
+  async function createProject(values: NewProject) {
+    setCreatingProject(true);
+    try {
+      const result = await adminApi.projectCreate(token, values);
+      setProjectFormOpen(false);
+      if (result.applied) {
+        notify(`اتضاف ${values.name}. ارفعله الصور وضيف وحداته`);
+        const data = await adminApi.projects(token);
+        setProjects(data.projects);
+        setStorage(data.storage);
+        setPendingTotal(data.pending_total);
+        const created = data.projects.find(
+          (project) => project.name === values.name.trim() && project.developer === values.developer.trim(),
+        );
+        if (created) setSelectedId(created.id);
+      } else {
+        notify("المشروع اتبعت للمالك للموافقة");
+        void load();
+      }
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setCreatingProject(false);
+    }
+  }
 
   async function rebuild() {
     if (!settings?.has_build_hook) {
@@ -326,17 +356,30 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
               onRetry={refresh}
               selectedId={selectedId}
               onSelect={setSelectedId}
+              onCreateProject={() => setProjectFormOpen(true)}
               onProjectSaved={(id, values: Omit<MediaFields, "id">) =>
                 setProjects((current) => current.map((project) => (project.id === id ? { ...project, ...values } : project)))
               }
             />
           )}
           {tab === "units" && (
-            <UnitsTab projects={projects} loading={loading} error={loadError} onRetry={refresh} selectedId={selectedId} onSelect={setSelectedId} />
+            <UnitsTab
+              projects={projects}
+              loading={loading}
+              error={loadError}
+              onRetry={refresh}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+              onCreateProject={() => setProjectFormOpen(true)}
+            />
           )}
           {tab === "approvals" && <ApprovalsTab onChanged={refresh} />}
           {tab === "users" && isOwner && <UsersTab />}
         </div>
+
+        {projectFormOpen && (
+          <ProjectForm busy={creatingProject} onCancel={() => setProjectFormOpen(false)} onSubmit={(values) => void createProject(values)} />
+        )}
 
         {settingsOpen && (
           <SettingsDialog

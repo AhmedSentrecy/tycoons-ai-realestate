@@ -14,6 +14,7 @@ export default function MediaTab({
   onRetry,
   selectedId,
   onSelect,
+  onCreateProject,
   onProjectSaved,
 }: {
   projects: AdminProject[];
@@ -22,6 +23,7 @@ export default function MediaTab({
   onRetry: () => void;
   selectedId: string;
   onSelect: (id: string) => void;
+  onCreateProject: () => void;
   onProjectSaved: (id: string, values: Omit<MediaFields, "id">) => void;
 }) {
   const { token, user, isOwner, handleError } = useAdmin();
@@ -61,6 +63,7 @@ export default function MediaTab({
         onRetry={onRetry}
         selectedId={selectedId}
         onSelect={onSelect}
+        onCreate={onCreateProject}
         className={project ? "hidden lg:block" : ""}
       />
       <section className={project ? "" : "hidden lg:block"}>

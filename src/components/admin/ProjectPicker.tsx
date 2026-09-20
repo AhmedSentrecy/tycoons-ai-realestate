@@ -11,6 +11,7 @@ export default function ProjectPicker({
   onRetry,
   selectedId,
   onSelect,
+  onCreate,
   className = "",
 }: {
   projects: AdminProject[];
@@ -19,6 +20,7 @@ export default function ProjectPicker({
   onRetry: () => void;
   selectedId: string;
   onSelect: (id: string) => void;
+  onCreate?: () => void;
   className?: string;
 }) {
   const [query, setQuery] = useState("");
@@ -47,6 +49,11 @@ export default function ProjectPicker({
 
   return (
     <aside className={`rounded-3xl border border-[#e7ddc8] bg-white p-3 ${className}`}>
+      {onCreate && (
+        <button onClick={onCreate} className="mb-2 w-full rounded-xl bg-[#0d1f18] px-4 py-2.5 text-sm font-black text-white">
+          + مشروع جديد
+        </button>
+      )}
       <input
         type="search"
         value={query}

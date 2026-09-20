@@ -276,7 +276,7 @@ interface ChangeInput {
   entity: "project" | "unit";
   action: "media" | "create" | "update" | "delete" | "import";
   target_id: string | null;
-  project_id: string;
+  project_id: string | null;
   summary: string;
   ops: Json[];
   before: unknown;
@@ -295,10 +295,11 @@ async function submitChange(user: AdminUser, change: ChangeInput) {
 
   if (change.action === "media" && change.target_id) {
     const { data: existing } = await db.from("admin_change_requests").select("id")
-      .eq("status", "pending").eq("action", "media").eq("entity", change.entity).eq("target_id", change.target_id).eq("created_by", user.id).maybeSingle();
-    if (existing) {
-      fail((await db.from("admin_change_requests").update({ ops: change.ops, summary: change.summary, created_at: new Date().toISOString() }).eq("id", existing.id)).error);
-      return { applied: false, pending: true, request_id: existing.id };
+      .eq("status", "pending").eq("action", "media").eq("entity", change.entity).eq("target_id", change.target_id).eq("created_by", user.id).limit(1);
+    const open = existing?.[0];
+    if (open) {
+      fail((await db.from("admin_change_requests").update({ ops: change.ops, summary: change.summary, created_at: new Date().toISOString() }).eq("id", open.id)).error);
+      return { applied: false, pending: true, request_id: open.id };
     }
   }
   const { data, error } = await db.from("admin_change_requests").insert({ ...change, created_by: user.id }).select("id").single();
@@ -333,6 +334,50 @@ async function saveMedia(user: AdminUser, body: Json) {
     before: Object.fromEntries(MEDIA_FIELDS.map((key) => [key, before[key] ?? null])),
   });
   return { ...outcome, values };
+}
+
+/** A project only gets a public page once it has a slug, so new projects get one right away. */
+async function uniqueSlug(base: string) {
+  const root = base || "project";
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const candidate = attempt ? `${root}-${attempt + 1}` : root;
+    const { data } = await db.from("projects").select("id").eq("slug", candidate).limit(1);
+    if (!data?.length) return candidate;
+  }
+  return `${root}-${Date.now().toString(36)}`;
+}
+
+async function projectCreate(user: AdminUser, body: Json) {
+  const values = (body.values as Json) ?? {};
+  const name = text(values.name).slice(0, 200);
+  const developer = text(values.developer).slice(0, 200);
+  const location = text(values.location).slice(0, 200);
+  if (!name) throw new HttpError(400, "project_name_required");
+  if (!developer) throw new HttpError(400, "developer_required");
+  if (!location) throw new HttpError(400, "location_required");
+
+  const { data: twins } = await db.from("projects").select("id").ilike("name", name).ilike("developer", developer).limit(1);
+  if (twins?.length) throw new HttpError(409, "project_exists");
+
+  const slug = await uniqueSlug(`${slugify(name)}--${slugify(developer)}`);
+  const description = text(values.description).slice(0, 2000);
+  const year = new Date().getFullYear();
+  const row: Json = {
+    name,
+    developer,
+    location,
+    slug,
+    status: "available",
+    description: description || `${name} من ${developer} في ${location}. تعرض الصفحة أحدث الوحدات والأسعار المسجلة لدى Tycoons مع ضرورة تأكيد التوفر وقت الطلب.`,
+    hero_text: `اعرف أسعار ومساحات ${name} وخطط السداد والوحدات المتاحة في ${location}.`,
+    seo_title: `${name} | الأسعار وخطط السداد ${year}`,
+    seo_description: `تعرف على أسعار ${name} في ${year}، الوحدات والمساحات المتاحة، المقدم وخطط السداد والاستلام. مشروع من ${developer} في ${location}.`,
+  };
+  return submitChange(user, {
+    entity: "project", action: "create", target_id: null, project_id: null,
+    summary: `مشروع جديد: ${name} — ${developer} (${location})`,
+    ops: [{ op: "project_create", values: row }], before: null,
+  });
 }
 
 async function unitCreate(user: AdminUser, body: Json) {
@@ -444,7 +489,7 @@ async function listRequests(user: AdminUser, body: Json) {
   const { data: liveUnits } = unitIds.size ? await db.from("units").select(UNIT_COLUMNS).in("id", [...unitIds]) : { data: [] };
   const live = new Map((liveUnits ?? []).map((unit: Json) => [String(unit.id), unit]));
   const liveProjects = new Map<string, Json>();
-  const projectMediaIds = requests.filter((r) => r.status === "pending" && r.entity === "project").map((r) => r.target_id);
+  const projectMediaIds = requests.filter((r) => r.status === "pending" && r.entity === "project" && r.target_id).map((r) => r.target_id);
   if (projectMediaIds.length) {
     const { data: rows } = await db.from("projects").select(PROJECT_COLUMNS).in("id", projectMediaIds);
     for (const row of rows ?? []) liveProjects.set(row.id, row);
@@ -631,6 +676,7 @@ Deno.serve(async (req: Request) => {
       case "units": return reply(await listUnits(body));
       case "sign_upload": return reply(await signUpload(body));
       case "save_media": return reply(await saveMedia(user, body));
+      case "project_create": return reply(await projectCreate(user, body));
       case "unit_create": return reply(await unitCreate(user, body));
       case "unit_update": return reply(await unitUpdate(user, body));
       case "unit_delete": return reply(await unitDelete(user, body));

@@ -26,6 +26,7 @@ export default function UnitsTab({
   onRetry,
   selectedId,
   onSelect,
+  onCreateProject,
 }: {
   projects: AdminProject[];
   loading: boolean;
@@ -33,6 +34,7 @@ export default function UnitsTab({
   onRetry: () => void;
   selectedId: string;
   onSelect: (id: string) => void;
+  onCreateProject: () => void;
 }) {
   const { token, isOwner, notify, handleError, refreshPending } = useAdmin();
   const [units, setUnits] = useState<AdminUnit[] | null>(null);
@@ -105,6 +107,7 @@ export default function UnitsTab({
         onRetry={onRetry}
         selectedId={selectedId}
         onSelect={onSelect}
+        onCreate={onCreateProject}
         className={project ? "hidden lg:block" : ""}
       />
       <section className={project ? "" : "hidden lg:block"}>

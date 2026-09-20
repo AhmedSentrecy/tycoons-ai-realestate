@@ -65,6 +65,7 @@ declare
     'area_sqm','starting_price','down_payment_text','installments_text','delivery_text','finishing',
     'availability_status','description','image_url','gallery_urls','video_url','brochure_url'];
   media_cols constant text[] := array['image_url','gallery_urls','video_url','brochure_url'];
+  project_cols constant text[] := array['name','developer','location','slug','status','description','hero_text','seo_title','seo_description','min_price'];
   item jsonb;
   vals jsonb;
   cols text[];
@@ -105,6 +106,14 @@ begin
         using vals into new_id;
       created := created + 1;
       created_ids := created_ids || to_jsonb(new_id);
+
+    elsif item->>'op' = 'project_create' then
+      select array_agg(k) into cols from jsonb_object_keys(vals) k where k = any(project_cols);
+      if cols is null or not ('name' = any(cols)) then raise exception 'project_requires_name'; end if;
+      execute format('insert into public.projects (%s) select %s from jsonb_populate_record(null::public.projects, $1) returning id',
+        (select string_agg(format('%I', c), ', ') from unnest(cols) c), (select string_agg(format('%I', c), ', ') from unnest(cols) c))
+        using vals into new_id;
+      created := created + 1; created_ids := created_ids || to_jsonb(new_id);
 
     elsif item->>'op' = 'update' then
       select array_agg(k) into cols from jsonb_object_keys(vals) k where k = any(unit_cols);

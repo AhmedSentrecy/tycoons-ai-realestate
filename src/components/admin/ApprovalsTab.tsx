@@ -5,7 +5,7 @@ import { Badge, Chip, EmptyState } from "./ui";
 
 const ACTION_LABELS: Record<string, string> = {
   media: "صور",
-  create: "إضافة وحدة",
+  create: "إضافة",
   update: "تعديل وحدة",
   delete: "حذف وحدة",
   import: "استيراد",
@@ -116,7 +116,11 @@ export default function ApprovalsTab({ onChanged }: { onChanged: () => void }) {
           requests?.map((request) => (
           <article key={request.id} className="rounded-3xl border border-[#e7ddc8] bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="gold">{ACTION_LABELS[request.action] ?? request.action}</Badge>
+              <Badge tone="gold">
+                {request.entity === "project" && request.action === "create"
+                  ? "مشروع جديد"
+                  : ACTION_LABELS[request.action] ?? request.action}
+              </Badge>
               <span className="font-black">{request.summary}</span>
               <Badge tone={STATUS_TONES[request.status]}>{STATUS_TEXT[request.status]}</Badge>
               {request.conflict && <Badge tone="error">البيانات اتغيرت بعد الطلب</Badge>}
