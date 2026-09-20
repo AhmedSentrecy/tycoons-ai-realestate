@@ -3,8 +3,9 @@
 //
 // Roles
 // - owner:  changes apply immediately (still logged in admin_change_requests as approved).
-// - editor: writes become pending requests the owner approves. Exception: adding new units (and an
-//           import that only adds) is pre-approved by the owner and applies at once, still logged.
+// - editor: the owner pre-approved adding things, so new projects, new units, an import that only
+//           adds, and media uploads apply at once (still logged). Editing and deleting existing
+//           units stay pending until the owner approves.
 //
 // Security
 // - Service-role key stays inside this function. Passwords: PBKDF2-SHA256 (210k), per-user salt.
@@ -281,11 +282,11 @@ interface ChangeInput {
   summary: string;
   ops: Json[];
   before: unknown;
-  /** Set for changes the owner has pre-approved (new units) so an editor's write applies without review. */
+  /** Set for changes the owner has pre-approved (adding projects, units and media) so an editor's write applies without review. */
   autoApprove?: boolean;
 }
 
-/** Owner (or a pre-approved change such as adding new units): apply now and log as approved. Other editor changes queue for approval (media edits on the same target coalesce). */
+/** Owner (or a pre-approved change such as adding projects, units or media): apply now and log as approved. Other editor changes queue for approval (media edits on the same target coalesce). */
 async function submitChange(user: AdminUser, change: ChangeInput) {
   const { autoApprove, ...record } = change;
   if (user.role === "owner" || autoApprove) {
@@ -337,6 +338,7 @@ async function saveMedia(user: AdminUser, body: Json) {
     summary: `صور ${label} (${count} صورة)`,
     ops: [{ op: "media", entity: target, id, values }],
     before: Object.fromEntries(MEDIA_FIELDS.map((key) => [key, before[key] ?? null])),
+    autoApprove: true,
   });
   return { ...outcome, values };
 }
@@ -381,7 +383,7 @@ async function projectCreate(user: AdminUser, body: Json) {
   return submitChange(user, {
     entity: "project", action: "create", target_id: null, project_id: null,
     summary: `مشروع جديد: ${name} — ${developer} (${location})`,
-    ops: [{ op: "project_create", values: row }], before: null,
+    ops: [{ op: "project_create", values: row }], before: null, autoApprove: true,
   });
 }
 
