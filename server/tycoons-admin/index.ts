@@ -3,7 +3,8 @@
 //
 // Roles
 // - owner:  changes apply immediately (still logged in admin_change_requests as approved).
-// - editor: every write becomes a pending request; nothing touches live data until the owner approves.
+// - editor: writes become pending requests the owner approves. Exception: adding new units (and an
+//           import that only adds) is pre-approved by the owner and applies at once, still logged.
 //
 // Security
 // - Service-role key stays inside this function. Passwords: PBKDF2-SHA256 (210k), per-user salt.
@@ -280,15 +281,19 @@ interface ChangeInput {
   summary: string;
   ops: Json[];
   before: unknown;
+  /** Set for changes the owner has pre-approved (new units) so an editor's write applies without review. */
+  autoApprove?: boolean;
 }
 
-/** Owner: apply now and log as approved. Editor: queue for approval (media edits on the same target coalesce). */
+/** Owner (or a pre-approved change such as adding new units): apply now and log as approved. Other editor changes queue for approval (media edits on the same target coalesce). */
 async function submitChange(user: AdminUser, change: ChangeInput) {
-  if (user.role === "owner") {
+  const { autoApprove, ...record } = change;
+  if (user.role === "owner" || autoApprove) {
     const { data: result, error } = await db.rpc("admin_apply_ops", { ops: change.ops });
     if (error) throw new HttpError(409, `apply_failed:${error.message}`);
     await db.from("admin_change_requests").insert({
-      ...change, created_by: user.id, status: "approved", reviewed_by: user.id, reviewed_at: new Date().toISOString(), result,
+      ...record, created_by: user.id, status: "approved",
+      reviewed_by: user.role === "owner" ? user.id : null, reviewed_at: new Date().toISOString(), result,
     });
     return { applied: true, pending: false, result };
   }
@@ -302,7 +307,7 @@ async function submitChange(user: AdminUser, change: ChangeInput) {
       return { applied: false, pending: true, request_id: open.id };
     }
   }
-  const { data, error } = await db.from("admin_change_requests").insert({ ...change, created_by: user.id }).select("id").single();
+  const { data, error } = await db.from("admin_change_requests").insert({ ...record, created_by: user.id }).select("id").single();
   fail(error);
   return { applied: false, pending: true, request_id: data!.id };
 }
@@ -388,7 +393,7 @@ async function unitCreate(user: AdminUser, body: Json) {
   return submitChange(user, {
     entity: "unit", action: "create", target_id: null, project_id: project.id,
     summary: `وحدة جديدة: ${row.unit_type}${row.area_sqm ? ` ${row.area_sqm} م²` : ""} في ${project.name}`,
-    ops: [{ op: "create", values: row }], before: null,
+    ops: [{ op: "create", values: row }], before: null, autoApprove: true,
   });
 }
 
@@ -462,6 +467,8 @@ async function unitsImport(user: AdminUser, body: Json) {
     entity: "unit", action: "import", target_id: null, project_id: project.id,
     summary: `استيراد ${project.name}: ${creates} جديدة، ${updates} تعديل`,
     ops, before,
+    // Pure additions are pre-approved; an import that also edits existing units still needs the owner.
+    autoApprove: updates === 0,
   });
 }
 
