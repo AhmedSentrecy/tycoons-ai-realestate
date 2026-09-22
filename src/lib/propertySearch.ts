@@ -473,8 +473,20 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
   const normalizedLocation = normalizeText(unit.location);
   const normalizedType = normalizeText(unit.unit_type);
 
-  const projectNameMatch = Boolean(normalizedProject && normalizedQuery.includes(normalizedProject));
-  const developerNameMatch = Boolean(normalizedDeveloper && normalizedQuery.includes(normalizedDeveloper));
+  const projectNameMatch = Boolean(
+    normalizedProject &&
+      (normalizedQuery === normalizedProject ||
+        (criteria.freeTokens.length > 0 &&
+          criteria.freeTokens.every((token) => normalizedProject.includes(token)) &&
+          (criteria.freeTokens.length >= 2 || normalizedProject === criteria.freeTokens[0]))),
+  );
+  const developerNameMatch = Boolean(
+    normalizedDeveloper &&
+      (normalizedQuery === normalizedDeveloper ||
+        (criteria.freeTokens.length > 0 &&
+          criteria.freeTokens.every((token) => normalizedDeveloper.includes(token)) &&
+          (criteria.freeTokens.length >= 2 || normalizedDeveloper === criteria.freeTokens[0]))),
+  );
   const locationNameMatch = Boolean(normalizedLocation && normalizedQuery.includes(normalizedLocation));
 
   if (projectNameMatch) {
@@ -656,15 +668,14 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
       criteria.finishing,
   );
 
-  if (criteria.freeTokens.length && tokenCoverage < 1 && !hasStructuredCriteria && !projectNameMatch && !developerNameMatch) {
-    differences.push("الاسم أو الوصف مش مطابق بشكل كافي");
-  }
-
   const freeTextExact =
     criteria.freeTokens.length === 0 ||
     projectNameMatch ||
     developerNameMatch ||
     (criteria.freeTokens.length >= 2 && tokenCoverage === 1);
+  if (criteria.freeTokens.length && !hasStructuredCriteria && !freeTextExact) {
+    differences.push("الاسم أو الوصف مش مطابق بشكل كافي");
+  }
   const exact =
     differences.length === 0 &&
     (hasStructuredCriteria

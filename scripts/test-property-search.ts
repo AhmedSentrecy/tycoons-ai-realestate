@@ -138,6 +138,19 @@ async function run() {
   );
   assert.deepEqual(arabicResidenceName.exact.map((item) => item.unit.project_name), ["Plato Residence"]);
 
+  const overlappingProjectNames = searchInventory(
+    [
+      fixture({ project_name: "Campus District 5" }),
+      fixture({ project_name: "DISTRICT 5" }),
+    ],
+    "كامبس ديستريكت 5",
+  );
+  assert.deepEqual(
+    overlappingProjectNames.exact.map((item) => item.unit.project_name),
+    ["Campus District 5"],
+    "A longer project name must not promote its shorter suffix as an exact match",
+  );
+
   const ivilla = completeMatches(searchInventory(units, "آي فيلا في التجمع 3 غرف"));
   assert.ok(ivilla.length > 0, "iVilla Arabic query should return complete structured matches");
   assert.ok(ivilla.every((result) => /ivilla/i.test(result.unit.unit_type)));
