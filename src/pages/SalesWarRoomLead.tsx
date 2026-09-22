@@ -147,8 +147,11 @@ export default function SalesWarRoomLead(){
       </section>
 
       {phone&&<section className="mt-4 grid grid-cols-2 gap-3">
-        <a href={`tel:${call}`} className="rounded-2xl bg-slate-950 p-4 text-center font-black text-white">📞 {t('Call','اتصال')}</a>
-        <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className="rounded-2xl bg-emerald-600 p-4 text-center font-black text-white">WhatsApp</a>
+        <a href={`tel:${call}`} className="flex items-center justify-center rounded-2xl bg-slate-950 p-4 text-center font-black text-white">📞 {t('Call','اتصال')}</a>
+        <div className="grid gap-3">
+          <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className="rounded-2xl bg-emerald-600 p-4 text-center font-black text-white">WhatsApp</a>
+          <a href={`whatsapp://send?phone=${wa}`} className="rounded-2xl border-2 border-emerald-600 bg-white p-4 text-center font-black text-emerald-700">{t('WhatsApp App','فتح تطبيق واتساب')}</a>
+        </div>
       </section>}
 
       <VoiceInquiryList token={token} pipelineId={leadId} />
