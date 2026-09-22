@@ -89,6 +89,23 @@ const TYPE_GROUPS = [
   { label: "Retail", aliases: ["retail", "shop", "محل", "تجاري", "commercial"] },
 ];
 
+// Supabase inventory names are supplied by developers in English. Keep a
+// small, explicit bilingual alias layer for brand/project names so Arabic
+// searches resolve to the same canonical text without duplicating unit rows.
+// Longer aliases are applied first to avoid replacing "ديستريكت 5" inside
+// "كامبس ديستريكت 5" before the full project name is recognized.
+const QUERY_ALIAS_GROUPS: Array<{ canonical: string; aliases: string[] }> = [
+  { canonical: "campus district 5", aliases: ["كامبس ديستريكت 5", "كامبس ديستركت 5"] },
+  { canonical: "crescent walk", aliases: ["كريسنت ووك", "كريسينت ووك"] },
+  { canonical: "district 5", aliases: ["ديستريكت 5", "ديستركت 5"] },
+  { canonical: "seazen", aliases: ["سيزن", "سيزين", "سي زين"] },
+  { canonical: "ramla", aliases: ["رملا", "رمله", "رملة"] },
+  { canonical: "marakez", aliases: ["مراكز", "ماركيز"] },
+  { canonical: "al qamzi developments", aliases: ["القمزي للتطوير", "القمزي", "قمزي"] },
+  { canonical: "plato residence", aliases: ["بلاتو ريزيدنس"] },
+  { canonical: "capital hills", aliases: ["كابيتال هيلز"] },
+];
+
 const STOP_WORDS = new Set(
   [
     "عايز",
@@ -192,6 +209,25 @@ export function normalizeText(value: string): string {
     .replace(/[^a-z0-9\u0600-\u06ff.%+-]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeSearchQuery(value: string): string {
+  let normalized = ` ${normalizeText(value)} `;
+  const replacements = QUERY_ALIAS_GROUPS.flatMap((group) =>
+    group.aliases.map((alias) => ({
+      alias: normalizeText(alias),
+      canonical: normalizeText(group.canonical),
+    })),
+  ).sort((a, b) => b.alias.length - a.alias.length);
+
+  for (const replacement of replacements) {
+    const needle = ` ${replacement.alias} `;
+    if (replacement.alias && normalized.includes(needle)) {
+      normalized = normalized.split(needle).join(` ${replacement.canonical} `);
+    }
+  }
+
+  return normalized.replace(/\s+/g, " ").trim();
 }
 
 function includesAny(text: string, aliases: string[]): boolean {
@@ -310,7 +346,7 @@ function meaningfulTokens(normalized: string): string[] {
 }
 
 export function parseSearchQuery(query: string): SearchCriteria {
-  const normalized = normalizeText(query);
+  const normalized = normalizeSearchQuery(query);
   const region = REGION_GROUPS.find((group) => includesAny(normalized, group.aliases));
   const unitType = TYPE_GROUPS.find((group) => includesAny(normalized, group.aliases));
   const area = parseArea(normalized);
@@ -437,15 +473,19 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
   const normalizedLocation = normalizeText(unit.location);
   const normalizedType = normalizeText(unit.unit_type);
 
-  if (normalizedProject && normalizedQuery.includes(normalizedProject)) {
+  const projectNameMatch = Boolean(normalizedProject && normalizedQuery.includes(normalizedProject));
+  const developerNameMatch = Boolean(normalizedDeveloper && normalizedQuery.includes(normalizedDeveloper));
+  const locationNameMatch = Boolean(normalizedLocation && normalizedQuery.includes(normalizedLocation));
+
+  if (projectNameMatch) {
     score += 120;
     matchReasons.push("اسم المشروع مطابق");
   }
-  if (normalizedDeveloper && normalizedQuery.includes(normalizedDeveloper)) {
+  if (developerNameMatch) {
     score += 85;
     matchReasons.push("المطوّر مطابق");
   }
-  if (normalizedLocation && normalizedQuery.includes(normalizedLocation)) {
+  if (locationNameMatch) {
     score += 70;
     matchReasons.push("الموقع مطابق");
   }
@@ -616,11 +656,20 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
       criteria.finishing,
   );
 
-  if (criteria.freeTokens.length && tokenCoverage < 0.5 && !hasStructuredCriteria) {
+  if (criteria.freeTokens.length && tokenCoverage < 1 && !hasStructuredCriteria && !projectNameMatch && !developerNameMatch) {
     differences.push("الاسم أو الوصف مش مطابق بشكل كافي");
   }
 
-  const exact = differences.length === 0 && (criteria.freeTokens.length === 0 || tokenCoverage >= 0.5);
+  const freeTextExact =
+    criteria.freeTokens.length === 0 ||
+    projectNameMatch ||
+    developerNameMatch ||
+    (criteria.freeTokens.length >= 2 && tokenCoverage === 1);
+  const exact =
+    differences.length === 0 &&
+    (hasStructuredCriteria
+      ? criteria.freeTokens.length === 0 || tokenCoverage >= 0.5
+      : freeTextExact);
   return { unit, score, exact, matchReasons: [...new Set(matchReasons)], differences: [...new Set(differences)], paymentEstimate };
 }
 
@@ -656,7 +705,7 @@ function criteriaSummary(criteria: SearchCriteria): string {
 }
 
 export function searchInventory(units: InventoryUnit[], query: string): SearchOutput {
-  const normalizedQuery = normalizeText(query);
+  const normalizedQuery = normalizeSearchQuery(query);
   const criteria = parseSearchQuery(query);
   if (!normalizedQuery) {
     return {

@@ -101,6 +101,43 @@ async function run() {
   assert.ok(aliva.totalExact > 0, "Mountain View Aliva should return exact live results");
   assert.ok(aliva.exact.some((result) => /aliva/i.test(result.unit.project_name)));
 
+  const todayArabicQueries = [
+    ["رملا", "Ramla"],
+    ["كريسنت ووك", "Crescent Walk"],
+    ["كامبس ديستريكت 5", "Campus District 5"],
+    ["ديستريكت 5", "DISTRICT 5"],
+    ["سيزن", "Seazen"],
+  ] as const;
+  for (const [query, projectName] of todayArabicQueries) {
+    const result = searchInventory(units, query);
+    assert.ok(
+      result.exact.some((item) => item.unit.project_name.toLowerCase() === projectName.toLowerCase()),
+      `${query} should find ${projectName} as an exact result`,
+    );
+  }
+
+  const residenceName = searchInventory(
+    [
+      fixture({ project_name: "Plato Residence" }),
+      fixture({ project_name: "Chapters Residence R8" }),
+    ],
+    "Plato Residence",
+  );
+  assert.deepEqual(
+    residenceName.exact.map((item) => item.unit.project_name),
+    ["Plato Residence"],
+    "A shared generic word such as Residence must not mark unrelated projects as exact",
+  );
+
+  const arabicResidenceName = searchInventory(
+    [
+      fixture({ project_name: "Plato Residence" }),
+      fixture({ project_name: "Chapters Residence R8" }),
+    ],
+    "بلاتو ريزيدنس",
+  );
+  assert.deepEqual(arabicResidenceName.exact.map((item) => item.unit.project_name), ["Plato Residence"]);
+
   const ivilla = completeMatches(searchInventory(units, "آي فيلا في التجمع 3 غرف"));
   assert.ok(ivilla.length > 0, "iVilla Arabic query should return complete structured matches");
   assert.ok(ivilla.every((result) => /ivilla/i.test(result.unit.unit_type)));
