@@ -230,6 +230,97 @@ function normalizeSearchQuery(value: string): string {
   return normalized.replace(/\s+/g, " ").trim();
 }
 
+// Compare the consonant shape of Arabic and English names. Developers often
+// publish an English-only name (City Edge) while visitors type its Arabic
+// pronunciation (سيتي إيدج). This works for newly added names without a
+// per-project dictionary; aliases above remain for exceptional spellings.
+function phoneticToken(value: string): string {
+  let token = normalizeText(value);
+  if (/^[a-z]+$/.test(token)) {
+    token = token
+      .replace(/dge/g, "dj")
+      .replace(/ch/g, "sh")
+      .replace(/sh/g, "s")
+      .replace(/th/g, "t")
+      .replace(/ph/g, "f")
+      .replace(/qu/g, "k")
+      .replace(/c(?=[eiy])/g, "s")
+      .replace(/[cq]/g, "k")
+      .replace(/g(?=[eiy])/g, "j")
+      .replace(/p/g, "b")
+      .replace(/x/g, "ks")
+      .replace(/[aeiouy]/g, "");
+  } else if (/^[\u0600-\u06ff]+$/.test(token)) {
+    token = token
+      .replace(/ج/g, "j")
+      .replace(/ش/g, "s")
+      .replace(/خ/g, "kh")
+      .replace(/غ/g, "gh")
+      .replace(/ث/g, "t")
+      .replace(/ذ/g, "d")
+      .replace(/ظ/g, "z")
+      .replace(/ض/g, "d")
+      .replace(/ص/g, "s")
+      .replace(/ط/g, "t")
+      .replace(/ق/g, "k")
+      .replace(/ك/g, "k")
+      .replace(/ب/g, "b")
+      .replace(/ف/g, "f")
+      .replace(/د/g, "d")
+      .replace(/ر/g, "r")
+      .replace(/ز/g, "z")
+      .replace(/س/g, "s")
+      .replace(/ت/g, "t")
+      .replace(/ن/g, "n")
+      .replace(/م/g, "m")
+      .replace(/ل/g, "l")
+      .replace(/ه/g, "h")
+      .replace(/ح/g, "h")
+      .replace(/ع/g, "a")
+      .replace(/[اوي]/g, "");
+  }
+  return token.replace(/(.)\1+/g, "$1");
+}
+
+function phoneticDistance(left: string, right: string, maxDistance: number): number {
+  if (left === right) return 0;
+  if (Math.abs(left.length - right.length) > maxDistance) return maxDistance + 1;
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= left.length; row += 1) {
+    const current = [row];
+    for (let column = 1; column <= right.length; column += 1) {
+      current[column] = Math.min(
+        previous[column] + 1,
+        current[column - 1] + 1,
+        previous[column - 1] + (left[row - 1] === right[column - 1] ? 0 : 1),
+      );
+    }
+    previous = current;
+  }
+  return previous[right.length];
+}
+
+function phoneticNameMatch(queryTokens: string[], name: string): boolean {
+  const nameTokens = normalizeText(name).split(" ").filter(Boolean);
+  if (!queryTokens.length || !nameTokens.length) return false;
+  const querySounds = queryTokens.map(phoneticToken);
+  const nameSounds = nameTokens.map(phoneticToken);
+  const maxDistance = querySounds.length > 1 ? 2 : 1;
+  const used = new Set<number>();
+  return querySounds.every((sound) => {
+    if (sound.length < 2) return false;
+    const index = nameSounds.findIndex((candidate, at) =>
+      !used.has(at) && candidate.length >= 2 &&
+      (candidate === sound ||
+        (sound.length >= 3 && candidate.length >= 3 &&
+          phoneticDistance(sound, candidate, maxDistance) <= (Math.max(sound.length, candidate.length) >= 5 ? maxDistance : 1))),
+    );
+    if (index < 0) return false;
+    used.add(index);
+    return true;
+  });
+}
+
 function includesAny(text: string, aliases: string[]): boolean {
   return aliases.some((alias) => text.includes(normalizeText(alias)));
 }
@@ -480,6 +571,7 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
           criteria.freeTokens.every((token) => normalizedProject.includes(token)) &&
           (criteria.freeTokens.length >= 2 || normalizedProject === criteria.freeTokens[0]))),
   );
+  const projectPhoneticMatch = phoneticNameMatch(criteria.freeTokens, unit.project_name);
   const developerNameMatch = Boolean(
     normalizedDeveloper &&
       (normalizedQuery === normalizedDeveloper ||
@@ -487,13 +579,14 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
           criteria.freeTokens.every((token) => normalizedDeveloper.includes(token)) &&
           (criteria.freeTokens.length >= 2 || normalizedDeveloper === criteria.freeTokens[0]))),
   );
+  const developerPhoneticMatch = phoneticNameMatch(criteria.freeTokens, unit.developer);
   const locationNameMatch = Boolean(normalizedLocation && normalizedQuery.includes(normalizedLocation));
 
-  if (projectNameMatch) {
+  if (projectNameMatch || projectPhoneticMatch) {
     score += 120;
     matchReasons.push("اسم المشروع مطابق");
   }
-  if (developerNameMatch) {
+  if (developerNameMatch || developerPhoneticMatch) {
     score += 85;
     matchReasons.push("المطوّر مطابق");
   }
@@ -671,7 +764,9 @@ function rankUnit(unit: InventoryUnit, criteria: SearchCriteria, normalizedQuery
   const freeTextExact =
     criteria.freeTokens.length === 0 ||
     projectNameMatch ||
+    projectPhoneticMatch ||
     developerNameMatch ||
+    developerPhoneticMatch ||
     (criteria.freeTokens.length >= 2 && tokenCoverage === 1);
   if (criteria.freeTokens.length && !hasStructuredCriteria && !freeTextExact) {
     differences.push("الاسم أو الوصف مش مطابق بشكل كافي");

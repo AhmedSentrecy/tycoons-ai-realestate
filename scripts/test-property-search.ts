@@ -116,6 +116,41 @@ async function run() {
     );
   }
 
+  const crossScriptNames = [
+    ["سيتي ايدج", "City Edge"],
+    ["سيتي إيدج", "City Edge"],
+    ["رملا", "Ramla"],
+    ["كريسنت ووك", "Crescent Walk"],
+    ["كامبس ديستريكت", "Campus District"],
+    ["سيزن", "Seazen"],
+    ["سيتي هايتس", "City Heights"],
+  ] as const;
+  for (const [query, name] of crossScriptNames) {
+    const result = searchInventory(
+      [fixture({ project_name: name, developer: "Another Company" })],
+      query,
+    );
+    assert.equal(result.exact[0]?.unit.project_name, name, `${query} should match ${name} automatically`);
+  }
+
+  const developerSearch = searchInventory(
+    [
+      fixture({ project_name: "North Phase", developer: "City Edge" }),
+      fixture({ project_name: "South Phase", developer: "Other Developments" }),
+    ],
+    "سيتي ايدج",
+  );
+  assert.deepEqual(developerSearch.exact.map((item) => item.unit.developer), ["City Edge"]);
+
+  const unrelatedNames = searchInventory(
+    [
+      fixture({ project_name: "City Heights", developer: "Other Developments" }),
+      fixture({ project_name: "Edge Residence", developer: "Other Developments" }),
+    ],
+    "سيتي ايدج",
+  );
+  assert.equal(unrelatedNames.totalExact, 0, "Partial words must not be treated as a company match");
+
   const residenceName = searchInventory(
     [
       fixture({ project_name: "Plato Residence" }),
