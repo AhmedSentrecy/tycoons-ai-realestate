@@ -132,7 +132,8 @@ function setMeta(selector: string, attribute: "content" | "href", value: string)
   if (!element) {
     element = selector.startsWith("link") ? document.createElement("link") : document.createElement("meta");
     if (selector.includes('rel="canonical"')) element.setAttribute("rel", "canonical");
-    if (selector.includes('name="description"')) element.setAttribute("name", "description");
+    const name = selector.match(/name="([^"]+)"/)?.[1];
+    if (name) element.setAttribute("name", name);
     if (selector.includes('property="og:')) {
       const property = selector.match(/property="([^"]+)"/)?.[1];
       if (property) element.setAttribute("property", property);
@@ -247,7 +248,9 @@ export default function ProjectPage() {
   const projectUnits = useMemo(
     () => uniqueUnits(units.filter((unit) => {
       const nameSlug = slugify(unit.project_name);
-      return nameSlug === slug || `${nameSlug}--${slugify(unit.developer)}` === slug;
+      return unit.project_slug
+        ? unit.project_slug === slug
+        : nameSlug === slug || `${nameSlug}--${slugify(unit.developer)}` === slug;
     })),
     [slug, units],
   );
@@ -274,7 +277,17 @@ export default function ProjectPage() {
   const isIcityOctober = slug === "mountain-view-icity-october--mountain-view";
 
   useEffect(() => {
+    if (loading || contentLoading || project || !content) return;
+    const title = content.seo_title || `${content.name} | Tycoons Investments`;
+    document.title = title;
+    setMeta('meta[name="description"]', "content", content.seo_description || `تفاصيل مشروع ${content.name} من ${content.developer}. تواصل معنا لتأكيد آخر الوحدات المتاحة.`);
+    setMeta('link[rel="canonical"]', "href", `${SITE_URL}/projects/${slug}`);
+    setMeta('meta[name="robots"]', "content", "noindex,follow");
+  }, [content, contentLoading, loading, project, slug]);
+
+  useEffect(() => {
     if (!project) return;
+    setMeta('meta[name="robots"]', "content", "index,follow");
     const pageUrl = `${SITE_URL}/projects/${slug}`;
     const prices = projectUnits.map((unit) => unit.starting_price).filter((price) => price > 0);
     const title = isIcityOctober
@@ -302,7 +315,7 @@ export default function ProjectPage() {
     );
   }
 
-  if (error || !project) {
+  if (error || (!project && !content)) {
     return (
       <main className="grid min-h-screen place-items-center bg-[#f7f2ea] px-5 text-center">
         <div>
@@ -311,6 +324,33 @@ export default function ProjectPage() {
             ارجع للرئيسية
           </Link>
         </div>
+      </main>
+    );
+  }
+
+  if (!project) {
+    // The no-content case returned above; a project record can still have no available units.
+    const projectContent = content!;
+    const pageUrl = `${SITE_URL}/projects/${slug}`;
+    const message = encodeURIComponent(
+      `Hello Tycoons Investments,\nI am interested in ${projectContent.name} by ${projectContent.developer}.\nPlease confirm the latest availability and payment plan.\n\nSource: project_page\nPage: ${pageUrl}`,
+    );
+    return (
+      <main dir="rtl" className="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
+        <Navbar />
+        <section className="mx-auto max-w-4xl px-5 pb-20 pt-36">
+          <Link to="/ar/" className="text-sm font-bold text-[#8a6630] hover:underline">دليل المشاريع</Link>
+          <h1 className="mt-5 text-3xl font-extrabold sm:text-4xl">{projectContent.name}</h1>
+          <p className="mt-3 text-[#5c6a62]">{projectContent.developer} · {projectContent.location}</p>
+          <p className="mt-8 rounded-2xl border border-[#e7ddc8] bg-white p-6 leading-loose">
+            معلومات المشروع موجودة، لكن مفيش وحدات متاحة مؤكدة نقدر نعرضها حاليًا. تواصل معنا عشان نراجع أحدث التوافر والأسعار مع المطور.
+          </p>
+          {projectContent.description && <p className="mt-7 leading-loose text-[#5c6a62]">{projectContent.description}</p>}
+          <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`} target="_blank" rel="noreferrer" className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">
+            <MessageCircle className="h-5 w-5" /> اسأل عن آخر المتاح
+          </a>
+        </section>
+        <Footer />
       </main>
     );
   }

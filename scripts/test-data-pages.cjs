@@ -118,10 +118,11 @@ const unitlessProject = {
 };
 const unitlessHtml = renderProjectStatic(shell, unitlessProject, []);
 assert.match(unitlessHtml, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/projects\/project-beta">/);
-assert.match(unitlessHtml, /5,500,000/);
-assert.match(unitlessHtml, /"@type":"Offer"/);
+assert.match(unitlessHtml, /<meta name="robots" content="noindex,follow">/);
+assert.doesNotMatch(unitlessHtml, /5,500,000/);
+assert.doesNotMatch(unitlessHtml, /"@type":"Offer"/);
 assert.doesNotMatch(unitlessHtml, /"@type":"AggregateOffer"/);
-assert.match(unitlessHtml, /اطلب أحدث الأسعار/);
-assert.match(unitlessHtml, /"@type":"RealEstateListing"/);
+assert.match(unitlessHtml, /مفيش وحدات متاحة مؤكدة/);
+assert.doesNotMatch(unitlessHtml, /"@type":"RealEstateListing"/);
 
 console.log("Data-driven page isolation and canonical validation passed.");

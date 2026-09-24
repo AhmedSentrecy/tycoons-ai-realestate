@@ -283,6 +283,16 @@ function staticUnitCard(unit) {
 
 function renderProjectStatic(shell, project, projectUnits) {
   const units = uniqueUnits(projectUnits);
+  if (!units.length) {
+    const canonical = `${SITE_URL}/projects/${project.slug}`;
+    const title = `${project.name} | Tycoons Investments`;
+    const description = `تفاصيل مشروع ${project.name} من ${project.developer}. تواصل معنا لتأكيد آخر الوحدات المتاحة.`;
+    const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]"><header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto max-w-4xl"><a href="/ar/">دليل المشاريع</a></nav></header><section class="mx-auto max-w-4xl px-5 py-20"><h1 class="text-4xl font-extrabold">${escapeHtml(project.name)}</h1><p class="mt-3">${escapeHtml(project.developer)} · ${escapeHtml(project.location)}</p><p class="mt-8 rounded-2xl bg-white p-6">معلومات المشروع موجودة، لكن مفيش وحدات متاحة مؤكدة نقدر نعرضها حاليًا. تواصل معنا عشان نراجع أحدث التوافر والأسعار مع المطور.</p><a href="https://wa.me/201200704344" class="mt-8 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اسأل عن آخر المتاح</a></section></main>`;
+    return pageShell(shell, {
+      title, description, canonical, body, robots: "noindex,follow", image: "", keywords: [],
+      schemas: [{ "@type": "Article", headline: title, description, inLanguage: "ar-EG", mainEntityOfPage: canonical }],
+    });
+  }
   const priceRanges = projectPriceRanges(project);
   const villaUnits = units.filter(isVillaLike);
   const otherUnits = units.filter((unit) => !isVillaLike(unit));
