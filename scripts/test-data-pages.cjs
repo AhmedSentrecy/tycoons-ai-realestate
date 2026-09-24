@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 const { renderProjectStatic, renderUnitStatic } = require("./lib/data-pages.cjs");
+const { projectAliases } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
 
 const shell = `<!doctype html><html lang="ar" dir="rtl"><head><title>Home</title><meta name="description" content="home"><link rel="canonical" href="https://tycoons-inv.com/"><script type="application/ld+json">{"@type":"FAQPage"}</script></head><body><div id="root"><h1>قارن المشاريع والوحدات العقارية</h1></div><script type="module" src="/assets/app.js"></script></body></html>`;
@@ -124,5 +125,13 @@ assert.doesNotMatch(unitlessHtml, /"@type":"Offer"/);
 assert.doesNotMatch(unitlessHtml, /"@type":"AggregateOffer"/);
 assert.match(unitlessHtml, /مفيش وحدات متاحة مؤكدة/);
 assert.doesNotMatch(unitlessHtml, /"@type":"RealEstateListing"/);
+
+const duplicateProjects = [
+  { id: "with-units", name: "One - Ninety", developer: "LMD", slug: "one-ninety--lmd" },
+  { id: "empty", name: "One Ninety", developer: "LMD", slug: "one-ninety--lmd-2" },
+];
+const aliases = projectAliases(duplicateProjects, new Map([["with-units", [unit]]]));
+assert.equal(aliases.get("one-ninety--lmd"), undefined);
+assert.equal(aliases.get("one-ninety--lmd-2"), "one-ninety--lmd");
 
 console.log("Data-driven page isolation and canonical validation passed.");

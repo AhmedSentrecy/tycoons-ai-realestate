@@ -3,6 +3,7 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { renderProjectStatic, renderUnitStatic } = require("./lib/data-pages.cjs");
+const { projectAliases } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
 
 const root = path.resolve(__dirname, "..");
@@ -40,7 +41,6 @@ async function main() {
     fetchRows("projects", "id,name,slug,developer,location,description,status,min_price,down_payment_text,installments_text,delivery_text,hero_text,seo_title,seo_description,seo_keywords,targeting,article_sections,faq,highlights,image_url,gallery_urls,video_url,last_updated_at"),
     fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,brochure_url,video_url,last_updated_at", { availability_status: "eq.available", project_id: "not.is.null" }),
   ]);
-  const slugify = (value) => String(value || "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "");
   // Only rows with a stored slug become pages: legacy duplicate rows without a
   // slug would otherwise collide with the canonical row via the generated slug
   // and overwrite its rich page.
@@ -76,15 +76,7 @@ async function main() {
     unitCount += 1;
   }
 
-  const aliases = new Map([
-    ["creekview--mountain-view", "mountain-view-creek-view--mountain-view"],
-    ["mountain-view-creekview--mountain-view", "mountain-view-creek-view--mountain-view"],
-    ["regent-s-square--al-dawlia-boutique-developments", "regent-s-square--al-dawlia-developments"],
-  ]);
-  for (const project of normalizedProjects) {
-    const generatedSlug = `${slugify(project.name)}--${slugify(project.developer)}`;
-    if (generatedSlug && generatedSlug !== project.slug) aliases.set(generatedSlug, project.slug);
-  }
+  const aliases = projectAliases(normalizedProjects, unitsByProject);
   const redirects = [
     "/sales-war-room/* /index.html 200!",
     "/admin /index.html 200!",
