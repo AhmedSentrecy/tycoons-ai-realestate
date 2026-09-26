@@ -9,6 +9,7 @@ const digest = async (value: string) => Array.from(new Uint8Array(await crypto.s
 
 type Incoming = {
   crm_id?: unknown; name?: unknown; phone?: unknown; agent?: unknown;
+  lead_entered_at?: unknown;
   last_feedback?: unknown; last_feedback_at?: unknown; all_feedback?: unknown;
   source_sheet?: unknown;
 };
@@ -79,6 +80,9 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
   const slug = agentSlug(row.agent);
   const agentId = agents.get(slug);
   if (!agentId) return { status: "unknown_agent", crm_id: crmId };
+  const enteredAtCairo = String(row.lead_entered_at ?? "").trim().slice(0, 64) || null;
+  const lastFeedbackAtCairo = (String(row.last_feedback_at ?? "").trim() ||
+    comments.map((comment) => comment.at).filter(Boolean).sort().at(-1) || "").slice(0, 64) || null;
 
   let { data: lead, error: lookupError } = await db.from("sales_pipeline")
     .select("id,agent_id,crm_lead_id").eq("crm_lead_id", crmId).maybeSingle();
@@ -92,7 +96,10 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
     const matching = (candidates || []).filter((x: any) => normalizePhone(x.phone) === phone && !x.crm_lead_id);
     if (matching.length > 1) return { status: "ambiguous_phone", crm_id: crmId };
     if (matching.length === 1) {
-      const claimed = await db.from("sales_pipeline").update({ crm_lead_id: crmId })
+      const claimed = await db.from("sales_pipeline").update({
+        crm_lead_id: crmId, crm_entered_at_cairo: enteredAtCairo,
+        crm_last_feedback_at_cairo: lastFeedbackAtCairo,
+      })
         .eq("id", matching[0].id).is("crm_lead_id", null).select("id,agent_id,crm_lead_id").maybeSingle();
       if (claimed.error) throw claimed.error;
       lead = claimed.data;
@@ -101,6 +108,7 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
   if (!lead) {
     const created = await db.from("sales_pipeline").insert({
       crm_lead_id: crmId, agent_id: agentId, client_name: name, phone: phone || "",
+      crm_entered_at_cairo: enteredAtCairo, crm_last_feedback_at_cairo: lastFeedbackAtCairo,
       budget: "", stage: "New Lead", next_action: "", next_action_trigger: "", notes: "",
     }).select("id,agent_id,crm_lead_id").single();
     if (created.error?.code === "23505") {
@@ -113,11 +121,19 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
   }
   if (!lead) throw new Error("lead_lookup_failed");
   if (lead.agent_id !== agentId) return { status: "owner_conflict", crm_id: crmId };
+  const timestampPatch: Record<string, string> = {};
+  if (enteredAtCairo) timestampPatch.crm_entered_at_cairo = enteredAtCairo;
+  if (lastFeedbackAtCairo) timestampPatch.crm_last_feedback_at_cairo = lastFeedbackAtCairo;
+  if (Object.keys(timestampPatch).length) {
+    const stamped = await db.from("sales_pipeline").update(timestampPatch).eq("id", lead.id);
+    if (stamped.error) throw stamped.error;
+  }
   if (wasCreated) {
     const event = await db.from("sales_pipeline_activity").insert({
       pipeline_id: lead.id, agent_id: agentId, activity_type: "created", body: "",
       actor_type: "system", actor_agent_id: null,
-      metadata: { source: "crm_google_sheet", crm_lead_id: crmId },
+      metadata: { source: "crm_google_sheet", crm_lead_id: crmId,
+        crm_entered_at_cairo: enteredAtCairo },
     });
     if (event.error) throw event.error;
   }
