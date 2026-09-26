@@ -2,7 +2,7 @@
 
 Imports CRM feedback from a distribution sheet (`التوزيع`) and a status sheet (`CRM Status` / `Wesam - CRM Status`). A lead enters the War Room only after it has a non-empty CRM feedback event. The current CRM agent owns the lead. `Ahmed Yehya` in CRM maps to `ahmed-yehia` in the War Room.
 
-The Google Script scans every five minutes, because edits made by another Apps Script do not fire a normal `onEdit` trigger. Only comments written after setup are imported. The source time and author are retained in activity metadata, and imported text is left unchanged. Repeat scans are safe because each CRM comment has a unique key.
+The Google Script scans every five minutes, because edits made by another Apps Script do not fire a normal `onEdit` trigger. Only comments written after setup are imported. The original CRM lead-entry time, feedback time, and author are retained, and imported text is left unchanged. Repeat scans are safe because each CRM comment has a unique key.
 
 ## Installation
 
