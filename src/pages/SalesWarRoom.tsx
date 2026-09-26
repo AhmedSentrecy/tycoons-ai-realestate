@@ -29,7 +29,8 @@ const emptyLead:LeadDraft={client_name:"",phone:"",budget:"",expected_value:"",s
 function phoneForCall(phone:string){return String(phone||"").replace(/[^\d+]/g,"")}
 function phoneForWhatsApp(phone:string){let digits=String(phone||"").replace(/\D/g,"");if(digits.startsWith("00"))digits=digits.slice(2);if(/^01\d{9}$/.test(digits))digits=`20${digits.slice(1)}`;return digits}
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
-function sortLeadCards(rows:any[]){return [...rows].sort((a,b)=>Number(b.sort_position||0)-Number(a.sort_position||0)||String(b.crm_entered_at_cairo||b.created_at||"").localeCompare(String(a.crm_entered_at_cairo||a.created_at||"")))}
+function compareLeadOrder(a:any,b:any){return Number(b.sort_position||0)-Number(a.sort_position||0)||String(b.crm_entered_at_cairo||b.created_at||"").localeCompare(String(a.crm_entered_at_cairo||a.created_at||""))}
+function sortLeadCards(rows:any[]){return [...rows].sort(compareLeadOrder)}
 const millionsToEgp=salesInputToEgp;
 const valueToMillions=salesValueToMillions;
 const formatEgp=formatSalesEgp;
@@ -150,11 +151,11 @@ export default function SalesWarRoom(){
         {editingId&&<div className="mb-4 max-w-xl rounded-2xl bg-slate-50 p-2"><LeadEditor draft={editLead} setDraft={setEditLead} stages={stages} ar={ar} lang={lang} t={t} onSave={saveEdit} onCancel={()=>{setEditingId("");setEditLead({...emptyLead})}}/></div>}
 
         {pipelineView==="kanban"&&<KanbanView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} token={token} startEdit={startEdit} moveLead={moveLead}/>}
-        {pipelineView==="listing"&&<ListingView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} listingStage={listingStage} setListingStage={setListingStage} startEdit={startEdit} moveLead={moveLead}/>}
-        {pipelineView==="queue"&&<ActionQueueView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} startEdit={startEdit} moveLead={moveLead}/>}
-        {pipelineView==="tabs"&&<StageTabsView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} stageTab={stageTab} setStageTab={setStageTab} startEdit={startEdit} moveLead={moveLead}/>}
-        {pipelineView==="table"&&<TableView pipeline={visiblePipeline} ar={ar} lang={lang} t={t} startEdit={startEdit}/>}
-        {pipelineView==="calendar"&&<CalendarView pipeline={visiblePipeline} ar={ar} lang={lang} t={t} startEdit={startEdit}/>}
+        {pipelineView==="listing"&&<ListingView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} token={token} listingStage={listingStage} setListingStage={setListingStage} startEdit={startEdit} moveLead={moveLead}/>}
+        {pipelineView==="queue"&&<ActionQueueView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} token={token} startEdit={startEdit} moveLead={moveLead}/>}
+        {pipelineView==="tabs"&&<StageTabsView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} token={token} stageTab={stageTab} setStageTab={setStageTab} startEdit={startEdit} moveLead={moveLead}/>}
+        {pipelineView==="table"&&<TableView pipeline={visiblePipeline} ar={ar} lang={lang} t={t} token={token} startEdit={startEdit}/>}
+        {pipelineView==="calendar"&&<CalendarView pipeline={visiblePipeline} ar={ar} lang={lang} t={t} token={token} startEdit={startEdit}/>}
         {pipelineView==="funnel"&&<FunnelView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t}/>}
 
         <SalesWarRoomActivityLedger pipeline={visiblePipeline} token={token} lang={lang}/>
@@ -205,7 +206,48 @@ function KanbanView({pipeline,stages,ar,lang,t,token,startEdit,moveLead}:any){
   return <div onPointerMove={dragOver} onPointerUp={()=>void finishDrag()} onPointerCancel={()=>void finishDrag()} className="overflow-x-auto pb-2"><div className="grid min-w-max grid-flow-col auto-cols-[290px] gap-2">{stages.map((stage:string)=><div key={stage} className="min-h-[300px] rounded-2xl border bg-slate-50 p-2"><div className="mb-2 flex items-center justify-between text-xs font-black"><span>{lang==="ar"?ar[stage]:stage}</span><span className="rounded-full bg-white px-2 py-1">{ordered.filter((x:any)=>x.stage===stage).length}</span></div>{ordered.filter((x:any)=>x.stage===stage).map((x:any)=><div key={x.id} data-lead-card={x.id} className={`transition ${dragging===String(x.id)?"scale-[1.02] opacity-70 ring-2 ring-violet-400":""}`}><div className="-mb-3 flex items-center justify-between rounded-t-xl border bg-white px-3 pb-4 pt-2">{x.campaign?<span className="rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-black text-violet-800">📣 {x.campaign}</span>:<span/>}<button type="button" onPointerDown={e=>startHold(e,String(x.id))} onPointerUp={()=>void finishDrag()} onContextMenu={e=>e.preventDefault()} style={{touchAction:"none"}} className="cursor-grab select-none rounded-lg border px-2 py-1 text-[10px] font-black text-slate-500 active:cursor-grabbing" aria-label={t("Hold and drag to reorder","اضغط مطولاً واسحب للترتيب")}>↕ {t("Hold","اضغط مطولاً")}</button></div><LeadCard x={x} stage={stage} stages={stages} ar={ar} lang={lang} t={t} onEdit={()=>startEdit(x)} onMove={(s:string)=>moveLead(x.id,s)}/></div>)}</div>)}</div></div>
 }
 
-function ListingView({pipeline,stages,ar,lang,t,listingStage,setListingStage,startEdit,moveLead}:any){
+function ManualOrderList({rows,token,t,children,className="space-y-3",sortRows=sortLeadCards,canMove=()=>true,listTag="div",itemTag="div",handleOnItem=false}:any){
+  const [ordered,setOrdered]=useState<any[]>(()=>sortRows(rows));
+  const orderedRef=useRef(ordered);
+  const [dragging,setDragging]=useState("");
+  const holdTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const savingOrder=useRef(false);
+  useEffect(()=>{const next=sortRows(rows);orderedRef.current=next;setOrdered(next)},[rows]);
+  function startHold(e:any,id:string){
+    if(holdTimer.current)clearTimeout(holdTimer.current);
+    const target=e.currentTarget,pointerId=e.pointerId;
+    holdTimer.current=setTimeout(()=>{setDragging(id);try{target.setPointerCapture(pointerId)}catch{}},450);
+  }
+  function dragOver(e:any){
+    if(!dragging)return;
+    e.preventDefault();
+    const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.("[data-manual-order-item]") as HTMLElement|null;
+    const targetId=target?.dataset.manualOrderItem||"";
+    if(!targetId||targetId===dragging)return;
+    setOrdered(current=>{
+      const from=current.findIndex(x=>String(x.id)===dragging),to=current.findIndex(x=>String(x.id)===targetId);
+      if(from<0||to<0||!canMove(current[from],current[to]))return current;
+      const next=[...current],[moved]=next.splice(from,1);next.splice(to,0,moved);orderedRef.current=next;return next;
+    });
+  }
+  async function finishDrag(){
+    if(holdTimer.current){clearTimeout(holdTimer.current);holdTimer.current=null}
+    if(!dragging||savingOrder.current)return;
+    savingOrder.current=true;
+    const ids=orderedRef.current.map(x=>String(x.id));
+    setDragging("");
+    try{await salesWarRoomApi.reorderLeads(token,ids)}catch{alert(t("Could not save card order.","مقدرناش نحفظ ترتيب الكروت."))}finally{savingOrder.current=false}
+  }
+  const Container=listTag as any,Item=itemTag as any;
+  return <Container onPointerMove={dragOver} onPointerUp={()=>void finishDrag()} onPointerCancel={()=>void finishDrag()} className={className}>
+    {ordered.map(x=><Item key={x.id} data-manual-order-item={x.id} onPointerDown={handleOnItem?e=>startHold(e,String(x.id)):undefined} className={`transition ${dragging===String(x.id)?"scale-[1.01] opacity-70 ring-2 ring-violet-400":""}`}>
+      {!handleOnItem&&<div className="mb-1 flex justify-end"><button type="button" onPointerDown={e=>startHold(e,String(x.id))} onPointerUp={()=>void finishDrag()} onContextMenu={e=>e.preventDefault()} style={{touchAction:"none"}} className="cursor-grab select-none rounded-lg border bg-white px-2 py-1 text-[10px] font-black text-slate-500 active:cursor-grabbing" aria-label={t("Hold and drag to reorder","اضغط مطولاً واسحب للترتيب")}>↕ {t("Hold to reorder","اضغط مطولاً للترتيب")}</button></div>}
+      {children(x)}
+    </Item>)}
+  </Container>
+}
+
+function ListingView({pipeline,stages,ar,lang,t,token,listingStage,setListingStage,startEdit,moveLead}:any){
   const rows=listingStage==="all"?pipeline:pipeline.filter((x:any)=>x.stage===listingStage);
   return <div>
     <div className="mb-4 flex gap-2 overflow-x-auto pb-2" aria-label={t("Filter leads by stage","فلترة العملاء حسب المرحلة")}>
@@ -217,8 +259,8 @@ function ListingView({pipeline,stages,ar,lang,t,listingStage,setListingStage,sta
         </button>
       })}
     </div>
-    <div className="space-y-3">
-      {rows.length?rows.map((x:any)=><div key={x.id} className="rounded-2xl border bg-slate-50 p-3 shadow-sm md:p-4">
+    {rows.length?<ManualOrderList rows={rows} token={token} t={t}>
+      {(x:any)=><div className="rounded-2xl border bg-slate-50 p-3 shadow-sm md:p-4">
         <div className="grid gap-3 lg:grid-cols-[minmax(190px,.8fr)_minmax(170px,.7fr)_minmax(220px,1fr)_minmax(240px,1.2fr)_auto] lg:items-start">
           <div className="min-w-0">
             <div className="truncate text-base font-black" title={x.client_name}>{x.client_name}</div>
@@ -249,18 +291,26 @@ function ListingView({pipeline,stages,ar,lang,t,listingStage,setListingStage,sta
             </select>
           </div>
         </div>
-      </div>):<EmptyState text={t("No leads in this stage.","مفيش عملاء في المرحلة دي.")}/>}
-    </div>
+      </div>}
+    </ManualOrderList>:<EmptyState text={t("No leads in this stage.","مفيش عملاء في المرحلة دي.")}/>}
   </div>
 }
 
-function ActionQueueView({pipeline,stages,ar,lang,t,startEdit,moveLead}:any){const today=todayLocal();const priority=(x:any)=>x.next_action_date&&x.next_action_date<today?0:x.next_action_date===today?1:x.stage==="Hot / Very Potential"?2:x.stage==="Warm"?3:4;const rows=[...pipeline].filter((x:any)=>!["Won","Lost / Dead"].includes(x.stage)).sort((a:any,b:any)=>priority(a)-priority(b)||(a.next_action_date||"9999").localeCompare(b.next_action_date||"9999"));return <div className="space-y-2">{rows.length?rows.map((x:any)=>{const overdue=x.next_action_date&&x.next_action_date<today;const due=x.next_action_date===today;return <div key={x.id} className={`grid gap-3 rounded-2xl border p-3 md:grid-cols-[1.1fr_.8fr_1.5fr_auto] md:items-center ${overdue?"border-red-300 bg-red-50":due?"border-amber-300 bg-amber-50":"bg-slate-50"}`}><div><div className="font-black">{x.client_name}</div><div className="mt-1 text-xs font-bold text-slate-500">{lang==="ar"?ar[x.stage]:x.stage}</div>{x.expected_value?<div className="mt-1 text-xs font-black text-emerald-700">{t("Expected","متوقع")}: {formatEgp(x.expected_value)}</div>:null}</div><div className="text-xs"><div className="font-black">{overdue?`🚨 ${t("OVERDUE","متأخر")}`:due?`⏰ ${t("DUE TODAY","النهاردة")}`:x.next_action_date||t("No date","بدون تاريخ")}</div>{x.phone&&<a href={`tel:${phoneForCall(x.phone)}`} className="mt-1 block underline" dir="ltr">{x.phone}</a>}</div><div className="text-xs leading-5"><b>{t("Next Action","الخطوة الجاية")}:</b> {x.next_action||"—"}{x.notes&&<div className="mt-1 text-slate-500 line-clamp-2">{x.notes}</div>}</div><div className="flex gap-2"><button onClick={()=>startEdit(x)} className="rounded-lg border bg-white px-3 py-2 text-xs font-black">{t("Edit","تعديل")}</button><select value={x.stage} onChange={e=>moveLead(x.id,e.target.value)} className="rounded-lg border bg-white px-2 py-2 text-xs font-bold">{stages.map((s:string)=><option key={s} value={s}>{lang==="ar"?ar[s]:s}</option>)}</select></div></div>}):<EmptyState text={t("No active leads yet.","مفيش Leads نشطة لسه.")}/>}</div>}
+function ActionQueueView({pipeline,stages,ar,lang,t,token,startEdit,moveLead}:any){
+  const today=todayLocal();
+  const priority=(x:any)=>x.next_action_date&&x.next_action_date<today?0:x.next_action_date===today?1:x.stage==="Hot / Very Potential"?2:x.stage==="Warm"?3:4;
+  const rows=pipeline.filter((x:any)=>!["Won","Lost / Dead"].includes(x.stage));
+  const queueOrder=(items:any[])=>[...items].sort((a,b)=>priority(a)-priority(b)||compareLeadOrder(a,b));
+  return rows.length?<ManualOrderList rows={rows} token={token} t={t} sortRows={queueOrder} canMove={(from:any,to:any)=>priority(from)===priority(to)}>
+    {(x:any)=>{const overdue=x.next_action_date&&x.next_action_date<today;const due=x.next_action_date===today;return <div className={`grid gap-3 rounded-2xl border p-3 md:grid-cols-[1.1fr_.8fr_1.5fr_auto] md:items-center ${overdue?"border-red-300 bg-red-50":due?"border-amber-300 bg-amber-50":"bg-slate-50"}`}><div><div className="font-black">{x.client_name}</div><div className="mt-1 text-xs font-bold text-slate-500">{lang==="ar"?ar[x.stage]:x.stage}</div>{x.expected_value?<div className="mt-1 text-xs font-black text-emerald-700">{t("Expected","متوقع")}: {formatEgp(x.expected_value)}</div>:null}</div><div className="text-xs"><div className="font-black">{overdue?`🚨 ${t("OVERDUE","متأخر")}`:due?`⏰ ${t("DUE TODAY","النهاردة")}`:x.next_action_date||t("No date","بدون تاريخ")}</div>{x.phone&&<a href={`tel:${phoneForCall(x.phone)}`} className="mt-1 block underline" dir="ltr">{x.phone}</a>}</div><div className="text-xs leading-5"><b>{t("Next Action","الخطوة الجاية")}:</b> {x.next_action||"—"}{x.notes&&<div className="mt-1 text-slate-500 line-clamp-2">{x.notes}</div>}</div><div className="flex gap-2"><button onClick={()=>startEdit(x)} className="rounded-lg border bg-white px-3 py-2 text-xs font-black">{t("Edit","تعديل")}</button><select value={x.stage} onChange={e=>moveLead(x.id,e.target.value)} className="rounded-lg border bg-white px-2 py-2 text-xs font-bold">{stages.map((s:string)=><option key={s} value={s}>{lang==="ar"?ar[s]:s}</option>)}</select></div></div>}}
+  </ManualOrderList>:<EmptyState text={t("No active leads yet.","مفيش Leads نشطة لسه.")}/>
+}
 
-function StageTabsView({pipeline,stages,ar,lang,t,stageTab,setStageTab,startEdit,moveLead}:any){const rows=pipeline.filter((x:any)=>x.stage===stageTab);return <div><div className="mb-3 flex gap-2 overflow-x-auto pb-1">{stages.map((s:string)=><button key={s} onClick={()=>setStageTab(s)} className={`whitespace-nowrap rounded-full border px-3 py-2 text-xs font-black ${stageTab===s?"bg-slate-950 text-white":"bg-white"}`}>{lang==="ar"?ar[s]:s} · {pipeline.filter((x:any)=>x.stage===s).length}</button>)}</div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{rows.length?rows.map((x:any)=><LeadCard key={x.id} x={x} stage={x.stage} stages={stages} ar={ar} lang={lang} t={t} onEdit={()=>startEdit(x)} onMove={(s:string)=>moveLead(x.id,s)}/>):<EmptyState text={t("No leads in this stage.","مفيش Leads في المرحلة دي.")}/>}</div></div>}
+function StageTabsView({pipeline,stages,ar,lang,t,token,stageTab,setStageTab,startEdit,moveLead}:any){const rows=pipeline.filter((x:any)=>x.stage===stageTab);return <div><div className="mb-3 flex gap-2 overflow-x-auto pb-1">{stages.map((s:string)=><button key={s} onClick={()=>setStageTab(s)} className={`whitespace-nowrap rounded-full border px-3 py-2 text-xs font-black ${stageTab===s?"bg-slate-950 text-white":"bg-white"}`}>{lang==="ar"?ar[s]:s} · {pipeline.filter((x:any)=>x.stage===s).length}</button>)}</div>{rows.length?<ManualOrderList rows={rows} token={token} t={t} className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{(x:any)=><LeadCard x={x} stage={x.stage} stages={stages} ar={ar} lang={lang} t={t} onEdit={()=>startEdit(x)} onMove={(s:string)=>moveLead(x.id,s)}/>}</ManualOrderList>:<EmptyState text={t("No leads in this stage.","مفيش Leads في المرحلة دي.")}/>}</div>}
 
-function TableView({pipeline,ar,lang,t,startEdit}:any){return <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="p-3 text-start">{t("Client","العميل")}</th><th className="p-3 text-start">{t("Phone","الموبايل")}</th><th className="p-3 text-start">{t("Stage","المرحلة")}</th><th className="p-3 text-start">{t("Expected Sale","المبيعات المتوقعة")}</th><th className="p-3 text-start">{t("Follow-up Date","تاريخ المتابعة")}</th><th className="p-3 text-start">{t("Next Action","الخطوة الجاية")}</th><th className="p-3 text-start">{t("Feedback","الفيدباك")}</th><th className="p-3"></th></tr></thead><tbody>{pipeline.map((x:any)=><tr key={x.id} className="border-t"><td className="p-3 font-black">{x.client_name}</td><td className="p-3" dir="ltr">{x.phone||"—"}</td><td className="p-3 font-bold">{lang==="ar"?ar[x.stage]:x.stage}</td><td className={`p-3 font-black ${x.stage==="Lost / Dead"?"text-red-600":"text-emerald-700"}`}>{x.expected_value?formatEgp(x.expected_value):"—"}</td><td className="p-3" dir="ltr">{x.next_action_date?`${x.next_action_date}${x.next_action_time?` · ${String(x.next_action_time).slice(0,5)}`:""}`:"—"}</td><td className="max-w-[260px] p-3 text-xs">{x.next_action||"—"}</td><td className="max-w-[320px] p-3 text-xs"><div className="max-h-20 overflow-y-auto whitespace-pre-wrap">{x.notes||"—"}</div></td><td className="p-3"><button onClick={()=>startEdit(x)} className="rounded-lg border px-3 py-2 text-xs font-black">{t("Edit","تعديل")}</button></td></tr>)}</tbody></table>{!pipeline.length&&<EmptyState text={t("No leads yet.","مفيش Leads لسه.")}/>}</div>}
+function TableView({pipeline,ar,lang,t,token,startEdit}:any){return <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="p-3 text-start">{t("Client","العميل")}</th><th className="p-3 text-start">{t("Phone","الموبايل")}</th><th className="p-3 text-start">{t("Stage","المرحلة")}</th><th className="p-3 text-start">{t("Expected Sale","المبيعات المتوقعة")}</th><th className="p-3 text-start">{t("Follow-up Date","تاريخ المتابعة")}</th><th className="p-3 text-start">{t("Next Action","الخطوة الجاية")}</th><th className="p-3 text-start">{t("Feedback","الفيدباك")}</th><th className="p-3"></th></tr></thead><ManualOrderList rows={pipeline} token={token} t={t} listTag="tbody" itemTag="tr" handleOnItem>{(x:any)=><><td className="border-t p-3 font-black">{x.client_name}</td><td className="border-t p-3" dir="ltr">{x.phone||"—"}</td><td className="border-t p-3 font-bold">{lang==="ar"?ar[x.stage]:x.stage}</td><td className={`border-t p-3 font-black ${x.stage==="Lost / Dead"?"text-red-600":"text-emerald-700"}`}>{x.expected_value?formatEgp(x.expected_value):"—"}</td><td className="border-t p-3" dir="ltr">{x.next_action_date?`${x.next_action_date}${x.next_action_time?` · ${String(x.next_action_time).slice(0,5)}`:""}`:"—"}</td><td className="max-w-[260px] border-t p-3 text-xs">{x.next_action||"—"}</td><td className="max-w-[320px] border-t p-3 text-xs"><div className="max-h-20 overflow-y-auto whitespace-pre-wrap">{x.notes||"—"}</div></td><td className="border-t p-3"><button onClick={()=>startEdit(x)} className="rounded-lg border px-3 py-2 text-xs font-black">{t("Edit","تعديل")}</button></td></>}</ManualOrderList></table>{!pipeline.length&&<EmptyState text={t("No leads yet.","مفيش Leads لسه.")}/>}</div>}
 
-function CalendarView({pipeline,ar,lang,t,startEdit}:any){const dated=[...pipeline].filter((x:any)=>x.next_action_date).sort((a:any,b:any)=>a.next_action_date.localeCompare(b.next_action_date));const groups=dated.reduce((acc:Record<string,any[]>,x:any)=>{(acc[x.next_action_date]||=[]).push(x);return acc},{});return <div className="space-y-3">{Object.keys(groups).length?Object.entries(groups).map(([date,rows])=>{const overdue=date<todayLocal(),due=date===todayLocal();return <div key={date} className={`rounded-2xl border p-3 ${overdue?"border-red-300 bg-red-50":due?"border-amber-300 bg-amber-50":"bg-slate-50"}`}><div className="mb-2 flex items-center justify-between"><div className="font-black" dir="ltr">{date}</div><div className="text-xs font-black">{overdue?`🚨 ${t("OVERDUE","متأخر")}`:due?`⏰ ${t("TODAY","النهاردة")}`:""}</div></div><div className="grid gap-2 md:grid-cols-2">{(rows as any[]).map((x:any)=><button key={x.id} onClick={()=>startEdit(x)} className="rounded-xl border bg-white p-3 text-start"><div className="font-black">{x.client_name}</div><div className="mt-1 text-xs font-bold text-slate-500">{lang==="ar"?ar[x.stage]:x.stage}</div>{x.expected_value?<div className="mt-1 text-xs font-black text-emerald-700">{formatEgp(x.expected_value)}</div>:null}{x.next_action_time?<div className="mt-1 text-[10px] font-black text-slate-500">⏰ {String(x.next_action_time).slice(0,5)}</div>:null}<div className="mt-2 text-xs">{x.next_action||"—"}</div></button>)}</div></div>}):<EmptyState text={t("No dated follow-ups yet.","مفيش Follow-ups بتاريخ لسه.")}/>}</div>}
+function CalendarView({pipeline,ar,lang,t,token,startEdit}:any){const dated=pipeline.filter((x:any)=>x.next_action_date);const groups=dated.reduce((acc:Record<string,any[]>,x:any)=>{(acc[x.next_action_date]||=[]).push(x);return acc},{});const dates=Object.keys(groups).sort();return <div className="space-y-3">{dates.length?dates.map(date=>{const overdue=date<todayLocal(),due=date===todayLocal();const rows=groups[date];return <div key={date} className={`rounded-2xl border p-3 ${overdue?"border-red-300 bg-red-50":due?"border-amber-300 bg-amber-50":"bg-slate-50"}`}><div className="mb-2 flex items-center justify-between"><div className="font-black" dir="ltr">{date}</div><div className="text-xs font-black">{overdue?`🚨 ${t("OVERDUE","متأخر")}`:due?`⏰ ${t("TODAY","النهاردة")}`:""}</div></div><ManualOrderList rows={rows} token={token} t={t} className="grid gap-2 md:grid-cols-2">{(x:any)=><button key={x.id} onClick={()=>startEdit(x)} className="w-full rounded-xl border bg-white p-3 text-start"><div className="font-black">{x.client_name}</div><div className="mt-1 text-xs font-bold text-slate-500">{lang==="ar"?ar[x.stage]:x.stage}</div>{x.expected_value?<div className="mt-1 text-xs font-black text-emerald-700">{formatEgp(x.expected_value)}</div>:null}{x.next_action_time?<div className="mt-1 text-[10px] font-black text-slate-500">⏰ {String(x.next_action_time).slice(0,5)}</div>:null}<div className="mt-2 text-xs">{x.next_action||"—"}</div></button>}</ManualOrderList></div>}):<EmptyState text={t("No dated follow-ups yet.","مفيش Follow-ups بتاريخ لسه.")}/>}</div>}
 
 function FunnelView({pipeline,stages,ar,lang,t}:any){const max=Math.max(1,...stages.map((s:string)=>pipeline.filter((x:any)=>x.stage===s).length));return <div className="space-y-2">{stages.map((s:string)=>{const count=pipeline.filter((x:any)=>x.stage===s).length;const width=Math.max(count?8:2,(count/max)*100);return <div key={s} className="grid grid-cols-[150px_1fr_40px] items-center gap-3"><div className="text-xs font-black">{lang==="ar"?ar[s]:s}</div><div className="h-9 overflow-hidden rounded-lg bg-slate-100"><div className="flex h-full items-center rounded-lg bg-slate-900 px-3 text-xs font-black text-white" style={{width:`${width}%`}}></div></div><div className="text-center text-sm font-black">{count}</div></div>})}<div className="mt-3 text-xs text-slate-500">{t("Funnel is for a quick pipeline-health view; use another view for follow-up work.","الـFunnel للمراجعة السريعة لصحة الـPipeline؛ استخدم View تانية للشغل على الـFollow-ups.")}</div></div>}
 
