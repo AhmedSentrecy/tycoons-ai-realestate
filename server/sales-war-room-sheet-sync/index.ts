@@ -8,7 +8,7 @@ const digest = async (value: string) => Array.from(new Uint8Array(await crypto.s
   .map((x) => x.toString(16).padStart(2, "0")).join("");
 
 type Incoming = {
-  crm_id?: unknown; name?: unknown; phone?: unknown; agent?: unknown;
+  crm_id?: unknown; name?: unknown; phone?: unknown; agent?: unknown; campaign?: unknown;
   lead_entered_at?: unknown;
   last_feedback?: unknown; last_feedback_at?: unknown; all_feedback?: unknown;
   source_sheet?: unknown;
@@ -39,6 +39,23 @@ function agentSlug(value: unknown) {
     if (names[part]) return names[part];
   }
   return "";
+}
+
+function campaignName(row: Incoming) {
+  const raw = String(row.campaign ?? "").trim();
+  const source = String(row.source_sheet ?? "").toLowerCase();
+  const normalized = raw.toLowerCase();
+  if (normalized.includes("sodic east") || source.includes("distribution")) return "SODIC East";
+  if (normalized.includes("hyde park") || source.includes("crm status")) return "Hyde Park";
+  return raw.slice(0, 160);
+}
+
+function leadSortPosition(value: unknown) {
+  const match = /^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{1,2})/.exec(String(value ?? "").trim());
+  if (!match) return Date.now();
+  // Treat the CRM wall-clock components as UTC only to create a stable sortable number.
+  // No timezone conversion is needed because every source timestamp is in Cairo.
+  return Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]));
 }
 
 async function feedbacks(row: Incoming, crmId: string, since: number): Promise<Feedback[]> {
@@ -81,6 +98,7 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
   const agentId = agents.get(slug);
   if (!agentId) return { status: "unknown_agent", crm_id: crmId };
   const enteredAtCairo = String(row.lead_entered_at ?? "").trim().slice(0, 64) || null;
+  const campaign = campaignName(row) || null;
   const lastFeedbackAtCairo = (String(row.last_feedback_at ?? "").trim() ||
     comments.map((comment) => comment.at).filter(Boolean).sort().at(-1) || "").slice(0, 64) || null;
 
@@ -98,7 +116,7 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
     if (matching.length === 1) {
       const claimed = await db.from("sales_pipeline").update({
         crm_lead_id: crmId, crm_entered_at_cairo: enteredAtCairo,
-        crm_last_feedback_at_cairo: lastFeedbackAtCairo,
+        crm_last_feedback_at_cairo: lastFeedbackAtCairo, campaign,
       })
         .eq("id", matching[0].id).is("crm_lead_id", null).select("id,agent_id,crm_lead_id,notes").maybeSingle();
       if (claimed.error) throw claimed.error;
@@ -109,6 +127,7 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
     const created = await db.from("sales_pipeline").insert({
       crm_lead_id: crmId, agent_id: agentId, client_name: name, phone: phone || "",
       crm_entered_at_cairo: enteredAtCairo, crm_last_feedback_at_cairo: lastFeedbackAtCairo,
+      campaign, sort_position: leadSortPosition(enteredAtCairo),
       budget: "", stage: "New Lead", next_action: "", next_action_trigger: "", notes: "",
     }).select("id,agent_id,crm_lead_id,notes").single();
     if (created.error?.code === "23505") {
@@ -124,6 +143,7 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
   const timestampPatch: Record<string, string> = {};
   if (enteredAtCairo) timestampPatch.crm_entered_at_cairo = enteredAtCairo;
   if (lastFeedbackAtCairo) timestampPatch.crm_last_feedback_at_cairo = lastFeedbackAtCairo;
+  if (campaign) timestampPatch.campaign = campaign;
   if (Object.keys(timestampPatch).length) {
     const stamped = await db.from("sales_pipeline").update(timestampPatch).eq("id", lead.id);
     if (stamped.error) throw stamped.error;

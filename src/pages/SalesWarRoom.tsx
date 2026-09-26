@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 import { salesWarRoomApi } from "../lib/salesWarRoomApi";
 import SalesWarRoomActivityLedger from "../components/SalesWarRoomActivityLedger";
@@ -29,6 +29,7 @@ const emptyLead:LeadDraft={client_name:"",phone:"",budget:"",expected_value:"",s
 function phoneForCall(phone:string){return String(phone||"").replace(/[^\d+]/g,"")}
 function phoneForWhatsApp(phone:string){let digits=String(phone||"").replace(/\D/g,"");if(digits.startsWith("00"))digits=digits.slice(2);if(/^01\d{9}$/.test(digits))digits=`20${digits.slice(1)}`;return digits}
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`}
+function sortLeadCards(rows:any[]){return [...rows].sort((a,b)=>Number(b.sort_position||0)-Number(a.sort_position||0)||String(b.crm_entered_at_cairo||b.created_at||"").localeCompare(String(a.crm_entered_at_cairo||a.created_at||"")))}
 const millionsToEgp=salesInputToEgp;
 const valueToMillions=salesValueToMillions;
 const formatEgp=formatSalesEgp;
@@ -51,6 +52,7 @@ export default function SalesWarRoom(){
   const [editLead,setEditLead]=useState<LeadDraft>({...emptyLead});
   const [pipelineView,setPipelineView]=useState<PipelineView>(()=>(localStorage.getItem(viewKey) as PipelineView)||"kanban");
   const [listingStage,setListingStage]=useState("all");
+  const [campaignFilter,setCampaignFilter]=useState("all");
   const [stageTab,setStageTab]=useState("Warm");
   const t=(en:string,arr:string)=>lang==="ar"?arr:en;
   const clearSession=()=>{localStorage.removeItem(sessionKey);setToken("");setData(null);setLeaders(null)};
@@ -86,6 +88,8 @@ export default function SalesWarRoom(){
 
   const score=data?.score||{};
   const pipeline=data?.pipeline||[];
+  const campaigns=[...new Set<string>(pipeline.map((x:any)=>String(x.campaign||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const visiblePipeline=sortLeadCards(campaignFilter==="all"?pipeline:pipeline.filter((x:any)=>String(x.campaign||"")===campaignFilter));
   const matches=[1,2,3,4].map(i=>({i,calls:Number(score[`match${i}_calls`]||0),status:score[`match${i}_status`]||"open"}));
   const todayWins=matches.filter(m=>m.status==="win").length;
   const todayLosses=matches.filter(m=>m.status==="loss").length;
@@ -140,20 +144,20 @@ export default function SalesWarRoom(){
       <section className="mt-4 rounded-3xl border bg-white p-4 shadow-sm">
         <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
           <div><h2 className="text-lg font-black">{t("Pipeline View","عرض الـPipeline")}</h2><p className="text-xs text-slate-500">{t("Choose the view that fits what you need to do right now.","اختار طريقة العرض المناسبة للي محتاج تعمله دلوقتي.")}</p></div>
-          <label className="flex items-center gap-2 text-xs font-black text-slate-500"><span>{t("VIEW","العرض")}</span><select value={pipelineView} onChange={e=>setPipelineView(e.target.value as PipelineView)} className="rounded-xl border bg-white px-3 py-2 text-sm font-black text-slate-950"><option value="kanban">Kanban</option><option value="listing">{t("Listing","قائمة العملاء")}</option><option value="queue">{t("Action Queue","قائمة المتابعة")}</option><option value="tabs">{t("Stage Tabs","مراحل")}</option><option value="table">{t("Table","جدول")}</option><option value="calendar">{t("Calendar","تقويم")}</option><option value="funnel">Funnel</option></select></label>
+          <div className="flex flex-wrap gap-2"><label className="flex items-center gap-2 text-xs font-black text-slate-500"><span>{t("CAMPAIGN","الحملة")}</span><select value={campaignFilter} onChange={e=>setCampaignFilter(e.target.value)} className="max-w-[220px] rounded-xl border bg-white px-3 py-2 text-sm font-black text-slate-950"><option value="all">{t("All campaigns","كل الحملات")}</option>{campaigns.map(c=><option key={c} value={c}>{c}</option>)}</select></label><label className="flex items-center gap-2 text-xs font-black text-slate-500"><span>{t("VIEW","العرض")}</span><select value={pipelineView} onChange={e=>setPipelineView(e.target.value as PipelineView)} className="rounded-xl border bg-white px-3 py-2 text-sm font-black text-slate-950"><option value="kanban">Kanban</option><option value="listing">{t("Listing","قائمة العملاء")}</option><option value="queue">{t("Action Queue","قائمة المتابعة")}</option><option value="tabs">{t("Stage Tabs","مراحل")}</option><option value="table">{t("Table","جدول")}</option><option value="calendar">{t("Calendar","تقويم")}</option><option value="funnel">Funnel</option></select></label></div>
         </div>
 
         {editingId&&<div className="mb-4 max-w-xl rounded-2xl bg-slate-50 p-2"><LeadEditor draft={editLead} setDraft={setEditLead} stages={stages} ar={ar} lang={lang} t={t} onSave={saveEdit} onCancel={()=>{setEditingId("");setEditLead({...emptyLead})}}/></div>}
 
-        {pipelineView==="kanban"&&<KanbanView pipeline={pipeline} stages={stages} ar={ar} lang={lang} t={t} startEdit={startEdit} moveLead={moveLead}/>} 
-        {pipelineView==="listing"&&<ListingView pipeline={pipeline} stages={stages} ar={ar} lang={lang} t={t} listingStage={listingStage} setListingStage={setListingStage} startEdit={startEdit} moveLead={moveLead}/>}
-        {pipelineView==="queue"&&<ActionQueueView pipeline={pipeline} stages={stages} ar={ar} lang={lang} t={t} startEdit={startEdit} moveLead={moveLead}/>} 
-        {pipelineView==="tabs"&&<StageTabsView pipeline={pipeline} stages={stages} ar={ar} lang={lang} t={t} stageTab={stageTab} setStageTab={setStageTab} startEdit={startEdit} moveLead={moveLead}/>} 
-        {pipelineView==="table"&&<TableView pipeline={pipeline} ar={ar} lang={lang} t={t} startEdit={startEdit}/>} 
-        {pipelineView==="calendar"&&<CalendarView pipeline={pipeline} ar={ar} lang={lang} t={t} startEdit={startEdit}/>} 
-        {pipelineView==="funnel"&&<FunnelView pipeline={pipeline} stages={stages} ar={ar} lang={lang} t={t}/>} 
+        {pipelineView==="kanban"&&<KanbanView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} token={token} startEdit={startEdit} moveLead={moveLead}/>}
+        {pipelineView==="listing"&&<ListingView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} listingStage={listingStage} setListingStage={setListingStage} startEdit={startEdit} moveLead={moveLead}/>}
+        {pipelineView==="queue"&&<ActionQueueView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} startEdit={startEdit} moveLead={moveLead}/>}
+        {pipelineView==="tabs"&&<StageTabsView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t} stageTab={stageTab} setStageTab={setStageTab} startEdit={startEdit} moveLead={moveLead}/>}
+        {pipelineView==="table"&&<TableView pipeline={visiblePipeline} ar={ar} lang={lang} t={t} startEdit={startEdit}/>}
+        {pipelineView==="calendar"&&<CalendarView pipeline={visiblePipeline} ar={ar} lang={lang} t={t} startEdit={startEdit}/>}
+        {pipelineView==="funnel"&&<FunnelView pipeline={visiblePipeline} stages={stages} ar={ar} lang={lang} t={t}/>}
 
-        <SalesWarRoomActivityLedger pipeline={pipeline} token={token} lang={lang}/>
+        <SalesWarRoomActivityLedger pipeline={visiblePipeline} token={token} lang={lang}/>
 
         <div className="mt-5 border-t pt-4"><h3 className="mb-3 font-black">+ {t("Add Lead","إضافة Lead")}</h3><div className="grid gap-2 md:grid-cols-5"><input value={lead.client_name} onChange={e=>setLead({...lead,client_name:e.target.value})} placeholder={t("Client name","اسم العميل")} className="rounded-xl border p-3"/><input value={lead.phone} onChange={e=>setLead({...lead,phone:e.target.value})} placeholder={t("Phone","الموبايل")} className="rounded-xl border p-3"/><input value={lead.budget} onChange={e=>setLead({...lead,budget:e.target.value})} placeholder={t("Budget","الميزانية")} className="rounded-xl border p-3"/><input type="number" min="0" step="0.1" value={lead.expected_value} onChange={e=>setLead({...lead,expected_value:e.target.value})} placeholder={t("Expected Sale (M EGP)","Expected Sale بالمليون")} className="rounded-xl border p-3"/><select value={lead.stage} onChange={e=>setLead({...lead,stage:e.target.value})} className="rounded-xl border p-3">{stages.map(s=><option key={s} value={s}>{lang==="ar"?ar[s]:s}</option>)}</select><input value={lead.next_action} onChange={e=>setLead({...lead,next_action:e.target.value})} placeholder={t("Next action","الخطوة الجاية")} className="rounded-xl border p-3 md:col-span-2"/><input type="date" value={lead.next_action_date} min={todayLocal()} onChange={e=>setLead({...lead,next_action_date:e.target.value,next_action_time:e.target.value?(lead.next_action_time||"09:00"):""})} className="rounded-xl border p-3"/><input type="time" value={lead.next_action_time} disabled={!lead.next_action_date} onChange={e=>setLead({...lead,next_action_time:e.target.value})} aria-label={t("Follow-up time","وقت المتابعة")} className="rounded-xl border p-3 disabled:bg-slate-100 disabled:text-slate-400"/><input value={lead.next_action_trigger} onChange={e=>setLead({...lead,next_action_trigger:e.target.value})} placeholder={t("Trigger (optional)","Trigger اختياري")} className="rounded-xl border p-3"/><button onClick={addLead} className="rounded-xl bg-slate-950 p-3 font-black text-white">{t("Add to Pipeline","ضيف للـPipeline")}</button><textarea value={lead.notes} onChange={e=>setLead({...lead,notes:e.target.value})} placeholder={t("Full feedback / client context / competing offers","الفيدباك كامل / سياق العميل / العروض المنافسة")} className="min-h-[96px] rounded-xl border p-3 md:col-span-5"/></div></div>
       </section>
@@ -165,7 +169,41 @@ export default function SalesWarRoom(){
 
 function LeaderPeriod({title,calls,hot,t}:any){return <div className="rounded-2xl border bg-slate-50 p-4"><div className="mb-3 text-xs font-black tracking-[.12em] text-slate-500">{title}</div><div className="grid gap-2 sm:grid-cols-2"><div className="rounded-xl bg-white p-3"><div className="text-[10px] font-black text-slate-400">🏃 {t("HIGHEST CALLS","أعلى CALLS")}</div><div className="mt-1 text-lg font-black">{calls}</div></div><div className="rounded-xl bg-white p-3"><div className="text-[10px] font-black text-slate-400">🔥 {t("MOST HOT LEADS","أعلى HOT LEADS")}</div><div className="mt-1 text-lg font-black">{hot}</div></div></div></div>}
 
-function KanbanView({pipeline,stages,ar,lang,t,startEdit,moveLead}:any){return <div className="overflow-x-auto pb-2"><div className="grid min-w-max grid-flow-col auto-cols-[290px] gap-2">{stages.map((stage:string)=><div key={stage} className="min-h-[300px] rounded-2xl border bg-slate-50 p-2"><div className="mb-2 flex items-center justify-between text-xs font-black"><span>{lang==="ar"?ar[stage]:stage}</span><span className="rounded-full bg-white px-2 py-1">{pipeline.filter((x:any)=>x.stage===stage).length}</span></div>{pipeline.filter((x:any)=>x.stage===stage).map((x:any)=><LeadCard key={x.id} x={x} stage={stage} stages={stages} ar={ar} lang={lang} t={t} onEdit={()=>startEdit(x)} onMove={(s:string)=>moveLead(x.id,s)}/>)}</div>)}</div></div>}
+function KanbanView({pipeline,stages,ar,lang,t,token,startEdit,moveLead}:any){
+  const [ordered,setOrdered]=useState<any[]>(()=>sortLeadCards(pipeline));
+  const orderedRef=useRef(ordered);
+  const [dragging,setDragging]=useState("");
+  const holdTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+  const savingOrder=useRef(false);
+  useEffect(()=>{const next=sortLeadCards(pipeline);orderedRef.current=next;setOrdered(next)},[pipeline]);
+  function startHold(e:any,id:string){
+    if(holdTimer.current)clearTimeout(holdTimer.current);
+    const target=e.currentTarget,pointerId=e.pointerId;
+    holdTimer.current=setTimeout(()=>{setDragging(id);try{target.setPointerCapture(pointerId)}catch{}},450);
+  }
+  function dragOver(e:any){
+    if(!dragging)return;
+    e.preventDefault();
+    const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.("[data-lead-card]") as HTMLElement|null;
+    const targetId=target?.dataset.leadCard||"";
+    if(!targetId||targetId===dragging)return;
+    setOrdered(current=>{
+      const from=current.findIndex(x=>String(x.id)===dragging),to=current.findIndex(x=>String(x.id)===targetId);
+      if(from<0||to<0||current[from].stage!==current[to].stage)return current;
+      const next=[...current],[moved]=next.splice(from,1);next.splice(to,0,moved);orderedRef.current=next;return next;
+    });
+  }
+  async function finishDrag(){
+    if(holdTimer.current){clearTimeout(holdTimer.current);holdTimer.current=null}
+    if(!dragging||savingOrder.current)return;
+    savingOrder.current=true;
+    const stage=orderedRef.current.find(x=>String(x.id)===dragging)?.stage;
+    const ids=orderedRef.current.filter(x=>x.stage===stage).map(x=>String(x.id));
+    setDragging("");
+    try{await salesWarRoomApi.reorderLeads(token,ids)}catch{alert(t("Could not save card order.","مقدرناش نحفظ ترتيب الكروت."))}finally{savingOrder.current=false}
+  }
+  return <div onPointerMove={dragOver} onPointerUp={()=>void finishDrag()} onPointerCancel={()=>void finishDrag()} className="overflow-x-auto pb-2"><div className="grid min-w-max grid-flow-col auto-cols-[290px] gap-2">{stages.map((stage:string)=><div key={stage} className="min-h-[300px] rounded-2xl border bg-slate-50 p-2"><div className="mb-2 flex items-center justify-between text-xs font-black"><span>{lang==="ar"?ar[stage]:stage}</span><span className="rounded-full bg-white px-2 py-1">{ordered.filter((x:any)=>x.stage===stage).length}</span></div>{ordered.filter((x:any)=>x.stage===stage).map((x:any)=><div key={x.id} data-lead-card={x.id} className={`transition ${dragging===String(x.id)?"scale-[1.02] opacity-70 ring-2 ring-violet-400":""}`}><div className="-mb-3 flex items-center justify-between rounded-t-xl border bg-white px-3 pb-4 pt-2">{x.campaign?<span className="rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-black text-violet-800">📣 {x.campaign}</span>:<span/>}<button type="button" onPointerDown={e=>startHold(e,String(x.id))} onPointerUp={()=>void finishDrag()} onContextMenu={e=>e.preventDefault()} style={{touchAction:"none"}} className="cursor-grab select-none rounded-lg border px-2 py-1 text-[10px] font-black text-slate-500 active:cursor-grabbing" aria-label={t("Hold and drag to reorder","اضغط مطولاً واسحب للترتيب")}>↕ {t("Hold","اضغط مطولاً")}</button></div><LeadCard x={x} stage={stage} stages={stages} ar={ar} lang={lang} t={t} onEdit={()=>startEdit(x)} onMove={(s:string)=>moveLead(x.id,s)}/></div>)}</div>)}</div></div>
+}
 
 function ListingView({pipeline,stages,ar,lang,t,listingStage,setListingStage,startEdit,moveLead}:any){
   const rows=listingStage==="all"?pipeline:pipeline.filter((x:any)=>x.stage===listingStage);
@@ -185,6 +223,7 @@ function ListingView({pipeline,stages,ar,lang,t,listingStage,setListingStage,sta
           <div className="min-w-0">
             <div className="truncate text-base font-black" title={x.client_name}>{x.client_name}</div>
             {x.phone?<a href={`tel:${phoneForCall(x.phone)}`} className="mt-1 block break-all text-sm font-bold text-slate-600 underline decoration-slate-300 underline-offset-2" dir="ltr">{x.phone}</a>:<div className="mt-1 text-xs font-bold text-slate-400">{t("No phone","بدون رقم")}</div>}
+            {x.campaign?<div className="mt-2 inline-flex rounded-full bg-violet-100 px-2.5 py-1 text-[10px] font-black text-violet-800">📣 {x.campaign}</div>:null}
             {x.budget?<div className="mt-2 text-xs text-slate-500"><b>{t("Budget","الميزانية")}:</b> {x.budget}</div>:null}
           </div>
           <div>

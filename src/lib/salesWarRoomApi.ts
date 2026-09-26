@@ -11,6 +11,7 @@ const MANAGER_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales
 const MEETING_ANALYTICS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-meeting-analytics";
 const LEAD_ACTIVITY_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-lead-activity";
 const PERIOD_RESULTS_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-period-results";
+const PIPELINE_ORDER_API = "https://coqnjymekrkoausiiytm.supabase.co/functions/v1/sales-war-room-pipeline-order";
 
 async function requestUrl(url: string, options: RequestInit = {}) {
   const res = await fetch(url, {
@@ -39,6 +40,7 @@ export const salesWarRoomApi = {
   patchScore: (token: string, body: Record<string, unknown>) => request("score", { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
   addLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "POST", headers: agentHeaders(token), body: JSON.stringify(body) }),
   updateLead: (token: string, body: Record<string, unknown>) => requestUrl(PIPELINE_V2_API, { method: "PATCH", headers: agentHeaders(token), body: JSON.stringify(body) }),
+  reorderLeads: (token: string, orderedIds: string[]) => requestUrl(PIPELINE_ORDER_API, { method: "POST", headers: agentHeaders(token), body: JSON.stringify({ ordered_ids: orderedIds }) }),
   getLeadActivity: (token: string, leadId: string) => requestUrl(`${LEAD_ACTIVITY_API}?lead_id=${encodeURIComponent(leadId)}`, { headers: agentHeaders(token) }),
   addLeadFeedback: (token: string, leadId: string, body: string) => requestUrl(LEAD_ACTIVITY_API, { method: "POST", headers: agentHeaders(token), body: JSON.stringify({ lead_id: leadId, body }) }),
   getControlLeadActivity: (scope: "owner" | "manager", token: string, leadId: string) => requestUrl(`${LEAD_ACTIVITY_API}?lead_id=${encodeURIComponent(leadId)}`, { headers: controlHeaders(scope, token) }),
