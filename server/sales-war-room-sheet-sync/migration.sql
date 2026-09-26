@@ -1,6 +1,8 @@
 -- Apply once to the Tycoons Supabase project before deploying the sync function.
 alter table public.sales_pipeline
-  add column if not exists crm_lead_id text;
+  add column if not exists crm_lead_id text,
+  add column if not exists crm_entered_at_cairo text,
+  add column if not exists crm_last_feedback_at_cairo text;
 
 create unique index if not exists sales_pipeline_crm_lead_id_unique
   on public.sales_pipeline (crm_lead_id)
