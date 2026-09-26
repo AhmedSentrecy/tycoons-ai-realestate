@@ -96,6 +96,7 @@ export default function SalesWarRoomLeadActivity({lead,token,lang}:{lead:any;tok
             <div className="flex items-center gap-2"><span className="text-[10px] font-black uppercase tracking-[.08em] text-slate-600">{activityLabel(a,lang)}</span><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-black text-slate-500">{actorName(a.actor_type,lang)}</span></div>
             <time className="text-[10px] font-black text-slate-400">{fmt(a.created_at)}</time>
           </div>
+          {a.metadata?.source==="crm_google_sheet"&&<div className="mt-1 text-[10px] font-bold text-slate-500">CRM · {a.metadata.crm_feedback_author||""}{a.metadata.crm_feedback_at_cairo?` · ${a.metadata.crm_feedback_at_cairo} (Cairo)`:""}</div>}
           <ActivityBody a={a} lang={lang}/>
         </div>)}</div>}
       </div>
