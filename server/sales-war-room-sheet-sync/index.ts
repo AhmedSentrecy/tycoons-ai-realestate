@@ -29,7 +29,15 @@ function agentSlug(value: unknown) {
     "mostafa amr": "mostafa-amr", "مصطفى عمرو": "mostafa-amr",
     "ahmed sentrecy": "ahmed-sentrecy", "أحمد سنتريسي": "ahmed-sentrecy",
   };
-  return names[normalized] || "";
+  if (names[normalized]) return names[normalized];
+  // CRM may preserve the ownership handoff as a comma-separated sequence.
+  // The last recognized name is the current owner.
+  const sequence = String(value ?? "").split(",").map((part) => part.trim()).filter(Boolean);
+  for (let i = sequence.length - 1; i >= 0; i--) {
+    const part = sequence[i].toLowerCase().replace(/[^a-z\u0600-\u06ff]+/g, " ").replace(/\s+/g, " ");
+    if (names[part]) return names[part];
+  }
+  return "";
 }
 
 async function feedbacks(row: Incoming, crmId: string, since: number): Promise<Feedback[]> {
