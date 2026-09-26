@@ -85,7 +85,7 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
     comments.map((comment) => comment.at).filter(Boolean).sort().at(-1) || "").slice(0, 64) || null;
 
   let { data: lead, error: lookupError } = await db.from("sales_pipeline")
-    .select("id,agent_id,crm_lead_id").eq("crm_lead_id", crmId).maybeSingle();
+    .select("id,agent_id,crm_lead_id,notes").eq("crm_lead_id", crmId).maybeSingle();
   if (lookupError) throw lookupError;
   let wasCreated = false;
   const phone = normalizePhone(row.phone);
@@ -100,7 +100,7 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
         crm_lead_id: crmId, crm_entered_at_cairo: enteredAtCairo,
         crm_last_feedback_at_cairo: lastFeedbackAtCairo,
       })
-        .eq("id", matching[0].id).is("crm_lead_id", null).select("id,agent_id,crm_lead_id").maybeSingle();
+        .eq("id", matching[0].id).is("crm_lead_id", null).select("id,agent_id,crm_lead_id,notes").maybeSingle();
       if (claimed.error) throw claimed.error;
       lead = claimed.data;
     }
@@ -110,9 +110,9 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
       crm_lead_id: crmId, agent_id: agentId, client_name: name, phone: phone || "",
       crm_entered_at_cairo: enteredAtCairo, crm_last_feedback_at_cairo: lastFeedbackAtCairo,
       budget: "", stage: "New Lead", next_action: "", next_action_trigger: "", notes: "",
-    }).select("id,agent_id,crm_lead_id").single();
+    }).select("id,agent_id,crm_lead_id,notes").single();
     if (created.error?.code === "23505") {
-      const existing = await db.from("sales_pipeline").select("id,agent_id,crm_lead_id")
+      const existing = await db.from("sales_pipeline").select("id,agent_id,crm_lead_id,notes")
         .eq("crm_lead_id", crmId).maybeSingle();
       if (existing.error) throw existing.error;
       lead = existing.data;
@@ -138,6 +138,7 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
     if (event.error) throw event.error;
   }
   let added = 0;
+  const visibleFeedback: string[] = [];
   for (const c of comments) {
     const inserted = await db.from("sales_pipeline_activity").insert({
       pipeline_id: lead.id, agent_id: agentId, activity_type: "feedback", body: c.body,
@@ -148,9 +149,13 @@ async function ingest(row: Incoming, since: number, agents: Map<string, string>)
     if (inserted.error?.code === "23505") continue;
     if (inserted.error) throw inserted.error;
     added++;
+    visibleFeedback.push(`${[c.at, c.author].filter(Boolean).join(" · ")}\n${c.body}`.trim());
   }
   if (added) {
-    const updated = await db.from("sales_pipeline").update({ updated_at: new Date().toISOString() }).eq("id", lead.id);
+    const notes = [String(lead.notes ?? "").trim(), ...visibleFeedback].filter(Boolean).join("\n\n");
+    const updated = await db.from("sales_pipeline").update({
+      notes, updated_at: new Date().toISOString(), crm_last_feedback_at_cairo: lastFeedbackAtCairo,
+    }).eq("id", lead.id);
     if (updated.error) throw updated.error;
   }
   if (wasCreated) {
