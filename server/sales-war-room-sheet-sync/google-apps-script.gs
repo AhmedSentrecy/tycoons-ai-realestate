@@ -48,6 +48,7 @@ function warRoomRow_(values, map, source) {
     if (!all && !last) return null;
     return {
       crm_id: crmId, name: get("الاسم"), phone: get("الموبايل"), agent: get("آخر إيجنت"),
+      lead_entered_at: get("وقت الليد"),
       last_feedback: last, last_feedback_at: get("وقت آخر فيدباك"),
       all_feedback: all, source_sheet: "CRM distribution / التوزيع",
     };
@@ -57,6 +58,7 @@ function warRoomRow_(values, map, source) {
   if (!all && !last) return null;
   return {
     crm_id: get("crm_id"), name: get("الاسم"), phone: get("الموبايل"), agent: get("الإيجنت"),
+    lead_entered_at: get("وقت الليد"),
     last_feedback: last, last_feedback_at: get("آخر أكتيفيتي"),
     all_feedback: all, source_sheet: "CRM status / " + source.tab,
   };
