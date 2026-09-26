@@ -15,6 +15,11 @@ function fmt(value:any){
   catch{return String(value)}
 }
 
+function cairoWall(value:any){
+  const text=String(value||"").trim();
+  return text?`${text} · Cairo`:"—";
+}
+
 function actorName(type:string,lang:"en"|"ar"){
   if(type==="manager")return lang==="ar"?"Manager":"Manager";
   if(type==="owner")return lang==="ar"?"Super Admin":"Super Admin";
@@ -74,10 +79,10 @@ export default function SalesWarRoomLeadActivity({lead,token,lang}:{lead:any;tok
   return <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white">
     <button type="button" onClick={()=>void toggle()} className="flex w-full flex-wrap items-center justify-between gap-2 p-3 text-start">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-bold text-slate-500">
-        <span><b className="text-slate-700">{t("Added","اتضاف")}</b> · {fmt(lead.created_at)}</span>
+        <span><b className="text-slate-700">{t("Lead entered","دخول الليد")}</b> · {lead.crm_entered_at_cairo?cairoWall(lead.crm_entered_at_cairo):fmt(lead.created_at)}</span>
         <span><b className="text-slate-700">{t("Last update","آخر تعديل")}</b> · {fmt(lead.updated_at)}</span>
         <span className="rounded-full bg-slate-950 px-2.5 py-1 font-black text-white">💬 {Number(summary?.feedback_count||0)} {t("feedbacks","Feedback")}</span>
-        {summary?.last_feedback_at&&<span><b className="text-slate-700">{t("Last feedback","آخر Feedback")}</b> · {fmt(summary.last_feedback_at)}</span>}
+        {(lead.crm_last_feedback_at_cairo||summary?.last_feedback_at)&&<span><b className="text-slate-700">{t("Last feedback","آخر Feedback")}</b> · {lead.crm_last_feedback_at_cairo?cairoWall(lead.crm_last_feedback_at_cairo):fmt(summary.last_feedback_at)}</span>}
       </div>
       <span className="text-xs font-black text-slate-700">{open?t("Hide log ↑","اقفل الـLog ↑"):t("Activity & Feedback ↓","Activity & Feedback ↓")}</span>
     </button>
@@ -94,8 +99,9 @@ export default function SalesWarRoomLeadActivity({lead,token,lang}:{lead:any;tok
         {loading&&activities.length===0?<div className="rounded-xl bg-white p-4 text-center text-xs font-bold text-slate-400">{t("Loading log…","جاري تحميل الـLog…")}</div>:activities.length===0?<div className="rounded-xl bg-white p-4 text-center text-xs font-bold text-slate-400">{t("No activity yet","مفيش Activity لسه")}</div>:<div className="space-y-2">{activities.map(a=><div key={a.id} className={`rounded-2xl border p-3 ${a.activity_type==="feedback"?"border-amber-200 bg-amber-50":"bg-white"}`}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2"><span className="text-[10px] font-black uppercase tracking-[.08em] text-slate-600">{activityLabel(a,lang)}</span><span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-black text-slate-500">{actorName(a.actor_type,lang)}</span></div>
-            <time className="text-[10px] font-black text-slate-400">{fmt(a.created_at)}</time>
+            <time className="text-[10px] font-black text-slate-400">{a.metadata?.crm_feedback_at_cairo?cairoWall(a.metadata.crm_feedback_at_cairo):fmt(a.created_at)}</time>
           </div>
+          {a.metadata?.source==="crm_google_sheet"&&<div className="mt-1 text-[10px] font-bold text-slate-500">CRM{a.metadata.crm_feedback_author?` · ${a.metadata.crm_feedback_author}`:""}</div>}
           <ActivityBody a={a} lang={lang}/>
         </div>)}</div>}
       </div>
