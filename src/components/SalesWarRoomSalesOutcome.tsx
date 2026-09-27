@@ -44,7 +44,7 @@ export default function SalesWarRoomSalesOutcome(){
 
   useEffect(()=>{
     const path=location.pathname;
-    const nextMode:Mode=path.startsWith("/sales-war-room/a/")?"agent":path.startsWith("/sales-war-room/monitor/")?"monitor":path==="/sales-war-room/admin"||path==="/sales-war-room/owner"?"owner":path==="/sales-war-room/team-admin"?"admin":"none";
+    const nextMode:Mode=/^\/sales-war-room\/a\/[^/]+\/v2\/?$/.test(path)?"none":path.startsWith("/sales-war-room/a/")?"agent":path.startsWith("/sales-war-room/monitor/")?"monitor":path==="/sales-war-room/admin"||path==="/sales-war-room/owner"?"owner":path==="/sales-war-room/team-admin"?"admin":"none";
     setMode(nextMode);
     setTotals(null);
     if(nextMode==="none")return;
