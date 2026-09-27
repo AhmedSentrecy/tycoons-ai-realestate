@@ -30,7 +30,7 @@ export default function SalesWarRoomExport() {
       const next = (localStorage.getItem("warRoomLang") as "en" | "ar") || "en";
       setLang(next);
       setManagerControlled(sessionStorage.getItem("warRoomControlReturnTo")==="/sales-war-room/manager");
-      setHeaderActions(document.querySelector("header > div.flex.gap-2"));
+      setHeaderActions(document.querySelector("[data-war-room-actions]")||document.querySelector("header > div.flex.gap-2"));
     };
     sync();
     const id = window.setInterval(sync, 500);
