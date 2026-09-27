@@ -16,6 +16,7 @@ const SalesWarRoomAdmin = lazy(() => import('./pages/SalesWarRoomAdmin'))
 const SalesWarRoomTeamMonitor = lazy(() => import('./pages/SalesWarRoomTeamMonitorClean'))
 const SalesWarRoomAppEntry = lazy(() => import('./pages/SalesWarRoomAppEntry'))
 const SalesWarRoomManager = lazy(() => import('./pages/SalesWarRoomManager'))
+const SalesWarRoomV2 = lazy(() => import('./pages/SalesWarRoomV2'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 
 export default function App() {
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/sales-war-room/app" element={<SalesWarRoomAppEntry />} />
         <Route path="/sales-war-room/a/:slug/lead/:leadId" element={<SalesWarRoomLead />} />
+        <Route path="/sales-war-room/a/:slug/v2" element={<SalesWarRoomV2 />} />
         <Route path="/sales-war-room/a/:slug" element={<SalesWarRoom />} />
         <Route path="/sales-war-room/monitor/:slug" element={<SalesWarRoomTeamMonitor />} />
         <Route path="/sales-war-room/admin" element={<SalesWarRoomOwner />} />

@@ -82,6 +82,7 @@ export default function SalesWarRoom(){
     catch(e:any){setErr(e.message==="invalid_credentials"?t("Wrong password","الباسورد غير صحيح"):e.message)}finally{setLoading(false)}
   }
 
+  useEffect(()=>{if(localStorage.getItem("warRoomVersion")==="v2"&&slug)window.location.replace(`/sales-war-room/a/${slug}/v2`)},[slug]);
   useEffect(()=>{document.title="Sales War Room";const m=document.createElement("meta");m.name="robots";m.content="noindex,nofollow,noarchive";document.head.appendChild(m);return()=>m.remove()},[]);
   useEffect(()=>{if(token)void load();else if(ownerToken)void bootstrapOwnerAccess();else setLoading(false)},[slug,token]);
   useEffect(()=>{localStorage.setItem("warRoomLang",lang);document.documentElement.dir=lang==="ar"?"rtl":"ltr"},[lang]);
@@ -122,7 +123,7 @@ export default function SalesWarRoom(){
 
   return <main className="min-h-screen bg-[#f3f5f7] text-[#111317]" dir={lang==="ar"?"rtl":"ltr"}>
     <div className="mx-auto max-w-[1600px] p-3 md:p-5">
-      <header className="mb-4 flex items-center justify-between"><div><div className="text-xs font-black tracking-[.2em] text-slate-500">TYCOONS SALES WAR ROOM</div><h1 className="text-2xl font-black">{name}</h1></div><div className="flex gap-2"><button onClick={()=>setLang(lang==="ar"?"en":"ar")} className="rounded-full border bg-white px-4 py-2 text-sm font-black shadow-sm">{lang==="ar"?"EN":"عربي"}</button>{isOwnerView?<button onClick={()=>window.location.href="/sales-war-room/admin"} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">{t("Back to Owner","الرجوع للـOwner")}</button>:<button onClick={clearSession} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">{t("Logout","خروج")}</button>}</div></header>
+      <header className="mb-4 flex items-center justify-between"><div><div className="text-xs font-black tracking-[.2em] text-slate-500">TYCOONS SALES WAR ROOM</div><h1 className="text-2xl font-black">{name}</h1></div><div className="flex gap-2"><button onClick={()=>{localStorage.setItem("warRoomVersion","v2");window.location.href=`/sales-war-room/a/${slug}/v2`}} className="rounded-full bg-[#F2B544] px-4 py-2 text-sm font-black text-slate-950 shadow-sm">✨ Version 2</button><button onClick={()=>setLang(lang==="ar"?"en":"ar")} className="rounded-full border bg-white px-4 py-2 text-sm font-black shadow-sm">{lang==="ar"?"EN":"عربي"}</button>{isOwnerView?<button onClick={()=>window.location.href="/sales-war-room/admin"} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">{t("Back to Owner","الرجوع للـOwner")}</button>:<button onClick={clearSession} className="rounded-full bg-slate-950 px-4 py-2 text-sm font-black text-white">{t("Logout","خروج")}</button>}</div></header>
 
       <section className="grid gap-4 rounded-3xl bg-slate-950 p-4 text-white shadow-xl md:grid-cols-[1.15fr_1fr] md:p-6">
         <div className="flex flex-col justify-between gap-6"><div><div className="text-xs font-black tracking-[.18em] text-slate-400">{t("TODAY · WHAT DO I NEED TO WIN NEXT?","اليوم · إيه اللي ناقصني علشان أكسب الـMatch الجاي؟")}</div><div className="mt-4 flex flex-wrap items-end gap-8"><div><div className="text-xs text-slate-400">{t("CALL TARGET","هدف المكالمات")}</div><div className="text-5xl font-black">{todayCalls}<span className="text-2xl text-slate-500">/200</span></div></div><div><div className="text-xs text-slate-400">{t("TODAY'S RECORD","نتيجة اليوم")}</div><div className="text-4xl font-black"><span className="text-emerald-400">{todayWins}W</span> – <span className="text-rose-400">{todayLosses}L</span></div></div></div></div><div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-sm font-bold">{t("No carryover. Every Match starts 0–0.","مفيش تعويض. كل Match بيبدأ 0–0.")}</div></div>
@@ -240,7 +241,7 @@ function ManualOrderList({rows,token,t,children,className="space-y-3",sortRows=s
   }
   const Container=listTag as any,Item=itemTag as any;
   return <Container onPointerMove={dragOver} onPointerUp={()=>void finishDrag()} onPointerCancel={()=>void finishDrag()} className={className}>
-    {ordered.map(x=><Item key={x.id} data-manual-order-item={x.id} onPointerDown={handleOnItem?e=>startHold(e,String(x.id)):undefined} className={`transition ${dragging===String(x.id)?"scale-[1.01] opacity-70 ring-2 ring-violet-400":""}`}>
+    {ordered.map(x=><Item key={x.id} data-manual-order-item={x.id} onPointerDown={handleOnItem?(e:any)=>startHold(e,String(x.id)):undefined} className={`transition ${dragging===String(x.id)?"scale-[1.01] opacity-70 ring-2 ring-violet-400":""}`}>
       {!handleOnItem&&<div className="mb-1 flex justify-end"><button type="button" onPointerDown={e=>startHold(e,String(x.id))} onPointerUp={()=>void finishDrag()} onContextMenu={e=>e.preventDefault()} style={{touchAction:"none"}} className="cursor-grab select-none rounded-lg border bg-white px-2 py-1 text-[10px] font-black text-slate-500 active:cursor-grabbing" aria-label={t("Hold and drag to reorder","اضغط مطولاً واسحب للترتيب")}>↕ {t("Hold to reorder","اضغط مطولاً للترتيب")}</button></div>}
       {children(x)}
     </Item>)}
