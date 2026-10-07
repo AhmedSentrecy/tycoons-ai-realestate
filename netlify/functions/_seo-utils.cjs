@@ -493,7 +493,7 @@ async function fetchUnits() {
   }
 }
 
-async function fetchProjectsMeta() {
+async function fetchProjectsMeta({ strict = false } = {}) {
   if (projectsCache.projects && Date.now() - projectsCache.fetchedAt < 15 * 60 * 1000) return projectsCache.projects;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8500);
@@ -510,6 +510,7 @@ async function fetchProjectsMeta() {
     return rows;
   } catch (error) {
     if (projectsCache.projects) return projectsCache.projects;
+    if (strict) throw error;
     return [];
   } finally {
     clearTimeout(timer);
@@ -586,6 +587,10 @@ function projectMinPrice(project) {
 function projectMaxPrice(project) {
   const prices = project.units.map((unit) => numberValue(unit.starting_price)).filter(Boolean);
   return prices.length ? Math.max(...prices) : 0;
+}
+
+function hasAvailableUnits(project) {
+  return project.units.length > 0;
 }
 
 function projectLastUpdated(project) {
@@ -725,18 +730,20 @@ function cards(projects, lang) {
     .join("")}</div>`;
 }
 
-function renderDirectory(projects, lang) {
+function renderDirectory(allProjects, lang) {
   const ar = lang === "ar";
   const path = ar ? "/ar/" : "/en/directory/";
   const alternatePath = ar ? "/en/directory/" : "/ar/";
-  const latest = [...projects]
+  const listedProjects = allProjects.filter(hasAvailableUnits);
+  const projects = listedProjects;
+  const latest = [...listedProjects]
     .sort((a, b) => String(projectLastUpdated(b)).localeCompare(String(projectLastUpdated(a))))
     .slice(0, 18);
-  const areas = [...new Map(projects.map((project) => {
+  const areas = [...new Map(listedProjects.map((project) => {
     const area = areaFor(projectLocation(project));
     return [area.slug, area];
   })).values()];
-  const developers = [...new Map(projects.map((project) => [
+  const developers = [...new Map(listedProjects.map((project) => [
     slugify(project.developer),
     { slug: slugify(project.developer), name: project.developer },
   ])).values()].sort((a, b) => a.name.localeCompare(b.name));
@@ -825,6 +832,9 @@ function renderProject(projects, slug, lang) {
     alternatePath,
     body,
     image,
+    robots: hasUnits
+      ? "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
+      : "noindex,follow",
     schemas: [
       breadcrumbSchema(crumbs),
       {
@@ -1087,18 +1097,20 @@ function renderCollection(projects, kind, slug, lang) {
   const ar = lang === "ar";
   const matches =
     kind === "area"
-      ? projects.filter((project) => areaFor(projectLocation(project)).slug === slug)
-      : projects.filter((project) => slugify(project.developer) === slug);
+      ? projects.filter((project) => hasAvailableUnits(project) && areaFor(projectLocation(project)).slug === slug)
+      : projects.filter((project) => hasAvailableUnits(project) && slugify(project.developer) === slug);
   if (!matches.length) return null;
-  matches.sort((a, b) => projectMinPrice(a) - projectMinPrice(b));
+  matches.sort((a, b) => (projectMinPrice(a) || Infinity) - (projectMinPrice(b) || Infinity));
   const area = kind === "area" ? areaFor(projectLocation(matches[0])) : null;
   const areaFacts = kind === "area" ? AREA_FACTS[area.slug] || GENERIC_AREA_FACTS : null;
   const label = kind === "area" ? (ar ? area.ar : area.en) : matches[0].developer;
   const plural = matches.length === 1 ? (ar ? "مشروع واحد" : "1 project") : ar ? `${matches.length} مشروع` : `${matches.length} projects`;
   const path = `/${lang}/${kind === "area" ? "areas" : "developers"}/${slug}`;
   const alternatePath = `/${ar ? "en" : "ar"}/${kind === "area" ? "areas" : "developers"}/${slug}`;
-  const min = Math.min(...matches.map(projectMinPrice));
-  const max = Math.max(...matches.map(projectMaxPrice));
+  const numericPrices = matches.flatMap((project) =>
+    project.units.map((unit) => numberValue(unit.starting_price)).filter(Boolean));
+  const min = numericPrices.length ? Math.min(...numericPrices) : 0;
+  const max = numericPrices.length ? Math.max(...numericPrices) : 0;
   const minFmt = formatPrice(min, lang);
   const searchContent = kind === "area" ? AREA_SEARCH_CONTENT[area.slug]?.[lang] : null;
   const title = searchContent?.title?.({ minFmt, plural }) || (ar

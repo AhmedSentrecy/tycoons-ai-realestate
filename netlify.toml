@@ -281,8 +281,8 @@
 
 [[redirects]]
   from = "/projects/*"
-  to = "/404.html"
-  status = 404
+  to = "/.netlify/functions/seo-page?lang=ar&type=project&slug=:splat"
+  status = 200
 
 [[redirects]]
   from = "/units/*"

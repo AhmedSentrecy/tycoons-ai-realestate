@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const { renderProjectStatic, renderUnitStatic } = require("./lib/data-pages.cjs");
-const { projectAliases } = require("./lib/project-aliases.cjs");
+const { projectAliases, publishedProjectSlugs } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
 
 const shell = `<!doctype html><html lang="ar" dir="rtl"><head><title>Home</title><meta name="description" content="home"><link rel="canonical" href="https://tycoons-inv.com/"><script type="application/ld+json">{"@type":"FAQPage"}</script></head><body><div id="root"><h1>قارن المشاريع والوحدات العقارية</h1></div><script type="module" src="/assets/app.js"></script></body></html>`;
@@ -133,5 +133,20 @@ const duplicateProjects = [
 const aliases = projectAliases(duplicateProjects, new Map([["with-units", [unit]]]));
 assert.equal(aliases.get("one-ninety--lmd"), undefined);
 assert.equal(aliases.get("one-ninety--lmd-2"), "one-ninety--lmd");
+const publishedSlugs = publishedProjectSlugs(duplicateProjects, [
+  { ...unit, project_id: "with-units" },
+]);
+assert.deepEqual([...publishedSlugs], ["one-ninety--lmd"]);
+const orphanedAliasSource = {
+  id: "orphaned-alias-source",
+  name: "Creekview",
+  developer: "Mountain View",
+  slug: "creekview--mountain-view",
+};
+assert.deepEqual(
+  [...publishedProjectSlugs([orphanedAliasSource], [{ ...unit, project_id: orphanedAliasSource.id }])],
+  [orphanedAliasSource.slug],
+  "a fixed alias must not suppress inventory when its canonical target is absent",
+);
 
 console.log("Data-driven page isolation and canonical validation passed.");
