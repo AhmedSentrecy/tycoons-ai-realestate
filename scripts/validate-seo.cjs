@@ -181,7 +181,31 @@ assert.equal(zeroUnitProject.units.length, 0);
 const zeroUnitEnglish = renderProject(projectsWithMeta, "skyline-residences--skyline-dev", "en");
 assert.ok(zeroUnitEnglish, "renderProject must not return null for a project with zero available units");
 assert.match(zeroUnitEnglish, /Contact us for the latest price|No units with detailed pricing are published/);
+assert.match(zeroUnitEnglish, /<meta name="robots" content="noindex,follow">/);
 assert.doesNotMatch(zeroUnitEnglish, /NaN|Infinity/);
+
+const unpricedAvailableProject = {
+  slug: "price-on-request--developer-two",
+  name: "Price on Request Project",
+  developer: "Developer Two",
+  location: "New Cairo",
+  units: [{ ...rows[0], project_id: "price-on-request", starting_price: null }],
+};
+const pricedNewCairoOnly = renderCollection([
+  ...newCairoProjects,
+  zeroUnitProject,
+  unpricedAvailableProject,
+], "area", "new-cairo", "en");
+assert.ok(pricedNewCairoOnly, "New Cairo collection must remain available when priced inventory exists");
+assert.match(pricedNewCairoOnly, /Price on Request Project/);
+assert.doesNotMatch(pricedNewCairoOnly, /Skyline Residences/);
+assert.match(pricedNewCairoOnly, /12,460,159/);
+assert.doesNotMatch(pricedNewCairoOnly, /starting from Price on request/);
+
+const mixedDirectory = renderDirectory([zeroUnitProject, unpricedAvailableProject], "en");
+assert.match(mixedDirectory, /Price on Request Project/);
+assert.doesNotMatch(mixedDirectory, /Skyline Residences/);
+assert.match(mixedDirectory, /1 projects shown/);
 
 const netlify = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -214,7 +238,11 @@ assert.equal(
   1,
   "The English homepage must have exactly one internal 200 rewrite",
 );
-assert.match(netlify, /from = "\/projects\/\*"\s+to = "\/404\.html"\s+status = 404/);
+assert.match(
+  netlify,
+  /from = "\/projects\/\*"\s+to = "\/\.netlify\/functions\/seo-page\?lang=ar&type=project&slug=:splat"\s+status = 200/,
+  "Missing static project files must fall back to the same DB-backed renderer used by the sitemap",
+);
 assert.match(
   netlify,
   /from = "\/regions\/\*"\s+to = "\/ar\/areas\/:splat"\s+status = 301\s+force = true/,
@@ -274,11 +302,26 @@ assert.doesNotMatch(
 async function validateRouteRecovery() {
   const handler = require("../netlify/functions/seo-page.cjs").handler;
   const originalFetch = global.fetch;
-  global.fetch = async () => ({
-    ok: true,
-    json: async () => rows,
-  });
+  global.fetch = async (url) => {
+    if (String(url).includes("/projects?")) throw new Error("temporary projects metadata failure");
+    return {
+      ok: true,
+      json: async () => rows,
+    };
+  };
   try {
+    const upstreamFailureResponse = await handler({
+      path: `/projects/${projects[0].slug}`,
+      rawUrl: `https://tycoons-inv.com/projects/${projects[0].slug}`,
+      queryStringParameters: { lang: "ar", type: "project", slug: projects[0].slug },
+    });
+    assert.equal(upstreamFailureResponse.statusCode, 503);
+    assert.equal(upstreamFailureResponse.headers["x-robots-tag"], "noindex, follow");
+
+    global.fetch = async (url) => ({
+    ok: true,
+      json: async () => String(url).includes("/projects?") ? projectsMeta : rows,
+    });
     const projectResponse = await handler({
       path: `/en/projects/${projects[0].slug}`,
       rawUrl: `https://tycoons-inv.com/en/projects/${projects[0].slug}`,
@@ -299,6 +342,21 @@ async function validateRouteRecovery() {
       rawUrl: `https://tycoons-inv.com/units/${rows[0].id}`,
       queryStringParameters: {},
     });
+    const englishDirectoryResponse = await handler({
+      path: "/en/directory/",
+      rawUrl: "https://tycoons-inv.com/en/directory/",
+      queryStringParameters: {},
+    });
+    const unknownProjectResponse = await handler({
+      path: "/projects/not-a-published-project",
+      rawUrl: "https://tycoons-inv.com/projects/not-a-published-project",
+      queryStringParameters: { lang: "ar", type: "project", slug: "not-a-published-project" },
+    });
+    const synthesizedProjectResponse = await handler({
+      path: "/projects/aliva-old-name--mountain-view",
+      rawUrl: "https://tycoons-inv.com/projects/aliva-old-name--mountain-view",
+      queryStringParameters: { lang: "ar", type: "project", slug: "aliva-old-name--mountain-view" },
+    });
     assert.match(projectResponse.body, /Mountain View Aliva \| Mountain View/);
     assert.match(projectResponse.body, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/projects\//);
     assert.match(guideResponse.body, /دليل شراء عقار Off-plan في مصر/);
@@ -307,6 +365,14 @@ async function validateRouteRecovery() {
     assert.match(englishGuideResponse.body, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/new-cairo-property-prices\//);
     assert.equal(unitResponse.statusCode, 200);
     assert.match(unitResponse.body, /Standalone Villa/);
+    assert.equal(englishDirectoryResponse.statusCode, 200);
+    assert.equal(englishDirectoryResponse.headers["content-language"], "en");
+    assert.match(englishDirectoryResponse.body, /<html lang="en" dir="ltr">/);
+    assert.match(englishDirectoryResponse.body, /canonical" href="https:\/\/tycoons-inv\.com\/en\/directory\//);
+    assert.equal(unknownProjectResponse.statusCode, 404);
+    assert.equal(unknownProjectResponse.headers["x-robots-tag"], "noindex, follow");
+    assert.equal(synthesizedProjectResponse.statusCode, 404);
+    assert.equal(synthesizedProjectResponse.headers["x-robots-tag"], "noindex, follow");
   } finally {
     global.fetch = originalFetch;
   }

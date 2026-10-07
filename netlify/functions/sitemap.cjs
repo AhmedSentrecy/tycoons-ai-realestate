@@ -10,6 +10,7 @@ const {
   escapeHtml,
 } = require("./_seo-utils.cjs");
 const { indexableUnitIds } = require("./_unit-indexing.cjs");
+const { publishedProjectSlugs } = require("./_project-indexing.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY =
@@ -49,7 +50,7 @@ exports.handler = async function handler() {
       }),
     ]);
     const projectsById = new Map(projects.map((project) => [project.id, project]));
-    const activeProjectIds = new Set(units.map((unit) => unit.project_id));
+    const publishedSlugs = publishedProjectSlugs(projects, units);
     const indexableIds = indexableUnitIds(units);
     const urls = new Map([
       [`${SITE_URL}/`, null],
@@ -70,11 +71,10 @@ exports.handler = async function handler() {
     }
     for (const project of projects) {
       const projectSlug = String(project.slug || "").trim();
-      if (!projectSlug) continue;
+      if (!publishedSlugs.has(projectSlug)) continue;
       const updated = project.last_updated_at || null;
       const area = areaFor(project.location);
       urls.set(`${SITE_URL}/projects/${projectSlug}`, updated);
-      if (!activeProjectIds.has(project.id)) continue;
       for (const lang of ["ar", "en"]) {
         if (area.indexable) urls.set(`${SITE_URL}/${lang}/areas/${area.slug}`, updated);
         urls.set(`${SITE_URL}/${lang}/developers/${slugify(project.developer)}`, updated);

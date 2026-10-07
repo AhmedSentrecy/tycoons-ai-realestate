@@ -27,7 +27,7 @@ exports.handler = async function handler(event) {
   const unitRoute = originalPath.match(/^\/units\/(.+?)\/?$/);
   const guideRoute = originalPath.match(/^\/(?:(en)\/)?guides\/(.+?)\/?$/);
   const staticRoute = originalPath.match(/^\/(about|faq|methodology|corrections|contact)\/?$/);
-  const directoryRoute = originalPath.match(/^\/(ar|en)\/?$/);
+  const directoryRoute = originalPath.match(/^\/(ar|en)(?:\/directory)?\/?$/);
 
   const lang = route?.[1] === "en" || directoryRoute?.[1] === "en" || guideRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
   let type = String(params.type || "home");
@@ -56,10 +56,17 @@ exports.handler = async function handler(event) {
     if (type === "guide") html = renderGuide(slug, lang);
     if (type === "static") html = renderStaticPage(slug);
     if (!["guide", "static"].includes(type)) {
-      const [units, projectsMeta] = await Promise.all([fetchUnits(), fetchProjectsMeta()]);
+      const [units, projectsMeta] = await Promise.all([
+        fetchUnits(),
+        fetchProjectsMeta({ strict: type === "project" }),
+      ]);
       const projects = groupProjects(units, projectsMeta);
       if (type === "home") html = renderDirectory(projects, lang);
-      if (type === "project") html = renderProject(projects, slug, lang);
+      if (type === "project") {
+        const hasCanonicalProject = projectsMeta.some((project) =>
+          String(project.slug || "").trim() === slug);
+        html = hasCanonicalProject ? renderProject(projects, slug, lang) : null;
+      }
       if (type === "unit") html = renderUnit(projects, slug, "ar");
       if (type === "area") html = renderCollection(projects, "area", slug, lang);
       if (type === "developer") html = renderCollection(projects, "developer", slug, lang);
