@@ -53,8 +53,22 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
 
   function patchValues(patch: Partial<ArticleValues>, contextChanged = false) {
     if (["load", "save", "publish"].includes(busyRef.current)) return;
-    if (contextChanged) editorContext.current += 1;
-    setValues((current) => ({ ...current, ...patch }));
+    if (contextChanged) {
+      editorContext.current += 1;
+      operationId.current += 1;
+      busyRef.current = "";
+      setBusy("");
+      idempotency.current.clear();
+      setIdeas([]);
+      setTopic("");
+      setSelectedId(null);
+      setLoadedArticle(null);
+      setSavedFingerprint("");
+      setPreview(false);
+    }
+    setValues((current) => contextChanged
+      ? { ...emptyArticle(), language: current.language, target_type: current.target_type, project_id: current.project_id, area_name: current.area_name, ...patch }
+      : { ...current, ...patch });
     setReviewConfirmed(false);
   }
 

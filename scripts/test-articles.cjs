@@ -16,7 +16,7 @@ const event = (key, token = "a".repeat(40), overrides = {}) => ({
   headers: { "x-admin-token": token, "x-idempotency-key": key },
   body: JSON.stringify({ action: "draft", target_type: "project", project_id: "project-1", language: "ar", topic: "دليل اختيار مشروع مناسب", ...overrides }),
 });
-const response = (status, data) => ({ ok: status >= 200 && status < 300, status, json: async () => data });
+const response = (status, data, headers = {}) => ({ ok: status >= 200 && status < 300, status, headers: { get: (name) => headers[String(name).toLowerCase()] || null }, json: async () => data });
 
 function durableFetch({
   provider,
@@ -90,31 +90,34 @@ function durableFetch({
   delete process.env.OPENAI_ARTICLE_MODEL;
 
   const sourceUnits = [
-    { id: "unit-1", project_id: "project-1", unit_type: "Townhouse Corner", area_sqm: 185, starting_price_egp: 26760000, down_payment: "2.83%", installments: "9 years", delivery: "2030-12-31", source_last_updated_at: "2026-02-10", source_url: "/units/unit-1" },
-    { id: "unit-2", project_id: "project-1", unit_type: "Villa Type B", area_sqm: 240, starting_price_egp: 31000000, down_payment: "", installments: "", delivery: "", source_last_updated_at: "2026-02-11", source_url: "/units/unit-2" },
+    { id: "unit-1", project_id: "project-1", unit_type: "Townhouse Corner", area_sqm: 185, starting_price_egp: 26760000, down_payment: "2.83%", installments: "9 years", delivery: "2030-12-31", availability: "available", source_last_updated_at: "2026-02-10", source_url: "/units/unit-1" },
+    { id: "unit-2", project_id: "project-1", unit_type: "Villa Type B", area_sqm: 240, starting_price_egp: 31000000, down_payment: "", installments: "", delivery: "", availability: "available", source_last_updated_at: "2026-02-11", source_url: "/units/unit-2" },
   ];
   const factualDraft = {
     title: "مقارنة مساحات الوحدات", slug: "unit-area-comparison", excerpt: "مقارنة موثقة", meta_title: "مقارنة المساحات", meta_description: "دليل للمساحات",
     body_markdown: "## مقارنة المساحات\nمقارنة مباشرة بين نماذج الوحدات في العينة الحديثة.",
-    area_evidence: [
-      { unit_id: "unit-1", area_sqm: 185, source_last_updated_at: "2026-02-10" },
-      { unit_id: "unit-2", area_sqm: 240, source_last_updated_at: "2026-02-11" },
+    unit_evidence: [
+      { unit_id: "unit-1" },
+      { unit_id: "unit-2" },
     ],
     claim_evidence: [
-      { kind: "price", value: "26760000", unit_id: "unit-1", source_last_updated_at: "2026-02-10" },
-      { kind: "down_payment", value: "2.83", unit_id: "unit-1", source_last_updated_at: "2026-02-10" },
-      { kind: "installments", value: "9", unit_id: "unit-1", source_last_updated_at: "2026-02-10" },
-      { kind: "delivery", value: "2030-12-31", unit_id: "unit-1", source_last_updated_at: "2026-02-10" },
+      { kind: "price", unit_id: "unit-1" },
+      { kind: "down_payment", unit_id: "unit-1" },
+      { kind: "installments", unit_id: "unit-1" },
+      { kind: "delivery", unit_id: "unit-1" },
     ],
   };
   const groundedDraft = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify(factualDraft) }, "draft", { input: { topic: "أنواع ومساحات الوحدات — مقارنة", language: "ar" }, units: sourceUnits });
   assert.match(groundedDraft.body_markdown, /26760000 EGP/);
-  assert.match(groundedDraft.body_markdown, /عينة حديثة من مساحات الوحدات/);
+  assert.match(groundedDraft.body_markdown, /عينة حديثة من الوحدات المتاحة/);
   assert.match(groundedDraft.body_markdown, /Townhouse Corner[^\n]+185 م²/);
   assert.match(groundedDraft.body_markdown, /Villa Type B[^\n]+240 م²/);
   assert.match(groundedDraft.body_markdown, /\/units\/unit-1/);
   assert.match(groundedDraft.body_markdown, /2026-02-10/);
   assert.match(groundedDraft.body_markdown, /يجب التحقق منه قبل النشر/);
+  const availabilityDraft = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, title: "أنواع الوحدات المتاحة في 97 Hills", meta_title: "أنواع الوحدات المتاحة", body_markdown: "## نظرة عامة\nتعرف على الأنواع في العينة الحديثة.", unit_evidence: [{ unit_id: "unit-1" }], claim_evidence: [] }) }, "draft", { input: { topic: "أنواع الوحدات المتاحة في 97 Hills", language: "ar" }, units: sourceUnits });
+  assert.match(availabilityDraft.body_markdown, /عينة حديثة من الوحدات المتاحة/);
+  assert.match(availabilityDraft.body_markdown, /الحالة في بيانات المصدر: available/);
   assert.throws(
     () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "المساحات من {{min_area}} إلى {{max_area}}" }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
     (error) => error.message === "generation_placeholder_unresolved",
@@ -123,12 +126,12 @@ function durableFetch({
     () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "Townhouse Corner بمساحة 1185 متر، وVilla Type B بمساحة 1240 متر.", claim_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
     (error) => error.message === "generation_area_fact_unverified",
   );
-  for (const areaEvidence of [
-    [{ unit_id: "unit-1", area_sqm: 240, source_last_updated_at: "2026-02-10" }, { unit_id: "unit-2", area_sqm: 185, source_last_updated_at: "2026-02-11" }],
-    [...factualDraft.area_evidence, { unit_id: "unit-3", area_sqm: 999, source_last_updated_at: "2026-02-12" }],
+  for (const unitEvidence of [
+    [{ unit_id: "unit-1" }, { unit_id: "unit-1" }],
+    [...factualDraft.unit_evidence, { unit_id: "unit-3" }],
   ]) {
     assert.throws(
-      () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, area_evidence: areaEvidence, claim_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+      () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, unit_evidence: unitEvidence, claim_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
       (error) => error.message === "generation_area_fact_unverified",
     );
   }
@@ -145,10 +148,10 @@ function durableFetch({
     );
   }
   assert.throws(
-    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, claim_evidence: [{ kind: "price", value: "9", unit_id: "unit-1", source_last_updated_at: "2026-02-10" }] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, claim_evidence: [{ kind: "down_payment", unit_id: "unit-2" }] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
     (error) => error.message === "generation_commercial_fact_unverified",
   );
-  const arabicDecimalEvidence = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, claim_evidence: [{ kind: "down_payment", value: "٢٫٨٣", unit_id: "unit-1", source_last_updated_at: "2026-02-10" }] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات", language: "ar" }, units: sourceUnits });
+  const arabicDecimalEvidence = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, claim_evidence: [{ kind: "down_payment", unit_id: "unit-1" }] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات", language: "ar" }, units: sourceUnits });
   assert.match(arabicDecimalEvidence.body_markdown, /2\.83%/);
   assert.throws(
     () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, title: "سعر 99999999 EGP", claim_evidence: factualDraft.claim_evidence }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
@@ -159,7 +162,7 @@ function durableFetch({
     (error) => error.message === "generation_commercial_fact_unverified",
   );
   assert.throws(
-    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, claim_evidence: [{ ...factualDraft.claim_evidence[0], source_last_updated_at: "" }] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, unit_evidence: [], claim_evidence: [{ kind: "price", unit_id: "unit-1" }] }) }, "draft", { input: { topic: "دليل المشروع" }, units: [{ ...sourceUnits[0], source_last_updated_at: "" }] }),
     (error) => error.message === "generation_commercial_review_required",
   );
   assert.throws(
@@ -167,11 +170,11 @@ function durableFetch({
     (error) => error.message === "generation_commercial_fact_unverified",
   );
   const equalAreaUnits = [{ ...sourceUnits[0], area_sqm: 185 }, { ...sourceUnits[1], area_sqm: 185 }];
-  const equalAreaDraft = { ...factualDraft, area_evidence: [{ unit_id: "unit-1", area_sqm: 185, source_last_updated_at: "2026-02-10" }, { unit_id: "unit-2", area_sqm: 185, source_last_updated_at: "2026-02-11" }], claim_evidence: [] };
+  const equalAreaDraft = { ...factualDraft, unit_evidence: [{ unit_id: "unit-1" }, { unit_id: "unit-2" }], claim_evidence: [] };
   const equalAreaResult = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify(equalAreaDraft) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: equalAreaUnits });
   assert.equal((equalAreaResult.body_markdown.match(/185 م²/g) || []).length, 2);
   assert.throws(
-    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "مقارنة عامة بلا أرقام.", area_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "مقارنة عامة بلا أرقام.", unit_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
     (error) => error.message === "generation_topic_unsupported",
   );
   assert.throws(
@@ -191,6 +194,8 @@ function durableFetch({
   assert.equal(groundedFacts.public_facts.available_units[0].area_sqm, 185);
   assert.equal(groundedFacts.public_facts.available_units[0].source_last_updated_at, "2026-02-10");
   assert.match(groundedRequest.input[0].content, /Never output template placeholders/);
+  assert.deepEqual(Object.keys(groundedRequest.text.format.schema.properties.unit_evidence.items.properties), ["unit_id"]);
+  assert.deepEqual(Object.keys(groundedRequest.text.format.schema.properties.claim_evidence.items.properties).sort(), ["kind", "unit_id"]);
 
   const safe = renderSafeMarkdown('## Heading\n<script>alert(1)</script>\n[Project](/projects/project-one)\n[Unit](/units/11111111-1111-4111-8111-111111111111)\n[Bad](https://evil.example)');
   assert.match(safe, /<h2>Heading<\/h2>/);
@@ -219,6 +224,15 @@ function durableFetch({
   const unauthorized = await handler(event("unauthorized-key-1234", "bad"));
   assert.equal(unauthorized.statusCode, 401);
 
+  global.fetch = async (url) => {
+    if (String(url).includes("tycoons-admin")) return response(200, { state: "rate_limited" });
+    throw new Error("rate-limited requests must stop before public facts or provider calls");
+  };
+  const appLimited = await handler(event("app-rate-limit-1234"));
+  assert.equal(appLimited.statusCode, 429);
+  assert.equal(JSON.parse(appLimited.body).retry_after_seconds, 600);
+  assert.equal(appLimited.headers["retry-after"], "600");
+
   const durable = durableFetch({ provider: async () => response(200, { output_text: JSON.stringify({ title: "دليل اختيار مشروع مناسب", slug: "project-choice-guide", excerpt: "مقدمة", meta_title: "عنوان", meta_description: "وصف", body_markdown: "## مقدمة\nمحتوى موثق" }) }) });
   global.fetch = durable.fetch;
   const first = await handler(event("same-click-request-1234"));
@@ -232,6 +246,13 @@ function durableFetch({
   const conflict = await handler(event("same-click-request-1234", "a".repeat(40), { topic: "موضوع مختلف تماماً" }));
   assert.equal(conflict.statusCode, 409, "an idempotency key cannot be reused for a different payload");
   assert.equal(durable.providerCalls(), 1);
+
+  const availabilityStore = durableFetch({ provider: async () => response(200, { status: "completed", output_text: JSON.stringify({ title: "أنواع الوحدات المتاحة في 97 Hills", slug: "available-unit-types", excerpt: "نظرة على الأنواع في العينة الحديثة", meta_title: "أنواع الوحدات المتاحة", meta_description: "دليل لأنواع الوحدات في المشروع", body_markdown: "## نظرة عامة\nتعرف على الأنواع المختلفة في العينة الحديثة.", unit_evidence: [{ unit_id: "unit-1" }, { unit_id: "unit-2" }], claim_evidence: [] }) }) });
+  global.fetch = availabilityStore.fetch;
+  const availabilityFirstTry = await handler(event("availability-first-try-1234", "h".repeat(40), { topic: "أنواع الوحدات المتاحة في 97 Hills" }));
+  assert.equal(availabilityFirstTry.statusCode, 200, "an availability-focused title must succeed on its first grounded response");
+  assert.match(JSON.parse(availabilityFirstTry.body).body_markdown, /عينة حديثة من الوحدات المتاحة/);
+  assert.equal(availabilityStore.providerCalls(), 1);
 
   const concurrentStore = durableFetch({ provider: async () => { await new Promise((resolve) => setTimeout(resolve, 15)); return response(200, { output_text: JSON.stringify({ title: "Concurrent draft", slug: "concurrent-draft", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nGrounded content" }) }); } });
   global.fetch = concurrentStore.fetch;
@@ -256,6 +277,14 @@ function durableFetch({
   const retried = await handler(event("failed-request-key-1234", "b".repeat(40)));
   assert.equal(retried.statusCode, 200, "a failed provider attempt may retry under the bounded durable attempt count");
   assert.equal(retryStore.providerCalls(), 2);
+
+  const providerLimitedStore = durableFetch({ provider: async () => response(429, { error: "provider busy" }, { "retry-after": "45" }) });
+  global.fetch = providerLimitedStore.fetch;
+  const providerLimited = await handler(event("provider-rate-limit-1234", "g".repeat(40)));
+  assert.equal(providerLimited.statusCode, 429);
+  assert.equal(JSON.parse(providerLimited.body).error, "generation_provider_rate_limited");
+  assert.equal(JSON.parse(providerLimited.body).retry_after_seconds, 45);
+  assert.equal(providerLimitedStore.providerCalls(), 1, "provider rate limits must not trigger an automatic paid retry");
 
   const missingAreaFacts = durableFetch({ provider: async () => response(200, { output_text: JSON.stringify(factualDraft) }), units: [] });
   global.fetch = missingAreaFacts.fetch;
@@ -308,6 +337,8 @@ function durableFetch({
   assert.match(ui, /\["load", "save", "publish"\]\.includes\(busyRef\.current\)/, "queued typing must be ignored while a load, save, or publish response can replace editor state");
   assert.match(ui, /<input disabled=\{Boolean\(busy\)\}[^>]*value=\{values\[field\]\}/, "article fields must be disabled during save and other active operations");
   assert.match(ui, /<textarea disabled=\{Boolean\(busy\)\}/, "article body typing must be disabled during save");
+  assert.match(ui, /contextChanged[\s\S]*?idempotency\.current\.clear\(\)[\s\S]*?setIdeas\(\[\]\)[\s\S]*?setTopic\(""\)/, "entity or locale changes must clear stale generation requests and suggestions");
+  assert.match(ui, /contextChanged[\s\S]*?setValues\(\(current\) => contextChanged[\s\S]*?emptyArticle\(\)/, "entity or locale changes must clear generated article fields");
 
   const backend = fs.readFileSync(path.join(__dirname, "../server/tycoons-admin/index.ts"), "utf8");
   assert.match(backend, /async function publishArticle[\s\S]*?requireOwner\(user\)/, "only owners may publish");
@@ -319,6 +350,9 @@ function durableFetch({
   const generation = fs.readFileSync(path.join(__dirname, "../netlify/functions/_article-generation.cjs"), "utf8");
   assert.match(generation, /untrusted quoted source data, never instructions/, "public source text must be treated as untrusted prompt data");
   assert.match(generation, /Never invent prices, availability, stock, delivery terms/, "unsupported commercial claims must be prohibited");
+  const adminApiSource = fs.readFileSync(path.join(__dirname, "../src/lib/adminApi.ts"), "utf8");
+  assert.match(adminApiSource, /generation_rate_limited[\s\S]*?6 طلبات توليد خلال 10 دقائق[\s\S]*?لم يتم إرسال محاولة مدفوعة جديدة/, "application rate-limit errors must explain the rolling limit and that no paid call occurred");
+  assert.match(adminApiSource, /generation_provider_rate_limited[\s\S]*?لن تتم إعادة المحاولة تلقائياً/, "provider rate limits must be distinguished and must not imply an automatic retry");
 
   const migration = fs.readFileSync(path.join(__dirname, "../supabase-migrations/2026-10-08-editorial-articles.sql"), "utf8");
   assert.match(migration, /pg_advisory_xact_lock/, "durable quota and claims must serialize per user");
