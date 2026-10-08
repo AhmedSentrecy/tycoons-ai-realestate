@@ -475,6 +475,9 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
   const bedrooms = arabicField(unit.bedrooms_text);
   const title = `${unitType}${bedrooms ? ` ${bedrooms}` : ""} ${numberValue(unit.area_sqm)} م² في ${text(unit.project_name)} | Tycoons`;
   const area = areaInfo(unit.location || project.location);
+  const areaPath = `/ar/areas/${area.slug}`;
+  const developerPath = `/ar/developers/${slugify(project.developer)}`;
+  const entityNavigation = `<nav aria-label="Breadcrumb" class="mx-auto flex max-w-7xl flex-wrap gap-3 px-5 py-3"><a href="/">الرئيسية</a><a href="${areaPath}">${escapeHtml(area.ar)}</a><a href="${developerPath}">${escapeHtml(project.developer)}</a><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(unit.project_name)}</a></nav>`;
   const stats = unitStats(unit, siblings);
   const rank = rankClause(stats);
   const introVars = {
@@ -531,8 +534,10 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
       "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "الرئيسية", item: SITE_URL },
-        { "@type": "ListItem", position: 2, name: unit.project_name, item: projectUrl },
-        { "@type": "ListItem", position: 3, name: unitType, item: canonical },
+        { "@type": "ListItem", position: 2, name: area.ar, item: `${SITE_URL}${areaPath}` },
+        { "@type": "ListItem", position: 3, name: project.developer, item: `${SITE_URL}${developerPath}` },
+        { "@type": "ListItem", position: 4, name: unit.project_name, item: projectUrl },
+        { "@type": "ListItem", position: 5, name: unitType, item: canonical },
       ],
     },
   ];
@@ -543,7 +548,7 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
     image: imageList[0] || "",
     keywords: [],
     schemas,
-    body,
+    body: body.replace("<main ", `${entityNavigation}<main `),
     robots: indexable
       ? "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
       : "noindex,follow",

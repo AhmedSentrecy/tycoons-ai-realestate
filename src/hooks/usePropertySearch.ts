@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { useInventory } from "@/lib/inventory";
+import { inventoryFreshness, useInventory } from "@/lib/inventory";
 import { searchInventory, type RankedInventoryUnit, type SearchOutput } from "@/lib/propertySearch";
 
 const EMPTY_RESULTS: SearchOutput = {
@@ -93,7 +93,7 @@ export function runSearch(units: ReturnType<typeof useInventory>["units"], query
 
 export function searchInventoryForVoice(units: ReturnType<typeof useInventory>["units"], query: string): Record<string, unknown> {
   const result = runSearch(units, query);
-  lastVoicePayload = voicePayload(result);
+  lastVoicePayload = { ...voicePayload(result), inventory: inventoryFreshness(units) };
   return lastVoicePayload;
 }
 
@@ -103,6 +103,7 @@ export function getLastSearchVoicePayload(): Record<string, unknown> {
 
 export function usePropertySearch() {
   const inventory = useInventory();
+  const ensureFresh = inventory.ensureFresh;
   const [query, setQuery] = useState("");
   const [submitted, setSubmitted] = useState("");
 
@@ -131,12 +132,23 @@ export function usePropertySearch() {
     lastVoicePayload = { exact_count: 0, alternative_count: 0, options: [] };
   }, []);
 
+  const searchFresh = useCallback(async (value: string): Promise<SearchOutput | null> => {
+    const finalQuery = value.trim();
+    if (!finalQuery) return null;
+    const units = await ensureFresh();
+    setQuery(finalQuery); setSubmitted(finalQuery);
+    const result = runSearch(units, finalQuery);
+    lastVoicePayload = { ...voicePayload(result), inventory: inventoryFreshness(units) };
+    return result;
+  }, [ensureFresh]);
+
   return {
     query,
     setQuery,
     results,
     hasSearched: submitted.trim().length > 0,
     search,
+    searchFresh,
     clear,
     inventory,
   };

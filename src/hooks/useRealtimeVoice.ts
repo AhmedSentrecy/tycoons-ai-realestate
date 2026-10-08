@@ -39,6 +39,11 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
   const generationRef = useRef(0);
   const speechTimerRef = useRef<number | null>(null);
   const closeTimerRef = useRef<number | null>(null);
+  const handledCallsRef = useRef(new Set<string>());
+  const sessionIdentityRef = useRef("");
+  const startupStartedRef = useRef(0);
+  const firstTranscriptRef = useRef(false);
+  const firstPlaybackRef = useRef(false);
 
   const cleanup = useCallback(() => {
     generationRef.current += 1;
@@ -54,6 +59,10 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
     if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
     speechTimerRef.current = null;
     closeTimerRef.current = null;
+    handledCallsRef.current.clear();
+    sessionIdentityRef.current = "";
+    firstTranscriptRef.current = false;
+    firstPlaybackRef.current = false;
 
     try {
       dcRef.current?.close();
@@ -132,10 +141,14 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
     setState("connecting");
     setErrorMsg("");
 
+    let generation = 0;
     try {
       cleanup();
       connectingRef.current = true;
-      const generation = generationRef.current;
+      generation = generationRef.current;
+      const isCurrent = () => generation === generationRef.current;
+      startupStartedRef.current = performance.now();
+      console.debug("[voice-timing] startup_begin", { generation });
 
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -145,6 +158,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
         },
       });
       if (generation !== generationRef.current) { stream.getTracks().forEach(track => track.stop()); return false; }
+      console.debug("[voice-timing] microphone_ready", { generation, elapsed_ms: Math.round(performance.now() - startupStartedRef.current) });
       streamRef.current = stream;
       closeTimerRef.current = window.setTimeout(() => {
         if (!sessionDeadlineRef.current) { endImmediately(); setErrorMsg("الاتصال أخد وقت طويل. جرّب تاني."); }
@@ -159,11 +173,21 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       audioEl.setAttribute("playsinline", "");
       audioRef.current = audioEl;
       pc.ontrack = (event) => {
+        if (!isCurrent()) return;
         audioEl.srcObject = event.streams[0] || new MediaStream([event.track]);
         recordingRef.current?.addRemote(audioEl.srcObject as MediaStream);
-        void audioEl.play().catch(() => undefined);
+        void audioEl.play().then(() => {
+          if (!isCurrent() || firstPlaybackRef.current) return;
+          firstPlaybackRef.current = true;
+          console.debug("[voice-timing] first_playback_started", { generation, elapsed_ms: Math.round(performance.now() - startupStartedRef.current) });
+        }).catch((error) => {
+          if (!isCurrent()) return;
+          console.warn("[voice] audio_playback_rejected", error instanceof Error ? error.name : "unknown");
+          setErrorMsg("تعذر تشغيل صوت المساعد. اضغط على الصفحة ثم حاول مرة أخرى.");
+        });
       };
       pc.onconnectionstatechange = () => {
+        if (!isCurrent() || pc !== pcRef.current) return;
         if (["failed", "disconnected", "closed"].includes(pc.connectionState)) {
           cleanup();
           setState(pc.connectionState === "closed" ? "idle" : "unavailable");
@@ -175,13 +199,15 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       const dc = pc.createDataChannel("oai-events");
       dcRef.current = dc;
       dc.onopen = () => undefined;
-      dc.onclose = () => setState((current) => (current === "idle" ? current : "unavailable"));
+      dc.onclose = () => { if (isCurrent() && dc === dcRef.current) setState((current) => (current === "idle" ? current : "unavailable")); };
       dc.onerror = () => {
+        if (!isCurrent() || dc !== dcRef.current) return;
         setErrorMsg("حصلت مشكلة في الاتصال الصوتي");
         setState("error");
       };
 
       dc.onmessage = (event) => {
+        if (!isCurrent() || dc !== dcRef.current) return;
         try {
           const msg = JSON.parse(event.data);
 
@@ -193,6 +219,11 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
           };
 
           const handleFunctionCall = async (item: Record<string, unknown>) => {
+            const callId = typeof item.call_id === "string" ? item.call_id : "";
+            if (!callId) return;
+            const callKey = `${sessionIdentityRef.current || generation}:${callId}`;
+            if (handledCallsRef.current.has(callKey)) return;
+            handledCallsRef.current.add(callKey);
             if (item.type === "function_call" && item.name === "prepare_lead_summary" && typeof item.call_id === "string") {
               try {
                 recordingRef.current?.qualify(JSON.parse(String(item.arguments || "{}")));
@@ -201,9 +232,6 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               return;
             }
             if (item.type !== "function_call" || item.name !== "search_properties") return;
-            const callId = typeof item.call_id === "string" ? item.call_id : "";
-            if (!callId) return;
-
             let args: Record<string, unknown> = {};
             try {
               args = JSON.parse(typeof item.arguments === "string" ? item.arguments : "{}");
@@ -220,12 +248,14 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
 
             try {
               const payload = await onSearchQuery(query);
+              if (!isCurrent() || dc !== dcRef.current) return;
               sendFunctionOutput(dc, callId, {
                 ok: true,
                 note: "النتائج الحقيقية من المخزون ظهرت على الشاشة وموجودة في options أدناه. اقرأ للعميل أنسب اختيارين، مع السعر والمساحة والمقدم والتقسيط، وميّز البدائل بوضوح.",
                 ...payload,
               });
             } catch {
+              if (!isCurrent() || dc !== dcRef.current) return;
               sendFunctionOutput(dc, callId, {
                 ok: false,
                 error: "inventory_unavailable",
@@ -236,6 +266,8 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
 
           switch (msg.type) {
             case "session.started":
+              sessionIdentityRef.current = typeof msg.session_id === "string" ? msg.session_id : `generation:${generation}`;
+              console.debug("[voice-timing] session_started", { generation, elapsed_ms: Math.round(performance.now() - startupStartedRef.current) });
               if (closeTimerRef.current !== null) window.clearTimeout(closeTimerRef.current);
               closeTimerRef.current = null;
               connectingRef.current = false;
@@ -251,12 +283,20 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               }
               break;
             case "session.input_transcript.delta":
+              if (!firstTranscriptRef.current) {
+                firstTranscriptRef.current = true;
+                console.debug("[voice-timing] first_transcript_received", { generation, direction: "input", elapsed_ms: Math.round(performance.now() - startupStartedRef.current) });
+              }
               if (typeof msg.delta === "string") recordingRef.current?.append("client",msg.delta);
               setState("listening");
               if (typeof msg.delta === "string") setTranscript(msg.delta);
               scheduleConnectedState();
               break;
             case "session.output_transcript.delta":
+              if (!firstTranscriptRef.current) {
+                firstTranscriptRef.current = true;
+                console.debug("[voice-timing] first_transcript_received", { generation, direction: "output", elapsed_ms: Math.round(performance.now() - startupStartedRef.current) });
+              }
               if (typeof msg.delta === "string") recordingRef.current?.append("assistant",msg.delta);
               setState("speaking");
               if (typeof msg.delta === "string") setTranscript(msg.delta);
@@ -284,7 +324,9 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       };
 
       const offer = await pc.createOffer();
+      if (!isCurrent()) return false;
       await pc.setLocalDescription(offer);
+      if (!isCurrent()) return false;
 
       await new Promise<void>((resolve) => {
         if (pc.iceGatheringState === "complete") return resolve();
@@ -301,6 +343,8 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
         pc.addEventListener("icegatheringstatechange", onChange);
         window.setTimeout(finish, 3_000);
       });
+      if (!isCurrent()) return false;
+      console.debug("[voice-timing] ice_ready", { generation, elapsed_ms: Math.round(performance.now() - startupStartedRef.current) });
 
       const sdpOffer = pc.localDescription?.sdp;
       if (!sdpOffer) throw new Error("no-sdp");
@@ -314,8 +358,10 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
         body: sdpOffer,
         signal: controller.signal,
       }).finally(() => window.clearTimeout(timeout));
+      if (!isCurrent()) return false;
 
       const responseText = await response.text();
+      if (!isCurrent()) return false;
       if (!response.ok) throw new Error(`connect ${response.status}: ${responseText.slice(0, 120)}`);
       const result = JSON.parse(responseText);
       const answerSdp = result?.transport?.sdp;
@@ -324,8 +370,11 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       }
 
       await pc.setRemoteDescription({ type: "answer", sdp: answerSdp });
+      if (!isCurrent()) return false;
+      console.debug("[voice-timing] remote_description_ready", { generation, elapsed_ms: Math.round(performance.now() - startupStartedRef.current) });
       return true;
     } catch (error: unknown) {
+      if (generation !== generationRef.current) return false;
       cleanup();
       const name = error instanceof DOMException ? error.name : "";
       if (name === "NotAllowedError" || name === "PermissionDeniedError") {

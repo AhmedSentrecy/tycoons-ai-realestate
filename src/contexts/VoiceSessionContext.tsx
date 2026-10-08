@@ -21,13 +21,23 @@ export function VoiceSessionProvider({ children }: { children: ReactNode }) {
   const [confirmEnd, setConfirmEnd] = useState(false);
 
   const onSearchQuery = useCallback(async (text: string) => {
+    const startedAt = performance.now();
     const clean = text.trim();
     if (!clean) throw new Error("missing query");
     navigate(`/search?q=${encodeURIComponent(clean)}`);
     const units = await loadInventory(false);
+    const inventoryReadyAt = performance.now();
+    const search = searchInventoryForVoice(units, clean);
+    const completedAt = performance.now();
+    console.debug("[voice-timing] search", {
+      inventory_ms: Math.round(inventoryReadyAt - startedAt),
+      rank_ms: Math.round(completedAt - inventoryReadyAt),
+      total_ms: Math.round(completedAt - startedAt),
+    });
     return {
-      ...searchInventoryForVoice(units, clean),
+      ...search,
       destination: "/search",
+      timing_ms: { inventory: Math.round(inventoryReadyAt - startedAt), search: Math.round(completedAt - inventoryReadyAt) },
     };
   }, [navigate]);
 

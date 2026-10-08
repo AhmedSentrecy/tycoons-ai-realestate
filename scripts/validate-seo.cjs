@@ -88,6 +88,8 @@ assert.match(project, /BreadcrumbList/);
 assert.match(project, /ItemList/);
 assert.match(project, /OfferCatalog/);
 assert.match(project, /"priceCurrency":"EGP"/);
+assert.match(project, new RegExp(`https://tycoons-inv\\.com/units/${rows[0].id}`), "project unit schema must point to the unit UUID");
+assert.match(project, new RegExp(`href="/units/${rows[0].id}"`), "project unit card must point to the unit UUID");
 assert.doesNotMatch(project, /aggregateRating|"review"|"@type":"Product"/);
 assert.match(directory, /دليل المشاريع العقارية المحدث/);
 assert.match(area, /مستقبل سيتي/);
@@ -128,6 +130,13 @@ assert.match(unit, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/unit
 assert.match(unit, /"@type":"RealEstateListing"/);
 assert.match(unit, /"@type":"FAQPage"/);
 assert.match(unit, /BreadcrumbList/);
+assert.match(unit, /href="\/ar\/areas\/mostakbal-city"/, "Arabic unit must link its verified area page");
+assert.match(unit, /href="\/ar\/developers\/mountain-view"/, "Arabic unit must link its internal developer page");
+assert.match(unit, new RegExp(`href="/units/${rows[1].id}"`), "related unit must link to its own UUID page");
+const englishUnit = renderUnit(projects, rows[0].id, "en");
+assert.match(englishUnit, /href="\/en\/areas\/mostakbal-city"/, "English unit must stay in the English area hierarchy");
+assert.match(englishUnit, /href="\/en\/developers\/mountain-view"/, "English unit must stay in the English developer hierarchy");
+assert.match(englishUnit, /href="\/en\/projects\/mountain-view-aliva--mountain-view"/, "English unit must link its English project page");
 assert.match(unit, /مستقبل سيتي/, "unit page must include area context copy");
 assert.doesNotMatch(
   unit,

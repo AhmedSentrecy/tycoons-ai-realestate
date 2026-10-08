@@ -10,6 +10,18 @@ const SUPABASE_PUBLISHABLE_KEY =
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const PAGE_SIZE = 1000;
 
+export function inventoryPageIsComplete(rawCount: number, pageSize = PAGE_SIZE): boolean {
+  return rawCount < pageSize;
+}
+
+export function inventoryCacheIsFresh(expiresAt: number, now = Date.now()): boolean {
+  return now < expiresAt;
+}
+
+export function inventoryRequestIsCurrent(requestGeneration: number, currentGeneration: number): boolean {
+  return requestGeneration === currentGeneration;
+}
+
 export interface InventoryUnit {
   id: string;
   project_id: string;
@@ -46,10 +58,14 @@ export interface InventoryStats {
 interface InventoryCache {
   units: InventoryUnit[];
   fetchedAt: number;
+  expiresAt: number;
+  revision: string;
+  sourceLastUpdatedAt: string;
 }
 
 let cache: InventoryCache | null = null;
-let pending: Promise<InventoryUnit[]> | null = null;
+let pending: { generation: number; promise: Promise<InventoryUnit[]> } | null = null;
+let loadGeneration = 0;
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : value == null ? "" : String(value).trim();
@@ -152,7 +168,12 @@ export function inventoryStats(units: InventoryUnit[]): InventoryStats {
   };
 }
 
-async function fetchPage(offset: number): Promise<InventoryUnit[]> {
+interface InventoryPage {
+  units: InventoryUnit[];
+  rawCount: number;
+}
+
+async function fetchPage(offset: number): Promise<InventoryPage> {
   const columns = [
     "id",
     "project_id",
@@ -179,7 +200,7 @@ async function fetchPage(offset: number): Promise<InventoryUnit[]> {
   const params = new URLSearchParams({
     select: columns,
     availability_status: "eq.available",
-    order: "starting_price.asc",
+    order: "starting_price.asc,id.asc",
     limit: String(PAGE_SIZE),
     offset: String(offset),
   });
@@ -196,7 +217,10 @@ async function fetchPage(offset: number): Promise<InventoryUnit[]> {
   }
 
   const rows = (await response.json()) as Record<string, unknown>[];
-  return rows.map(normalizeUnit).filter((unit): unit is InventoryUnit => Boolean(unit));
+  return {
+    units: rows.map(normalizeUnit).filter((unit): unit is InventoryUnit => Boolean(unit)),
+    rawCount: rows.length,
+  };
 }
 
 interface ProjectMediaRef {
@@ -210,6 +234,7 @@ async function fetchProjectSlugs(): Promise<Map<string, ProjectMediaRef>> {
     for (let offset = 0; offset < 2000; offset += PAGE_SIZE) {
       const params = new URLSearchParams({
         select: "id,slug,image_url,gallery_urls",
+        order: "id.asc",
         limit: String(PAGE_SIZE),
         offset: String(offset),
       });
@@ -232,16 +257,19 @@ async function fetchProjectSlugs(): Promise<Map<string, ProjectMediaRef>> {
 }
 
 export async function loadInventory(force = false): Promise<InventoryUnit[]> {
-  if (!force && cache && Date.now() - cache.fetchedAt < CACHE_TTL_MS) return cache.units;
-  if (!force && pending) return pending;
+  if (!force && cache && inventoryCacheIsFresh(cache.expiresAt)) return cache.units;
+  if (!force && pending) return pending.promise;
 
-  pending = (async () => {
+  const generation = ++loadGeneration;
+  const promise = (async () => {
     const slugsPromise = fetchProjectSlugs();
     const units: InventoryUnit[] = [];
     for (let offset = 0; offset < 5000; offset += PAGE_SIZE) {
       const page = await fetchPage(offset);
-      units.push(...page);
-      if (page.length < PAGE_SIZE) break;
+      units.push(...page.units);
+      // Pagination is determined by the raw server page, not by rows rejected
+      // during normalization. Otherwise one malformed row can hide later pages.
+      if (inventoryPageIsComplete(page.rawCount)) break;
     }
     const slugMap = await slugsPromise;
     for (const unit of units) {
@@ -250,13 +278,29 @@ export async function loadInventory(force = false): Promise<InventoryUnit[]> {
       // Media is uploaded per project; a unit without its own photos shows its project's gallery.
       if (!unit.images.length && project?.images.length) unit.images = [...project.images];
     }
-    cache = { units, fetchedAt: Date.now() };
+    const fetchedAt = Date.now();
+    const sourceLastUpdatedAt = units.reduce((latest, unit) => unit.last_updated_at > latest ? unit.last_updated_at : latest, "");
+    const revision = `${fetchedAt}:${units.length}:${sourceLastUpdatedAt}`;
+    if (inventoryRequestIsCurrent(generation, loadGeneration)) cache = { units, fetchedAt, expiresAt: fetchedAt + CACHE_TTL_MS, revision, sourceLastUpdatedAt };
     return units;
   })().finally(() => {
-    pending = null;
+    if (pending?.generation === generation) pending = null;
   });
+  pending = { generation, promise };
 
-  return pending;
+  return promise;
+}
+
+export function inventoryFreshness(units: InventoryUnit[] = cache?.units ?? []) {
+  const current = cache?.units === units ? cache : null;
+  const now = Date.now();
+  return {
+    fetched_at: current ? new Date(current.fetchedAt).toISOString() : null,
+    expires_at: current ? new Date(current.expiresAt).toISOString() : null,
+    snapshot_revision: current?.revision ?? "uncached",
+    source_last_updated_at: current?.sourceLastUpdatedAt || null,
+    freshness: current && now < current.expiresAt ? "fresh" as const : "unknown" as const,
+  };
 }
 
 export function useInventory() {
@@ -275,6 +319,11 @@ export function useInventory() {
     } finally {
       setLoading(false);
     }
+  }, []);
+  const ensureFresh = useCallback(async () => {
+    const next = await loadInventory(false);
+    setUnits(next);
+    return next;
   }, []);
 
   useEffect(() => {
@@ -301,5 +350,6 @@ export function useInventory() {
     loading,
     error,
     refresh: () => refresh(true),
+    ensureFresh,
   };
 }

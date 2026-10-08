@@ -82,6 +82,8 @@ const unitHtml = renderUnitStatic(shell, unit, project, [sibling]);
 assert.match(unitHtml, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/units\/unit-1">/);
 assert.match(unitHtml, /Project Alpha/);
 assert.match(unitHtml, /href="\/projects\/project-alpha"/);
+assert.match(unitHtml, /href="\/ar\/areas\/new-cairo"/);
+assert.match(unitHtml, /href="\/ar\/developers\/developer-one"/);
 assert.doesNotMatch(unitHtml, /قارن المشاريع والوحدات العقارية/);
 assert.match(unitHtml, /شقة/);
 assert.match(unitHtml, /نصف تشطيب/);
@@ -91,6 +93,8 @@ assert.match(unitHtml, /"@type":"BreadcrumbList"/);
 assert.match(unitHtml, /القاهرة الجديدة والتجمع/);
 assert.match(unitHtml, /بدائل قريبة/);
 assert.match(unitHtml, /href="\/units\/unit-sibling"/);
+assert.match(unitHtml, /"position":2,"name":"[^"]+","item":"https:\/\/tycoons-inv\.com\/ar\/areas\/new-cairo"/);
+assert.match(unitHtml, /"position":3,"name":"Developer One","item":"https:\/\/tycoons-inv\.com\/ar\/developers\/developer-one"/);
 assert.doesNotMatch(
   unitHtml,
   /A complete unit description with enough detail for a useful standalone search result page\./,
