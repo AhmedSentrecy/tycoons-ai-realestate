@@ -6,13 +6,88 @@ const { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourc
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 
-async function fetchJson(url, options, timeoutMs = 20000, rateLimitError = "") {
-  const response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
-  const data = await response.json().catch(() => ({}));
-  if (response.status === 429 && rateLimitError) {
-    const retryAfterSeconds = Math.max(1, Number(response.headers?.get?.("retry-after")) || 60);
-    throw Object.assign(new Error(rateLimitError), { status: 429, retryAfterSeconds });
+const PROVIDER_CREDIT_CODES = new Set(["credit_balance_exhausted"]);
+const PROVIDER_SPEND_CODES = new Set(["organization_spend_limit_exceeded", "project_spend_limit_exceeded", "billing_hard_limit_reached"]);
+const PROVIDER_USAGE_CODES = new Set(["organization_usage_limit_exceeded"]);
+const PROVIDER_RATE_CODES = new Set(["rate_limit_exceeded", "slow_down"]);
+const SAFE_PROVIDER_CODES = new Set([
+  ...PROVIDER_CREDIT_CODES, ...PROVIDER_SPEND_CODES, ...PROVIDER_USAGE_CODES, ...PROVIDER_RATE_CODES,
+  "insufficient_quota", "invalid_api_key", "model_not_found", "server_is_overloaded",
+]);
+const SAFE_PROVIDER_TYPES = new Set(["insufficient_quota", "rate_limit_error", "invalid_request_error", "permission_error", "service_unavailable_error"]);
+
+function safeProviderParam(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  if (!text || text.length > 80 || /(?:sk-|key|token|secret|bearer|authorization)/i.test(text)) return undefined;
+  return /^[a-zA-Z][a-zA-Z0-9_.\[\]-]*$/.test(text) ? text : undefined;
+}
+
+function safeProviderRequestId(value) {
+  const text = typeof value === "string" ? value.trim() : "";
+  return /^req[-_][a-zA-Z0-9_-]{1,150}$/.test(text) ? text : undefined;
+}
+
+function providerFailure(response, data) {
+  const providerError = data?.error && typeof data.error === "object" && !Array.isArray(data.error) ? data.error : {};
+  const rawCode = typeof providerError.code === "string" ? providerError.code : "";
+  const rawType = typeof providerError.type === "string" ? providerError.type : "";
+  const code = SAFE_PROVIDER_CODES.has(rawCode) ? rawCode : undefined;
+  const type = SAFE_PROVIDER_TYPES.has(rawType) ? rawType : undefined;
+  const param = safeProviderParam(providerError.param);
+  const requestId = safeProviderRequestId(response.headers?.get?.("x-request-id"));
+  const retryAfter = Number(response.headers?.get?.("retry-after"));
+  const retryAfterSeconds = Number.isFinite(retryAfter) && retryAfter > 0 ? Math.ceil(retryAfter) : null;
+  let message = "generation_provider_failed";
+  let status = 502;
+
+  if (PROVIDER_CREDIT_CODES.has(code)) message = "generation_provider_credit_exhausted";
+  else if (PROVIDER_SPEND_CODES.has(code)) message = "generation_provider_spend_limit_exceeded";
+  else if (PROVIDER_USAGE_CODES.has(code)) message = "generation_provider_usage_limit_exceeded";
+  else if (code === "insufficient_quota") message = "generation_provider_quota_exceeded";
+  else if (response.status === 401) { message = "generation_provider_authentication_failed"; status = 503; }
+  else if (code === "model_not_found") { message = "generation_provider_model_access_failed"; status = 503; }
+  else if (response.status === 403) { message = "generation_provider_permission_denied"; status = 503; }
+  else if (response.status === 429 && (PROVIDER_RATE_CODES.has(code) || type === "rate_limit_error")) {
+    message = "generation_provider_rate_limited";
+    status = 429;
+  } else if (response.status === 429) {
+    message = "generation_provider_limit_unknown";
+    status = 503;
+  } else if (response.status >= 500) {
+    message = "generation_provider_unavailable";
+    status = 503;
+  } else if (response.status === 400) {
+    message = "generation_provider_request_invalid";
   }
+
+  const diagnostics = {
+    stage: "provider_response",
+    provider_status: response.status,
+    ...(code ? { provider_error_code: code } : {}),
+    ...(type ? { provider_error_type: type } : {}),
+    ...(param ? { provider_error_param: param } : {}),
+    ...(requestId ? { provider_request_id: requestId } : {}),
+  };
+  return Object.assign(new Error(message), {
+    status,
+    diagnostics,
+    ...(message === "generation_provider_rate_limited" && retryAfterSeconds ? { retryAfterSeconds } : {}),
+  });
+}
+
+async function fetchJson(url, options, timeoutMs = 20000, classifyProviderErrors = false) {
+  let response;
+  try {
+    response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
+  } catch (error) {
+    if (!classifyProviderErrors) throw error;
+    throw Object.assign(new Error("generation_provider_unavailable"), {
+      status: 503,
+      diagnostics: { stage: "provider_transport", ...(["AbortError", "TimeoutError", "TypeError"].includes(error?.name) ? { provider_error_type: error.name } : {}) },
+    });
+  }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok && classifyProviderErrors) throw providerFailure(response, data);
   if (!response.ok) throw Object.assign(new Error(data.error || `upstream_${response.status}`), { status: [400, 401, 404, 409, 429].includes(response.status) ? response.status : 502 });
   return data;
 }
@@ -63,7 +138,7 @@ async function generate(input, safetyId) {
       "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
     },
     body: JSON.stringify(buildOpenAiRequest(input, projects, units)),
-  }, 60000, "generation_provider_rate_limited");
+  }, 60000, true);
   return { ...parseOpenAiOutput(response, input.action, { input, units }), source_refs: sourceRefs(projects, units), generated_as: "draft" };
 }
 
