@@ -14,6 +14,8 @@ const {
   notFound,
   areaFor,
 } = require("../netlify/functions/_seo-utils.cjs");
+const { developerContent } = require("../netlify/functions/_developer-content.cjs");
+const developerBatch = require("../content/developer-articles.source.json");
 
 const root = path.resolve(__dirname, "..");
 const rows = [
@@ -61,6 +63,31 @@ const guide = renderGuide("off-plan-buying-checklist");
 const englishNewCairoGuide = renderGuide("new-cairo-property-prices", "en");
 const newCairoProjects = groupProjects(rows.map((row) => ({ ...row, location: "New Cairo" })));
 const newCairoArea = renderCollection(newCairoProjects, "area", "new-cairo", "en");
+const developerFixtures = [
+  ...projects.map((project) => ({ ...project, developer: "Upwyde" })),
+  ...projects.map((project) => ({ ...project, id: `${project.id}-tameer`, slug: `${project.slug}-tameer`, developer: "Tameer" })),
+];
+for (const [slug, lang, title] of [
+  ["upwyde", "ar", "أب وايد Upwyde"],
+  ["upwyde", "en", "Upwyde Developments"],
+  ["tameer", "ar", "تعمير TAMEER"],
+  ["tameer", "en", "TAMEER Egypt"],
+]) {
+  const html = renderCollection(developerFixtures, "developer", slug, lang);
+  assert.match(html, new RegExp(title));
+  assert.match(html, new RegExp(`canonical" href="https://tycoons-inv\\.com/${lang}/developers/${slug}`));
+  assert.match(html, new RegExp(`hreflang="${lang === "ar" ? "en" : "ar-EG"}"`));
+  assert.match(html, /href="\/(?:en\/)?projects\//);
+  assert.doesNotMatch(html, /<script[^>]*>.*body_html|javascript:/s);
+}
+const normalizeDeveloperText = (value) => String(value).replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+const compactDeveloperText = (value) => normalizeDeveloperText(value).replace(/\s/g, "");
+for (const article of developerBatch.articles) {
+  const slug = String(article.entity).toLowerCase();
+  const mapped = developerContent(slug, article.locale);
+  const mappedText = mapped.sections.flatMap((section) => [section.heading, ...section.blocks.flatMap((block) => block.type === "subheading" ? [block.text] : block.type === "ordered_list" ? block.items.map((item) => item.map((segment) => segment.text).join("")) : [block.content.map((segment) => segment.text).join("")])]).join(" ");
+  assert.equal(compactDeveloperText(mappedText), compactDeveloperText(article.body_html), `${slug}/${article.locale} full text`);
+}
 const icityRows = rows.map((row, index) => ({
   ...row,
   id: `44444444-4444-4444-4444-44444444444${index}`,
