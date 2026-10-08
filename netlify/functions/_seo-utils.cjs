@@ -1,6 +1,7 @@
 "use strict";
 
 const { localizedProjectContent, renderSections: renderLocalizedSections } = require("./_localized-project-content.cjs");
+const { developerContent } = require("./_developer-content.cjs");
 
 const { renderSafeMarkdown } = require("./_article-render.cjs");
 
@@ -1130,12 +1131,15 @@ function renderCollection(projects, kind, slug, lang) {
   const max = numericPrices.length ? Math.max(...numericPrices) : 0;
   const minFmt = formatPrice(min, lang);
   const searchContent = kind === "area" ? AREA_SEARCH_CONTENT[area.slug]?.[lang] : null;
-  const title = searchContent?.title?.({ minFmt, plural }) || (ar
+  const editorial = kind === "developer" ? developerContent(slug, lang) : null;
+  const legacyTitle = searchContent?.title?.({ minFmt, plural }) || (ar
     ? `مشاريع ${label} 2026 — أسعار من ${minFmt} (${plural}) | Tycoons`
     : `${label} projects 2026 — prices from ${minFmt} (${plural}) | Tycoons`);
-  const description = searchContent?.description?.({ minFmt, plural }) || (ar
+  const legacyDescription = searchContent?.description?.({ minFmt, plural }) || (ar
     ? `${plural} في ${label} بأسعار تبدأ من ${minFmt}. قارن السعر والمساحة وخطة السداد والاستلام لكل مشروع في مكان واحد.`
     : `${plural} in ${label} starting from ${minFmt}. Compare price, size, payment plan and delivery for each project in one place.`);
+  const title = editorial?.seo_title || legacyTitle;
+  const description = editorial?.seo_description || legacyDescription;
   const crumbs = [
     { name: ar ? "الرئيسية" : "Home", path: "/" },
     { name: label, path },
@@ -1144,6 +1148,7 @@ function renderCollection(projects, kind, slug, lang) {
     kind === "area"
       ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${(searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}`
       : "";
+  const editorialSection = editorial?.sections?.length ? renderLocalizedSections(editorial.sections, { escapeHtml, replaceTokens: (value) => value }) : "";
   const projectUnitCount = matches.reduce((total, project) => total + project.units.length, 0);
   const branches = kind === "area"
     ? [...new Map(matches.map((project) => [slugify(project.developer), {
@@ -1191,9 +1196,10 @@ function renderCollection(projects, kind, slug, lang) {
           ...(searchContent?.faq || []),
         ]
       : [];
-  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(label)}</h1>
+  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(editorial?.h1 || label)}</h1>
   <div class="answer"><strong>${escapeHtml(description)}</strong></div><div class="facts"><div class="fact"><small>${ar ? "عدد المشاريع" : "Projects"}</small><strong>${plural}</strong></div><div class="fact"><small>${ar ? "الوحدات المتاحة" : "Available units"}</small><strong>${projectUnitCount}</strong></div><div class="fact"><small>${ar ? "أقل سعر ظاهر" : "Lowest listed"}</small><strong>${escapeHtml(minFmt)}</strong></div><div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed"}</small><strong>${escapeHtml(formatPrice(max, lang))}</strong></div></div></section>
   ${contextSection}
+  ${editorialSection}
   ${branchHtml}
   <h2>${ar ? "المشاريع المتاحة" : "Available projects"}</h2>${cards(matches, lang)}
   ${faq.length ? `<h2>${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}` : ""}
