@@ -100,26 +100,26 @@ function topicSchema() {
 function draftSchema() {
   return {
     type: "object", additionalProperties: false,
-    required: ["title", "slug", "excerpt", "meta_title", "meta_description", "body_markdown", "area_evidence", "claim_evidence"],
+    required: ["title", "slug", "excerpt", "meta_title", "meta_description", "body_markdown", "unit_evidence", "claim_evidence"],
     properties: {
       title: { type: "string" }, slug: { type: "string" }, excerpt: { type: "string" },
       meta_title: { type: "string" }, meta_description: { type: "string" }, body_markdown: { type: "string" },
-      area_evidence: {
+      unit_evidence: {
         type: "array", maxItems: 24,
         items: {
           type: "object", additionalProperties: false,
-          required: ["unit_id", "area_sqm", "source_last_updated_at"],
-          properties: { unit_id: { type: "string" }, area_sqm: { type: "number" }, source_last_updated_at: { type: "string" } },
+          required: ["unit_id"],
+          properties: { unit_id: { type: "string" } },
         },
       },
       claim_evidence: {
         type: "array", maxItems: 30,
         items: {
           type: "object", additionalProperties: false,
-          required: ["kind", "value", "unit_id", "source_last_updated_at"],
+          required: ["kind", "unit_id"],
           properties: {
             kind: { type: "string", enum: ["price", "down_payment", "installments", "delivery", "availability"] },
-            value: { type: "string" }, unit_id: { type: "string" }, source_last_updated_at: { type: "string" },
+            unit_id: { type: "string" },
           },
         },
       },
@@ -141,8 +141,8 @@ function buildOpenAiRequest(input, projects, units = []) {
   } else {
     rules.push("Return a source-grounded draft, not a published article. Use Markdown headings, paragraphs, and lists only.");
     rules.push("Never output template placeholders such as {{min_area}}. Omit unknown values instead of describing them as available or inventing replacements.");
-    rules.push("The available_units list is a bounded recent sample, not an exhaustive inventory. Never claim a project-wide minimum, maximum, complete range, or all unit types from it. Do not write numeric unit areas in prose. To request an area comparison, add area_evidence entries with exact unit_id, area_sqm, and source_last_updated_at; the server will render a labeled sample table deterministically.");
-    rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims anywhere in the prose or metadata. To request inclusion of a sourced commercial fact, add only one claim_evidence entry with its typed kind, normalized exact source value, unit_id, and source_last_updated_at. Use no evidence when source_last_updated_at is absent. The server will render validated commercial facts and citations deterministically.");
+    rules.push("The available_units list is a bounded recent sample, not an exhaustive inventory. Never claim a project-wide minimum, maximum, complete range, or all unit types from it. Do not write numeric unit areas in prose. Select relevant source rows only by adding unit_evidence entries containing unit_id; never repeat area or freshness values. The server will render a labeled sample deterministically.");
+    rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims in prose or descriptive metadata. A title may mirror an availability-focused user topic, but the body must leave the supporting availability statement to the server. To request a commercial fact, add only its typed kind and unit_id to claim_evidence; never repeat the commercial value or source date. The server reads both from the validated row and renders them deterministically.");
     rules.push(`Only link to these approved internal URLs: ${refs.map((ref) => ref.url).join(', ') || 'none'}. Do not create any other links.`);
     rules.push("Add a final section titled 'مصادر ومراجعة' in Arabic or 'Sources and review' in English, saying factual details should be verified before publication.");
   }
@@ -211,6 +211,15 @@ function sourceValues(unit, kind) {
   return [];
 }
 
+function sourceDisplayValue(unit, kind) {
+  if (kind === "price") return unit.starting_price_egp ? `${unit.starting_price_egp} EGP` : "";
+  if (kind === "down_payment") return String(unit.down_payment || "");
+  if (kind === "installments") return String(unit.installments || "");
+  if (kind === "delivery") return String(unit.delivery || "");
+  if (kind === "availability") return String(unit.availability || "");
+  return "";
+}
+
 function validateDraftFacts(value, context, payload, text) {
   const strings = [value.title, value.slug, value.excerpt, value.meta_title, value.meta_description, value.body_markdown];
   if (strings.some((field) => /{{[^{}]+}}|\b(?:min|max)_(?:area|price)\b/i.test(field))) throw outputError("generation_placeholder_unresolved", payload, text, "validate_placeholders");
@@ -219,59 +228,61 @@ function validateDraftFacts(value, context, payload, text) {
   const units = Array.isArray(context?.units) ? context.units : [];
   const areaIntent = /مساح|متر|\barea|\bsize/i.test(topic);
   const comparisonIntent = /مقارن|compar/i.test(topic);
+  const availabilityIntent = /متاح|توافر|available|availability|أنواع الوحدات|unit types/i.test(topic);
   if (/(?:أقل|أصغر|أكبر|أعلى)[^\n.]{0,50}(?:المشروع|كل|جميع)|(?:project-wide|global)\s+(?:minimum|maximum)|all units|جميع الوحدات/i.test(value.body_markdown)) {
     throw outputError("generation_topic_unsupported", payload, text, "validate_sample_scope");
   }
   const areaClaimsInProse = /(?<![0-9.])[0-9٠-٩]+(?:[.٫][0-9٠-٩]+)?\s*(?:م2|م²|متر(?:اً|ا)?|sqm|m2|m²)/i.test(strings.join("\n"));
   if (areaClaimsInProse) throw outputError("generation_area_fact_unverified", payload, text, "validate_area_prose");
 
-  const areaEvidence = Array.isArray(value.area_evidence) ? value.area_evidence : [];
-  const renderedAreas = [];
+  const unitEvidence = Array.isArray(value.unit_evidence) ? value.unit_evidence : [];
+  const renderedUnits = [];
   const seenAreaUnits = new Set();
-  for (const proof of areaEvidence) {
+  for (const proof of unitEvidence) {
     const unit = units.find((candidate) => candidate.id === proof?.unit_id);
     const sourceDate = String(unit?.source_last_updated_at || "");
-    const proofDate = String(proof?.source_last_updated_at || "");
-    const dateMatches = Boolean(sourceDate && proofDate && (proofDate === sourceDate || proofDate === sourceDate.slice(0, 10)));
-    if (!unit || !Number.isFinite(unit.area_sqm) || Number(proof?.area_sqm) !== unit.area_sqm) throw outputError("generation_area_fact_unverified", payload, text, "validate_area_evidence");
-    if (!dateMatches || !unit.source_url || seenAreaUnits.has(unit.id)) throw outputError("generation_area_fact_unverified", payload, text, "validate_area_provenance");
+    if (!unit || !sourceDate || !unit.source_url || seenAreaUnits.has(unit.id)) throw outputError("generation_area_fact_unverified", payload, text, "validate_unit_evidence");
     seenAreaUnits.add(unit.id);
-    renderedAreas.push(unit);
+    renderedUnits.push(unit);
   }
-  if (areaIntent && (renderedAreas.length < 1 || (comparisonIntent && renderedAreas.length < 2))) throw outputError("generation_topic_unsupported", payload, text, "validate_topic_intent");
+  if (areaIntent && (renderedUnits.filter((unit) => Number.isFinite(unit.area_sqm)).length < 1 || (comparisonIntent && renderedUnits.filter((unit) => Number.isFinite(unit.area_sqm)).length < 2))) throw outputError("generation_topic_unsupported", payload, text, "validate_topic_intent");
+  if (availabilityIntent && renderedUnits.length < 1) throw outputError("generation_topic_unsupported", payload, text, "validate_availability_intent");
 
-  const commercialText = normalizedDigits(strings.join("\n"));
+  const descriptiveFields = [value.slug, value.excerpt, value.meta_description, value.body_markdown];
+  const commercialText = normalizedDigits(descriptiveFields.join("\n"));
   const modelClaims = typedClaims(commercialText);
-  if (modelClaims.length || /سعر|دفعة|مقدم(?!ة)|بالمئة|بالمائة|تقسيط|قسط|تسليم|استلام|فوري|متوفر|متاحة|متاح|للحجز|price|payment|down payment|installment|delivery|handover|immediate|available|availability|book now|EGP|جنيه|%|٪/i.test(commercialText)) {
+  const hardCommercialProse = /سعر|دفعة|مقدم(?!ة)|بالمئة|بالمائة|تقسيط|قسط|تسليم|استلام|فوري|للحجز|price|payment|down payment|installment|delivery|handover|immediate|book now|EGP|جنيه|%|٪/i.test(commercialText);
+  const availabilityProse = /متوفر|متاحة|متاح|available|availability/i.test(commercialText);
+  if (modelClaims.length || hardCommercialProse || (availabilityProse && !availabilityIntent)) {
     throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_fields");
   }
+  const titleText = normalizedDigits([value.title, value.meta_title].join("\n"));
+  const titleHasNonAvailabilityCommercialClaim = typedClaims(titleText).length > 0 || /سعر|دفعة|مقدم(?!ة)|بالمئة|بالمائة|تقسيط|قسط|تسليم|استلام|فوري|للحجز|price|payment|installment|delivery|handover|immediate|book now|EGP|جنيه|%|٪/i.test(titleText);
+  const titleHasAvailabilityClaim = /متوفر|متاحة|متاح|available|availability/i.test(titleText);
+  if (titleHasNonAvailabilityCommercialClaim || (titleHasAvailabilityClaim && !availabilityIntent)) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_fields");
 
   const evidence = Array.isArray(value.claim_evidence) ? value.claim_evidence : [];
   const renderedClaims = [];
   for (const proof of evidence) {
-    const claimValue = normalizedDigits(proof?.value).trim().toLowerCase();
     const unit = units.find((candidate) => candidate.id === proof?.unit_id);
     const sourceDate = String(unit?.source_last_updated_at || "");
-    const proofDate = String(proof?.source_last_updated_at || "");
-    const dateMatches = Boolean(sourceDate && proofDate && (proofDate === sourceDate || proofDate === sourceDate.slice(0, 10)));
-    const sourceMatches = Boolean(unit && sourceValues(unit, proof?.kind).includes(claimValue));
-    if (!sourceMatches) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_commercial_facts");
-    if (!dateMatches || !unit.source_url) throw outputError("generation_commercial_review_required", payload, text, "validate_commercial_provenance");
-    renderedClaims.push({ kind: proof.kind, value: claimValue, unit });
+    const displayValue = sourceDisplayValue(unit || {}, proof?.kind);
+    if (!unit || !sourceValues(unit, proof?.kind).length || !displayValue) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_commercial_selection");
+    if (!sourceDate || !unit.source_url) throw outputError("generation_commercial_review_required", payload, text, "validate_commercial_provenance");
+    renderedClaims.push({ kind: proof.kind, value: displayValue, unit });
   }
   const arabic = context?.input?.language !== "en";
-  if (renderedAreas.length) {
-    const rows = renderedAreas.map((unit) => `- [${unit.unit_type}](${unit.source_url}): ${unit.area_sqm} ${arabic ? "م²" : "m²"} — ${arabic ? "تاريخ المصدر" : "source updated"}: ${unit.source_last_updated_at.slice(0, 10)}.`);
-    value.body_markdown = `${value.body_markdown.trim()}\n\n## ${arabic ? "عينة حديثة من مساحات الوحدات" : "Recent sample of unit areas"}\n${rows.join("\n")}`;
+  if (renderedUnits.length) {
+    const rows = renderedUnits.map((unit) => `- [${unit.unit_type}](${unit.source_url})${Number.isFinite(unit.area_sqm) ? `: ${unit.area_sqm} ${arabic ? "م²" : "m²"}` : ""} — ${arabic ? "الحالة في بيانات المصدر" : "source status"}: ${unit.availability} — ${arabic ? "تاريخ المصدر" : "source updated"}: ${unit.source_last_updated_at.slice(0, 10)}.`);
+    value.body_markdown = `${value.body_markdown.trim()}\n\n## ${arabic ? "عينة حديثة من الوحدات المتاحة" : "Recent sample of available units"}\n${rows.join("\n")}`;
   }
   if (renderedClaims.length) {
     const labels = arabic
       ? { price: "السعر", down_payment: "الدفعة المقدمة", installments: "التقسيط", delivery: "التسليم", availability: "التوافر" }
       : { price: "Price", down_payment: "Down payment", installments: "Installments", delivery: "Delivery", availability: "Availability" };
     const formatted = renderedClaims.map(({ kind, value: claimValue, unit }) => {
-      const suffix = kind === "price" ? " EGP" : kind === "down_payment" ? "%" : kind === "installments" ? (arabic ? " سنوات" : " years") : "";
       const warning = arabic ? "يجب التحقق منه قبل النشر" : "must be verified before publication";
-      return `- ${labels[kind]}: ${claimValue}${suffix} — [${unit.unit_type}](${unit.source_url}) — ${arabic ? "تاريخ المصدر" : "source updated"}: ${unit.source_last_updated_at.slice(0, 10)} — ${warning}.`;
+      return `- ${labels[kind]}: ${claimValue} — [${unit.unit_type}](${unit.source_url}) — ${arabic ? "تاريخ المصدر" : "source updated"}: ${unit.source_last_updated_at.slice(0, 10)} — ${warning}.`;
     });
     value.body_markdown = `${value.body_markdown.trim()}\n\n## ${arabic ? "حقائق تجارية موثقة للمراجعة" : "Sourced commercial facts for review"}\n${formatted.join("\n")}`;
   }

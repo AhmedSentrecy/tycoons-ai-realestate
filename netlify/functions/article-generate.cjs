@@ -6,9 +6,13 @@ const { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourc
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 
-async function fetchJson(url, options, timeoutMs = 20000) {
+async function fetchJson(url, options, timeoutMs = 20000, rateLimitError = "") {
   const response = await fetch(url, { ...options, signal: AbortSignal.timeout(timeoutMs) });
   const data = await response.json().catch(() => ({}));
+  if (response.status === 429 && rateLimitError) {
+    const retryAfterSeconds = Math.max(1, Number(response.headers?.get?.("retry-after")) || 60);
+    throw Object.assign(new Error(rateLimitError), { status: 429, retryAfterSeconds });
+  }
   if (!response.ok) throw Object.assign(new Error(data.error || `upstream_${response.status}`), { status: [400, 401, 404, 409, 429].includes(response.status) ? response.status : 502 });
   return data;
 }
@@ -59,7 +63,7 @@ async function generate(input, safetyId) {
       "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
     },
     body: JSON.stringify(buildOpenAiRequest(input, projects, units)),
-  }, 60000);
+  }, 60000, "generation_provider_rate_limited");
   return { ...parseOpenAiOutput(response, input.action, { input, units }), source_refs: sourceRefs(projects, units), generated_as: "draft" };
 }
 
@@ -79,7 +83,10 @@ exports.handler = async function handler(event) {
     if (claim.state === "replay") return jsonResponse(200, claim.response, { "x-idempotent-replay": "true" });
     if (claim.state === "conflict") return jsonResponse(409, { error: "idempotency_conflict" });
     if (claim.state === "busy") return jsonResponse(409, { error: "generation_in_progress", retry_after_seconds: claim.retry_after_seconds }, { "retry-after": String(claim.retry_after_seconds || 1) });
-    if (claim.state === "rate_limited") return jsonResponse(429, { error: "generation_rate_limited" });
+    if (claim.state === "rate_limited") {
+      const retryAfterSeconds = Math.max(1, Number(claim.retry_after_seconds) || 600);
+      return jsonResponse(429, { error: "generation_rate_limited", retry_after_seconds: retryAfterSeconds }, { "retry-after": String(retryAfterSeconds) });
+    }
     if (claim.state === "exhausted") return jsonResponse(429, { error: "generation_attempts_exhausted" });
     if (claim.state !== "claimed" || !claim.lock_token) throw Object.assign(new Error("generation_claim_invalid"), { status: 502 });
     lockToken = String(claim.lock_token);
@@ -92,6 +99,6 @@ exports.handler = async function handler(event) {
       await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, error: String(error?.message || "generation_failed") }).catch(() => undefined);
     }
     console.error("[article-generate]", JSON.stringify({ error: error?.message || "generation_failed", ...(error?.diagnostics || {}) }));
-    return jsonResponse(Number(error?.status) || 500, { error: error?.message || "generation_failed" });
+    return jsonResponse(Number(error?.status) || 500, { error: error?.message || "generation_failed", ...(error?.retryAfterSeconds ? { retry_after_seconds: error.retryAfterSeconds } : {}) }, error?.retryAfterSeconds ? { "retry-after": String(error.retryAfterSeconds) } : {});
   }
 };

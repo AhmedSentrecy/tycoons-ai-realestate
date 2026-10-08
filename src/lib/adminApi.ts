@@ -175,11 +175,13 @@ export interface SubmitResult {
 export class AdminApiError extends Error {
   code: string;
   status: number;
+  retryAfterSeconds: number | null;
 
-  constructor(code: string, status: number) {
+  constructor(code: string, status: number, retryAfterSeconds: number | null = null) {
     super(code);
     this.code = code;
     this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -194,7 +196,7 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}, to
     body: JSON.stringify({ action, ...payload }),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status);
+  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null);
   return data as T;
 }
 
@@ -205,7 +207,7 @@ async function generate<T>(token: string, idempotencyKey: string, payload: Recor
     body: JSON.stringify(payload),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status);
+  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null);
   return data as T;
 }
 
@@ -383,6 +385,15 @@ const FIELD_LABELS: Record<string, string> = {
 
 export function errorMessage(error: unknown): string {
   const code = error instanceof AdminApiError ? error.code : "";
+  if (code === "generation_rate_limited") {
+    const seconds = error instanceof AdminApiError ? error.retryAfterSeconds : null;
+    const minutes = Math.max(1, Math.ceil((seconds || 600) / 60));
+    return `تم بلوغ حد 6 طلبات توليد خلال 10 دقائق. حاول بعد نحو ${minutes} دقائق؛ لم يتم إرسال محاولة مدفوعة جديدة.`;
+  }
+  if (code === "generation_provider_rate_limited") {
+    const seconds = error instanceof AdminApiError ? error.retryAfterSeconds : null;
+    return `مزود التوليد مشغول حالياً. حاول بعد ${seconds || 60} ثانية؛ لن تتم إعادة المحاولة تلقائياً.`;
+  }
   if (code.startsWith("invalid_url")) return "فيه رابط مش صحيح (لازم يبدأ بـ https ومن غير فواصل)";
   if (code.startsWith("invalid_number:")) return `رقم مش صحيح في ${FIELD_LABELS[code.split(":")[1]] || code.split(":")[1]}`;
   if (code.startsWith("row_")) {
