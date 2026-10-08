@@ -78,6 +78,34 @@ const missing = notFound("ar");
 const unit = renderUnit(projects, rows[0].id, "ar");
 const unitSibling = renderUnit(projects, rows[1].id, "ar");
 
+const localizedProjects = groupProjects(rows, [{
+  id: rows[0].project_id,
+  name: "PRK Vie",
+  slug: "prk-vie--upwyde",
+  developer: "Upwyde",
+  location: "New Cairo",
+  targeting: { localized_content: {
+    ar: { seo_title: "عنوان بارك في", seo_description: "وصف عربي موثق", article_sections: [{ key: "overview", heading: "عن بارك في", blocks: [{ type: "paragraph", content: [{ text: "راجع " }, { text: "مشروعات القاهرة الجديدة", href: "/ar/areas/new-cairo" }, { text: " والمصدر" }, { text: " الرسمي", href: "https://upwyde.com/project/prk-vie/" }, { text: " js", href: "javascript:alert(1)" }, { text: " slash", href: "//evil.example/x" }, { text: " backslash", href: "/\\evil.example/x" }, { text: " encoded", href: "/%5cevil.example/x" }, { text: " encoded slash", href: "/%2f%2fevil.example/x" }, { text: " control", href: "/safe\u0001bad" }] }, { type: "subheading", text: "قبل الاختيار" }, { type: "ordered_list", items: [[{ text: "راجع الاستخدام" }], [{ text: "أكد التوفر" }]] }] }], faq: [{ question: "هل التوفر مؤكد؟", answer: "يؤكد عند الطلب." }] },
+    en: { seo_title: "PRK Vie project guide", seo_description: "A sourced English description", article_sections: [{ key: "overview", heading: "About PRK Vie", blocks: [{ type: "paragraph", content: [{ text: "Read the " }, { text: "New Cairo guide", href: "/en/areas/new-cairo" }] }] }], faq: [{ question: "Is availability current?", answer: "It is reconfirmed on request." }] },
+  } },
+}]);
+const localizedAr = renderProject(localizedProjects, "prk-vie--upwyde", "ar");
+const localizedEn = renderProject(localizedProjects, "prk-vie--upwyde", "en");
+assert.match(localizedAr, /عنوان بارك في/);
+assert.match(localizedAr, /href="\/ar\/areas\/new-cairo"/);
+assert.match(localizedAr, /href="https:\/\/upwyde\.com\/project\/prk-vie\/" rel="noopener noreferrer"/);
+assert.match(localizedAr, /<h3>قبل الاختيار<\/h3>/);
+assert.match(localizedAr, /<ol><li>راجع الاستخدام<\/li><li>أكد التوفر<\/li><\/ol>/);
+assert.doesNotMatch(localizedAr, /javascript:/);
+assert.doesNotMatch(localizedAr, /href="\/\\evil/i);
+assert.doesNotMatch(localizedAr, /href="\/%5c/i);
+assert.doesNotMatch(localizedAr, /href="\/%2f%2f/i);
+assert.doesNotMatch(localizedAr, /href="\/safe/i);
+assert.match(localizedAr, /راجع <a[^>]+>مشروعات القاهرة الجديدة<\/a> والمصدر/);
+assert.match(localizedEn, /PRK Vie project guide/);
+assert.match(localizedEn, /A sourced English description/);
+assert.match(localizedEn, /href="\/en\/areas\/new-cairo"/);
+
 assert.match(project, /<html lang="ar" dir="rtl">/);
 assert.match(english, /<html lang="en" dir="ltr">/);
 assert.match(project, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/projects\//);

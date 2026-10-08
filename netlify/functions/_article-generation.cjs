@@ -92,28 +92,80 @@ function buildOpenAiRequest(input, projects) {
     `Write in ${input.language === 'ar' ? 'clear Egyptian-market Arabic' : 'clear English'}.`,
   ];
   if (input.action === 'topics') {
-    rules.push("Suggest distinct, useful editorial topics. Rationale must be qualitative; do not claim search volume or ranking data.");
+    rules.push("Suggest 4 to 6 distinct, useful editorial topics. Keep each title, rationale, and angle concise. Rationale must be qualitative; do not claim search volume or ranking data.");
   } else {
     rules.push("Return a source-grounded draft, not a published article. Use Markdown headings, paragraphs, and lists only.");
     rules.push(`Only link to these approved internal URLs: ${refs.map((ref) => ref.url).join(', ') || 'none'}. Do not create any other links.`);
     rules.push("Add a final section titled 'مصادر ومراجعة' in Arabic or 'Sources and review' in English, saying factual details should be verified before publication.");
   }
   const schema = input.action === 'topics' ? topicSchema() : draftSchema();
-  return {
-    model: process.env.OPENAI_ARTICLE_MODEL || "gpt-5-mini",
+  const model = process.env.OPENAI_ARTICLE_MODEL || "gpt-5-mini";
+  const request = {
+    model,
     input: [
       { role: "system", content: rules.join(" ") },
       { role: "user", content: `BEGIN_UNTRUSTED_PUBLIC_FACTS\n${JSON.stringify({ task: input.action, topic: input.topic || undefined, target: input.targetType, public_facts: projects })}\nEND_UNTRUSTED_PUBLIC_FACTS` },
     ],
     text: { format: { type: "json_schema", name: input.action === 'topics' ? "article_topics" : "article_draft", strict: true, schema } },
-    max_output_tokens: input.action === 'topics' ? 1800 : 6000,
+    max_output_tokens: input.action === 'topics' ? 2400 : 6000,
+  };
+  if (/^gpt-5(?:-|$)/.test(model)) request.reasoning = { effort: "low" };
+  return request;
+}
+
+function outputDiagnostics(payload, text, stage) {
+  return {
+    response_id: String(payload?.id || "").slice(0, 100),
+    model: String(payload?.model || "").slice(0, 100),
+    response_status: String(payload?.status || "unknown").slice(0, 40),
+    incomplete_reason: String(payload?.incomplete_details?.reason || "").slice(0, 80),
+    input_tokens: Number(payload?.usage?.input_tokens) || 0,
+    output_tokens: Number(payload?.usage?.output_tokens) || 0,
+    total_tokens: Number(payload?.usage?.total_tokens) || 0,
+    text_length: text.length,
+    stage,
   };
 }
 
-function parseOpenAiOutput(payload) {
-  const text = payload?.output_text || payload?.output?.flatMap((item) => item.content || []).find((item) => item.type === 'output_text')?.text;
-  if (!text) throw Object.assign(new Error("generation_empty"), { status: 502 });
-  try { return JSON.parse(text); } catch { throw Object.assign(new Error("generation_invalid"), { status: 502 }); }
+function outputError(code, payload, text, stage, status = 502) {
+  return Object.assign(new Error(code), { status, diagnostics: outputDiagnostics(payload, text, stage) });
+}
+
+function validateGeneratedResult(value, action, payload, text) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw outputError("generation_shape_invalid", payload, text, "validate");
+  if (action === "topics") {
+    if (!Array.isArray(value.topics) || value.topics.length < 4 || value.topics.length > 6) throw outputError("generation_shape_invalid", payload, text, "validate_topics");
+    for (const topic of value.topics) {
+      if (!topic || typeof topic !== "object" || ["title", "rationale", "angle"].some((field) => typeof topic[field] !== "string" || !topic[field].trim())) {
+        throw outputError("generation_shape_invalid", payload, text, "validate_topics");
+      }
+    }
+  } else {
+    const fields = ["title", "slug", "excerpt", "meta_title", "meta_description", "body_markdown"];
+    if (fields.some((field) => typeof value[field] !== "string" || !value[field].trim())) throw outputError("generation_shape_invalid", payload, text, "validate_draft");
+  }
+  return value;
+}
+
+function parseOpenAiOutput(payload, action = "draft") {
+  const content = (Array.isArray(payload?.output) ? payload.output : [])
+    .filter((item) => item?.type === "message")
+    .flatMap((item) => Array.isArray(item.content) ? item.content : []);
+  const refusal = content.find((item) => item?.type === "refusal");
+  const text = typeof payload?.output_text === "string"
+    ? payload.output_text
+    : content.filter((item) => item?.type === "output_text" && typeof item.text === "string").map((item) => item.text).join("");
+
+  if (payload?.status === "incomplete") {
+    const reason = payload?.incomplete_details?.reason;
+    throw outputError(reason === "max_output_tokens" ? "generation_incomplete_max_output_tokens" : "generation_incomplete", payload, text, "status");
+  }
+  if (payload?.status === "failed" || (payload?.status && payload.status !== "completed")) throw outputError("generation_failed", payload, text, "status");
+  if (refusal) throw outputError("generation_refused", payload, text, "refusal", 422);
+  if (!text) throw outputError("generation_empty", payload, text, "extract");
+  let value;
+  try { value = JSON.parse(text); } catch { throw outputError("generation_invalid", payload, text, "parse"); }
+  return validateGeneratedResult(value, action, payload, text);
 }
 
 module.exports = { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, sourceRefs, buildOpenAiRequest, parseOpenAiOutput };

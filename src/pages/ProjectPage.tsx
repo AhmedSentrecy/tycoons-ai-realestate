@@ -22,6 +22,7 @@ import { fallbackImageFor, useInventory, type InventoryUnit } from "@/lib/invent
 import {
   loadProjectPage,
   type ProjectPageContent,
+  type ProjectContentSegment,
 } from "@/lib/projectPages";
 import { arabicField } from "@/lib/arabicFields";
 import { areaFor } from "@/lib/unitContent";
@@ -125,6 +126,13 @@ function replaceTokens(value: string, minPrice: number, minArea: number, maxArea
     .replaceAll("{{min_price}}", formatPrice(minPrice))
     .replaceAll("{{min_area}}", String(minArea))
     .replaceAll("{{max_area}}", String(maxArea));
+}
+
+function RichSegments({ value, minPrice, minArea, maxArea }: { value: ProjectContentSegment[]; minPrice: number; minArea: number; maxArea: number }) {
+  return <>{value.map((segment, index) => {
+    const label = replaceTokens(segment.text, minPrice, minArea, maxArea);
+    return segment.href ? <a key={index} href={segment.href} rel={segment.href.startsWith("https://") ? "noopener noreferrer" : undefined} className="font-semibold text-[#8a6630] underline">{label}</a> : <span key={index}>{label}</span>;
+  })}</>;
 }
 
 function setMeta(selector: string, attribute: "content" | "href", value: string) {
@@ -275,6 +283,7 @@ export default function ProjectPage() {
 
   const contentLoading = loadedSlug !== slug;
   const isIcityOctober = slug === "mountain-view-icity-october--mountain-view";
+  const localizedArabic = content?.localized_content.ar;
 
   useEffect(() => {
     if (loading || contentLoading || project || !content) return;
@@ -297,15 +306,17 @@ export default function ProjectPage() {
       ? `${project.project_name} من ${project.developer} في ${project.location}. الأسعار الظاهرة من ${formatPrice(Math.min(...prices))} إلى ${formatPrice(Math.max(...prices))} جنيه عبر ${projectUnits.length} خيار، مع طريقة التأكد من الموقع والـmaster plan الرسمي.`
       : content?.seo_description || project.description ||
         `اعرف أسعار ومساحات ${project.project_name} وخطط السداد والوحدات المتاحة.`;
-    document.title = title;
-    setMeta('meta[name="description"]', "content", description);
+    const localizedTitle = localizedArabic?.seo_title || title;
+    const localizedDescription = localizedArabic?.seo_description || description;
+    document.title = localizedTitle;
+    setMeta('meta[name="description"]', "content", localizedDescription);
     setMeta('link[rel="canonical"]', "href", pageUrl);
-    setMeta('meta[property="og:title"]', "content", title);
-    setMeta('meta[property="og:description"]', "content", description);
+    setMeta('meta[property="og:title"]', "content", localizedTitle);
+    setMeta('meta[property="og:description"]', "content", localizedDescription);
     setMeta('meta[property="og:url"]', "content", pageUrl);
     setMeta('meta[property="og:type"]', "content", "article");
     window.scrollTo(0, 0);
-  }, [content, isIcityOctober, project, projectUnits, slug]);
+  }, [content, isIcityOctober, localizedArabic, project, projectUnits, slug]);
 
   if (loading || contentLoading) {
     return (
@@ -417,7 +428,7 @@ export default function ProjectPage() {
         },
       ]
     : storedArticleSections;
-  const storedFaq = content?.faq || [];
+  const storedFaq = localizedArabic?.faq.length ? localizedArabic.faq : content?.faq || [];
   const faq = isIcityOctober
     ? [
         ...storedFaq,
@@ -427,6 +438,7 @@ export default function ProjectPage() {
         },
       ]
     : storedFaq;
+  const visibleFaq = localizedArabic?.article_sections.length ? [] : faq;
   const unitListItems = [
     ...priceRanges.map((range, index) => ({
       "@type": "ListItem",
@@ -555,7 +567,7 @@ export default function ProjectPage() {
                 </a>
               </div>
               <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-tight sm:text-4xl">
-                {project.project_name}
+                {localizedArabic?.h1 || project.project_name}
               </h1>
               <p className="mt-5 text-lg font-light text-white/70">
                 {content?.hero_text || project.description}
@@ -581,7 +593,18 @@ export default function ProjectPage() {
       <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]">
           <article>
-            {articleSections.map((section, sectionIndex) => (
+            {localizedArabic?.article_sections.length ? localizedArabic.article_sections.map((section, sectionIndex) => (
+              <section key={section.key || section.heading} className={sectionIndex ? "mt-12" : ""}>
+                {section.heading && <h2 className={sectionIndex ? "text-2xl font-extrabold" : "text-3xl font-extrabold"}>{replaceTokens(section.heading, minPrice, minArea, maxArea)}</h2>}
+                {section.blocks.map((block, blockIndex) => block.type === "subheading" ? (
+                  <h3 key={blockIndex} className="mt-7 text-xl font-extrabold">{replaceTokens(block.text, minPrice, minArea, maxArea)}</h3>
+                ) : block.type === "ordered_list" ? (
+                  <ol key={blockIndex} className="mt-5 list-decimal space-y-3 pr-6 font-light leading-loose text-[#5c6a62]">{block.items.map((item, itemIndex) => <li key={itemIndex}><RichSegments value={item} minPrice={minPrice} minArea={minArea} maxArea={maxArea} /></li>)}</ol>
+                ) : (
+                  <p key={blockIndex} className="mt-5 font-light leading-loose text-[#5c6a62]"><RichSegments value={block.content} minPrice={minPrice} minArea={minArea} maxArea={maxArea} /></p>
+                ))}
+              </section>
+            )) : articleSections.map((section, sectionIndex) => (
               <section key={section.heading} className={sectionIndex ? "mt-12" : ""}>
                 <h2 className={sectionIndex ? "text-2xl font-extrabold" : "text-3xl font-extrabold"}>
                   {replaceTokens(section.heading, minPrice, minArea, maxArea)}
@@ -616,12 +639,12 @@ export default function ProjectPage() {
               الأسعار والمساحات والتوافر بيتغيروا حسب وقت الحجز، لذلك بنأكد آخر
               Availability وPayment Plan قبل اتخاذ القرار.
             </p>
-            {faq.length > 0 && <section className="mt-14" aria-labelledby="project-faq">
+            {visibleFaq.length > 0 && <section className="mt-14" aria-labelledby="project-faq">
               <h2 id="project-faq" className="text-2xl font-extrabold">
                 أسئلة شائعة عن {project.project_name}
               </h2>
               <div className="mt-6 space-y-4">
-                {faq.map((item) => (
+                {visibleFaq.map((item) => (
                   <details key={item.question} className="group rounded-2xl border border-[#e7ddc8] bg-white/70 p-5">
                     <summary className="cursor-pointer list-none font-bold">
                       {replaceTokens(item.question, minPrice, minArea, maxArea)}

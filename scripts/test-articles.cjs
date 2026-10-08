@@ -7,6 +7,7 @@ const path = require("node:path");
 process.env.OPENAI_API_KEY = "test-only-not-a-real-key";
 const { renderSafeMarkdown } = require("../netlify/functions/_article-render.cjs");
 const { renderEditorialArticle, renderGuide } = require("../netlify/functions/_seo-utils.cjs");
+const { buildOpenAiRequest, parseOpenAiOutput } = require("../netlify/functions/_article-generation.cjs");
 const { handler } = require("../netlify/functions/article-generate.cjs");
 
 const originalFetch = global.fetch;
@@ -52,6 +53,36 @@ function durableFetch({ provider, projects = [{ id: "project-1", name: "Project 
 }
 
 (async () => {
+  const topics = Array.from({ length: 4 }, (_, index) => ({ title: `Topic ${index}`, rationale: `Rationale ${index}`, angle: `Angle ${index}` }));
+  const topicJson = JSON.stringify({ topics });
+  const completedTopics = parseOpenAiOutput({
+    id: "resp_test", model: "gpt-5-mini", status: "completed",
+    output: [
+      { type: "reasoning", content: [] },
+      { type: "message", content: [{ type: "output_text", text: topicJson.slice(0, 25) }, { type: "output_text", text: topicJson.slice(25) }] },
+    ],
+  }, "topics");
+  assert.deepEqual(completedTopics, { topics }, "all completed message output parts must be collected after reasoning items");
+
+  const expectGenerationError = (payload, code) => assert.throws(
+    () => parseOpenAiOutput(payload, "topics"),
+    (error) => Boolean(error.message === code && error.status >= 400 && error.diagnostics?.stage),
+  );
+  expectGenerationError({ status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, output_text: topicJson.slice(0, 20) }, "generation_incomplete_max_output_tokens");
+  expectGenerationError({ status: "incomplete", incomplete_details: { reason: "content_filter" }, output_text: topicJson.slice(0, 20) }, "generation_incomplete");
+  expectGenerationError({ status: "completed", output: [{ type: "message", content: [{ type: "refusal", refusal: "Cannot comply" }] }] }, "generation_refused");
+  expectGenerationError({ status: "completed", output: [{ type: "reasoning", content: [] }] }, "generation_empty");
+  expectGenerationError({ status: "completed", output_text: '{"topics":[' }, "generation_invalid");
+  expectGenerationError({ status: "completed", output_text: '{"topics":[]}' }, "generation_shape_invalid");
+  expectGenerationError({ status: "failed", error: { message: "provider detail must not leak" } }, "generation_failed");
+
+  const topicRequest = buildOpenAiRequest({ action: "topics", language: "ar", targetType: "project", topic: "" }, []);
+  assert.equal(topicRequest.max_output_tokens, 2400, "topic output remains bounded but leaves room for reasoning and JSON");
+  assert.deepEqual(topicRequest.reasoning, { effort: "low" }, "the supported default reasoning model should use low effort");
+  process.env.OPENAI_ARTICLE_MODEL = "gpt-4o";
+  assert.equal(buildOpenAiRequest({ action: "topics", language: "ar", targetType: "project", topic: "" }, []).reasoning, undefined, "unknown override models must not receive unsupported reasoning parameters");
+  delete process.env.OPENAI_ARTICLE_MODEL;
+
   const safe = renderSafeMarkdown('## Heading\n<script>alert(1)</script>\n[Project](/projects/project-one)\n[Bad](https://evil.example)');
   assert.match(safe, /<h2>Heading<\/h2>/);
   assert.match(safe, /&lt;script&gt;/);
@@ -114,6 +145,20 @@ function durableFetch({ provider, projects = [{ id: "project-1", name: "Project 
   const retried = await handler(event("failed-request-key-1234", "b".repeat(40)));
   assert.equal(retried.statusCode, 200, "a failed provider attempt may retry under the bounded durable attempt count");
   assert.equal(retryStore.providerCalls(), 2);
+
+  const incompleteStore = durableFetch({ provider: async (call) => call === 1
+    ? response(200, { id: "resp_incomplete", model: "gpt-5-mini", status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, output_text: topicJson.slice(0, 20), usage: { input_tokens: 120, output_tokens: 2400, total_tokens: 2520 } })
+    : response(200, { id: "resp_completed", model: "gpt-5-mini", status: "completed", output_text: topicJson }) });
+  global.fetch = incompleteStore.fetch;
+  const topicsEvent = event("incomplete-topics-1234", "e".repeat(40), { action: "topics" });
+  const incomplete = await handler(topicsEvent);
+  assert.equal(incomplete.statusCode, 502);
+  assert.equal(JSON.parse(incomplete.body).error, "generation_incomplete_max_output_tokens");
+  const completedRetry = await handler(topicsEvent);
+  assert.equal(completedRetry.statusCode, 200, "an explicit retry may replace a failed incomplete response");
+  const completedReplay = await handler(topicsEvent);
+  assert.equal(completedReplay.headers["x-idempotent-replay"], "true");
+  assert.equal(incompleteStore.providerCalls(), 2, "incomplete output must not be cached as success or trigger an automatic paid retry");
 
   let releaseStale;
   const staleStore = durableFetch({ provider: async (call) => call === 1

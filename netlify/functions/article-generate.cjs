@@ -48,7 +48,7 @@ async function generate(input, safetyId) {
     },
     body: JSON.stringify(buildOpenAiRequest(input, projects)),
   }, 60000);
-  return { ...parseOpenAiOutput(response), source_refs: sourceRefs(projects), generated_as: "draft" };
+  return { ...parseOpenAiOutput(response, input.action), source_refs: sourceRefs(projects), generated_as: "draft" };
 }
 
 exports.handler = async function handler(event) {
@@ -79,7 +79,7 @@ exports.handler = async function handler(event) {
     if (lockToken) {
       await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, error: String(error?.message || "generation_failed") }).catch(() => undefined);
     }
-    console.error("[article-generate]", error?.message || "generation_failed");
+    console.error("[article-generate]", JSON.stringify({ error: error?.message || "generation_failed", ...(error?.diagnostics || {}) }));
     return jsonResponse(Number(error?.status) || 500, { error: error?.message || "generation_failed" });
   }
 };

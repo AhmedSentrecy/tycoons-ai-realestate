@@ -1,5 +1,7 @@
 "use strict";
 
+const { localizedProjectContent, renderSections: renderLocalizedSections } = require("./_localized-project-content.cjs");
+
 const { renderSafeMarkdown } = require("./_article-render.cjs");
 
 const SITE_URL = "https://tycoons-inv.com";
@@ -500,7 +502,7 @@ async function fetchProjectsMeta({ strict = false } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8500);
   try {
-    const params = new URLSearchParams({ select: "id,name,slug,developer,location,image_url,gallery_urls", limit: "1000" });
+    const params = new URLSearchParams({ select: "id,name,slug,developer,location,image_url,gallery_urls,targeting", limit: "1000" });
     const response = await fetch(`${SUPABASE_URL}/rest/v1/projects?${params}`, {
       headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
       signal: controller.signal,
@@ -539,6 +541,7 @@ function groupProjects(units, projectsMeta = []) {
         location: clean(meta.location, ""),
         image_url: clean(meta.image_url, ""),
         gallery_urls: clean(meta.gallery_urls, ""),
+        targeting: meta.targeting && typeof meta.targeting === "object" && !Array.isArray(meta.targeting) ? meta.targeting : {},
         units: [],
       });
     }
@@ -792,9 +795,10 @@ function renderProject(projects, slug, lang) {
       ? `الأسعار الظاهرة بتبدأ من ${formatPrice(minPrice, lang)} وبتوصل إلى ${formatPrice(maxPrice, lang)} عبر ${units.length} خيار.`
       : `Currently listed prices range from ${formatPrice(minPrice, lang)} to ${formatPrice(maxPrice, lang)} across ${units.length} options.`)
     : (ar ? "لا توجد أسعار تفصيلية منشورة حاليًا." : "No detailed prices are currently published.");
+  const localizedContent = localizedProjectContent(project,lang);
   const searchContent = PROJECT_SEARCH_CONTENT[slug]?.[lang];
   const contentVars = { project, location, priceSummary, unitCount: units.length };
-  const description = searchContent?.description?.(contentVars) || (ar
+  const description = localizedContent?.seo_description || searchContent?.description?.(contentVars) || (ar
     ? `${project.name} من ${project.developer} في ${location}. قارن الوحدات المتاحة والأسعار وخطط السداد والاستلام.`
     : `${project.name} by ${project.developer} in ${location}. Compare available units, prices, payment plans and delivery.`);
   const crumbs = [
@@ -806,12 +810,15 @@ function renderProject(projects, slug, lang) {
   const message = encodeURIComponent(
     `Hello Tycoons Investments,\nI am interested in this project:\n\nProject: ${project.name}\nDeveloper: ${project.developer}\nLocation: ${location}\nStarting price: ${formatPrice(projectMinPrice(project), "en")}\nStatus: Available\n\nURL: ${SITE_URL}${path}\n\nPlease send me available options and details.\n\nSource: project_page\nPage: ${SITE_URL}${path}`,
   );
-  const extraSections = (searchContent?.sections?.(contentVars) || [])
+  const extraSections = localizedContent?.article_sections?.length
+    ? renderLocalizedSections(localizedContent.article_sections,{escapeHtml,replaceTokens:(value)=>value})
+    : (searchContent?.sections?.(contentVars) || [])
     .map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`)
     .join("");
-  const projectFaq = searchContent?.faq?.(contentVars) || [];
+  const projectFaq = localizedContent?.faq?.length?localizedContent.faq.map((item)=>[item.question,item.answer]):(searchContent?.faq?.(contentVars) || []);
+  const visibleProjectFaq = localizedContent?.article_sections?.length ? [] : projectFaq;
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
-  <section class="hero"><span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
+  <section class="hero"><span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(localizedContent?.h1 || project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
   ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:cover;border-radius:20px" fetchpriority="high">` : ""}
   <div class="facts">${hasUnits ? `<div class="fact"><small>${ar ? "يبدأ من" : "Starting from"}</small><strong>${escapeHtml(formatPrice(minPrice, lang))}</strong></div>
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
@@ -825,14 +832,14 @@ function renderProject(projects, slug, lang) {
   </tbody></table></div>`
       : `<p class="note">${ar ? `لا توجد وحدات منشورة بأسعار تفصيلية لـ${project.name} حاليًا. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من ${project.developer}.` : `No units with detailed pricing are published for ${project.name} right now. Message us on WhatsApp and we'll send the latest price list and payment plans from ${project.developer}.`}</p>`
   }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p>
-  ${projectFaq.map(([question, answer]) => `<section><h2>${escapeHtml(question)}</h2><p>${escapeHtml(answer)}</p></section>`).join("")}</main>`;
+  ${visibleProjectFaq.map(([question, answer]) => `<section><h2>${escapeHtml(question)}</h2><p>${escapeHtml(answer)}</p></section>`).join("")}</main>`;
   const unitNavigation = hasUnits
     ? `<section aria-labelledby="unit-links"><h2 id="unit-links">${ar ? "روابط الوحدات المتاحة" : "Available unit links"}</h2><div class="grid">${units.map((unit) => `<article class="card"><h3><a href="/units/${escapeHtml(unit.id)}">${escapeHtml(clean(unit.unit_type))}${unit.area_sqm ? ` - ${escapeHtml(unit.area_sqm)} m²` : ""}</a></h3><p>${escapeHtml(clean(unit.bedrooms_text))} · ${escapeHtml(formatPrice(unit.starting_price, lang))}</p><p>${escapeHtml(clean(unit.delivery_text))}</p></article>`).join("")}</div></section>`
     : "";
 
   return renderPage({
     lang,
-    title: searchContent?.title?.(contentVars) || `${project.name} | ${project.developer} | Tycoons Investments`,
+    title: localizedContent?.seo_title || searchContent?.title?.(contentVars) || `${project.name} | ${project.developer} | Tycoons Investments`,
     description,
     path,
     alternatePath,
