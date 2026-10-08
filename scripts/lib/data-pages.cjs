@@ -1,5 +1,7 @@
 "use strict";
 
+const { localizedProjectContent, renderSections: renderLocalizedSections } = require("../../netlify/functions/_localized-project-content.cjs");
+
 const SITE_URL = "https://tycoons-inv.com";
 
 function escapeHtml(value) {
@@ -309,14 +311,17 @@ function renderProjectStatic(shell, project, projectUnits) {
   const maxArea = areas.length ? Math.max(...areas) : 0;
   const imageList = urls(project.image_url, project.gallery_urls, ...units.map((unit) => unit.image_url));
   const isIcityOctober = project.slug === "mountain-view-icity-october--mountain-view";
-  const title = isIcityOctober
+  const localized = localizedProjectContent(project, "ar");
+  const legacyTitle = isIcityOctober
     ? `${project.name} — الأسعار والموقع والوحدات | Tycoons`
     : text(project.seo_title) || `${project.name} | الأسعار والوحدات المتاحة`;
-  const description = isIcityOctober && prices.length
+  const legacyDescription = isIcityOctober && prices.length
     ? `${project.name} من ${project.developer} في ${project.location}. الأسعار الظاهرة من ${formatPrice(minPrice)} إلى ${formatPrice(highPrice)} جنيه عبر ${totalOptionCount} خيار، مع طريقة التأكد من الموقع والـmaster plan الرسمي.`
     : text(project.seo_description) || text(project.description) ||
       `اعرف أسعار ومساحات ${project.name} وخطط السداد والوحدات المتاحة.`;
-  const storedFaq = arrayValue(project.faq);
+  const title = localized?.seo_title || legacyTitle;
+  const description = localized?.seo_description || legacyDescription;
+  const storedFaq = localized?.faq?.length ? localized.faq : arrayValue(project.faq);
   const baseFaq = storedFaq.length ? storedFaq : [
     {
       question: `ما أقل سعر ظاهر حاليًا في ${project.name}؟`,
@@ -334,12 +339,18 @@ function renderProjectStatic(shell, project, projectUnits) {
       }]
     : baseFaq;
   const storedArticle = arrayValue(project.article_sections);
-  const article = isIcityOctober
+  let article = isIcityOctober
     ? [...storedArticle, {
         heading: `موقع ${project.name} والـmaster plan`,
         paragraphs: [`سجل Tycoons بيصنّف المشروع في ${project.location}. لتحديد المرحلة والقطعة وأقرب مدخل بدقة، راجع الـmaster plan الرسمي الصادر من ${project.developer} قبل الحجز؛ الصفحة دي للمقارنة بين الوحدات وليست خريطة مساحية.`],
       }]
     : storedArticle;
+  const localizedArticle = localized?.article_sections?.length
+    ? renderLocalizedSections(localized.article_sections, { escapeHtml, replaceTokens: (value) => replaceTokens(value, minPrice, minArea, maxArea) })
+    : "";
+  if (localizedArticle) article = { length: 1, map: () => ({ join: () => localizedArticle }) };
+  if (localized?.h1) project = { ...project, name: localized.h1 };
+  const visibleFaq = localizedArticle ? [] : faq;
   const developerPath = `/ar/developers/${slugify(project.developer)}`;
   const areaPath = `/ar/areas/${areaSlug(project.location)}`;
   const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
@@ -348,7 +359,7 @@ function renderProjectStatic(shell, project, projectUnits) {
   ${imageList[0] ? `<section class="bg-[#0d1f18] px-5 pb-12"><img src="${escapeHtml(imageList[0])}" alt="${escapeHtml(project.name)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-cover"></section>` : ""}
   <section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]"><article>
   ${article.length ? article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#5c6a62]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join("") : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
-  ${faq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(project.name)}</h2>${faq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#5c6a62]">${escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea))}</p></details>`).join("")}</section>` : ""}
+  ${visibleFaq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(project.name)}</h2>${visibleFaq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#5c6a62]">${escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea))}</p></details>`).join("")}</section>` : ""}
   </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white">${minPrice ? `<p class="text-sm text-white/55">الأسعار تبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(minPrice)} جنيه</p>` : `<p class="text-sm text-white/55">السعر حسب آخر طرح</p><p class="mt-2 text-xl font-extrabold text-[#ecd9ae]">اسأل عن أحدث الأسعار</p>`}${text(project.down_payment_text) ? `<p class="mt-3 text-sm text-white/70">${escapeHtml(arabicField(project.down_payment_text))}</p>` : ""}${text(project.installments_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.installments_text))}</p>` : ""}${text(project.delivery_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.delivery_text))}</p>` : ""}<a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a></aside></div></section>
   ${totalOptionCount ? `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">اختار وحدتك واعرف خطة السداد</h2><p class="mt-3 text-[#5c6a62]">${totalOptionCount} اختيار متاح من البيانات الحالية للصفحة.</p>${priceRanges.length || villaUnits.length ? `<section class="mt-9 rounded-3xl bg-[#0d1f18] p-6 text-white"><h3 class="text-2xl font-extrabold">فلل وتاون هاوس</h3><div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">${priceRanges.map((range) => `<details class="overflow-hidden rounded-3xl bg-white p-6 text-[#1b2420]"><summary class="cursor-pointer list-none"><h4 class="text-xl font-extrabold">${escapeHtml(range.unit_type)}</h4><p class="mt-3">${range.area_sqm} م² · ${formatPrice(range.min_price)}–${formatPrice(range.max_price)} جنيه</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary><p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml([text(project.down_payment_text), text(project.installments_text)].filter(Boolean).map(arabicField).join(" · "))}</p></details>`).join("")}${villaUnits.map(staticUnitCard).join("")}</div></section>` : ""}${otherUnits.length ? `<section class="mt-10"><h3 class="text-2xl font-extrabold">${villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : "الوحدات المتاحة"}</h3><div class="mt-6 grid gap-5 md:grid-cols-2">${otherUnits.map(staticUnitCard).join("")}</div></section>` : ""}</div></section>` : `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات في ${escapeHtml(project.name)}</h2><p class="mt-5 max-w-3xl leading-loose text-[#5c6a62]">لا توجد وحدات منشورة بأسعار تفصيلية لهذا المشروع حالياً. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من المطور.</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اطلب أحدث الأسعار</a></div></section>`}
   </main>`;

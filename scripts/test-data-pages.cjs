@@ -4,6 +4,20 @@ const assert = require("node:assert/strict");
 const { renderProjectStatic, renderUnitStatic } = require("./lib/data-pages.cjs");
 const { projectAliases, publishedProjectSlugs } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
+const prkProduction = require("../release/prk-vie-localized-content.production.json");
+
+for (const lang of ["ar", "en"]) {
+  const locale = prkProduction.localized_content[lang];
+  assert.equal(locale.article_sections.length, 10);
+  assert.equal(locale.faq.length, 6);
+  const renderedText = locale.article_sections.flatMap((section) => section.blocks.flatMap((block) => {
+    if (block.type === "paragraph") return [block.content.map((segment) => segment.text).join("")];
+    if (block.type === "ordered_list") return block.items.map((item) => item.map((segment) => segment.text).join(""));
+    return [block.text];
+  })).join("\n").replace(/\s+/g, " ");
+  assert.ok(renderedText.length > 5000, `${lang} full article text should be present`);
+  assert.doesNotMatch(renderedText, /ExploreUpwyde|Tycoonsto compare|WhatsAppwith/);
+}
 
 const shell = `<!doctype html><html lang="ar" dir="rtl"><head><title>Home</title><meta name="description" content="home"><link rel="canonical" href="https://tycoons-inv.com/"><script type="application/ld+json">{"@type":"FAQPage"}</script></head><body><div id="root"><h1>قارن المشاريع والوحدات العقارية</h1></div><script type="module" src="/assets/app.js"></script></body></html>`;
 const project = {
@@ -57,6 +71,31 @@ assert.match(projectHtml, /"numberOfItems":1/);
 assert.match(projectHtml, /اختار وحدتك واعرف خطة السداد/);
 assert.doesNotMatch(projectHtml, /قارن المشاريع والوحدات العقارية/);
 assert.match(projectHtml, /<script type="module" src="\/assets\/app\.js"><\/script>/);
+
+const localizedHtml = renderProjectStatic(shell, {
+  ...project,
+  targeting: { localized_content: { ar: {
+    h1: "Localized Alpha H1",
+    seo_title: "Localized Alpha title",
+    seo_description: "Localized Alpha description",
+    article_sections: [{ key: "overview", heading: "Localized section", blocks: [
+      { type: "paragraph", content: [{ text: "Read " }, { text: "New Cairo", href: "/ar/areas/new-cairo" }, { text: " and source", href: "https://example.com/source" }, { text: " unsafe", href: "javascript:alert(1)" }] },
+      { type: "subheading", text: "Localized subheading" },
+      { type: "ordered_list", items: [[{ text: "First check" }], [{ text: "Second check" }]] },
+    ] }],
+    faq: [{ question: "Localized question?", answer: "Localized answer." }],
+  } } },
+}, [unit]);
+assert.match(localizedHtml, /Localized Alpha title/);
+assert.match(localizedHtml, /Localized Alpha description/);
+assert.match(localizedHtml, /Localized Alpha H1/);
+assert.match(localizedHtml, /Localized section/);
+assert.match(localizedHtml, /href="\/ar\/areas\/new-cairo"/);
+assert.match(localizedHtml, /href="https:\/\/example\.com\/source" rel="noopener noreferrer"/);
+assert.match(localizedHtml, /<h3>Localized subheading<\/h3>/);
+assert.match(localizedHtml, /<ol><li>First check<\/li><li>Second check<\/li><\/ol>/);
+assert.match(localizedHtml, /Localized question\?/);
+assert.doesNotMatch(localizedHtml, /javascript:/);
 
 const sibling = {
   id: "unit-sibling",
