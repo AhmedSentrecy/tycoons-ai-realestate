@@ -357,6 +357,16 @@ const ERROR_MESSAGES: Record<string, string> = {
   project_exists: "فيه مشروع بنفس الاسم والمطور موجود بالفعل",
 };
 
+Object.assign(ERROR_MESSAGES, {
+  generation_incomplete_max_output_tokens: "لم يكتمل اقتراح الموضوعات. حاول مرة أخرى؛ لن يتم حفظ نتيجة ناقصة.",
+  generation_incomplete: "توقف اقتراح الموضوعات قبل اكتماله. حاول مرة أخرى.",
+  generation_refused: "تعذر إنشاء الاقتراحات لهذا الطلب. عدّل البيانات وحاول مرة أخرى.",
+  generation_empty: "لم تصل اقتراحات من خدمة التوليد. حاول مرة أخرى.",
+  generation_invalid: "وصلت نتيجة غير مكتملة من خدمة التوليد. حاول مرة أخرى.",
+  generation_shape_invalid: "وصلت اقتراحات بتنسيق غير صالح. حاول مرة أخرى.",
+  generation_failed: "تعذر إكمال التوليد حاليًا. حاول مرة أخرى.",
+});
+
 const FIELD_LABELS: Record<string, string> = {
   unit_type: "نوع الوحدة",
   area_sqm: "المساحة",
