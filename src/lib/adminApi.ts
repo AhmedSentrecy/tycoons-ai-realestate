@@ -38,10 +38,11 @@ export interface AdminProject extends MediaFields {
 }
 
 export interface ArticleSourceRef {
-  type: "project";
+  type: "project" | "unit";
   id: string;
   label: string;
   url: string;
+  source_last_updated_at?: string | null;
 }
 
 export interface ArticleValues {
@@ -365,6 +366,12 @@ Object.assign(ERROR_MESSAGES, {
   generation_invalid: "وصلت نتيجة غير مكتملة من خدمة التوليد. حاول مرة أخرى.",
   generation_shape_invalid: "وصلت اقتراحات بتنسيق غير صالح. حاول مرة أخرى.",
   generation_failed: "تعذر إكمال التوليد حاليًا. حاول مرة أخرى.",
+  generation_source_insufficient: "بيانات الوحدات الحالية لا تكفي لكتابة مقارنة مساحات موثوقة.",
+  generation_placeholder_unresolved: "المسودة تحتوي على قيمة مؤقتة غير مكتملة، لذلك لم يتم قبولها.",
+  generation_topic_unsupported: "المسودة لا تدعم وعد العنوان ببيانات الوحدات المتاحة.",
+  generation_area_fact_unverified: "المسودة تحتوي على مساحة وحدة غير مرتبطة بصف مصدر موثوق.",
+  generation_commercial_fact_unverified: "المسودة تحتوي على رقم تجاري غير موجود في بيانات الوحدة المصدر.",
+  generation_commercial_review_required: "أي سعر أو نظام سداد أو موعد تسليم يجب ربطه بوحدة مصدر والتنبيه لمراجعته.",
 });
 
 const FIELD_LABELS: Record<string, string> = {

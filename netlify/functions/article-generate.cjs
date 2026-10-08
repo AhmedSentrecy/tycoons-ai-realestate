@@ -1,7 +1,7 @@
 "use strict";
 
 const crypto = require("node:crypto");
-const { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, sourceRefs, buildOpenAiRequest, parseOpenAiOutput } = require("./_article-generation.cjs");
+const { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, buildOpenAiRequest, parseOpenAiOutput } = require("./_article-generation.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
@@ -34,11 +34,23 @@ async function loadPublicFacts(input) {
   }
   const rows = await fetchJson(url, { headers: { apikey: SUPABASE_KEY, Accept: "application/json" } });
   if (!Array.isArray(rows) || !rows.length) throw Object.assign(new Error("public_facts_not_found"), { status: 404 });
-  return rows.map(safeProject);
+  const projects = rows.map(safeProject);
+  const projectIds = projects.map((project) => project.id).filter(Boolean).slice(0, 12);
+  const unitSelect = "id,project_id,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,availability_status,last_updated_at";
+  const unitUrl = `${SUPABASE_URL}/rest/v1/units?select=${unitSelect}&project_id=in.(${projectIds.map(encodeURIComponent).join(',')})&availability_status=eq.available&order=last_updated_at.desc&limit=${input.targetType === "project" ? 24 : 18}`;
+  const unitRows = input.action === "draft" && projectIds.length ? await fetchJson(unitUrl, { headers: { apikey: SUPABASE_KEY, Accept: "application/json" } }) : [];
+  const units = Array.isArray(unitRows) ? unitRows.map(safeUnit) : [];
+  return { projects, units };
 }
 
 async function generate(input, safetyId) {
-  const projects = await loadPublicFacts(input);
+  const { projects, units } = await loadPublicFacts(input);
+  if (input.action === "draft" && /مساح|متر|\barea|\bsize/i.test(input.topic)) {
+    const requiredUnits = /مقارن|compar/i.test(input.topic) ? 2 : 1;
+    if (units.filter((unit) => Number.isFinite(unit.area_sqm)).length < requiredUnits) {
+      throw Object.assign(new Error("generation_source_insufficient"), { status: 422 });
+    }
+  }
   const response = await fetchJson("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -46,9 +58,9 @@ async function generate(input, safetyId) {
       "content-type": "application/json",
       "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
     },
-    body: JSON.stringify(buildOpenAiRequest(input, projects)),
+    body: JSON.stringify(buildOpenAiRequest(input, projects, units)),
   }, 60000);
-  return { ...parseOpenAiOutput(response, input.action), source_refs: sourceRefs(projects), generated_as: "draft" };
+  return { ...parseOpenAiOutput(response, input.action, { input, units }), source_refs: sourceRefs(projects, units), generated_as: "draft" };
 }
 
 exports.handler = async function handler(event) {
