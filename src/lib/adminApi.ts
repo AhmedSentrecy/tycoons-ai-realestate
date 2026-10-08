@@ -361,6 +361,17 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 Object.assign(ERROR_MESSAGES, {
+  generation_provider_credit_exhausted: "رصيد OpenAI API المستخدم بالموقع منتهٍ. أضف رصيدًا من إعدادات الفوترة ثم حاول مجددًا.",
+  generation_provider_spend_limit_exceeded: "وصل مشروع OpenAI إلى حد الإنفاق المسموح. راجع حدود الإنفاق للمشروع أو المؤسسة.",
+  generation_provider_usage_limit_exceeded: "وصل حساب OpenAI إلى حد الاستخدام المسموح. راجع حدود الاستخدام أو اطلب زيادتها.",
+  generation_provider_quota_exceeded: "وصل OpenAI إلى حد حصة أو فوترة غير محدد. راجع الرصيد وحدود الاستخدام والإنفاق قبل إعادة المحاولة.",
+  generation_provider_authentication_failed: "تعذر توثيق مفتاح OpenAI الخاص بالموقع. راجع إعداد OPENAI_API_KEY وصلاحياته.",
+  generation_provider_model_access_failed: "النموذج المحدد غير متاح لهذا المشروع أو أن المفتاح لا يملك صلاحية استخدامه.",
+  generation_provider_permission_denied: "لا يملك مشروع OpenAI أو المفتاح صلاحية تنفيذ هذا الطلب. راجع صلاحيات المشروع والمفتاح.",
+  generation_provider_unavailable: "خدمة إنشاء المحتوى غير متاحة مؤقتًا. راجع حالة OpenAI ثم حاول لاحقًا.",
+  generation_provider_request_invalid: "رفضت خدمة إنشاء المحتوى إعدادات الطلب. راجع النموذج وإعدادات التوليد.",
+  generation_provider_limit_unknown: "رفض مزود إنشاء المحتوى الطلب بسبب حد غير محدد. راجع كود الخطأ ومعرّف الطلب في سجل الوظيفة قبل إعادة المحاولة.",
+  generation_provider_failed: "فشل مزود إنشاء المحتوى. راجع بيانات التشخيص الآمنة في سجل الوظيفة.",
   generation_incomplete_max_output_tokens: "لم يكتمل اقتراح الموضوعات. حاول مرة أخرى؛ لن يتم حفظ نتيجة ناقصة.",
   generation_incomplete: "توقف اقتراح الموضوعات قبل اكتماله. حاول مرة أخرى.",
   generation_refused: "تعذر إنشاء الاقتراحات لهذا الطلب. عدّل البيانات وحاول مرة أخرى.",
@@ -392,7 +403,8 @@ export function errorMessage(error: unknown): string {
   }
   if (code === "generation_provider_rate_limited") {
     const seconds = error instanceof AdminApiError ? error.retryAfterSeconds : null;
-    return `مزود التوليد مشغول حالياً. حاول بعد ${seconds || 60} ثانية؛ لن تتم إعادة المحاولة تلقائياً.`;
+    if (!seconds) return "وصل مزود التوليد إلى حد الطلبات مؤقتاً. حاول لاحقاً؛ لن تتم إعادة المحاولة تلقائياً.";
+    return `مزود التوليد مشغول حالياً. حاول بعد ${seconds} ثانية؛ لن تتم إعادة المحاولة تلقائياً.`;
   }
   if (code.startsWith("invalid_url")) return "فيه رابط مش صحيح (لازم يبدأ بـ https ومن غير فواصل)";
   if (code.startsWith("invalid_number:")) return `رقم مش صحيح في ${FIELD_LABELS[code.split(":")[1]] || code.split(":")[1]}`;

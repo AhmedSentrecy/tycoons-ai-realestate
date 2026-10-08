@@ -272,19 +272,63 @@ function durableFetch({
     : response(200, { output_text: JSON.stringify({ title: "Retry draft", slug: "retry-draft", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nVerified retry" }) }) });
   global.fetch = retryStore.fetch;
   const failed = await handler(event("failed-request-key-1234", "b".repeat(40)));
-  assert.equal(failed.statusCode, 502);
-  assert.match(failed.body, /provider_failure/);
+  assert.equal(failed.statusCode, 503);
+  assert.match(failed.body, /generation_provider_unavailable/);
   const retried = await handler(event("failed-request-key-1234", "b".repeat(40)));
   assert.equal(retried.statusCode, 200, "a failed provider attempt may retry under the bounded durable attempt count");
   assert.equal(retryStore.providerCalls(), 2);
 
-  const providerLimitedStore = durableFetch({ provider: async () => response(429, { error: "provider busy" }, { "retry-after": "45" }) });
+  const providerLimitedStore = durableFetch({ provider: async () => response(429, { error: { type: "rate_limit_error", code: "rate_limit_exceeded" } }, { "retry-after": "45", "x-request-id": "req-rate" }) });
   global.fetch = providerLimitedStore.fetch;
   const providerLimited = await handler(event("provider-rate-limit-1234", "g".repeat(40)));
   assert.equal(providerLimited.statusCode, 429);
   assert.equal(JSON.parse(providerLimited.body).error, "generation_provider_rate_limited");
   assert.equal(JSON.parse(providerLimited.body).retry_after_seconds, 45);
   assert.equal(providerLimitedStore.providerCalls(), 1, "provider rate limits must not trigger an automatic paid retry");
+
+  const providerCases = [
+    { name: "credit", status: 429, error: { type: "insufficient_quota", code: "credit_balance_exhausted", message: "secret billing detail" }, expected: "generation_provider_credit_exhausted", publicStatus: 502 },
+    { name: "spend", status: 429, error: { type: "insufficient_quota", code: "project_spend_limit_exceeded" }, expected: "generation_provider_spend_limit_exceeded", publicStatus: 502 },
+    { name: "quota", status: 429, error: { type: "insufficient_quota", code: "insufficient_quota" }, expected: "generation_provider_quota_exceeded", publicStatus: 502 },
+    { name: "auth", status: 401, error: { type: "invalid_request_error", code: "invalid_api_key" }, expected: "generation_provider_authentication_failed", publicStatus: 503 },
+    { name: "model", status: 404, error: { type: "invalid_request_error", code: "model_not_found", param: "model" }, expected: "generation_provider_model_access_failed", publicStatus: 503 },
+    { name: "permission", status: 403, error: { type: "permission_error", code: "project_access_denied" }, expected: "generation_provider_permission_denied", publicStatus: 503 },
+    { name: "transient", status: 503, error: { type: "service_unavailable_error", code: "server_is_overloaded" }, expected: "generation_provider_unavailable", publicStatus: 503 },
+    { name: "unknown-limit", status: 429, error: { message: "unclassified private detail" }, expected: "generation_provider_limit_unknown", publicStatus: 503 },
+    { name: "null-error", status: 429, error: null, expected: "generation_provider_limit_unknown", publicStatus: 503 },
+    { name: "array-error", status: 429, error: ["PRIVATE_ARRAY_MARKER"], expected: "generation_provider_limit_unknown", publicStatus: 503 },
+    { name: "credential-shaped", status: 400, error: { type: "invalid_request_error", code: "sk-proj-PRIVATE_CODE_MARKER", param: "sk-proj-PRIVATE_PARAM_MARKER", message: "PRIVATE_MESSAGE_MARKER" }, expected: "generation_provider_request_invalid", publicStatus: 502 },
+  ];
+  for (const fixture of providerCases) {
+    const store = durableFetch({ provider: async () => response(fixture.status, { error: fixture.error }, { "x-request-id": `req-${fixture.name}` }) });
+    global.fetch = store.fetch;
+    const logged = [];
+    const originalConsoleError = console.error;
+    console.error = (...args) => { logged.push(args.join(" ")); };
+    let result;
+    try { result = await handler(event(`provider-${fixture.name}-1234`, "h".repeat(40))); }
+    finally { console.error = originalConsoleError; }
+    const body = JSON.parse(result.body);
+    assert.equal(result.statusCode, fixture.publicStatus, fixture.name);
+    assert.equal(body.error, fixture.expected, fixture.name);
+    assert.equal(body.retry_after_seconds, undefined, `${fixture.name} must not invent a retry delay`);
+    assert.doesNotMatch(`${result.body}\n${logged.join("\n")}`, /secret billing detail|unclassified private detail|PRIVATE_/, "provider bodies and logs must not leak raw provider fields");
+    assert.equal(store.providerCalls(), 1, `${fixture.name} must not trigger an automatic paid retry`);
+  }
+  const rateWithoutDelayStore = durableFetch({ provider: async () => response(429, { error: { type: "rate_limit_error", code: "rate_limit_exceeded" } }) });
+  global.fetch = rateWithoutDelayStore.fetch;
+  const rateWithoutDelay = await handler(event("provider-rate-no-delay-1234", "j".repeat(40)));
+  assert.equal(rateWithoutDelay.statusCode, 429);
+  assert.equal(JSON.parse(rateWithoutDelay.body).error, "generation_provider_rate_limited");
+  assert.equal(JSON.parse(rateWithoutDelay.body).retry_after_seconds, undefined, "missing Retry-After must not invent a delay");
+  assert.equal(rateWithoutDelay.headers["retry-after"], undefined, "missing Retry-After must not emit a header");
+  const transportStore = durableFetch({ provider: async () => { throw Object.assign(new Error("private network detail"), { name: "TimeoutError" }); } });
+  global.fetch = transportStore.fetch;
+  const transportFailure = await handler(event("provider-transport-1234", "i".repeat(40)));
+  assert.equal(transportFailure.statusCode, 503);
+  assert.equal(JSON.parse(transportFailure.body).error, "generation_provider_unavailable");
+  assert.doesNotMatch(transportFailure.body, /private network detail/);
+  assert.equal(transportStore.providerCalls(), 1, "transport failures must not trigger an automatic paid retry");
 
   const missingAreaFacts = durableFetch({ provider: async () => response(200, { output_text: JSON.stringify(factualDraft) }), units: [] });
   global.fetch = missingAreaFacts.fetch;
