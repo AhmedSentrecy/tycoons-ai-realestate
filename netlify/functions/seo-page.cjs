@@ -10,9 +10,27 @@ const {
   renderUnit,
   renderCollection,
   renderGuide,
+  renderEditorialArticle,
   renderStaticPage,
   notFound,
 } = require("./_seo-utils.cjs");
+
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
+const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
+
+async function fetchEditorialArticle(slug, lang) {
+  const params = new URLSearchParams({
+    select: "id,status,language,title,slug,excerpt,body_markdown,meta_title,meta_description,reviewed_by_name,reviewed_at,published_at,updated_at",
+    slug: `eq.${slug}`, language: `eq.${lang}`, status: "eq.published", limit: "1",
+  });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/published_editorial_articles?${params}`, {
+    headers: { apikey: SUPABASE_KEY, Accept: "application/json" }, signal: AbortSignal.timeout(8000),
+  });
+  if ([400, 404].includes(response.status)) return null;
+  if (!response.ok) throw new Error(`editorial article ${response.status}`);
+  const rows = await response.json();
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
 
 exports.handler = async function handler(event) {
   const params = event.queryStringParameters || {};
@@ -53,7 +71,10 @@ exports.handler = async function handler(event) {
 
   try {
     let html = null;
-    if (type === "guide") html = renderGuide(slug, lang);
+    if (type === "guide") {
+      html = renderGuide(slug, lang);
+      if (!html) html = renderEditorialArticle(await fetchEditorialArticle(slug, lang));
+    }
     if (type === "static") html = renderStaticPage(slug);
     if (!["guide", "static"].includes(type)) {
       const [units, projectsMeta] = await Promise.all([

@@ -167,8 +167,10 @@ export default function UnitPage() {
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "الرئيسية", item: SITE_URL },
-          { "@type": "ListItem", position: 2, name: unit.project_name, item: projectUrl },
-          { "@type": "ListItem", position: 3, name: unitTypeAr, item: pageUrl },
+          { "@type": "ListItem", position: 2, name: area.ar, item: `${SITE_URL}/ar/areas/${area.slug}` },
+          { "@type": "ListItem", position: 3, name: unit.developer, item: `${SITE_URL}/ar/developers/${slugify(unit.developer)}` },
+          { "@type": "ListItem", position: 4, name: unit.project_name, item: projectUrl },
+          { "@type": "ListItem", position: 5, name: unitTypeAr, item: pageUrl },
         ],
       },
       {
@@ -185,6 +187,12 @@ export default function UnitPage() {
       <Navbar />
       <section className="bg-[#0d1f18] px-5 pb-12 pt-32 text-white lg:px-8">
         <div className="mx-auto max-w-6xl">
+          <nav aria-label="مسار التصفح" className="mb-4 flex flex-wrap items-center gap-2 text-sm text-white/65">
+            <Link to="/" className="hover:text-white">الرئيسية</Link><span>/</span>
+            <a href={`/ar/areas/${area.slug}`} className="hover:text-white">{area.ar}</a><span>/</span>
+            <a href={`/ar/developers/${slugify(unit.developer)}`} className="hover:text-white">{unit.developer}</a><span>/</span>
+            <Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="hover:text-white">{unit.project_name}</Link>
+          </nav>
           <Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="inline-flex items-center gap-2 text-sm text-white/65 hover:text-white"><ArrowRight className="h-4 w-4" />{unit.project_name}</Link>
           <div className="mt-8 grid items-end gap-8 lg:grid-cols-[1fr_auto]">
             <div>
@@ -223,9 +231,9 @@ export default function UnitPage() {
               <tbody>
                 {alternates.map((row) => (
                   <tr key={row.id} className="border-t border-[#e7ddc8]">
-                    <td className="p-3">{arabicField(row.unit_type, row.unit_type)}</td>
+                    <td className="p-3"><Link to={`/units/${row.id}`} className="font-bold text-[#8a6630] hover:underline">{arabicField(row.unit_type, row.unit_type)}</Link></td>
                     <td className="p-3">{arabicField(row.bedrooms_text, "غير محدد")}{row.area_sqm ? ` · ${row.area_sqm} م²` : ""}</td>
-                    <td className="p-3">{formatPrice(row.starting_price)} جنيه</td>
+                    <td className="p-3"><Link to={`/units/${row.id}`} className="hover:underline">{formatPrice(row.starting_price)} جنيه</Link></td>
                   </tr>
                 ))}
               </tbody>

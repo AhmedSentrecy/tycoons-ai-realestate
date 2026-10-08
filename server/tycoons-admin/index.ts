@@ -23,6 +23,12 @@ const SESSION_DAYS = 7;
 const MAX_FAILURES_PER_15_MIN = 8;
 const MAX_GALLERY = 60;
 const MAX_IMPORT_ROWS = 1000;
+const MAX_ARTICLE_BODY = 30000;
+const RESERVED_GUIDE_SLUGS = new Set([
+  "off-plan-buying-checklist", "new-capital-vs-new-cairo", "new-cairo-property-prices",
+  "payment-plan-comparison", "real-estate-investment-egypt", "north-coast-chalet-guide",
+  "new-cairo-prices-2026", "egypt-real-estate-investment-2026", "north-coast-buying-guide",
+]);
 const MB = 1024 * 1024;
 const FILE_RULES: Record<string, { types: Record<string, string>; maxBytes: number; folder: string }> = {
   image: { types: { "image/webp": "webp", "image/jpeg": "jpg", "image/png": "png", "image/avif": "avif" }, maxBytes: 15 * MB, folder: "" },
@@ -208,6 +214,24 @@ async function listUnits(body: Json) {
   return { units: data ?? [], pending: pending ?? [] };
 }
 
+async function listArticles() {
+  const { data, error } = await db
+    .from("editorial_articles")
+    .select("id,status,language,title,slug,excerpt,meta_title,meta_description,target_type,project_id,area_name,source_refs,reviewed_by_name,reviewed_at,published_at,created_at,updated_at,projects(name,slug)")
+    .order("updated_at", { ascending: false });
+  fail(error);
+  return { articles: data ?? [] };
+}
+
+async function getArticle(body: Json) {
+  const id = text(body.id);
+  if (!id) throw new HttpError(400, "article_id_required");
+  const { data, error } = await db.from("editorial_articles").select("*").eq("id", id).maybeSingle();
+  fail(error);
+  if (!data) throw new HttpError(404, "article_not_found");
+  return { article: data };
+}
+
 async function loadProject(id: string) {
   const { data } = await db.from("projects").select("id,name,slug,developer,location").eq("id", id).maybeSingle();
   if (!data) throw new HttpError(404, "project_not_found");
@@ -236,6 +260,265 @@ function parseNumber(value: unknown, field: string, integer: boolean) {
   if (!Number.isFinite(parsed) || parsed <= 0) throw new HttpError(400, `invalid_number:${field}`);
   return integer ? Math.round(parsed) : Math.round(parsed * 100) / 100;
 }
+
+function cleanArticle(input: Json) {
+  const targetType = text(input.target_type);
+  const projectId = text(input.project_id) || null;
+  const areaName = text(input.area_name) || null;
+  const title = text(input.title);
+  const slug = slugify(input.slug || title);
+  const excerpt = text(input.excerpt);
+  const bodyMarkdown = typeof input.body_markdown === "string" ? input.body_markdown.trim() : "";
+  const metaTitle = text(input.meta_title);
+  const metaDescription = text(input.meta_description);
+  const language = text(input.language) || "ar";
+  const refs = Array.isArray(input.source_refs) ? input.source_refs : [];
+  if (title.length < 5 || title.length > 180) throw new HttpError(400, "article_title_invalid");
+  if (!slug) throw new HttpError(400, "article_slug_invalid");
+  if (RESERVED_GUIDE_SLUGS.has(slug)) throw new HttpError(409, "article_slug_reserved");
+  if (excerpt.length > 500 || metaTitle.length > 180 || metaDescription.length > 500) throw new HttpError(400, "article_metadata_too_long");
+  if (!bodyMarkdown || bodyMarkdown.length > MAX_ARTICLE_BODY) throw new HttpError(400, "article_body_invalid");
+  if (!['ar', 'en'].includes(language)) throw new HttpError(400, "article_language_invalid");
+  if (targetType === "project" && !projectId) throw new HttpError(400, "article_project_required");
+  if (targetType === "area" && !areaName) throw new HttpError(400, "article_area_required");
+  if (!['project', 'area'].includes(targetType)) throw new HttpError(400, "article_target_invalid");
+  if (!refs.length || refs.length > 30 || refs.some((ref) => typeof ref !== "object" || !ref)) throw new HttpError(400, "article_sources_required");
+  return {
+    language,
+    title,
+    slug,
+    excerpt,
+    body_markdown: bodyMarkdown,
+    meta_title: metaTitle || title,
+    meta_description: metaDescription || excerpt,
+    target_type: targetType,
+    project_id: targetType === "project" ? projectId : null,
+    area_name: targetType === "area" ? areaName : null,
+    source_refs: refs,
+  };
+}
+
+async function saveArticle(user: AdminUser, body: Json) {
+  const values = cleanArticle((body.values ?? {}) as Json);
+  const contentHash = await sha256(JSON.stringify(values));
+  if (values.project_id) await loadProject(values.project_id);
+  const id = text(body.id);
+  if (id) {
+    const expectedRevision = Number(body.expected_revision);
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) throw new HttpError(409, "article_revision_required");
+    const { data: existing } = await db.from("editorial_articles").select("id,revision").eq("id", id).maybeSingle();
+    if (!existing) throw new HttpError(404, "article_not_found");
+    if (existing.revision !== expectedRevision) throw new HttpError(409, "article_stale");
+    const { data, error } = await db.from("editorial_articles").update({
+      ...values,
+      revision: expectedRevision + 1,
+      content_hash: contentHash,
+      status: "draft",
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+      reviewed_by: null,
+      reviewed_by_name: null,
+      reviewed_at: null,
+      published_at: null,
+    }).eq("id", id).eq("revision", expectedRevision).select("*").maybeSingle();
+    fail(error);
+    if (!data) throw new HttpError(409, "article_stale");
+    return { article: data };
+  }
+  const { data, error } = await db.from("editorial_articles").insert({
+    ...values,
+    content_hash: contentHash,
+    status: "draft",
+    created_by: user.id,
+    updated_by: user.id,
+  }).select("*").single();
+  fail(error);
+  return { article: data };
+}
+
+async function publishArticle(user: AdminUser, body: Json) {
+  requireOwner(user);
+  const id = text(body.id);
+  const expectedRevision = Number(body.expected_revision);
+  const expectedHash = text(body.expected_content_hash);
+  if (!id) throw new HttpError(400, "article_id_required");
+  if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1 || !/^[a-f0-9]{64}$/.test(expectedHash)) throw new HttpError(409, "article_revision_required");
+  const { data: article } = await db.from("editorial_articles").select("id,status,title,body_markdown,source_refs,revision,content_hash").eq("id", id).maybeSingle();
+  if (!article) throw new HttpError(404, "article_not_found");
+  if (article.status !== "draft") throw new HttpError(409, "article_not_draft");
+  if (article.revision !== expectedRevision || article.content_hash !== expectedHash) throw new HttpError(409, "article_stale");
+  if (!text(article.body_markdown) || !Array.isArray(article.source_refs) || !article.source_refs.length) throw new HttpError(400, "article_not_ready");
+  const now = new Date().toISOString();
+  const { data, error } = await db.from("editorial_articles").update({
+    status: "published",
+    reviewed_by: user.id,
+    reviewed_by_name: user.display_name || user.username,
+    reviewed_at: now,
+    published_at: now,
+    updated_by: user.id,
+    updated_at: now,
+  }).eq("id", id).eq("status", "draft").eq("revision", expectedRevision).eq("content_hash", expectedHash).select("*").maybeSingle();
+  fail(error);
+  if (!data) throw new HttpError(409, "article_stale");
+  return { article: data };
+}
+
+async function claimArticleGeneration(user: AdminUser, tokenHash: string, body: Json) {
+  const idempotencyKey = text(body.idempotency_key);
+  const fingerprint = text(body.payload_fingerprint);
+  if (!/^[a-zA-Z0-9._:-]{16,120}$/.test(idempotencyKey) || !/^[a-f0-9]{64}$/.test(fingerprint)) throw new HttpError(400, "generation_claim_invalid");
+  const { data, error } = await db.rpc("admin_claim_article_generation", {
+    p_user_id: user.id, p_session_hash: tokenHash, p_idempotency_key: idempotencyKey, p_payload_fingerprint: fingerprint,
+  });
+  fail(error);
+  return data;
+}
+
+async function finishArticleGeneration(user: AdminUser, tokenHash: string, body: Json) {
+  const idempotencyKey = text(body.idempotency_key);
+  const fingerprint = text(body.payload_fingerprint);
+  const lockToken = text(body.lock_token);
+  if (!/^[a-zA-Z0-9._:-]{16,120}$/.test(idempotencyKey) || !/^[a-f0-9]{64}$/.test(fingerprint) || !/^[a-f0-9-]{36}$/.test(lockToken)) throw new HttpError(400, "generation_finish_invalid");
+  const failure = text(body.error) || null;
+  const { data, error } = await db.rpc("admin_finish_article_generation", {
+    p_user_id: user.id, p_session_hash: tokenHash, p_idempotency_key: idempotencyKey,
+    p_payload_fingerprint: fingerprint, p_lock_token: lockToken,
+    p_response: failure ? null : (body.response ?? null), p_error: failure,
+  });
+  fail(error);
+  if (!data) throw new HttpError(409, "generation_lock_lost");
+  return { ok: true };
+}
+
+const EDITORIAL_JOB_TYPES = new Set(["developer", "project", "phase", "comparison", "guide"]);
+const EDITORIAL_RETRYABLE = new Set(["retry_wait", "failed", "needs_review"]);
+
+async function editorialWorkflow() {
+  const [{ data: config, error: configError }, { data: jobs, error: jobsError }, { data: runs, error: runsError }] = await Promise.all([
+    db.from("editorial_workflow_config").select("workflow_version,timezone,proposed_weekday,proposed_local_time,schedule_enabled,monthly_budget_cents,max_attempts_per_job,max_parallel_jobs").eq("id", true).single(),
+    db.from("editorial_jobs").select("id,run_id,content_type,primary_entity_id,secondary_entity_id,area_name,topic,status,current_step,attempts,evidence,validation_results,exceptions,cost_reserved_cents,cost_used_cents,usage,last_error,next_retry_at,auto_publish_eligible,review_kind,published_article_ids,created_at,updated_at").order("updated_at", { ascending: false }).limit(100),
+    db.from("editorial_runs").select("id,trigger_type,status,workflow_version,scheduled_for,started_at,completed_at,cost_reserved_cents,cost_used_cents,summary,created_at").order("created_at", { ascending: false }).limit(30),
+  ]);
+  fail(configError); fail(jobsError); fail(runsError);
+  return { config, jobs: jobs ?? [], runs: runs ?? [], discovery_sources: ["Flat & Villa", "RealEstate.eg"], optional_imports: ["GSC own-site queries", "keyword CSV"], unavailable_sources: ["WhatsApp groups", "market-wide keyword volume"] };
+}
+
+async function createEditorialJob(user: AdminUser, body: Json) {
+  const contentType = text(body.content_type).toLowerCase();
+  const topic = text(body.topic).slice(0, 300);
+  const primaryEntityId = text(body.primary_entity_id).slice(0, 120) || null;
+  const secondaryEntityId = contentType === "comparison" ? text(body.secondary_entity_id).slice(0, 120) || null : null;
+  const areaName = text(body.area_name).slice(0, 120) || null;
+  const sourceInput = text(body.source_input).slice(0, 2000) || null;
+  if (!EDITORIAL_JOB_TYPES.has(contentType)) throw new HttpError(400, "content_type_invalid");
+  if (!topic) throw new HttpError(400, "topic_required");
+  if (["developer", "project", "phase", "comparison"].includes(contentType) && !primaryEntityId) throw new HttpError(400, "primary_entity_required");
+  if (contentType === "comparison" && !secondaryEntityId) throw new HttpError(400, "secondary_entity_required");
+  const idempotencyKey = `editorial:${await sha256(JSON.stringify({ contentType, topic, primaryEntityId, secondaryEntityId, areaName, sourceInput }))}`;
+  const { data, error } = await db.rpc("admin_create_editorial_job", {
+    p_user_id: user.id, p_idempotency_key: idempotencyKey, p_content_type: contentType,
+    p_primary_entity_id: primaryEntityId, p_secondary_entity_id: secondaryEntityId,
+    p_area_name: areaName, p_topic: topic, p_source_input: sourceInput,
+  });
+  fail(error);
+  if (data?.state === "duplicate") throw new HttpError(409, "editorial_job_duplicate");
+  return { ...data, paid_execution_enabled: false };
+}
+
+async function retryEditorialJob(user: AdminUser, body: Json) {
+  const id = text(body.id);
+  const { data: existing, error: readError } = await db.from("editorial_jobs").select("id,status,attempts,revision").eq("id", id).maybeSingle();
+  fail(readError);
+  if (!existing) throw new HttpError(404, "editorial_job_not_found");
+  if (!EDITORIAL_RETRYABLE.has(existing.status) || existing.attempts >= 3) throw new HttpError(409, "editorial_job_not_retryable");
+  const { data, error } = await db.rpc("admin_retry_editorial_job", { p_job_id: id, p_user_id: user.id, p_expected_status: existing.status, p_expected_revision: existing.revision });
+  fail(error);
+  if (data?.state !== "queued") throw new HttpError(409, "editorial_job_stale");
+  return { job: data.job };
+}
+
+async function getEditorialJob(body: Json) {
+  const id = text(body.id);
+  const { data, error } = await db.from("editorial_jobs").select("*").eq("id", id).maybeSingle();
+  fail(error);
+  if (!data) throw new HttpError(404, "editorial_job_not_found");
+  const articleIds = Array.isArray(data.published_article_ids) ? data.published_article_ids : [];
+  const [{ data: events, error: eventsError }, { data: versions, error: versionsError }, { data: articles, error: articlesError }] = await Promise.all([
+    db.from("editorial_job_events").select("id,event_type,from_status,to_status,details,created_at").eq("job_id", id).order("id", { ascending: false }).limit(100),
+    db.from("editorial_job_versions").select("id,version_number,created_at").eq("job_id", id).order("version_number", { ascending: false }).limit(50),
+    articleIds.length ? db.from("editorial_articles").select("id,language,status,revision,content_hash").in("id", articleIds) : Promise.resolve({ data: [], error: null }),
+  ]);
+  fail(eventsError); fail(versionsError); fail(articlesError);
+  return { job: data, events: events ?? [], versions: versions ?? [], articles: articles ?? [] };
+}
+
+async function controlEditorialJob(user: AdminUser, body: Json) {
+  const action = text(body.control_action);
+  const revision = Number(body.expected_revision);
+  if (!Number.isSafeInteger(revision) || revision < 1 || !["pause","resume","resolve_exception","rollback"].includes(action)) throw new HttpError(400, "editorial_control_invalid");
+  const versionId = text(body.version_id) || null;
+  const resolution = (body.resolution ?? null) as Json | null;
+  if (action === "resolve_exception" && resolution?.outcome === "linked_trusted_evidence" && (!/^[a-f0-9-]{36}$/.test(text(resolution.trusted_evidence_id)) || !text(resolution.claim_key))) throw new HttpError(400, "trusted_evidence_invalid");
+  const articlePair = (body.expected_articles ?? {}) as Json;
+  const ar = (articlePair.ar ?? {}) as Json; const en = (articlePair.en ?? {}) as Json;
+  if (action === "rollback" && (![ar.revision,en.revision].every((value) => Number.isSafeInteger(Number(value))) || !text(ar.content_hash) || !text(en.content_hash) || text(ar.status) !== "draft" || text(en.status) !== "draft")) throw new HttpError(400, "editorial_rollback_precondition_required");
+  const { data, error } = await db.rpc("admin_control_editorial_job", {
+    p_job_id: text(body.id), p_user_id: user.id, p_action: action, p_expected_revision: revision, p_version_id: versionId, p_resolution: resolution,
+    p_expected_ar_revision: action === "rollback" ? Number(ar.revision) : null, p_expected_ar_hash: action === "rollback" ? text(ar.content_hash) : null, p_expected_ar_status: action === "rollback" ? text(ar.status) : null,
+    p_expected_en_revision: action === "rollback" ? Number(en.revision) : null, p_expected_en_hash: action === "rollback" ? text(en.content_hash) : null, p_expected_en_status: action === "rollback" ? text(en.status) : null,
+  });
+  fail(error);
+  if (data?.state !== "updated") throw new HttpError(409, `editorial_control_${data?.state || "failed"}`);
+  return data;
+}
+
+async function claimEditorialJob(user: AdminUser, body: Json) {
+  const id = text(body.id);
+  const { data, error } = await db.rpc("admin_claim_editorial_job", { p_job_id: id, p_user_id: user.id });
+  fail(error);
+  if (data?.state === "claimed" && data.job?.content_type === "project" && data.job?.primary_entity_id) {
+    const project = await loadProject(String(data.job.primary_entity_id));
+    data.job.entity = { id: project.id, name: project.name, slug: project.slug, developer: project.developer, location: project.location, description: project.description };
+  }
+  return data;
+}
+
+function cleanWorkflowDraft(value: unknown) {
+  const draft = cleanArticle((value ?? {}) as Json);
+  return { ...draft, content_hash: "" };
+}
+
+async function completeEditorialJob(user: AdminUser, body: Json) {
+  const id = text(body.id);
+  const lockToken = text(body.lock_token);
+  const draftAr = cleanWorkflowDraft(body.draft_ar);
+  const draftEn = cleanWorkflowDraft(body.draft_en);
+  if (draftAr.language !== "ar" || draftEn.language !== "en") throw new HttpError(400, "editorial_languages_invalid");
+  draftAr.content_hash = await sha256(JSON.stringify(draftAr));
+  draftEn.content_hash = await sha256(JSON.stringify(draftEn));
+  const evidence = Array.isArray(body.evidence) ? body.evidence.slice(0, 30) : [];
+  if (!evidence.length) throw new HttpError(400, "editorial_evidence_required");
+  const { data, error } = await db.rpc("admin_complete_editorial_job", {
+    p_job_id: id, p_user_id: user.id, p_lock_token: lockToken,
+    p_evidence: evidence, p_claim_evidence: Array.isArray(body.claim_evidence) ? body.claim_evidence.slice(0, 100) : [],
+    p_validation: (body.validation ?? {}) as Json, p_exceptions: Array.isArray(body.exceptions) ? body.exceptions.slice(0, 30) : [],
+    p_draft_ar: draftAr, p_draft_en: draftEn, p_usage: (body.usage ?? {}) as Json,
+    p_cost_used_cents: Math.max(0, Math.min(5000, Number(body.cost_used_cents) || 0)),
+    p_provider_response_id: text(body.provider_response_id).slice(0, 200) || null,
+  });
+  fail(error);
+  return data;
+}
+
+async function failEditorialJob(user: AdminUser, body: Json) {
+  const { data, error } = await db.rpc("admin_fail_editorial_job", {
+    p_job_id: text(body.id), p_user_id: user.id, p_lock_token: text(body.lock_token), p_error: text(body.error).slice(0, 1000) || "worker_failed",
+  });
+  fail(error);
+  if (!data) throw new HttpError(409, "editorial_job_lock_lost");
+  return { ok: true };
+}
+
 
 /** Keep only known unit fields, normalised. `partial` = only the keys provided. */
 function cleanUnitValues(input: Json, partial: boolean) {
@@ -683,6 +966,20 @@ Deno.serve(async (req: Request) => {
         return reply({ ok: true });
       case "projects": return reply(await listProjects());
       case "units": return reply(await listUnits(body));
+      case "articles": return reply(await listArticles());
+      case "article": return reply(await getArticle(body));
+      case "article_save": return reply(await saveArticle(user, body));
+      case "article_publish": return reply(await publishArticle(user, body));
+      case "article_generation_claim": return reply(await claimArticleGeneration(user, tokenHash, body));
+      case "article_generation_finish": return reply(await finishArticleGeneration(user, tokenHash, body));
+      case "editorial_workflow": return reply(await editorialWorkflow());
+      case "editorial_job_create": return reply(await createEditorialJob(user, body));
+      case "editorial_job_retry": return reply(await retryEditorialJob(user, body));
+      case "editorial_job": return reply(await getEditorialJob(body));
+      case "editorial_job_control": return reply(await controlEditorialJob(user, body));
+      case "editorial_job_claim": return reply(await claimEditorialJob(user, body));
+      case "editorial_job_complete": return reply(await completeEditorialJob(user, body));
+      case "editorial_job_fail": return reply(await failEditorialJob(user, body));
       case "sign_upload": return reply(await signUpload(body));
       case "save_media": return reply(await saveMedia(user, body));
       case "project_create": return reply(await projectCreate(user, body));

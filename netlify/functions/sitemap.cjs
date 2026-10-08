@@ -40,14 +40,26 @@ async function fetchRows(table, select, filters = {}) {
   return rows;
 }
 
+async function fetchPublishedArticles() {
+  try {
+    return await fetchRows("published_editorial_articles", "slug,language,published_at,updated_at");
+  } catch (error) {
+    // Safe rollout ordering: before the additive migration exists, publish no
+    // dynamic article URLs while keeping the established sitemap available.
+    if (/published_editorial_articles index (400|404)/.test(String(error?.message || ""))) return [];
+    throw error;
+  }
+}
+
 exports.handler = async function handler() {
   try {
-    const [projects, units] = await Promise.all([
+    const [projects, units, articles] = await Promise.all([
       fetchRows("projects", "id,name,slug,developer,location,last_updated_at"),
       fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,description,last_updated_at", {
         availability_status: "eq.available",
         project_id: "not.is.null",
       }),
+      fetchPublishedArticles(),
     ]);
     const projectsById = new Map(projects.map((project) => [project.id, project]));
     const publishedSlugs = publishedProjectSlugs(projects, units);
@@ -68,6 +80,11 @@ exports.handler = async function handler() {
     }
     for (const guideSlug of Object.keys(ENGLISH_GUIDES)) {
       urls.set(`${SITE_URL}/en/guides/${guideSlug}/`, "2026-08-26");
+    }
+    for (const article of articles) {
+      if (!article.published_at || !article.slug) continue;
+      const prefix = article.language === "en" ? "/en" : "";
+      urls.set(`${SITE_URL}${prefix}/guides/${article.slug}/`, article.updated_at || article.published_at);
     }
     for (const project of projects) {
       const projectSlug = String(project.slug || "").trim();

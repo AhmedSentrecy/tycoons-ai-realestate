@@ -1,4 +1,4 @@
-import type { InventoryUnit } from "@/lib/inventory";
+import { inventoryFreshness, type InventoryUnit } from "@/lib/inventory";
 
 export interface SearchCriteria {
   regionLabel: string;
@@ -483,8 +483,12 @@ export function parseSearchQuery(query: string): SearchCriteria {
   };
 }
 
+const preparedText = new WeakMap<InventoryUnit, string>();
+
 function searchableText(unit: InventoryUnit): string {
-  return normalizeText(
+  const cached = preparedText.get(unit);
+  if (cached) return cached;
+  const value = normalizeText(
     [
       unit.project_name,
       unit.developer,
@@ -496,6 +500,8 @@ function searchableText(unit: InventoryUnit): string {
       unit.description,
     ].join(" "),
   );
+  preparedText.set(unit, value);
+  return value;
 }
 
 function unitBedrooms(unit: InventoryUnit): number | null {
@@ -810,7 +816,7 @@ function criteriaSummary(criteria: SearchCriteria): string {
   return parts.length ? `فهمنا طلبك: ${parts.join(" · ")}` : "رتبنا النتائج حسب أقرب تطابق لكلامك";
 }
 
-export function searchInventory(units: InventoryUnit[], query: string): SearchOutput {
+function searchInventoryUncached(units: InventoryUnit[], query: string): SearchOutput {
   const normalizedQuery = normalizeSearchQuery(query);
   const criteria = parseSearchQuery(query);
   if (!normalizedQuery) {
@@ -872,4 +878,31 @@ export function searchInventory(units: InventoryUnit[], query: string): SearchOu
     totalAlternatives: alternativesAll.length,
     criteria,
   };
+}
+
+const SEARCH_ALGORITHM_VERSION = "2026-10-08.1";
+const SEARCH_CACHE_MAX = 100;
+const resultCache = new WeakMap<InventoryUnit[], Map<string, { expiresAt: number; output: SearchOutput }>>();
+
+export function searchInventory(units: InventoryUnit[], query: string, locale = "ar-EG"): SearchOutput {
+  const freshness = inventoryFreshness(units);
+  const normalizedQuery = normalizeSearchQuery(query);
+  const key = [freshness.snapshot_revision, SEARCH_ALGORITHM_VERSION, locale, normalizedQuery].join("|");
+  let cache = resultCache.get(units);
+  if (!cache) {
+    cache = new Map();
+    resultCache.set(units, cache);
+  }
+  const now = Date.now();
+  const hit = cache.get(key);
+  if (hit && now < hit.expiresAt) return hit.output;
+  if (hit) cache.delete(key);
+
+  const output = searchInventoryUncached(units, query);
+  const snapshotExpiry = freshness.expires_at ? Date.parse(freshness.expires_at) : now;
+  if (snapshotExpiry > now) {
+    cache.set(key, { expiresAt: snapshotExpiry, output });
+    while (cache.size > SEARCH_CACHE_MAX) cache.delete(cache.keys().next().value!);
+  }
+  return output;
 }

@@ -25,6 +25,17 @@ session.addRemote({});session.append('client','Hello');session.append('client','
 assert.equal(sourceCount,2);assert.equal(closeCount,1);assert.equal(recording.state,'inactive');assert.equal(completed.transcript[0].text,'Hello there');assert.equal(completed.summary,'Synthetic test');assert.ok(completed.audio.size>0);
 const hook=fs.readFileSync('src/hooks/useRealtimeVoice.ts','utf8');
 assert.match(hook,/Date\.now\(\) \+ 240_000/);assert.match(hook,/if \(left === 0\) endImmediately\(\)/);assert.match(hook,/visibilitychange/);assert.match(hook,/getTracks\(\).*stop/s);assert.match(hook,/await onSearchQuery\(query\)/);assert.doesNotMatch(hook,/callbackPayload \?\? getLastSearchVoicePayload/);
+assert.match(hook,/handledCallsRef\.current\.has\(callKey\)/, 'repeated call_id events must be deduplicated per session');
+assert.match(hook,/const isCurrent = \(\) => generation === generationRef\.current/);
+assert.ok((hook.match(/if \(!isCurrent\(\)\) return false;/g)||[]).length >= 5, 'startup cancellation must be checked after each awaited stage');
+assert.match(hook,/audio_playback_rejected/);assert.match(hook,/first_playback_started/);assert.match(hook,/first_transcript_received/);
+assert.match(hook,/if \(!isCurrent\(\) \|\| dc !== dcRef\.current\) return;/, 'late search results must not write into a newer session');
+assert.match(hook,/if \(!isCurrent\(\) \|\| pc !== pcRef\.current\) return;/, 'late peer-connection events must not tear down a newer session');
+assert.match(hook,/dc\.onclose = \(\) => \{ if \(isCurrent\(\) && dc === dcRef\.current\)/, 'late data-channel close events must be ignored');
+assert.match(hook,/if \(generation !== generationRef\.current\) return false;\s*cleanup\(\);/, 'an aborted old startup must not clean up its replacement');
 const voiceContext=fs.readFileSync('src/contexts/VoiceSessionContext.tsx','utf8');assert.match(voiceContext,/searchInventoryForVoice\(units, clean\)/);
+assert.match(voiceContext,/performance\.now\(\)/);assert.match(voiceContext,/\[voice-timing\] search/);
 const propertyHook=fs.readFileSync('src/hooks/usePropertySearch.ts','utf8');assert.match(propertyHook,/down_payment: item\.unit\.down_payment_text/);assert.match(propertyHook,/installments: item\.unit\.installments_text/);
+assert.match(propertyHook,/inventoryFreshness\(units\)/);
+const inventory=fs.readFileSync('src/lib/inventory.ts','utf8');assert.match(inventory,/if \(inventoryPageIsComplete\(page\.rawCount\)\) break/);assert.doesNotMatch(inventory,/if \(page\.length < PAGE_SIZE\) break/);
 console.log('Voice recording mocks, locale and timeout configuration checks passed');

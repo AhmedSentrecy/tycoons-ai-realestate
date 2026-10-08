@@ -37,6 +37,57 @@ export interface AdminProject extends MediaFields {
   pending_requests: number;
 }
 
+export interface ArticleSourceRef {
+  type: "project";
+  id: string;
+  label: string;
+  url: string;
+}
+
+export interface ArticleValues {
+  language: "ar" | "en";
+  title: string;
+  slug: string;
+  excerpt: string;
+  body_markdown: string;
+  meta_title: string;
+  meta_description: string;
+  target_type: "project" | "area";
+  project_id: string | null;
+  area_name: string | null;
+  source_refs: ArticleSourceRef[];
+}
+
+export interface AdminArticle extends ArticleValues {
+  id: string;
+  status: "draft" | "published";
+  reviewed_by_name: string | null;
+  reviewed_at: string | null;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+  revision: number;
+  content_hash: string;
+  projects?: { name: string; slug: string | null } | null;
+}
+
+export interface EditorialJob {
+  id: string; run_id: string | null; content_type: "developer" | "project" | "phase" | "comparison" | "guide";
+  primary_entity_id: string | null; secondary_entity_id: string | null; area_name: string | null; topic: string;
+  status: string; current_step: string; attempts: number; evidence: unknown[]; validation_results: unknown[]; exceptions: Array<{ code?: string; message?: string }>;
+  cost_reserved_cents: number; cost_used_cents: number; usage: Record<string, unknown>; last_error: string | null;
+  next_retry_at: string | null; auto_publish_eligible: boolean; review_kind: "human" | "automated_validation" | null;
+  published_article_ids: string[]; created_at: string; updated_at: string;
+  draft_ar?: ArticleValues | null; draft_en?: ArticleValues | null; claim_evidence?: unknown[]; revision?: number;
+}
+
+export interface EditorialWorkflow {
+  config: { workflow_version: string; timezone: string; proposed_weekday: string; proposed_local_time: string; schedule_enabled: boolean; monthly_budget_cents: number; max_attempts_per_job: number; max_parallel_jobs: number };
+  jobs: EditorialJob[]; runs: Array<Record<string, unknown>>; discovery_sources: string[]; optional_imports: string[]; unavailable_sources: string[];
+}
+
+export interface TopicIdea { title: string; rationale: string; angle: string }
+
 export const UNIT_FIELDS = [
   "unit_type",
   "bedrooms_text",
@@ -146,6 +197,17 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}, to
   return data as T;
 }
 
+async function generate<T>(token: string, idempotencyKey: string, payload: Record<string, unknown>): Promise<T> {
+  const response = await fetch("/.netlify/functions/article-generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-admin-token": token, "x-idempotency-key": idempotencyKey },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status);
+  return data as T;
+}
+
 export const adminApi = {
   login: (username: string, password: string) => call<{ token: string; user: AdminUser }>("login", { username, password }),
   me: (token: string) => call<{ user: AdminUser } & AdminSettings>("me", {}, token),
@@ -158,6 +220,21 @@ export const adminApi = {
       { project_id: projectId },
       token,
     ),
+  articles: (token: string) => call<{ articles: AdminArticle[] }>("articles", {}, token),
+  article: (token: string, id: string) => call<{ article: AdminArticle }>("article", { id }, token),
+  articleSave: (token: string, id: string | null, values: ArticleValues, expectedRevision: number | null) =>
+    call<{ article: AdminArticle }>("article_save", { id, values, expected_revision: expectedRevision }, token),
+  articlePublish: (token: string, id: string, expectedRevision: number, expectedContentHash: string) =>
+    call<{ article: AdminArticle }>("article_publish", { id, expected_revision: expectedRevision, expected_content_hash: expectedContentHash }, token),
+  editorialWorkflow: (token: string) => call<EditorialWorkflow>("editorial_workflow", {}, token),
+  editorialJobCreate: (token: string, input: Record<string, unknown>) => call<{ job: EditorialJob; paid_execution_enabled: false }>("editorial_job_create", input, token),
+  editorialJobRetry: (token: string, id: string) => call<{ job: EditorialJob }>("editorial_job_retry", { id }, token),
+  editorialJob: (token: string, id: string) => call<{ job: EditorialJob; events: Array<{ id: number; event_type: string; from_status: string | null; to_status: string | null; details: Record<string, unknown>; created_at: string }>; versions: Array<{ id: string; version_number: number; created_at: string }>; articles: Array<{ id: string; language: "ar" | "en"; status: "draft" | "published"; revision: number; content_hash: string }> }>("editorial_job", { id }, token),
+  editorialJobControl: (token: string, id: string, controlAction: string, expectedRevision: number, extra: Record<string, unknown> = {}) => call<Record<string, unknown>>("editorial_job_control", { id, control_action: controlAction, expected_revision: expectedRevision, ...extra }, token),
+  articleTopics: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">) =>
+    generate<{ topics: TopicIdea[]; source_refs: ArticleSourceRef[]; generated_as: "draft" }>(token, idempotencyKey, { action: "topics", ...target }),
+  articleDraft: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string) =>
+    generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "source_refs"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target }),
   signUpload: (token: string, body: { target: MediaTarget; id: string; kind: MediaKind; content_type: string; size: number }) =>
     call<{ upload_url: string; path: string; public_url: string }>("sign_upload", body, token),
   saveMedia: (

@@ -21,7 +21,7 @@ export default function SearchPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const q = (params.get("q") ?? "").trim();
-  const { results, search, inventory } = usePropertySearch();
+  const { results, searchFresh, inventory } = usePropertySearch();
   const [visible, setVisible] = useState(24);
 
   useEffect(() => {
@@ -40,10 +40,11 @@ export default function SearchPage() {
   }, [q]);
 
   useEffect(() => {
+    // Reset pagination when the URL query changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisible(24);
-    if (q && inventory.units.length) search(q);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, inventory.units.length]);
+    if (q && inventory.units.length) void searchFresh(q);
+  }, [q, inventory.units.length, searchFresh]);
 
   const exactGroups = useMemo(() => groupByProject(results.exact), [results]);
   const altGroups = useMemo(() => groupByProject(results.alternatives), [results]);

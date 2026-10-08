@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { inventoryStats, loadInventory, type InventoryUnit } from "../src/lib/inventory.ts";
+import { inventoryCacheIsFresh, inventoryPageIsComplete, inventoryRequestIsCurrent, inventoryStats, loadInventory, type InventoryUnit } from "../src/lib/inventory.ts";
 import {
   parseSearchQuery,
   searchInventory,
@@ -38,6 +38,13 @@ function completeMatches(output: SearchOutput): RankedInventoryUnit[] {
 }
 
 async function run() {
+  const fakeNow = 1_000_000;
+  assert.equal(inventoryCacheIsFresh(fakeNow + 1, fakeNow), true, "snapshot is reusable before expiry");
+  assert.equal(inventoryCacheIsFresh(fakeNow, fakeNow), false, "snapshot expires exactly at its deadline");
+  assert.equal(inventoryPageIsComplete(999), true);
+  assert.equal(inventoryPageIsComplete(1000), false, "a full raw page must continue even if normalized rows are fewer");
+  assert.equal(inventoryRequestIsCurrent(1, 2), false, "an older refresh cannot overwrite a newer snapshot");
+  assert.equal(inventoryRequestIsCurrent(2, 2), true, "only the newest refresh may install its snapshot");
   const parsed = parseSearchQuery("عايز آي فيلا في التجمع 3 غرف تحت 20 مليون وتقسيط 8 سنين");
   assert.equal(parsed.unitType, "iVilla");
   assert.equal(parsed.bedrooms, 3);

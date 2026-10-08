@@ -13,6 +13,7 @@ import {
 } from "../lib/adminApi";
 import { AdminContext } from "../components/admin/AdminContext";
 import ApprovalsTab from "../components/admin/ApprovalsTab";
+import ArticlesTab from "../components/admin/ArticlesTab";
 import ProjectForm, { type NewProject } from "../components/admin/ProjectForm";
 import MediaTab from "../components/admin/MediaTab";
 import SettingsDialog from "../components/admin/SettingsDialog";
@@ -171,7 +172,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
   );
 }
 
-type Tab = "media" | "units" | "approvals" | "users";
+type Tab = "media" | "units" | "articles" | "approvals" | "users";
 
 function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser; onSignOut: () => void }) {
   const isOwner = user.role === "owner";
@@ -325,6 +326,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
             <TabButton active={tab === "units"} onClick={() => setTab("units")}>
               الوحدات
             </TabButton>
+            <TabButton active={tab === "articles"} onClick={() => setTab("articles")}>المقالات</TabButton>
             <TabButton active={tab === "approvals"} onClick={() => setTab("approvals")}>
               {isOwner ? "الموافقات" : "طلباتي"} {pendingTotal > 0 && <Badge tone="pending">{pendingTotal}</Badge>}
             </TabButton>
@@ -373,6 +375,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
               onCreateProject={() => setProjectFormOpen(true)}
             />
           )}
+          {tab === "articles" && <ArticlesTab projects={projects} />}
           {tab === "approvals" && <ApprovalsTab onChanged={refresh} />}
           {tab === "users" && isOwner && <UsersTab />}
         </div>

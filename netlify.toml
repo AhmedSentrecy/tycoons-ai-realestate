@@ -321,9 +321,8 @@
 
 [[redirects]]
   from = "/en/guides/*"
-  to = "/guides/:splat"
-  status = 301
-  force = true
+  to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=:splat"
+  status = 200
 
 # Retired region URLs with a direct canonical equivalent.
 [[redirects]]

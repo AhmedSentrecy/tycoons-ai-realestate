@@ -1,5 +1,7 @@
 "use strict";
 
+const { renderSafeMarkdown } = require("./_article-render.cjs");
+
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
 const SUPABASE_URL =
@@ -824,13 +826,17 @@ function renderProject(projects, slug, lang) {
       : `<p class="note">${ar ? `لا توجد وحدات منشورة بأسعار تفصيلية لـ${project.name} حاليًا. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من ${project.developer}.` : `No units with detailed pricing are published for ${project.name} right now. Message us on WhatsApp and we'll send the latest price list and payment plans from ${project.developer}.`}</p>`
   }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p>
   ${projectFaq.map(([question, answer]) => `<section><h2>${escapeHtml(question)}</h2><p>${escapeHtml(answer)}</p></section>`).join("")}</main>`;
+  const unitNavigation = hasUnits
+    ? `<section aria-labelledby="unit-links"><h2 id="unit-links">${ar ? "روابط الوحدات المتاحة" : "Available unit links"}</h2><div class="grid">${units.map((unit) => `<article class="card"><h3><a href="/units/${escapeHtml(unit.id)}">${escapeHtml(clean(unit.unit_type))}${unit.area_sqm ? ` - ${escapeHtml(unit.area_sqm)} m²` : ""}</a></h3><p>${escapeHtml(clean(unit.bedrooms_text))} · ${escapeHtml(formatPrice(unit.starting_price, lang))}</p><p>${escapeHtml(clean(unit.delivery_text))}</p></article>`).join("")}</div></section>`
+    : "";
+
   return renderPage({
     lang,
     title: searchContent?.title?.(contentVars) || `${project.name} | ${project.developer} | Tycoons Investments`,
     description,
     path,
     alternatePath,
-    body,
+    body: body.replace("</main>", `${unitNavigation}</main>`),
     image,
     robots: hasUnits
       ? "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
@@ -850,6 +856,7 @@ function renderProject(projects, slug, lang) {
             "@type": "ListItem",
             position: index + 1,
             name: `${clean(unit.unit_type)} ${clean(unit.area_sqm, "")} ${project.name}`.trim(),
+            url: `${SITE_URL}/units/${clean(unit.id)}`,
           })),
         },
       },
@@ -861,7 +868,7 @@ function renderProject(projects, slug, lang) {
         numberOfItems: units.length,
         itemListElement: units.slice(0, 20).map((unit) => ({
           "@type": "Offer",
-          url: `${SITE_URL}${path}`,
+          url: `${SITE_URL}/units/${clean(unit.id)}`,
           price: numberValue(unit.starting_price),
           priceCurrency: "EGP",
           availability: "https://schema.org/InStock",
@@ -1027,8 +1034,9 @@ function renderUnit(projects, unitId, lang = "ar") {
 
   const crumbs = [
     { name: ar ? "الرئيسية" : "Home", path: "/" },
-    { name: ar ? area.ar : area.en, path: `/ar/areas/${area.slug}` },
-    { name: project.name, path: `/projects/${project.slug}` },
+    { name: ar ? area.ar : area.en, path: `/${lang}/areas/${area.slug}` },
+    { name: project.developer, path: `/${lang}/developers/${slugify(project.developer)}` },
+    { name: project.name, path: ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}` },
     { name: unitTypeAr, path },
   ];
 
@@ -1060,12 +1068,14 @@ function renderUnit(projects, unitId, lang = "ar") {
   <h2>أسئلة شائعة</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}
   <p class="note">الأسعار والتوفر وخطط السداد تتغير ويتم تأكيدها مع المطور وقت الطلب.</p></main>`;
 
+  const entityNavigation = `<nav class="crumbs" aria-label="Entity navigation"><a href="/${lang}/areas/${area.slug}">${escapeHtml(ar ? area.ar : area.en)}</a> / <a href="/${lang}/developers/${slugify(project.developer)}">${escapeHtml(project.developer)}</a> / <a href="${ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`}">${escapeHtml(project.name)}</a>${alternates.map((row) => ` / <a href="/units/${escapeHtml(row.id)}">${escapeHtml(clean(row.unit_type))}</a>`).join("")}</nav>`;
+
   return renderPage({
     lang,
     title,
     description,
     path,
-    body,
+    body: `${entityNavigation}${body}`,
     image: clean(unit.image_url, "") || clean(project.image_url, ""),
     schemas: [
       breadcrumbSchema(crumbs),
@@ -1283,6 +1293,37 @@ function renderGuide(slug, lang = "ar") {
   });
 }
 
+function renderEditorialArticle(article) {
+  if (!article || article.status !== "published" || !article.published_at || !article.reviewed_at) return null;
+  const lang = article.language === "en" ? "en" : "ar";
+  const ar = lang === "ar";
+  const path = ar ? `/guides/${article.slug}/` : `/en/guides/${article.slug}/`;
+  const reviewedDate = new Date(article.reviewed_at).toISOString().slice(0, 10);
+  const body = `<main class="guide"><p class="crumbs"><a href="/">${ar ? "الرئيسية" : "Home"}</a> / ${ar ? "الأدلة" : "Guides"} / ${escapeHtml(article.title)}</p>
+  <section class="hero"><span class="eyebrow">${ar ? "دليل مستقل تمت مراجعته قبل النشر" : "Independent guide reviewed before publication"}</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(article.excerpt)}</p><p class="updated">${ar ? "تاريخ المراجعة" : "Reviewed"}: ${escapeHtml(reviewedDate)}</p></section>
+  <article>${renderSafeMarkdown(article.body_markdown)}</article>
+  <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المعلومات تعليمية وتتغير بمرور الوقت. أعد تأكيد أي تفاصيل تجارية قبل اتخاذ قرار." : "This is educational content. Reconfirm time-sensitive commercial details before deciding."}</p></section></main>`;
+  return renderPage({
+    lang,
+    title: article.meta_title || `${article.title} | Tycoons Investments`,
+    description: article.meta_description || article.excerpt,
+    path,
+    body,
+    schemas: [
+      breadcrumbSchema([{ name: ar ? "الرئيسية" : "Home", path: "/" }, { name: ar ? "الأدلة" : "Guides", path }, { name: article.title, path }]),
+      {
+        "@context": "https://schema.org", "@type": "Article", headline: article.title,
+        description: article.meta_description || article.excerpt,
+        datePublished: article.published_at, dateModified: article.updated_at || article.reviewed_at,
+        inLanguage: ar ? "ar-EG" : "en", mainEntityOfPage: `${SITE_URL}${path}`,
+        author: { "@type": "Organization", name: "Tycoons Investments", url: `${SITE_URL}/about` },
+        reviewedBy: { "@type": "Person", name: article.reviewed_by_name },
+        publisher: { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL },
+      },
+    ],
+  });
+}
+
 function renderStaticPage(type) {
   const pages = {
     about: {
@@ -1379,6 +1420,7 @@ module.exports = {
   renderUnit,
   renderCollection,
   renderGuide,
+  renderEditorialArticle,
   renderStaticPage,
   notFound,
   escapeHtml,
