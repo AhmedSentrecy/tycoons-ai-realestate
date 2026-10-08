@@ -18,10 +18,15 @@ const event = (key, token = "a".repeat(40), overrides = {}) => ({
 });
 const response = (status, data) => ({ ok: status >= 200 && status < 300, status, json: async () => data });
 
-function durableFetch({ provider, projects = [{ id: "project-1", name: "Project One", slug: "project-one" }] }) {
+function durableFetch({
+  provider,
+  projects = [{ id: "project-1", name: "Project One", slug: "project-one", developer: "Palm Hills Developments" }],
+  units = [{ id: "unit-1", project_id: "project-1", unit_type: "Townhouse Corner", area_sqm: 185, starting_price: 26760000, down_payment_text: "2.83%", installments_text: "9 years", delivery_text: "2030-12-31", availability_status: "available", last_updated_at: "2026-02-10T00:00:00Z" }, { id: "unit-2", project_id: "project-1", unit_type: "Villa Type B", area_sqm: 240, starting_price: 31000000, availability_status: "available", last_updated_at: "2026-02-11T00:00:00Z" }],
+}) {
   const records = new Map();
   let now = Date.now();
   let providerCalls = 0;
+  let unitCalls = 0;
   const fetch = async (url, options = {}) => {
     const value = String(url);
     if (value.includes("tycoons-admin")) {
@@ -46,10 +51,11 @@ function durableFetch({ provider, projects = [{ id: "project-1", name: "Project 
       return response(400, { error: "unexpected_admin_action" });
     }
     if (value.includes("/rest/v1/projects")) return response(200, projects);
+    if (value.includes("/rest/v1/units")) { unitCalls += 1; return response(200, units); }
     if (value.includes("api.openai.com")) { providerCalls += 1; return provider(providerCalls); }
     throw new Error(`unexpected fetch ${value}`);
   };
-  return { fetch, records, advance: (milliseconds) => { now += milliseconds; }, providerCalls: () => providerCalls };
+  return { fetch, records, advance: (milliseconds) => { now += milliseconds; }, providerCalls: () => providerCalls, unitCalls: () => unitCalls };
 }
 
 (async () => {
@@ -83,10 +89,114 @@ function durableFetch({ provider, projects = [{ id: "project-1", name: "Project 
   assert.equal(buildOpenAiRequest({ action: "topics", language: "ar", targetType: "project", topic: "" }, []).reasoning, undefined, "unknown override models must not receive unsupported reasoning parameters");
   delete process.env.OPENAI_ARTICLE_MODEL;
 
-  const safe = renderSafeMarkdown('## Heading\n<script>alert(1)</script>\n[Project](/projects/project-one)\n[Bad](https://evil.example)');
+  const sourceUnits = [
+    { id: "unit-1", project_id: "project-1", unit_type: "Townhouse Corner", area_sqm: 185, starting_price_egp: 26760000, down_payment: "2.83%", installments: "9 years", delivery: "2030-12-31", source_last_updated_at: "2026-02-10", source_url: "/units/unit-1" },
+    { id: "unit-2", project_id: "project-1", unit_type: "Villa Type B", area_sqm: 240, starting_price_egp: 31000000, down_payment: "", installments: "", delivery: "", source_last_updated_at: "2026-02-11", source_url: "/units/unit-2" },
+  ];
+  const factualDraft = {
+    title: "مقارنة مساحات الوحدات", slug: "unit-area-comparison", excerpt: "مقارنة موثقة", meta_title: "مقارنة المساحات", meta_description: "دليل للمساحات",
+    body_markdown: "## مقارنة المساحات\nمقارنة مباشرة بين نماذج الوحدات في العينة الحديثة.",
+    area_evidence: [
+      { unit_id: "unit-1", area_sqm: 185, source_last_updated_at: "2026-02-10" },
+      { unit_id: "unit-2", area_sqm: 240, source_last_updated_at: "2026-02-11" },
+    ],
+    claim_evidence: [
+      { kind: "price", value: "26760000", unit_id: "unit-1", source_last_updated_at: "2026-02-10" },
+      { kind: "down_payment", value: "2.83", unit_id: "unit-1", source_last_updated_at: "2026-02-10" },
+      { kind: "installments", value: "9", unit_id: "unit-1", source_last_updated_at: "2026-02-10" },
+      { kind: "delivery", value: "2030-12-31", unit_id: "unit-1", source_last_updated_at: "2026-02-10" },
+    ],
+  };
+  const groundedDraft = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify(factualDraft) }, "draft", { input: { topic: "أنواع ومساحات الوحدات — مقارنة", language: "ar" }, units: sourceUnits });
+  assert.match(groundedDraft.body_markdown, /26760000 EGP/);
+  assert.match(groundedDraft.body_markdown, /عينة حديثة من مساحات الوحدات/);
+  assert.match(groundedDraft.body_markdown, /Townhouse Corner[^\n]+185 م²/);
+  assert.match(groundedDraft.body_markdown, /Villa Type B[^\n]+240 م²/);
+  assert.match(groundedDraft.body_markdown, /\/units\/unit-1/);
+  assert.match(groundedDraft.body_markdown, /2026-02-10/);
+  assert.match(groundedDraft.body_markdown, /يجب التحقق منه قبل النشر/);
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "المساحات من {{min_area}} إلى {{max_area}}" }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_placeholder_unresolved",
+  );
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "Townhouse Corner بمساحة 1185 متر، وVilla Type B بمساحة 1240 متر.", claim_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_area_fact_unverified",
+  );
+  for (const areaEvidence of [
+    [{ unit_id: "unit-1", area_sqm: 240, source_last_updated_at: "2026-02-10" }, { unit_id: "unit-2", area_sqm: 185, source_last_updated_at: "2026-02-11" }],
+    [...factualDraft.area_evidence, { unit_id: "unit-3", area_sqm: 999, source_last_updated_at: "2026-02-12" }],
+  ]) {
+    assert.throws(
+      () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, area_evidence: areaEvidence, claim_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+      (error) => error.message === "generation_area_fact_unverified",
+    );
+  }
+  for (const falseClaim of ["السعر 9 EGP", "السعر ٩٩ ألف جنيه", "السعر ٩٩ مليون جنيه", "الدفعة ٩٩٪"]) {
+    assert.throws(
+      () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: `## مقارنة\n${falseClaim} حسب [الوحدة](/units/unit-1)، بتاريخ 2026-02-10 ويجب التحقق قبل النشر.`, claim_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+      (error) => error.message === "generation_commercial_fact_unverified",
+    );
+  }
+  for (const unsupportedCommercialProse of ["الاستلام فوري", "كل الوحدات متوفرة للحجز فوراً", "المقدم تسعة وتسعون بالمئة"]) {
+    assert.throws(
+      () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: unsupportedCommercialProse, claim_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+      (error) => error.message === "generation_commercial_fact_unverified",
+    );
+  }
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, claim_evidence: [{ kind: "price", value: "9", unit_id: "unit-1", source_last_updated_at: "2026-02-10" }] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_commercial_fact_unverified",
+  );
+  const arabicDecimalEvidence = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, claim_evidence: [{ kind: "down_payment", value: "٢٫٨٣", unit_id: "unit-1", source_last_updated_at: "2026-02-10" }] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات", language: "ar" }, units: sourceUnits });
+  assert.match(arabicDecimalEvidence.body_markdown, /2\.83%/);
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, title: "سعر 99999999 EGP", claim_evidence: factualDraft.claim_evidence }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_commercial_fact_unverified",
+  );
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "السعر 26760000 EGP ويجب التحقق قبل النشر.\n[المصدر](/units/unit-1) 2026-02-10", claim_evidence: [factualDraft.claim_evidence[0]] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_commercial_fact_unverified",
+  );
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, claim_evidence: [{ ...factualDraft.claim_evidence[0], source_last_updated_at: "" }] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_commercial_review_required",
+  );
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "السعر 26760000 EGP حسب [المصدر](/units/unit-1) بتاريخ 2026-02-10.\n## مصادر ومراجعة", claim_evidence: [factualDraft.claim_evidence[0]] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_commercial_fact_unverified",
+  );
+  const equalAreaUnits = [{ ...sourceUnits[0], area_sqm: 185 }, { ...sourceUnits[1], area_sqm: 185 }];
+  const equalAreaDraft = { ...factualDraft, area_evidence: [{ unit_id: "unit-1", area_sqm: 185, source_last_updated_at: "2026-02-10" }, { unit_id: "unit-2", area_sqm: 185, source_last_updated_at: "2026-02-11" }], claim_evidence: [] };
+  const equalAreaResult = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify(equalAreaDraft) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: equalAreaUnits });
+  assert.equal((equalAreaResult.body_markdown.match(/185 م²/g) || []).length, 2);
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "مقارنة عامة بلا أرقام.", area_evidence: [] }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_topic_unsupported",
+  );
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "السعر 99999999 EGP حسب [صف الوحدة](/units/unit-1)، ويجب مراجعته." }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_commercial_fact_unverified",
+  );
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "السعر 26760000 EGP." }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_commercial_fact_unverified",
+  );
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, body_markdown: "السعر 26760000 EGP حسب [وحدة أخرى](/units/unit-2)، ويجب مراجعته." }) }, "draft", { input: { topic: "مقارنة مساحات الوحدات" }, units: sourceUnits }),
+    (error) => error.message === "generation_commercial_fact_unverified",
+  );
+  const groundedRequest = buildOpenAiRequest({ action: "draft", language: "ar", targetType: "project", topic: "مقارنة مساحات" }, [{ id: "project-1", name: "97 Hills", slug: "97-hills--palm-hills-developments" }], sourceUnits);
+  const groundedFacts = JSON.parse(groundedRequest.input[1].content.match(/BEGIN_UNTRUSTED_PUBLIC_FACTS\n([\s\S]+)\nEND_UNTRUSTED_PUBLIC_FACTS/)[1]);
+  assert.equal(groundedFacts.public_facts.available_units[0].area_sqm, 185);
+  assert.equal(groundedFacts.public_facts.available_units[0].source_last_updated_at, "2026-02-10");
+  assert.match(groundedRequest.input[0].content, /Never output template placeholders/);
+
+  const safe = renderSafeMarkdown('## Heading\n<script>alert(1)</script>\n[Project](/projects/project-one)\n[Unit](/units/11111111-1111-4111-8111-111111111111)\n[Bad](https://evil.example)');
   assert.match(safe, /<h2>Heading<\/h2>/);
   assert.match(safe, /&lt;script&gt;/);
   assert.match(safe, /href="\/projects\/project-one"/);
+  assert.match(safe, /href="\/units\/11111111-1111-4111-8111-111111111111"/);
   assert.doesNotMatch(safe, /href="https:\/\/evil/);
 
   const published = {
@@ -118,6 +228,7 @@ function durableFetch({ provider, projects = [{ id: "project-1", name: "Project 
   assert.equal(replay.headers["x-idempotent-replay"], "true");
   assert.equal(durable.providerCalls(), 1, "repeated generation across durable claims must not create a second OpenAI request");
   assert.equal(JSON.parse(first.body).generated_as, "draft");
+  assert.ok(JSON.parse(first.body).source_refs.some((ref) => ref.type === "unit" && ref.url === "/units/unit-1"), "generated drafts must retain traceable unit sources");
   const conflict = await handler(event("same-click-request-1234", "a".repeat(40), { topic: "موضوع مختلف تماماً" }));
   assert.equal(conflict.statusCode, 409, "an idempotency key cannot be reused for a different payload");
   assert.equal(durable.providerCalls(), 1);
@@ -146,6 +257,13 @@ function durableFetch({ provider, projects = [{ id: "project-1", name: "Project 
   assert.equal(retried.statusCode, 200, "a failed provider attempt may retry under the bounded durable attempt count");
   assert.equal(retryStore.providerCalls(), 2);
 
+  const missingAreaFacts = durableFetch({ provider: async () => response(200, { output_text: JSON.stringify(factualDraft) }), units: [] });
+  global.fetch = missingAreaFacts.fetch;
+  const unsupportedComparison = await handler(event("missing-area-facts-1234", "f".repeat(40), { topic: "مقارنة مساحات الوحدات" }));
+  assert.equal(unsupportedComparison.statusCode, 422);
+  assert.equal(JSON.parse(unsupportedComparison.body).error, "generation_source_insufficient");
+  assert.equal(missingAreaFacts.providerCalls(), 0, "an unsupported title intent must fail before a paid model call");
+
   const incompleteStore = durableFetch({ provider: async (call) => call === 1
     ? response(200, { id: "resp_incomplete", model: "gpt-5-mini", status: "incomplete", incomplete_details: { reason: "max_output_tokens" }, output_text: topicJson.slice(0, 20), usage: { input_tokens: 120, output_tokens: 2400, total_tokens: 2520 } })
     : response(200, { id: "resp_completed", model: "gpt-5-mini", status: "completed", output_text: topicJson }) });
@@ -159,6 +277,7 @@ function durableFetch({ provider, projects = [{ id: "project-1", name: "Project 
   const completedReplay = await handler(topicsEvent);
   assert.equal(completedReplay.headers["x-idempotent-replay"], "true");
   assert.equal(incompleteStore.providerCalls(), 2, "incomplete output must not be cached as success or trigger an automatic paid retry");
+  assert.equal(incompleteStore.unitCalls(), 0, "topic suggestions must not fetch unit inventory");
 
   let releaseStale;
   const staleStore = durableFetch({ provider: async (call) => call === 1
