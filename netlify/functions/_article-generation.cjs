@@ -248,11 +248,30 @@ function isBenignCommercialGuidance(value) {
     || /^(?:ask|check|verify|confirm)\s+(?:the developer\s+)?(?:the\s+)?(?:latest\s+)?(?:prices?|payment plans?|delivery dates?)(?:\s*(?:,|and)\s*(?:prices?|payment plans?|delivery dates?))*(?:\s+(?:with|from)\s+the developer)?(?:\s+before (?:a decision|publishing))?$/i.test(sentence));
 }
 
-function hasAvailabilityAssertion(value) {
-  const claimText = value
-    .replace(/(?:بيانات|معلومات)\s+التوافر\s+غير\s+متاحة/gi, "")
-    .replace(/\bavailability\s+(?:data|information)\s+is\s+unavailable\b/gi, "");
-  return /متوفر|متاحة|متاح|\bavailable\b|\bavailability\b/i.test(claimText);
+function availabilitySentences(value) {
+  return String(value || "").split(/(?<=[.!؟])\s+|\n+/).map((part) => part.trim().replace(/[.!؟]+$/, "").trim()).filter(Boolean);
+}
+
+function isAvailabilityInformationOrGuidance(sentence) {
+  // Match the entire sentence: qualifiers or attached inventory claims cannot inherit an exemption.
+  return /^(?:(?:راجع|استخدم)\s+)?(?:المعلومات|البيانات|الحقائق|معلومات|بيانات|حقائق)(?:\s+العامة)?\s+(?:المتاحة|غير متاحة)(?:\s+(?:عن المشروع|للمشروع))?$/i.test(sentence)
+    || /^(?:بيانات|معلومات)\s+التوافر\s+غير\s+متاحة$/i.test(sentence)
+    || /^(?:(?:review|use)\s+(?:the\s+)?)?available\s+(?:(?:public|project)\s+)?(?:information|data|facts)$/i.test(sentence)
+    || /^(?:availability\s+(?:data|information)|(?:project\s+)?(?:information|data|facts))\s+(?:is|are)\s+(?:unavailable|not available)$/i.test(sentence)
+    || /^(?:تحقق من|راجع)\s+(?:توافر الوحدات|حالة توافر الوحدات|الوحدات المتاحة)\s+مع المطور(?:\s+قبل (?:اتخاذ القرار|النشر))?$/i.test(sentence)
+    || /^(?:check|verify|confirm)\s+(?:unit\s+)?availability\s+with the developer(?:\s+before (?:a decision|publishing))?$/i.test(sentence);
+}
+
+function hasAvailabilityAssertion(value, projects = []) {
+  return availabilitySentences(value).some((sentence) => /متوفر|متاحة|متاح|\bunavailable\b|\bavailable\b|\bavailability\b/i.test(sentence)
+    && !isAvailabilityInformationOrGuidance(sentence)
+    && !projects.some((project) => {
+      if (typeof project?.name !== "string" || !project.name.trim()) return false;
+      return [" عن ", " about "].some((separator) => {
+        const suffix = separator + project.name;
+        return sentence.endsWith(suffix) && isAvailabilityInformationOrGuidance(sentence.slice(0, -suffix.length));
+      });
+    }));
 }
 
 function comparisonIntent(value) {
@@ -290,25 +309,26 @@ function hasCommercialAssertion(value) {
 }
 
 function recoverIntroduction(value, context, payload, text) {
+  const removableAssertion = (field) => hasCommercialAssertion(field) || hasAvailabilityAssertion(field, context?.projects || []);
   const english = context?.input?.language === "en";
   const project = Array.isArray(context?.projects) ? context.projects[0] : null;
   const name = project?.name || (english ? "the selected project" : "المشروع المحدد");
   const location = project?.location ? (english ? ` in ${project.location}` : ` في ${project.location}`) : "";
   const recoveredFields = [];
   for (const field of ["slug", "excerpt", "meta_description"]) {
-    if (!hasCommercialAssertion(normalizedDigits(String(value[field] || "")))) continue;
+    if (!removableAssertion(normalizedDigits(String(value[field] || "")))) continue;
     recoveredFields.push(field);
     if (field === "slug") value[field] = "project-introduction";
-    else if (field === "excerpt") value[field] = english ? `An overview of ${name}${location} based on the available project information.` : `نظرة عامة على ${name}${location} اعتماداً على معلومات المشروع المتاحة.`;
-    else value[field] = english ? `Review the location, concept, and services of ${name} using the available public information.` : `راجع موقع وفكرة وخدمات ${name} بالاعتماد على المعلومات العامة المتاحة.`;
+    else if (field === "excerpt") value[field] = english ? `An overview of ${name}${location} based on the supplied project information.` : `نظرة عامة على ${name}${location} اعتماداً على معلومات المشروع المقدمة.`;
+    else value[field] = english ? `Review the location, concept, and services of ${name} using the supplied public information.` : `راجع موقع وفكرة وخدمات ${name} بالاعتماد على المعلومات العامة المقدمة.`;
   }
   const bodyParts = String(value.body_markdown || "").split(/(?<=[.!؟])\s+|\n+/).map((part) => part.trim()).filter(Boolean);
-  const safeBodyParts = bodyParts.filter((part) => !hasCommercialAssertion(normalizedDigits(part)));
+  const safeBodyParts = bodyParts.filter((part) => !removableAssertion(normalizedDigits(part)));
   if (safeBodyParts.length !== bodyParts.length) recoveredFields.push("body_markdown");
   if (recoveredFields.includes("body_markdown")) {
     const safeBody = safeBodyParts.join("\n\n");
     const substantive = safeBodyParts.filter((part) => !/^#{1,6}\s/.test(part) && !/^(?:مصادر ومراجعة|يجب التحقق.*قبل النشر|Sources and review|Factual details should be verified)/i.test(part)).join(" ").trim();
-    if (substantive.length < 30) throw outputError("generation_commercial_review_required", payload, text, "recover_intro_no_substantive_content", 422);
+    if (substantive.length < 30) throw outputError("generation_commercial_review_required", payload, text, "recover_intro_no_substantive_content", 422, { reason: hasAvailabilityAssertion(String(value.body_markdown || ""), context?.projects || []) ? "availability_prose" : "commercial_prose", fields: ["body_markdown"], recovery_eligible: false, intent: "introduction" });
     value.body_markdown = safeBody;
   }
   if (recoveredFields.length) {
@@ -382,18 +402,24 @@ function validateDraftFacts(value, context, payload, text) {
   }
 
   const descriptiveFields = [value.slug, value.excerpt, value.meta_description, value.body_markdown];
-  const commercialText = normalizedDigits(descriptiveFields.join("\n"));
+  let commercialText = normalizedDigits(descriptiveFields.join("\n"));
   const modelClaims = typedClaims(commercialText);
-  const unsupportedCommercialAssertion = hasCommercialAssertion(commercialText);
-  const availabilityProse = hasAvailabilityAssertion(commercialText);
+  let unsupportedCommercialAssertion = hasCommercialAssertion(commercialText);
+  let availabilityProse = hasAvailabilityAssertion(commercialText, projects);
   if (modelClaims.length) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_numeric_claim", 502, { reason: "numeric_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], (field) => typedClaims(field).length > 0), recovery_eligible: false, intent });
-  if (unsupportedCommercialAssertion && !(introductionIntent(topic) && recoverIntroduction(value, context, payload, text))) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_commercial_assertion", 502, { reason: "commercial_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], hasCommercialAssertion), recovery_eligible: introductionIntent(topic), intent });
-  if (availabilityProse && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_availability_claim", 502, { reason: "availability_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], hasAvailabilityAssertion), recovery_eligible: false, intent });
+  if (introductionIntent(topic) && (unsupportedCommercialAssertion || (availabilityProse && !availabilityIntent))) {
+    recoverIntroduction(value, context, payload, text);
+    commercialText = normalizedDigits([value.slug, value.excerpt, value.meta_description, value.body_markdown].join("\n"));
+    unsupportedCommercialAssertion = hasCommercialAssertion(commercialText);
+    availabilityProse = hasAvailabilityAssertion(commercialText, projects);
+  }
+  if (unsupportedCommercialAssertion) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_commercial_assertion", 502, { reason: "commercial_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], hasCommercialAssertion), recovery_eligible: introductionIntent(topic), intent });
+  if (availabilityProse && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_availability_claim", 502, { reason: "availability_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], (field) => hasAvailabilityAssertion(field, projects)), recovery_eligible: false, intent });
   const titleText = normalizedDigits([value.title, value.meta_title].join("\n"));
   const titleHasNonAvailabilityCommercialClaim = typedClaims(titleText).length > 0 || (COMMERCIAL_WORDS_RE.test(titleText) && !isBenignCommercialGuidance(titleText)) || hasUnsupportedCommercialAssertion(titleText);
-  const titleHasAvailabilityClaim = hasAvailabilityAssertion(titleText);
+  const titleHasAvailabilityClaim = hasAvailabilityAssertion(titleText, projects);
   if (titleHasNonAvailabilityCommercialClaim) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_commercial_claim", 502, { reason: "title_commercial", fields: problemFields(value, ["title", "meta_title"], (field) => typedClaims(field).length > 0 || hasCommercialAssertion(field)), recovery_eligible: false, intent });
-  if (titleHasAvailabilityClaim && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_availability_claim", 502, { reason: "title_availability", fields: problemFields(value, ["title", "meta_title"], hasAvailabilityAssertion), recovery_eligible: false, intent });
+  if (titleHasAvailabilityClaim && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_availability_claim", 502, { reason: "title_availability", fields: problemFields(value, ["title", "meta_title"], (field) => hasAvailabilityAssertion(field, projects)), recovery_eligible: false, intent });
 
   const evidence = Array.isArray(value.claim_evidence) ? value.claim_evidence : [];
   const renderedClaims = [];
