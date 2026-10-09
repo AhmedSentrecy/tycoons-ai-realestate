@@ -176,13 +176,31 @@ export class AdminApiError extends Error {
   code: string;
   status: number;
   retryAfterSeconds: number | null;
+  generationFailure: GenerationFailure | null;
 
-  constructor(code: string, status: number, retryAfterSeconds: number | null = null) {
+  constructor(code: string, status: number, retryAfterSeconds: number | null = null, generationFailure: GenerationFailure | null = null) {
     super(code);
     this.code = code;
     this.status = status;
     this.retryAfterSeconds = retryAfterSeconds;
+    this.generationFailure = generationFailure;
   }
+}
+
+type GenerationFailureReason = "numeric_prose" | "commercial_prose" | "availability_prose" | "title_commercial" | "title_availability" | "claim_evidence";
+type GenerationFailureField = "title" | "slug" | "excerpt" | "meta_title" | "meta_description" | "body_markdown" | "claim_evidence";
+type GenerationIntent = "introduction" | "comparison" | "availability" | "area" | "other";
+export interface GenerationFailure { reason: GenerationFailureReason; fields: GenerationFailureField[]; recovery_eligible: boolean; intent: GenerationIntent }
+
+function safeGenerationFailure(value: unknown): GenerationFailure | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const item = value as Record<string, unknown>;
+  const reasons = new Set<GenerationFailureReason>(["numeric_prose", "commercial_prose", "availability_prose", "title_commercial", "title_availability", "claim_evidence"]);
+  const allowedFields = new Set<GenerationFailureField>(["title", "slug", "excerpt", "meta_title", "meta_description", "body_markdown", "claim_evidence"]);
+  const intents = new Set<GenerationIntent>(["introduction", "comparison", "availability", "area", "other"]);
+  if (!reasons.has(item.reason as GenerationFailureReason) || !intents.has(item.intent as GenerationIntent) || !Array.isArray(item.fields)) return null;
+  const fields = [...new Set(item.fields.filter((field): field is GenerationFailureField => typeof field === "string" && allowedFields.has(field as GenerationFailureField)))];
+  return { reason: item.reason as GenerationFailureReason, fields, recovery_eligible: item.recovery_eligible === true, intent: item.intent as GenerationIntent };
 }
 
 async function call<T>(action: string, payload: Record<string, unknown> = {}, token = ""): Promise<T> {
@@ -196,7 +214,7 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}, to
     body: JSON.stringify({ action, ...payload }),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null);
+  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure));
   return data as T;
 }
 
@@ -207,7 +225,7 @@ async function generate<T>(token: string, idempotencyKey: string, payload: Recor
     body: JSON.stringify(payload),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null);
+  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure));
   return data as T;
 }
 
@@ -394,8 +412,24 @@ const FIELD_LABELS: Record<string, string> = {
   location: "الموقع",
 };
 
+const GENERATION_FIELD_LABELS: Record<GenerationFailureField, string> = {
+  title: "العنوان", slug: "الرابط", excerpt: "الملخص", meta_title: "عنوان البحث",
+  meta_description: "وصف البحث", body_markdown: "نص المقال", claim_evidence: "اختيار بيانات الوحدة",
+};
+
 export function errorMessage(error: unknown): string {
   const code = error instanceof AdminApiError ? error.code : "";
+  if (code === "generation_commercial_fact_unverified" && error instanceof AdminApiError && error.generationFailure) {
+    const failure = error.generationFailure;
+    const locations = failure.fields.map((field) => GENERATION_FIELD_LABELS[field]).join("، ");
+    const suffix = locations ? ` في: ${locations}.` : ".";
+    if (failure.reason === "numeric_prose") return `المسودة تضمنت رقماً تجارياً غير موثق${suffix}`;
+    if (failure.reason === "commercial_prose") return `المسودة تضمنت وصفاً تجارياً غير موثق${suffix}`;
+    if (failure.reason === "availability_prose") return `المسودة تضمنت ادعاء توافر غير موثق${suffix}`;
+    if (failure.reason === "title_commercial") return `عنوان المسودة تضمن ادعاءً تجارياً غير موثق${suffix}`;
+    if (failure.reason === "title_availability") return `عنوان المسودة تضمن ادعاء توافر غير موثق${suffix}`;
+    if (failure.reason === "claim_evidence") return "اختارت المسودة حقيقة تجارية غير موجودة في بيانات الوحدة المصدر.";
+  }
   if (code === "generation_rate_limited") {
     const seconds = error instanceof AdminApiError ? error.retryAfterSeconds : null;
     const minutes = Math.max(1, Math.ceil((seconds || 600) / 60));
