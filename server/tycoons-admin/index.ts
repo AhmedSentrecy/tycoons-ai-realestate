@@ -12,6 +12,7 @@
 // - Sessions: random token, only its SHA-256 stored, 7 days. 8 failed logins / 15 min per IP.
 // - Writes to live tables go through public.admin_apply_ops (atomic, column whitelist).
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { assessArticleReview } from "./article-review.mjs";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const db = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -51,10 +52,12 @@ const cors = {
 class HttpError extends Error {
   status: number;
   code: string;
-  constructor(status: number, code: string) {
+  details?: Record<string, unknown>;
+  constructor(status: number, code: string, details?: Record<string, unknown>) {
     super(code);
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -229,7 +232,31 @@ async function getArticle(body: Json) {
   const { data, error } = await db.from("editorial_articles").select("*").eq("id", id).maybeSingle();
   fail(error);
   if (!data) throw new HttpError(404, "article_not_found");
-  return { article: data };
+  return { article: { ...data, review_issues: await reviewArticle(data) } };
+}
+
+// Review is derived from live public rows on every read/save/publication. It is
+// intentionally not stored, and no values or review flags in source_refs are
+// accepted as evidence. Only bounded IDs are used to load scoped source rows.
+async function reviewArticle(article: Json) {
+  const refs = Array.isArray(article.source_refs) ? article.source_refs.slice(0, 30) : [];
+  const ids = (type: string) => [...new Set(refs.filter((ref) => ref && ref.type === type && typeof ref.id === "string" && ref.id.length <= 80).map((ref) => ref.id as string))];
+  const projectIds = ids("project");
+  if (article.target_type === "project" && typeof article.project_id === "string" && article.project_id.length <= 80 && !projectIds.includes(article.project_id)) projectIds.push(article.project_id);
+  const { data: projects, error: projectsError } = projectIds.length
+    ? await db.from("projects").select("id,name,slug,developer,location").in("id", projectIds)
+    : { data: [], error: null };
+  fail(projectsError);
+  const normalizedArea = text(article.area_name).normalize("NFKC").toLocaleLowerCase();
+  const scopedProjects = (projects ?? []).filter((project: Json) => article.target_type === "project"
+    ? project.id === article.project_id
+    : article.target_type === "area" && normalizedArea && text(project.location).normalize("NFKC").toLocaleLowerCase().includes(normalizedArea));
+  const unitIds = ids("unit");
+  const { data: units, error: unitsError } = unitIds.length && scopedProjects.length
+    ? await db.from("units").select(UNIT_COLUMNS).in("id", unitIds).in("project_id", scopedProjects.map((project: Json) => project.id))
+    : { data: [], error: null };
+  fail(unitsError);
+  return assessArticleReview(article, { projects: scopedProjects, units: units ?? [] });
 }
 
 async function loadProject(id: string) {
@@ -302,6 +329,7 @@ async function saveArticle(user: AdminUser, body: Json) {
   const values = cleanArticle((body.values ?? {}) as Json);
   const contentHash = await sha256(JSON.stringify(values));
   if (values.project_id) await loadProject(values.project_id);
+  const reviewIssues = await reviewArticle(values);
   const id = text(body.id);
   if (id) {
     const expectedRevision = Number(body.expected_revision);
@@ -323,7 +351,7 @@ async function saveArticle(user: AdminUser, body: Json) {
     }).eq("id", id).eq("revision", expectedRevision).select("*").maybeSingle();
     fail(error);
     if (!data) throw new HttpError(409, "article_stale");
-    return { article: data };
+    return { article: { ...data, review_issues: reviewIssues } };
   }
   const { data, error } = await db.from("editorial_articles").insert({
     ...values,
@@ -333,7 +361,7 @@ async function saveArticle(user: AdminUser, body: Json) {
     updated_by: user.id,
   }).select("*").single();
   fail(error);
-  return { article: data };
+  return { article: { ...data, review_issues: reviewIssues } };
 }
 
 async function publishArticle(user: AdminUser, body: Json) {
@@ -343,11 +371,17 @@ async function publishArticle(user: AdminUser, body: Json) {
   const expectedHash = text(body.expected_content_hash);
   if (!id) throw new HttpError(400, "article_id_required");
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1 || !/^[a-f0-9]{64}$/.test(expectedHash)) throw new HttpError(409, "article_revision_required");
-  const { data: article } = await db.from("editorial_articles").select("id,status,title,body_markdown,source_refs,revision,content_hash").eq("id", id).maybeSingle();
+  const { data: article, error: readError } = await db.from("editorial_articles").select("*").eq("id", id).maybeSingle();
+  fail(readError);
   if (!article) throw new HttpError(404, "article_not_found");
   if (article.status !== "draft") throw new HttpError(409, "article_not_draft");
   if (article.revision !== expectedRevision || article.content_hash !== expectedHash) throw new HttpError(409, "article_stale");
   if (!text(article.body_markdown) || !Array.isArray(article.source_refs) || !article.source_refs.length) throw new HttpError(400, "article_not_ready");
+  const reviewIssues = await reviewArticle(article);
+  if (reviewIssues.some((issue) => issue.severity === "blocker")) throw new HttpError(409, "article_review_blocked", { review_issues: reviewIssues });
+  // A client flag alone grants nothing: it acknowledges precisely the saved
+  // revision/hash above, whose fields and current sources were just reassessed.
+  if (body.review_confirmed !== true) throw new HttpError(400, "article_review_confirmation_required", { review_issues: reviewIssues });
   const now = new Date().toISOString();
   const { data, error } = await db.from("editorial_articles").update({
     status: "published",
@@ -360,7 +394,7 @@ async function publishArticle(user: AdminUser, body: Json) {
   }).eq("id", id).eq("status", "draft").eq("revision", expectedRevision).eq("content_hash", expectedHash).select("*").maybeSingle();
   fail(error);
   if (!data) throw new HttpError(409, "article_stale");
-  return { article: data };
+  return { article: { ...data, review_issues: reviewIssues } };
 }
 
 async function claimArticleGeneration(user: AdminUser, tokenHash: string, body: Json) {
@@ -998,8 +1032,9 @@ Deno.serve(async (req: Request) => {
       default: return reply({ error: "unknown_action" }, 400);
     }
   } catch (error) {
-    if (error instanceof HttpError) return reply({ error: error.code }, error.status);
+    if (error instanceof HttpError) return reply({ error: error.code, ...error.details }, error.status);
     console.error(error);
     return reply({ error: "server_error" }, 500);
   }
 });
+

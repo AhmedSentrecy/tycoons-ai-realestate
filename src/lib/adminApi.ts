@@ -45,6 +45,13 @@ export interface ArticleSourceRef {
   source_last_updated_at?: string | null;
 }
 
+export interface ArticleReviewIssue {
+  code: string;
+  field: string;
+  severity: "blocker" | "review";
+  message: string;
+}
+
 export interface ArticleValues {
   language: "ar" | "en";
   title: string;
@@ -57,6 +64,7 @@ export interface ArticleValues {
   project_id: string | null;
   area_name: string | null;
   source_refs: ArticleSourceRef[];
+  review_issues?: ArticleReviewIssue[];
 }
 
 export interface AdminArticle extends ArticleValues {
@@ -177,14 +185,26 @@ export class AdminApiError extends Error {
   status: number;
   retryAfterSeconds: number | null;
   generationFailure: GenerationFailure | null;
+  reviewIssues: ArticleReviewIssue[] | null;
 
-  constructor(code: string, status: number, retryAfterSeconds: number | null = null, generationFailure: GenerationFailure | null = null) {
+  constructor(code: string, status: number, retryAfterSeconds: number | null = null, generationFailure: GenerationFailure | null = null, reviewIssues: ArticleReviewIssue[] | null = null) {
     super(code);
     this.code = code;
     this.status = status;
     this.retryAfterSeconds = retryAfterSeconds;
     this.generationFailure = generationFailure;
+    this.reviewIssues = reviewIssues;
   }
+}
+
+function safeReviewIssues(value: unknown): ArticleReviewIssue[] | null {
+  if (!Array.isArray(value)) return null;
+  return value.flatMap((issue: unknown): ArticleReviewIssue[] => {
+    if (!issue || typeof issue !== "object" || Array.isArray(issue)) return [];
+    const item = issue as Record<string, unknown>;
+    if (typeof item.code !== "string" || typeof item.field !== "string" || typeof item.message !== "string" || (item.severity !== "blocker" && item.severity !== "review")) return [];
+    return [{ code: item.code, field: item.field, severity: item.severity, message: item.message }];
+  });
 }
 
 type GenerationFailureReason = "numeric_prose" | "commercial_prose" | "availability_prose" | "title_commercial" | "title_availability" | "claim_evidence";
@@ -214,7 +234,7 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}, to
     body: JSON.stringify({ action, ...payload }),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure));
+  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure), safeReviewIssues(data.review_issues));
   return data as T;
 }
 
@@ -225,7 +245,7 @@ async function generate<T>(token: string, idempotencyKey: string, payload: Recor
     body: JSON.stringify(payload),
   });
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure));
+  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure), safeReviewIssues(data.review_issues));
   return data as T;
 }
 
@@ -246,7 +266,7 @@ export const adminApi = {
   articleSave: (token: string, id: string | null, values: ArticleValues, expectedRevision: number | null) =>
     call<{ article: AdminArticle }>("article_save", { id, values, expected_revision: expectedRevision }, token),
   articlePublish: (token: string, id: string, expectedRevision: number, expectedContentHash: string) =>
-    call<{ article: AdminArticle }>("article_publish", { id, expected_revision: expectedRevision, expected_content_hash: expectedContentHash }, token),
+    call<{ article: AdminArticle }>("article_publish", { id, expected_revision: expectedRevision, expected_content_hash: expectedContentHash, review_confirmed: true }, token),
   editorialWorkflow: (token: string) => call<EditorialWorkflow>("editorial_workflow", {}, token),
   editorialJobCreate: (token: string, input: Record<string, unknown>) => call<{ job: EditorialJob; paid_execution_enabled: false }>("editorial_job_create", input, token),
   editorialJobRetry: (token: string, id: string) => call<{ job: EditorialJob }>("editorial_job_retry", { id }, token),
@@ -255,7 +275,7 @@ export const adminApi = {
   articleTopics: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">) =>
     generate<{ topics: TopicIdea[]; source_refs: ArticleSourceRef[]; generated_as: "draft" }>(token, idempotencyKey, { action: "topics", ...target }),
   articleDraft: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string) =>
-    generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "source_refs"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target }),
+    generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "source_refs" | "review_issues"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target }),
   signUpload: (token: string, body: { target: MediaTarget; id: string; kind: MediaKind; content_type: string; size: number }) =>
     call<{ upload_url: string; path: string; public_url: string }>("sign_upload", body, token),
   saveMedia: (
@@ -379,6 +399,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 Object.assign(ERROR_MESSAGES, {
+  article_review_blocked: "توجد ملاحظات تمنع النشر. راجع الملاحظات في المحرر، ثم صحّحها واحفظ المسودة لإعادة الفحص.",
+  article_review_confirmation_required: "راجع حقائق النسخة المحفوظة ومصادرها وجميع ملاحظات المراجعة، ثم أكّد المراجعة قبل النشر.",
   generation_provider_credit_exhausted: "رصيد OpenAI API المستخدم بالموقع منتهٍ. أضف رصيدًا من إعدادات الفوترة ثم حاول مجددًا.",
   generation_provider_spend_limit_exceeded: "وصل مشروع OpenAI إلى حد الإنفاق المسموح. راجع حدود الإنفاق للمشروع أو المؤسسة.",
   generation_provider_usage_limit_exceeded: "وصل حساب OpenAI إلى حد الاستخدام المسموح. راجع حدود الاستخدام أو اطلب زيادتها.",
@@ -490,3 +512,4 @@ export function formatPrice(value: number | string | null | undefined) {
   if (number >= 1_000_000) return `${Number((number / 1_000_000).toFixed(2))} مليون`;
   return `${Math.round(number / 1000)} ألف`;
 }
+
