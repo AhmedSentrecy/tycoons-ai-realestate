@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { adminApi, type AdminArticle, type AdminProject, type ArticleValues, type TopicIdea } from "../../lib/adminApi";
+import { adminApi, AdminApiError, type AdminArticle, type AdminProject, type ArticleValues, type TopicIdea } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import { Badge, EmptyState, Modal, inputClass } from "./ui";
 import EditorialWorkflowPanel from "./EditorialWorkflowPanel";
@@ -14,6 +14,13 @@ const articleFingerprint = (article: ArticleValues) => JSON.stringify({
   body_markdown: article.body_markdown, meta_title: article.meta_title, meta_description: article.meta_description,
   target_type: article.target_type, project_id: article.project_id, area_name: article.area_name, source_refs: article.source_refs,
 });
+
+const REVIEW_FIELD_LABELS: Record<string, string> = {
+  title: "العنوان", slug: "الرابط", excerpt: "المقدمة", body_markdown: "نص المقال",
+  meta_title: "عنوان SEO", meta_description: "وصف SEO", source_refs: "المصادر",
+  claim_evidence: "أدلة الحقائق", unit_evidence: "أدلة الوحدات", comparison_project_ids: "مشاريع المقارنة",
+  language: "اللغة", target_type: "النطاق", project_id: "المشروع", area_name: "المنطقة",
+};
 
 function Preview({ article }: { article: ArticleValues }) {
   return <div dir={article.language === "ar" ? "rtl" : "ltr"} className="prose max-w-none">
@@ -50,6 +57,8 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
   const busyRef = useRef<typeof busy>("");
   const areas = useMemo(() => [...new Set(projects.map((project) => project.location?.trim()).filter(Boolean) as string[])].sort(), [projects]);
   const dirty = !loadedArticle || savedFingerprint !== articleFingerprint(values);
+  const reviewIssues = values.review_issues ?? [];
+  const hasPublishBlockers = reviewIssues.some((issue) => issue.severity === "blocker");
 
   function patchValues(patch: Partial<ArticleValues>, contextChanged = false) {
     if (["load", "save", "publish"].includes(busyRef.current)) return;
@@ -70,6 +79,11 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       ? { ...emptyArticle(), language: current.language, target_type: current.target_type, project_id: current.project_id, area_name: current.area_name, ...patch }
       : { ...current, ...patch });
     setReviewConfirmed(false);
+  }
+
+  function removeSource(index: number) {
+    if (busyRef.current) return;
+    patchValues({ source_refs: values.source_refs.filter((_, sourceIndex) => sourceIndex !== index) });
   }
 
   function beginOperation(kind: Exclude<typeof busy, "">) {
@@ -140,7 +154,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
     try {
       const result = await adminApi.articleDraft(token, requestKey("draft", topic.trim()), generationTarget(), topic.trim());
       if (operation !== operationId.current || context !== editorContext.current) return;
-      patchValues({ ...result, source_refs: result.source_refs });
+      patchValues({ ...result, source_refs: result.source_refs, review_issues: result.review_issues ?? [] });
       notify("تم إنشاء مسودة فقط. راجعها وعدّلها قبل الحفظ أو النشر.");
     } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
   }
@@ -157,14 +171,22 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
   }
 
   async function publish() {
-    if (!selectedId || !loadedArticle || dirty || !reviewConfirmed || !isOwner) return;
+    if (!selectedId || !loadedArticle || dirty || hasPublishBlockers || !reviewConfirmed || !isOwner) return;
     const operation = beginOperation("publish");
     if (!operation) return;
     try {
       const { article } = await adminApi.articlePublish(token, selectedId, loadedArticle.revision, loadedArticle.content_hash);
       if (operation !== operationId.current) return;
       setLoadedArticle(article); setValues(article); setSavedFingerprint(articleFingerprint(article)); setReviewConfirmed(false); await refresh(); notify("تم نشر المقال بعد المراجعة.");
-    } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
+    } catch (error) {
+      if (operation !== operationId.current) return;
+      if (error instanceof AdminApiError && error.code === "article_review_blocked") {
+        setReviewConfirmed(false);
+        const reviewIssues = error.reviewIssues;
+        if (reviewIssues) setValues((current) => ({ ...current, review_issues: reviewIssues }));
+      }
+      handleError(error);
+    } finally { endOperation(operation); }
   }
 
   const canGenerate = values.target_type === "project" ? Boolean(values.project_id) : Boolean(values.area_name);
@@ -194,12 +216,31 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
         {([['title','العنوان'],['slug','الرابط'],['meta_title','عنوان SEO'],['meta_description','وصف SEO'],['excerpt','المقدمة']] as const).map(([field,label]) => <label key={field} className={`text-sm font-bold ${field === 'excerpt' ? 'md:col-span-2' : ''}`}>{label}<input disabled={Boolean(busy)} dir={field === 'slug' ? 'ltr' : undefined} className={inputClass} value={values[field]} onChange={(event) => patchValues({ [field]: event.target.value })} /></label>)}
         <label className="text-sm font-bold md:col-span-2">نص المقال (Markdown آمن)<textarea disabled={Boolean(busy)} className={`${inputClass} min-h-80 font-sans`} value={values.body_markdown} onChange={(event) => patchValues({ body_markdown: event.target.value })} /></label>
       </div>
+      <div className="mt-4 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-4" aria-live="polite">
+        <h3 className="font-black">ملاحظات المراجعة</h3>
+        <p className="mt-1 text-sm">راجع الحقائق والمصادر وجميع الملاحظات قبل النشر. الفحص الآلي لا يثبت صحة المعلومات.</p>
+        {dirty && <p className="mt-2 text-sm font-bold">قد تكون الملاحظات غير محدثة. احفظ التعديلات لتحديثها قبل تأكيد المراجعة والنشر.</p>}
+        {values.source_refs.length > 0 && <div className="mt-3">
+          <h4 className="text-sm font-bold">مصادر المسودة</h4>
+          <p className="mt-1 text-xs">عند إزالة مصدر، عدّل أو احذف الحقائق المرتبطة به من جميع حقول المقال، ثم احفظ لإعادة الفحص.</p>
+          <ul className="mt-2 space-y-2">{values.source_refs.map((source, index) => <li key={`${source.type}:${source.id}:${index}`} className="flex items-start justify-between gap-3 text-sm">
+            <span>{source.label}<span className="block break-all text-xs text-[#5c6a62]" dir="ltr">{source.url}</span></span>
+            <button disabled={Boolean(busy)} onClick={() => removeSource(index)} className="shrink-0 rounded-lg border px-3 py-1 font-bold disabled:opacity-50" aria-label={`إزالة المصدر: ${source.label}`}>إزالة المصدر</button>
+          </li>)}</ul>
+        </div>}
+        {reviewIssues.length > 0 && <ul className="mt-3 space-y-2">{reviewIssues.map((issue, index) => <li key={`${issue.field}:${issue.code}:${index}`} className="text-sm">
+          <strong>{REVIEW_FIELD_LABELS[issue.field] || issue.field}: {issue.severity === "blocker" ? "يمنع النشر" : "تحتاج مراجعة"}</strong>
+          <span className="block">{issue.message}</span>
+        </li>)}</ul>}
+        {hasPublishBlockers && <p className="mt-3 text-sm font-bold text-red-700">صحّح الملاحظات التي تمنع النشر ثم احفظ المسودة لإعادة الفحص. يمكنك متابعة التحرير وحفظها كمسودة.</p>}
+      </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button disabled={!values.title || !values.body_markdown || !values.source_refs.length || Boolean(busy)} onClick={() => void save()} className="rounded-xl bg-[#0d1f18] px-5 py-2 font-black text-white disabled:opacity-50">{busy === "save" ? "جارٍ الحفظ…" : "حفظ كمسودة"}</button>
         <button disabled={!values.body_markdown} onClick={() => setPreview(true)} className="rounded-xl border px-5 py-2 font-black">معاينة</button>
-        {isOwner && loadedArticle?.status !== "published" && <Fragment><label className="flex items-center gap-2 text-sm font-bold"><input disabled={dirty || Boolean(busy)} type="checkbox" checked={reviewConfirmed} onChange={(event) => setReviewConfirmed(event.target.checked)} />راجعت النسخة المحفوظة والمصادر</label><button disabled={!selectedId || dirty || !reviewConfirmed || Boolean(busy)} onClick={() => void publish()} className="rounded-xl bg-emerald-700 px-5 py-2 font-black text-white disabled:opacity-50">{busy === "publish" ? "جارٍ النشر…" : "نشر النسخة المحفوظة"}</button></Fragment>}
+        {isOwner && loadedArticle?.status !== "published" && <Fragment><label className="flex items-center gap-2 text-sm font-bold"><input disabled={dirty || hasPublishBlockers || Boolean(busy)} type="checkbox" checked={reviewConfirmed} onChange={(event) => setReviewConfirmed(event.target.checked)} />راجعت حقائق النسخة المحفوظة ومصادرها وجميع ملاحظات المراجعة</label><button disabled={!selectedId || dirty || hasPublishBlockers || !reviewConfirmed || Boolean(busy)} onClick={() => void publish()} className="rounded-xl bg-emerald-700 px-5 py-2 font-black text-white disabled:opacity-50">{busy === "publish" ? "جارٍ النشر…" : "نشر النسخة المحفوظة"}</button></Fragment>}
       </div>
     </section>
     {preview && <Modal title="معاينة المقال — غير منشور" wide onClose={() => setPreview(false)}><Preview article={values} /><button onClick={() => setPreview(false)} className="mt-5 rounded-xl bg-[#0d1f18] px-5 py-2 font-black text-white">العودة للتحرير</button></Modal>}
   </div></>;
 }
+

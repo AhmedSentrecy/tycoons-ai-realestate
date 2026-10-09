@@ -144,7 +144,7 @@ function buildOpenAiRequest(input, projects, units = []) {
     rules.push("Return a source-grounded draft, not a published article. Use Markdown headings, paragraphs, and lists only.");
     rules.push("Never output template placeholders such as {{min_area}}. Omit unknown values instead of describing them as available or inventing replacements.");
     rules.push("The available_units list is a bounded recent sample, not an exhaustive inventory. Never claim a project-wide minimum, maximum, complete range, or all unit types from it. Do not write numeric unit areas in prose. Select relevant source rows only by adding unit_evidence entries containing unit_id; never repeat area or freshness values. The server will render a labeled sample deterministically.");
-    rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims in prose or descriptive metadata. Do not mention commercial categories at all unless the requested topic specifically asks for a review checklist; then use only a direct instruction to verify them with the developer. If a requested comparison names entities absent from public_facts.projects, reframe it as a neutral checklist for evaluating the supplied project; do not invent comparisons. Put every project used in a factual comparison in comparison_project_ids. For every non-comparison draft, including introductions, overviews, and neutral checklists, comparison_project_ids must be []; do not put the selected project ID in this field. A title may mirror an availability-focused user topic, but the body must leave the supporting availability statement to the server. To request a commercial fact, add only its typed kind and unit_id to claim_evidence, and only when that unit row contains the corresponding non-empty field; never repeat the commercial value or source date. The server reads both from the validated row and renders them deterministically.");
+    rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims in prose or descriptive metadata. You may discuss commercial questions without inventing answers. Missing facts need explicit editorial verification. Preserve the requested topic. If a comparison lacks source entities, explain the missing comparison evidence in the draft; never substitute a generic checklist or invent comparisons. Put every project used in a factual comparison in comparison_project_ids. For every non-comparison draft, including introductions, overviews, and neutral checklists, comparison_project_ids must be []; do not put the selected project ID in this field. A title may mirror an availability-focused user topic, but the body must leave the supporting availability statement to the server. To request a commercial fact, add only its typed kind and unit_id to claim_evidence, and only when that unit row contains the corresponding non-empty field; never repeat the commercial value or source date. The server reads both from the validated row and renders them deterministically.");
     rules.push(`Only link to these approved internal URLs: ${refs.map((ref) => ref.url).join(', ') || 'none'}. Do not create any other links.`);
     rules.push("Add a final section titled 'مصادر ومراجعة' in Arabic or 'Sources and review' in English, saying factual details should be verified before publication.");
   }
@@ -235,200 +235,46 @@ function sourceDisplayValue(unit, kind) {
   return "";
 }
 
-function hasUnsupportedCommercialAssertion(value) {
-  return /(?:الاستلام|التسليم)[^\n.]{0,20}(?:فوري|قريب)|(?:immediate|soon)[^\n.]{0,20}(?:delivery|handover)|(?:كل|جميع)\s+الوحدات[^\n.]{0,30}(?:متوفر|متاحة|للحجز)|all\s+units[^\n.]{0,30}(?:available|book)|(?:المقدم|دفعة|down payment)[^\n.]{0,40}(?:بالمئة|بالمائة|%|٪)|(?:السعر|الأسعار|price|prices)[^\n.]{0,24}(?:منخفض|مرتفعة|مرتفع|أرخص|أغلى|مناسب|تنافسي|يبدأ|low|high|cheap|expensive|competitive|starts?)|(?:المشروع|project)[^\n.]{0,24}(?:أرخص|أغلى|cheaper|more expensive)|(?:تقسيط|installments?)[^\n.]{0,24}(?:طويل|مرن|سهل|long|flexible|easy)|(?:متوفر|متاحة|متاح)\s+للحجز|available\s+(?:to book|now)/i.test(value);
-}
-
-const COMMERCIAL_WORDS_RE = /سعر|الأسعار|دفعة|سداد|مقدم(?!ة)|بالمئة|بالمائة|تقسيط|قسط|تسليم|استلام|فوري|للحجز|أرخص|أغلى|price|payment|down payment|installment|delivery|handover|immediate|book now|cheaper|expensive|EGP|جنيه|%|٪/i;
-
-function isBenignCommercialGuidance(value) {
-  const commercialSentences = value.split(/[.!؟\n]+/).map((sentence) => sentence.trim()).filter((sentence) => COMMERCIAL_WORDS_RE.test(sentence));
-  return commercialSentences.every((sentence) =>
-    /^(?:اطلب|راجع|تحقق من)\s+(?:(?:من|مع) المطور\s+)?(?:أحدث\s+)?(?:الأسعار|السعر|خطط السداد|مواعيد الاستلام)(?:\s*(?:،|و)\s*(?:الأسعار|السعر|خطط السداد|مواعيد الاستلام))*(?:\s+(?:(?:من|مع) المطور|مباشرة من المطور))?(?:\s+قبل (?:اتخاذ القرار|النشر))?$/i.test(sentence)
-    || /^(?:ask|check|verify|confirm)\s+(?:the developer\s+)?(?:the\s+)?(?:latest\s+)?(?:prices?|payment plans?|delivery dates?)(?:\s*(?:,|and)\s*(?:prices?|payment plans?|delivery dates?))*(?:\s+(?:with|from)\s+the developer)?(?:\s+before (?:a decision|publishing))?$/i.test(sentence));
-}
-
-function availabilitySentences(value) {
-  return String(value || "").split(/(?<=[.!؟])\s+|\n+/).map((part) => part.trim().replace(/[.!؟]+$/, "").trim()).filter(Boolean);
-}
-
-function isAvailabilityInformationOrGuidance(sentence) {
-  // Match the entire sentence: qualifiers or attached inventory claims cannot inherit an exemption.
-  return /^(?:(?:راجع|استخدم)\s+)?(?:المعلومات|البيانات|الحقائق|معلومات|بيانات|حقائق)(?:\s+العامة)?\s+(?:المتاحة|غير متاحة)(?:\s+(?:عن المشروع|للمشروع))?$/i.test(sentence)
-    || /^(?:بيانات|معلومات)\s+التوافر\s+غير\s+متاحة$/i.test(sentence)
-    || /^(?:(?:review|use)\s+(?:the\s+)?)?available\s+(?:(?:public|project)\s+)?(?:information|data|facts)$/i.test(sentence)
-    || /^(?:availability\s+(?:data|information)|(?:project\s+)?(?:information|data|facts))\s+(?:is|are)\s+(?:unavailable|not available)$/i.test(sentence)
-    || /^(?:تحقق من|راجع)\s+(?:توافر الوحدات|حالة توافر الوحدات|الوحدات المتاحة)\s+مع المطور(?:\s+قبل (?:اتخاذ القرار|النشر))?$/i.test(sentence)
-    || /^(?:check|verify|confirm)\s+(?:unit\s+)?availability\s+with the developer(?:\s+before (?:a decision|publishing))?$/i.test(sentence);
-}
-
-function hasAvailabilityAssertion(value, projects = []) {
-  return availabilitySentences(value).some((sentence) => /متوفر|متاحة|متاح|\bunavailable\b|\bavailable\b|\bavailability\b/i.test(sentence)
-    && !isAvailabilityInformationOrGuidance(sentence)
-    && !projects.some((project) => {
-      if (typeof project?.name !== "string" || !project.name.trim()) return false;
-      return [" عن ", " about "].some((separator) => {
-        const suffix = separator + project.name;
-        return sentence.endsWith(suffix) && isAvailabilityInformationOrGuidance(sentence.slice(0, -suffix.length));
-      });
-    }));
-}
-
 function comparisonIntent(value) {
   return /مقارن|مقابل|\bcompare|\bcomparison|\bversus\b|\bvs\.?\b/i.test(String(value || ""));
 }
 
-function crossProjectIntent(value) {
-  return /مقابل|مشاريع|مشروعين|\bother projects?\b|\bprojects?\s+(?:comparison|versus|vs\.?)\b|\bversus\b|\bvs\.?\b/i.test(String(value || ""));
-}
+function groundInputForFacts(input) { return input; }
 
-function groundInputForFacts(input, projects = []) {
-  if (input?.action !== "draft" || projects.length !== 1 || !crossProjectIntent(input.topic)) return input;
-  const name = projects[0].name || "المشروع";
-  return { ...input, topic: input.language === "en" ? `${name} evaluation checklist` : `دليل تقييم ${name}: قائمة تحقق عملية` };
-}
-
-function introductionIntent(value) {
-  return /مقدمة|نظرة عامة|\bintroduction\b|\boverview\b/i.test(String(value || ""));
-}
-
-function generationIntent(topic) {
-  if (introductionIntent(topic)) return "introduction";
-  if (crossProjectIntent(topic) || comparisonIntent(topic)) return "comparison";
-  if (/متاح|توافر|available|availability|أنواع الوحدات|unit types/i.test(String(topic || ""))) return "availability";
-  if (/مساح|متر|\barea|\bsize/i.test(String(topic || ""))) return "area";
-  return "other";
-}
-
-function problemFields(value, fields, predicate) {
-  return fields.filter((field) => predicate(normalizedDigits(String(value[field] || ""))));
-}
-
-function hasCommercialAssertion(value) {
-  return (COMMERCIAL_WORDS_RE.test(value) && !isBenignCommercialGuidance(value)) || hasUnsupportedCommercialAssertion(value);
-}
-
-function recoverIntroduction(value, context, payload, text) {
-  const removableAssertion = (field) => hasCommercialAssertion(field) || hasAvailabilityAssertion(field, context?.projects || []);
-  const english = context?.input?.language === "en";
-  const project = Array.isArray(context?.projects) ? context.projects[0] : null;
-  const name = project?.name || (english ? "the selected project" : "المشروع المحدد");
-  const location = project?.location ? (english ? ` in ${project.location}` : ` في ${project.location}`) : "";
-  const recoveredFields = [];
-  for (const field of ["slug", "excerpt", "meta_description"]) {
-    if (!removableAssertion(normalizedDigits(String(value[field] || "")))) continue;
-    recoveredFields.push(field);
-    if (field === "slug") value[field] = "project-introduction";
-    else if (field === "excerpt") value[field] = english ? `An overview of ${name}${location} based on the supplied project information.` : `نظرة عامة على ${name}${location} اعتماداً على معلومات المشروع المقدمة.`;
-    else value[field] = english ? `Review the location, concept, and services of ${name} using the supplied public information.` : `راجع موقع وفكرة وخدمات ${name} بالاعتماد على المعلومات العامة المقدمة.`;
-  }
-  const bodyParts = String(value.body_markdown || "").split(/(?<=[.!؟])\s+|\n+/).map((part) => part.trim()).filter(Boolean);
-  const safeBodyParts = bodyParts.filter((part) => !removableAssertion(normalizedDigits(part)));
-  if (safeBodyParts.length !== bodyParts.length) recoveredFields.push("body_markdown");
-  if (recoveredFields.includes("body_markdown")) {
-    const safeBody = safeBodyParts.join("\n\n");
-    const substantive = safeBodyParts.filter((part) => !/^#{1,6}\s/.test(part) && !/^(?:مصادر ومراجعة|يجب التحقق.*قبل النشر|Sources and review|Factual details should be verified)/i.test(part)).join(" ").trim();
-    if (substantive.length < 30) throw outputError("generation_commercial_review_required", payload, text, "recover_intro_no_substantive_content", 422, { reason: hasAvailabilityAssertion(String(value.body_markdown || ""), context?.projects || []) ? "availability_prose" : "commercial_prose", fields: ["body_markdown"], recovery_eligible: false, intent: "introduction" });
-    value.body_markdown = safeBody;
-  }
-  if (recoveredFields.length) {
-    const reviewNote = english ? "## Human review required\nUnsupported commercial prose was removed. Verify missing details before publication." : "## مراجعة بشرية مطلوبة\nتم حذف تفاصيل تجارية غير موثقة. تحقق من التفاصيل الناقصة قبل النشر.";
-    value.body_markdown = `${String(value.body_markdown || "").trim()}\n\n${reviewNote}`;
-    value.generation_diagnostics = { recovery: "intro_commercial_prose_removed", fields: [...new Set(recoveredFields)] };
-  }
-  return recoveredFields.length > 0;
-}
-
-function neutralProjectChecklist(input, projects = []) {
-  if (input?.action !== "draft" || projects.length !== 1 || !crossProjectIntent(input.topic)) return null;
-  const project = projects[0];
-  const name = project.name || (input.language === "en" ? "the project" : "المشروع");
-  const english = input.language === "en";
-  return {
-    title: english ? `${name} evaluation checklist` : `دليل تقييم ${name}`,
-    slug: "project-evaluation-checklist",
-    excerpt: english ? "A neutral checklist based on the available project information." : "قائمة تحقق محايدة تعتمد على معلومات المشروع المتاحة.",
-    meta_title: english ? `${name} evaluation guide` : `دليل تقييم ${name}`,
-    meta_description: english ? "Review the location, services, and questions that need verification before a decision." : "راجع الموقع والخدمات والأسئلة التي تحتاج إلى تحقق قبل اتخاذ القرار.",
-    body_markdown: english
-      ? `## How to evaluate ${name}\nReview the location, project concept, services, and the public information supplied for the selected project.\n\n## Questions to verify\nConfirm any missing details directly with the developer before making a decision.\n\n## Sources and review\nFactual details should be verified before publication.`
-      : `## كيف تقيّم ${name}\nراجع الموقع وفكرة المشروع والخدمات والمعلومات العامة المتاحة للمشروع المحدد.\n\n## أسئلة تحتاج إلى تحقق\nتحقق من أي تفاصيل ناقصة مباشرة مع المطور قبل اتخاذ القرار.\n\n## مصادر ومراجعة\nيجب التحقق من التفاصيل الواقعية قبل النشر.`,
-    comparison_project_ids: [], unit_evidence: [], claim_evidence: [],
-  };
-}
-
+// Drafts preserve the model's text. Evidence selections add only verified source rows;
+// editorial concerns are returned separately and publication rechecks saved content.
 function validateDraftFacts(value, context, payload, text) {
-  const strings = [value.title, value.slug, value.excerpt, value.meta_title, value.meta_description, value.body_markdown];
-  if (strings.some((field) => /{{[^{}]+}}|\b(?:min|max)_(?:area|price)\b/i.test(field))) throw outputError("generation_placeholder_unresolved", payload, text, "validate_placeholders");
-
-  const topic = String(context?.input?.topic || "");
-  const intent = generationIntent(topic);
-  const units = Array.isArray(context?.units) ? context.units : [];
-  const projects = Array.isArray(context?.projects) ? context.projects : [];
-  const areaIntent = /مساح|متر|\barea|\bsize/i.test(topic);
-  const hasComparisonIntent = comparisonIntent(topic);
-  const availabilityIntent = /متاح|توافر|available|availability|أنواع الوحدات|unit types/i.test(topic);
-  if (/(?:أقل|أصغر|أكبر|أعلى)[^\n.]{0,50}(?:المشروع|كل|جميع)|(?:project-wide|global)\s+(?:minimum|maximum)|all units|جميع الوحدات/i.test(value.body_markdown)) {
-    throw outputError("generation_topic_unsupported", payload, text, "validate_sample_scope");
+  const units = Array.isArray(context.units) ? context.units : [];
+  const projects = Array.isArray(context.projects) ? context.projects : [];
+  const issues = [];
+  const issue = (field, message) => issues.push({ code: "evidence_selection", field, severity: "review", message });
+  for (const field of ["comparison_project_ids", "unit_evidence", "claim_evidence"]) {
+    if (!Array.isArray(value[field]) || value[field].length > (field === "comparison_project_ids" ? 12 : field === "unit_evidence" ? 24 : 30)) {
+      throw outputError("generation_shape_invalid", payload, text, "validate_evidence_shape");
+    }
   }
-  const areaClaimsInProse = /(?<![0-9.])[0-9٠-٩]+(?:[.٫][0-9٠-٩]+)?\s*(?:م2|م²|متر(?:اً|ا)?|sqm|m2|m²)/i.test(strings.join("\n"));
-  if (areaClaimsInProse) throw outputError("generation_area_fact_unverified", payload, text, "validate_area_prose");
-
-  const unitEvidence = Array.isArray(value.unit_evidence) ? value.unit_evidence : [];
+  if (value.comparison_project_ids.some(id => typeof id !== "string")) throw outputError("generation_shape_invalid", payload, text, "validate_evidence_shape");
+  if (value.comparison_project_ids.some(id => !projects.some(project => project.id === id))) issue("body_markdown", "Comparison references an unsupplied project. Verify or edit the comparison before publication.");
   const renderedUnits = [];
-  const seenAreaUnits = new Set();
-  for (const proof of unitEvidence) {
-    const unit = units.find((candidate) => candidate.id === proof?.unit_id);
-    const sourceDate = String(unit?.source_last_updated_at || "");
-    if (!unit || !sourceDate || !unit.source_url || seenAreaUnits.has(unit.id)) throw outputError("generation_area_fact_unverified", payload, text, "validate_unit_evidence");
-    seenAreaUnits.add(unit.id);
-    renderedUnits.push(unit);
+  const seen = new Set();
+  for (const proof of value.unit_evidence) {
+    if (!proof || typeof proof.unit_id !== "string") throw outputError("generation_shape_invalid", payload, text, "validate_evidence_shape");
+    const unit = units.find(candidate => candidate.id === proof.unit_id);
+    if (!unit || !unit.source_url || !unit.source_last_updated_at || seen.has(unit.id)) {
+      issue("body_markdown", "A unit selection could not be verified. Check the requested unit comparison against the sources.");
+      continue;
+    }
+    seen.add(unit.id); renderedUnits.push(unit);
   }
-  if (areaIntent && (renderedUnits.filter((unit) => Number.isFinite(unit.area_sqm)).length < 1 || (hasComparisonIntent && renderedUnits.filter((unit) => Number.isFinite(unit.area_sqm)).length < 2))) throw outputError("generation_topic_unsupported", payload, text, "validate_topic_intent");
-  if (availabilityIntent && renderedUnits.length < 1) throw outputError("generation_topic_unsupported", payload, text, "validate_availability_intent");
-
-  const comparisonProjectIds = value.comparison_project_ids;
-  const knownProjectIds = new Set(projects.map((project) => project.id).filter(Boolean));
-  if (!Array.isArray(comparisonProjectIds) || comparisonProjectIds.some((id) => typeof id !== "string" || !knownProjectIds.has(id)) || new Set(comparisonProjectIds).size !== comparisonProjectIds.length) {
-    throw outputError("generation_topic_unsupported", payload, text, "validate_comparison_entities");
-  }
-  const selectedProjectOnly = !hasComparisonIntent && !crossProjectIntent(topic)
-    && context?.input?.targetType === "project" && projects.length === 1
-    && context.input.projectId === projects[0].id
-    && comparisonProjectIds.length === 1 && comparisonProjectIds[0] === projects[0].id;
-  if (selectedProjectOnly) value.comparison_project_ids = [];
-  else if (comparisonProjectIds.length === 1) {
-    throw outputError("generation_topic_unsupported", payload, text, "validate_comparison_entities");
-  }
-
-  const descriptiveFields = [value.slug, value.excerpt, value.meta_description, value.body_markdown];
-  let commercialText = normalizedDigits(descriptiveFields.join("\n"));
-  const modelClaims = typedClaims(commercialText);
-  let unsupportedCommercialAssertion = hasCommercialAssertion(commercialText);
-  let availabilityProse = hasAvailabilityAssertion(commercialText, projects);
-  if (modelClaims.length) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_numeric_claim", 502, { reason: "numeric_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], (field) => typedClaims(field).length > 0), recovery_eligible: false, intent });
-  if (introductionIntent(topic) && (unsupportedCommercialAssertion || (availabilityProse && !availabilityIntent))) {
-    recoverIntroduction(value, context, payload, text);
-    commercialText = normalizedDigits([value.slug, value.excerpt, value.meta_description, value.body_markdown].join("\n"));
-    unsupportedCommercialAssertion = hasCommercialAssertion(commercialText);
-    availabilityProse = hasAvailabilityAssertion(commercialText, projects);
-  }
-  if (unsupportedCommercialAssertion) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_commercial_assertion", 502, { reason: "commercial_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], hasCommercialAssertion), recovery_eligible: introductionIntent(topic), intent });
-  if (availabilityProse && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_availability_claim", 502, { reason: "availability_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], (field) => hasAvailabilityAssertion(field, projects)), recovery_eligible: false, intent });
-  const titleText = normalizedDigits([value.title, value.meta_title].join("\n"));
-  const titleHasNonAvailabilityCommercialClaim = typedClaims(titleText).length > 0 || (COMMERCIAL_WORDS_RE.test(titleText) && !isBenignCommercialGuidance(titleText)) || hasUnsupportedCommercialAssertion(titleText);
-  const titleHasAvailabilityClaim = hasAvailabilityAssertion(titleText, projects);
-  if (titleHasNonAvailabilityCommercialClaim) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_commercial_claim", 502, { reason: "title_commercial", fields: problemFields(value, ["title", "meta_title"], (field) => typedClaims(field).length > 0 || hasCommercialAssertion(field)), recovery_eligible: false, intent });
-  if (titleHasAvailabilityClaim && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_availability_claim", 502, { reason: "title_availability", fields: problemFields(value, ["title", "meta_title"], (field) => hasAvailabilityAssertion(field, projects)), recovery_eligible: false, intent });
-
-  const evidence = Array.isArray(value.claim_evidence) ? value.claim_evidence : [];
   const renderedClaims = [];
-  for (const proof of evidence) {
-    const unit = units.find((candidate) => candidate.id === proof?.unit_id);
-    const sourceDate = String(unit?.source_last_updated_at || "");
-    const displayValue = sourceDisplayValue(unit || {}, proof?.kind);
-    if (!unit || !sourceValues(unit, proof?.kind).length || !displayValue) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_commercial_selection", 502, { reason: "claim_evidence", fields: ["claim_evidence"], recovery_eligible: false, intent });
-    if (!sourceDate || !unit.source_url) throw outputError("generation_commercial_review_required", payload, text, "validate_commercial_provenance");
+  for (const proof of value.claim_evidence) {
+    if (!proof || typeof proof.unit_id !== "string" || !["price", "down_payment", "installments", "delivery", "availability"].includes(proof.kind)) throw outputError("generation_shape_invalid", payload, text, "validate_evidence_shape");
+    const unit = units.find(candidate => candidate.id === proof.unit_id);
+    const displayValue = sourceDisplayValue(unit || {}, proof.kind);
+    if (!unit || !unit.source_url || !unit.source_last_updated_at || !sourceValues(unit, proof.kind).length || !displayValue) {
+      issue("body_markdown", "A selected commercial fact is missing or unverified. Verify this detail against the source before publication.");
+      continue;
+    }
     renderedClaims.push({ kind: proof.kind, value: displayValue, unit });
   }
   const arabic = context?.input?.language !== "en";
@@ -437,21 +283,18 @@ function validateDraftFacts(value, context, payload, text) {
     value.body_markdown = `${value.body_markdown.trim()}\n\n## ${arabic ? "عينة حديثة من الوحدات المتاحة" : "Recent sample of available units"}\n${rows.join("\n")}`;
   }
   if (renderedClaims.length) {
-    const labels = arabic
-      ? { price: "السعر", down_payment: "الدفعة المقدمة", installments: "التقسيط", delivery: "التسليم", availability: "التوافر" }
-      : { price: "Price", down_payment: "Down payment", installments: "Installments", delivery: "Delivery", availability: "Availability" };
-    const formatted = renderedClaims.map(({ kind, value: claimValue, unit }) => {
-      const warning = arabic ? "يجب التحقق منه قبل النشر" : "must be verified before publication";
-      return `- ${labels[kind]}: ${claimValue} — [${unit.unit_type}](${unit.source_url}) — ${arabic ? "تاريخ المصدر" : "source updated"}: ${unit.source_last_updated_at.slice(0, 10)} — ${warning}.`;
-    });
-    value.body_markdown = `${value.body_markdown.trim()}\n\n## ${arabic ? "حقائق تجارية موثقة للمراجعة" : "Sourced commercial facts for review"}\n${formatted.join("\n")}`;
+    const labels = arabic ? { price: "السعر", down_payment: "الدفعة المقدمة", installments: "التقسيط", delivery: "التسليم", availability: "التوافر" } : { price: "Price", down_payment: "Down payment", installments: "Installments", delivery: "Delivery", availability: "Availability" };
+    const rows = renderedClaims.map(({ kind, value: claimValue, unit }) => `- ${labels[kind]}: ${claimValue} — [${unit.unit_type}](${unit.source_url}) — ${arabic ? "تاريخ المصدر" : "source updated"}: ${unit.source_last_updated_at.slice(0, 10)} — ${arabic ? "يجب التحقق منه قبل النشر" : "must be verified before publication"}.`);
+    value.body_markdown = `${value.body_markdown.trim()}\n\n## ${arabic ? "حقائق تجارية موثقة للمراجعة" : "Sourced commercial facts for review"}\n${rows.join("\n")}`;
   }
+  value.review_issues = issues;
 }
 
 function validateGeneratedResult(value, action, payload, text, context = {}) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw outputError("generation_shape_invalid", payload, text, "validate");
   delete value.generation_diagnostics;
   delete value.generation_failure;
+  delete value.review_issues;
   if (action === "topics") {
     if (!Array.isArray(value.topics) || value.topics.length < 4 || value.topics.length > 6) throw outputError("generation_shape_invalid", payload, text, "validate_topics");
     for (const topic of value.topics) {
@@ -504,7 +347,9 @@ function validateGeneratedResult(value, action, payload, text, context = {}) {
   } else {
     const fields = ["title", "slug", "excerpt", "meta_title", "meta_description", "body_markdown"];
     if (fields.some((field) => typeof value[field] !== "string" || !value[field].trim())) throw outputError("generation_shape_invalid", payload, text, "validate_draft");
+    if (value.title.length > 180 || value.meta_title.length > 180 || value.excerpt.length > 500 || value.meta_description.length > 500 || value.body_markdown.length > 30000) throw outputError("generation_shape_invalid", payload, text, "validate_draft_limits");
     validateDraftFacts(value, context, payload, text);
+    return Object.fromEntries([...fields, "comparison_project_ids", "unit_evidence", "claim_evidence", "review_issues"].map(field => [field, value[field]]));
   }
   return value;
 }
@@ -530,4 +375,5 @@ function parseOpenAiOutput(payload, action = "draft", context = {}) {
   return validateGeneratedResult(value, action, payload, text, context);
 }
 
-module.exports = { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, buildOpenAiRequest, parseOpenAiOutput, groundInputForFacts, neutralProjectChecklist };
+module.exports = { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, buildOpenAiRequest, parseOpenAiOutput, groundInputForFacts };
+
