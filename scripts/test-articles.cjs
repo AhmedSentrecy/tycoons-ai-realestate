@@ -129,6 +129,24 @@ function durableFetch({
   assert.match(guidanceComparison.body_markdown, /أحدث الأسعار وخطط السداد ومواعيد الاستلام/);
   assert.doesNotMatch(guidanceComparison.body_markdown, /26760000|31000000/);
   assert.match(guidanceComparison.excerpt, /دون افتراض حقائق إضافية/);
+  const selectedIntroContext = { input: { topic: "مقدمة عن 5A", language: "ar", targetType: "project", projectId: "project-1" }, projects: [{ id: "project-1", name: "5A" }], units: [] };
+  const selectedIntroDraft = { ...guidanceComparison, title: "مقدمة 5A", meta_title: "مقدمة 5A", comparison_project_ids: ["project-1"] };
+  const parseSelectedIntro = (draft, context = selectedIntroContext) => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify(draft) }, "draft", context);
+  assert.deepEqual(parseSelectedIntro(selectedIntroDraft).comparison_project_ids, [], "a non-comparison draft may normalize only the selected project ID");
+  assert.deepEqual(parseSelectedIntro({ ...selectedIntroDraft, comparison_project_ids: [] }).comparison_project_ids, []);
+  for (const ids of [["missing"], ["project-1", "project-1"], null, "project-1", {}, [null], [1], undefined]) {
+    assert.throws(() => parseSelectedIntro({ ...selectedIntroDraft, comparison_project_ids: ids }), (error) => error.diagnostics?.stage === "validate_comparison_entities", `invalid IDs: ${JSON.stringify(ids)}`);
+  }
+  for (const topic of ["مقارنة المشروعين", "5A مقابل Other", "مقارنة مساحات الوحدات", "Project comparison"]) {
+    assert.throws(() => parseSelectedIntro(selectedIntroDraft, { ...selectedIntroContext, input: { ...selectedIntroContext.input, topic } }), (error) => error.message === "generation_topic_unsupported", topic);
+  }
+  for (const input of [{ ...selectedIntroContext.input, targetType: "area" }, { ...selectedIntroContext.input, projectId: "other" }]) {
+    assert.throws(() => parseSelectedIntro(selectedIntroDraft, { ...selectedIntroContext, input }), (error) => error.diagnostics?.stage === "validate_comparison_entities");
+  }
+  assert.throws(() => parseSelectedIntro(selectedIntroDraft, { ...selectedIntroContext, projects: [{ id: "project-1" }, { id: "project-2" }] }), (error) => error.diagnostics?.stage === "validate_comparison_entities");
+  assert.throws(() => parseSelectedIntro({ ...selectedIntroDraft, body_markdown: "السعر 9 EGP." }), (error) => error.diagnostics?.stage === "validate_public_numeric_claim", "normalization must not bypass commercial guards");
+  assert.throws(() => parseSelectedIntro({ ...selectedIntroDraft, claim_evidence: [{ kind: "price", unit_id: "missing" }] }), (error) => error.diagnostics?.stage === "validate_commercial_selection");
+  assert.match(buildOpenAiRequest({ action: "draft", language: "ar", targetType: "project", topic: "مقدمة" }, selectedIntroContext.projects).input[0].content, /For every non-comparison draft.*comparison_project_ids must be \[\]/);
   const missingAvailabilityInformation = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, title: "معلومات التوافر غير متاحة عن 5A", meta_title: "معلومات التوافر غير متاحة عن 5A" }) }, "draft", { input: { topic: "دليل بحث مشروع 5A", language: "ar" }, units: sourceUnits });
   assert.match(missingAvailabilityInformation.title, /معلومات التوافر غير متاحة/);
   const recoveredIntroduction = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({
@@ -176,6 +194,14 @@ function durableFetch({
       subtleUnsupportedAssertion,
     );
   }
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, body_markdown: "Check prices are low.", generation_failure: { reason: "PRIVATE_REASON", fields: ["PRIVATE_FIELD"], raw: "PRIVATE_RAW" } }) }, "draft", { input: { topic: "Project guide", language: "en" }, projects: [{ id: "project-1" }], units: sourceUnits }),
+    (error) => error.message === "generation_commercial_fact_unverified"
+      && error.diagnostics?.stage === "validate_public_commercial_assertion"
+      && JSON.stringify(error.generationFailure) === JSON.stringify({ reason: "commercial_prose", fields: ["body_markdown"], recovery_eligible: false, intent: "other" })
+      && !JSON.stringify(error).includes("PRIVATE_"),
+    "commercial failures must expose only server-constructed allowlisted diagnostics",
+  );
   const reframedInput = groundInputForFacts({ action: "draft", language: "ar", targetType: "project", topic: "5A مقابل Other Project" }, [{ id: "project-1", name: "5A" }]);
   assert.equal(reframedInput.topic, "دليل تقييم 5A: قائمة تحقق عملية");
   assert.doesNotMatch(reframedInput.topic, /Other|مقابل/);
@@ -317,7 +343,7 @@ function durableFetch({
   assert.equal(JSON.parse(appLimited.body).retry_after_seconds, 600);
   assert.equal(appLimited.headers["retry-after"], "600");
 
-  const durable = durableFetch({ provider: async () => response(200, { output_text: JSON.stringify({ title: "دليل اختيار مشروع مناسب", slug: "project-choice-guide", excerpt: "مقدمة", meta_title: "عنوان", meta_description: "وصف", body_markdown: "## مقدمة\nمحتوى موثق" }) }) });
+  const durable = durableFetch({ provider: async () => response(200, { output_text: JSON.stringify({ comparison_project_ids: [], title: "دليل اختيار مشروع مناسب", slug: "project-choice-guide", excerpt: "مقدمة", meta_title: "عنوان", meta_description: "وصف", body_markdown: "## مقدمة\nمحتوى موثق" }) }) });
   global.fetch = durable.fetch;
   const first = await handler(event("same-click-request-1234"));
   const replay = await handler(event("same-click-request-1234"));
@@ -331,7 +357,7 @@ function durableFetch({
   assert.equal(conflict.statusCode, 409, "an idempotency key cannot be reused for a different payload");
   assert.equal(durable.providerCalls(), 1);
 
-  const availabilityStore = durableFetch({ provider: async () => response(200, { status: "completed", output_text: JSON.stringify({ title: "أنواع الوحدات المتاحة في 97 Hills", slug: "available-unit-types", excerpt: "نظرة على الأنواع في العينة الحديثة", meta_title: "أنواع الوحدات المتاحة", meta_description: "دليل لأنواع الوحدات في المشروع", body_markdown: "## نظرة عامة\nتعرف على الأنواع المختلفة في العينة الحديثة.", unit_evidence: [{ unit_id: "unit-1" }, { unit_id: "unit-2" }], claim_evidence: [] }) }) });
+  const availabilityStore = durableFetch({ provider: async () => response(200, { status: "completed", output_text: JSON.stringify({ comparison_project_ids: [], title: "أنواع الوحدات المتاحة في 97 Hills", slug: "available-unit-types", excerpt: "نظرة على الأنواع في العينة الحديثة", meta_title: "أنواع الوحدات المتاحة", meta_description: "دليل لأنواع الوحدات في المشروع", body_markdown: "## نظرة عامة\nتعرف على الأنواع المختلفة في العينة الحديثة.", unit_evidence: [{ unit_id: "unit-1" }, { unit_id: "unit-2" }], claim_evidence: [] }) }) });
   global.fetch = availabilityStore.fetch;
   const availabilityFirstTry = await handler(event("availability-first-try-1234", "h".repeat(40), { topic: "أنواع الوحدات المتاحة في 97 Hills" }));
   assert.equal(availabilityFirstTry.statusCode, 200, "an availability-focused title must succeed on its first grounded response");
@@ -341,7 +367,7 @@ function durableFetch({
   const introStore = durableFetch({ provider: async () => response(200, { status: "completed", output_text: JSON.stringify({
     title: "مقدمة شاملة عن مشروع 5A", slug: "5a-introduction", excerpt: "نظرة على 5A في التجمع الخامس.", meta_title: "مقدمة مشروع 5A", meta_description: "الموقع والخدمات وخطط السداد المرنة.",
     body_markdown: "## مقدمة\nيقع 5A في التجمع الخامس ويعرض فكرة المشروع وخدماته.\n\nيوفر المشروع خطط سداد مرنة.\n\n## مصادر ومراجعة\nيجب التحقق قبل النشر.",
-    comparison_project_ids: [], unit_evidence: [], claim_evidence: [], generation_diagnostics: { recovery: "PRIVATE_RECOVERY", fields: ["PRIVATE_FIELD"], secret: "PRIVATE_LOG_MARKER" },
+    comparison_project_ids: [], unit_evidence: [], claim_evidence: [], generation_diagnostics: { recovery: "PRIVATE_RECOVERY", fields: ["PRIVATE_FIELD"], secret: "PRIVATE_LOG_MARKER" }, generation_failure: { reason: "PRIVATE_FAILURE", fields: ["PRIVATE_FIELD"], raw: "PRIVATE_RAW" },
   }) }), projects: [{ id: "project-1", name: "5A", slug: "5a", location: "التجمع الخامس" }] });
   global.fetch = introStore.fetch;
   const introLogs = [];
@@ -359,6 +385,25 @@ function durableFetch({
   assert.doesNotMatch(`${introResult.body}\n${introLogs.join("\n")}`, /PRIVATE_/, "model-provided diagnostic keys and values must never reach the response or logs");
   assert.equal(introStore.providerCalls(), 1, "introduction recovery must use the completed provider response without a paid retry");
 
+  const diagnosticStore = durableFetch({ provider: async () => response(200, { status: "completed", output_text: JSON.stringify({ ...factualDraft, title: "Project guide", meta_title: "Project guide", body_markdown: "Check prices are low.", comparison_project_ids: [], unit_evidence: [], claim_evidence: [], generation_failure: { reason: "PRIVATE_REASON", fields: ["PRIVATE_FIELD"] } }) }) });
+  global.fetch = diagnosticStore.fetch;
+  const diagnosticResult = await handler(event("commercial-diagnostic-1234", "m".repeat(40), { topic: "Project guide", language: "en" }));
+  assert.equal(diagnosticResult.statusCode, 502);
+  const diagnosticBody = JSON.parse(diagnosticResult.body);
+  assert.deepEqual(diagnosticBody.generation_failure, { reason: "commercial_prose", fields: ["body_markdown"], recovery_eligible: false, intent: "other" });
+  assert.doesNotMatch(diagnosticResult.body, /PRIVATE_/);
+  assert.equal(diagnosticStore.providerCalls(), 1);
+
+  const singletonStore = durableFetch({ provider: async () => response(200, { status: "completed", output_text: JSON.stringify(selectedIntroDraft) }), projects: [{ id: "project-1", name: "5A", slug: "5a" }] });
+  global.fetch = singletonStore.fetch;
+  const singletonEvent = event("selected-intro-singleton-1234", "n".repeat(40), { topic: "مقدمة عن 5A" });
+  const singletonResult = await handler(singletonEvent);
+  assert.equal(singletonResult.statusCode, 200);
+  assert.deepEqual(JSON.parse(singletonResult.body).comparison_project_ids, []);
+  const singletonReplay = await handler(singletonEvent);
+  assert.equal(singletonReplay.headers["x-idempotent-replay"], "true");
+  assert.equal(singletonReplay.body, singletonResult.body);
+  assert.equal(singletonStore.providerCalls(), 1, "normalization and replay must not retry generation");
   const crossProjectFallbackStore = durableFetch({ provider: async () => { throw new Error("provider must not be called for deterministic fallback"); }, projects: [{ id: "project-1", name: "5A", slug: "5a" }] });
   global.fetch = crossProjectFallbackStore.fetch;
   const crossProjectFallback = await handler(event("cross-project-fallback-1234", "k".repeat(40), { topic: "5A مقابل Other Project" }));
@@ -368,7 +413,7 @@ function durableFetch({
   assert.doesNotMatch(JSON.stringify(fallbackBody), /Other|مقابل/);
   assert.equal(crossProjectFallbackStore.providerCalls(), 0, "cross-project fallback must not make a paid provider call");
 
-  const concurrentStore = durableFetch({ provider: async () => { await new Promise((resolve) => setTimeout(resolve, 15)); return response(200, { output_text: JSON.stringify({ title: "Concurrent draft", slug: "concurrent-draft", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nGrounded content" }) }); } });
+  const concurrentStore = durableFetch({ provider: async () => { await new Promise((resolve) => setTimeout(resolve, 15)); return response(200, { output_text: JSON.stringify({ comparison_project_ids: [], title: "Concurrent draft", slug: "concurrent-draft", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nGrounded content" }) }); } });
   global.fetch = concurrentStore.fetch;
   const handlerPath = require.resolve("../netlify/functions/article-generate.cjs");
   delete require.cache[handlerPath]; const handlerA = require(handlerPath).handler;
@@ -383,7 +428,7 @@ function durableFetch({
 
   const retryStore = durableFetch({ provider: async (call) => call === 1
     ? response(500, { error: "provider_failure" })
-    : response(200, { output_text: JSON.stringify({ title: "Retry draft", slug: "retry-draft", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nVerified retry" }) }) });
+    : response(200, { output_text: JSON.stringify({ comparison_project_ids: [], title: "Retry draft", slug: "retry-draft", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nVerified retry" }) }) });
   global.fetch = retryStore.fetch;
   const failed = await handler(event("failed-request-key-1234", "b".repeat(40)));
   assert.equal(failed.statusCode, 503);
@@ -469,7 +514,7 @@ function durableFetch({
   let releaseStale;
   const staleStore = durableFetch({ provider: async (call) => call === 1
     ? new Promise((resolve) => { releaseStale = resolve; })
-    : response(200, { output_text: JSON.stringify({ title: "Fresh lock", slug: "fresh-lock", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nFresh owner" }) }) });
+    : response(200, { output_text: JSON.stringify({ comparison_project_ids: [], title: "Fresh lock", slug: "fresh-lock", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nFresh owner" }) }) });
   global.fetch = staleStore.fetch;
   const staleEvent = event("stale-lock-request-1234", "d".repeat(40));
   const staleWorker = handlerA(staleEvent);
@@ -477,7 +522,7 @@ function durableFetch({
   staleStore.advance(181000);
   const freshWorker = await handlerB(staleEvent);
   assert.equal(freshWorker.statusCode, 200, "an expired lock must be reclaimable");
-  releaseStale(response(200, { output_text: JSON.stringify({ title: "Stale result", slug: "stale-result", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nStale owner" }) }));
+  releaseStale(response(200, { output_text: JSON.stringify({ comparison_project_ids: [], title: "Stale result", slug: "stale-result", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nStale owner" }) }));
   const staleResult = await staleWorker;
   assert.equal(staleResult.statusCode, 409, "a stale worker must not finish after its lock is reclaimed");
 

@@ -144,7 +144,7 @@ function buildOpenAiRequest(input, projects, units = []) {
     rules.push("Return a source-grounded draft, not a published article. Use Markdown headings, paragraphs, and lists only.");
     rules.push("Never output template placeholders such as {{min_area}}. Omit unknown values instead of describing them as available or inventing replacements.");
     rules.push("The available_units list is a bounded recent sample, not an exhaustive inventory. Never claim a project-wide minimum, maximum, complete range, or all unit types from it. Do not write numeric unit areas in prose. Select relevant source rows only by adding unit_evidence entries containing unit_id; never repeat area or freshness values. The server will render a labeled sample deterministically.");
-    rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims in prose or descriptive metadata. Do not mention commercial categories at all unless the requested topic specifically asks for a review checklist; then use only a direct instruction to verify them with the developer. If a requested comparison names entities absent from public_facts.projects, reframe it as a neutral checklist for evaluating the supplied project; do not invent comparisons. Put every project used in a factual comparison in comparison_project_ids; use an empty array for a neutral checklist. A title may mirror an availability-focused user topic, but the body must leave the supporting availability statement to the server. To request a commercial fact, add only its typed kind and unit_id to claim_evidence, and only when that unit row contains the corresponding non-empty field; never repeat the commercial value or source date. The server reads both from the validated row and renders them deterministically.");
+    rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims in prose or descriptive metadata. Do not mention commercial categories at all unless the requested topic specifically asks for a review checklist; then use only a direct instruction to verify them with the developer. If a requested comparison names entities absent from public_facts.projects, reframe it as a neutral checklist for evaluating the supplied project; do not invent comparisons. Put every project used in a factual comparison in comparison_project_ids. For every non-comparison draft, including introductions, overviews, and neutral checklists, comparison_project_ids must be []; do not put the selected project ID in this field. A title may mirror an availability-focused user topic, but the body must leave the supporting availability statement to the server. To request a commercial fact, add only its typed kind and unit_id to claim_evidence, and only when that unit row contains the corresponding non-empty field; never repeat the commercial value or source date. The server reads both from the validated row and renders them deterministically.");
     rules.push(`Only link to these approved internal URLs: ${refs.map((ref) => ref.url).join(', ') || 'none'}. Do not create any other links.`);
     rules.push("Add a final section titled 'مصادر ومراجعة' in Arabic or 'Sources and review' in English, saying factual details should be verified before publication.");
   }
@@ -177,8 +177,21 @@ function outputDiagnostics(payload, text, stage) {
   };
 }
 
-function outputError(code, payload, text, stage, status = 502) {
-  return Object.assign(new Error(code), { status, diagnostics: outputDiagnostics(payload, text, stage) });
+const GENERATION_REASONS = new Set(["numeric_prose", "commercial_prose", "availability_prose", "title_commercial", "title_availability", "claim_evidence"]);
+const GENERATION_FIELDS = new Set(["title", "slug", "excerpt", "meta_title", "meta_description", "body_markdown", "claim_evidence"]);
+const GENERATION_INTENTS = new Set(["introduction", "comparison", "availability", "area", "other"]);
+
+function safeGenerationFailure(reason, fields, recoveryEligible, intent) {
+  if (!GENERATION_REASONS.has(reason)) return null;
+  const safeFields = [...new Set((Array.isArray(fields) ? fields : []).filter((field) => GENERATION_FIELDS.has(field)))];
+  const safeIntent = GENERATION_INTENTS.has(intent) ? intent : "other";
+  return { reason, fields: safeFields, recovery_eligible: recoveryEligible === true, intent: safeIntent };
+}
+
+function outputError(code, payload, text, stage, status = 502, failure = null) {
+  const generationFailure = failure ? safeGenerationFailure(failure.reason, failure.fields, failure.recovery_eligible, failure.intent) : null;
+  const diagnostics = { ...outputDiagnostics(payload, text, stage), ...(generationFailure ? { generation_reason: generationFailure.reason, generation_fields: generationFailure.fields, recovery_eligible: generationFailure.recovery_eligible, generation_intent: generationFailure.intent } : {}) };
+  return Object.assign(new Error(code), { status, diagnostics, ...(generationFailure ? { generationFailure } : {}) });
 }
 
 function normalizedDigits(value) {
@@ -260,6 +273,18 @@ function introductionIntent(value) {
   return /مقدمة|نظرة عامة|\bintroduction\b|\boverview\b/i.test(String(value || ""));
 }
 
+function generationIntent(topic) {
+  if (introductionIntent(topic)) return "introduction";
+  if (crossProjectIntent(topic) || comparisonIntent(topic)) return "comparison";
+  if (/متاح|توافر|available|availability|أنواع الوحدات|unit types/i.test(String(topic || ""))) return "availability";
+  if (/مساح|متر|\barea|\bsize/i.test(String(topic || ""))) return "area";
+  return "other";
+}
+
+function problemFields(value, fields, predicate) {
+  return fields.filter((field) => predicate(normalizedDigits(String(value[field] || ""))));
+}
+
 function hasCommercialAssertion(value) {
   return (COMMERCIAL_WORDS_RE.test(value) && !isBenignCommercialGuidance(value)) || hasUnsupportedCommercialAssertion(value);
 }
@@ -317,6 +342,7 @@ function validateDraftFacts(value, context, payload, text) {
   if (strings.some((field) => /{{[^{}]+}}|\b(?:min|max)_(?:area|price)\b/i.test(field))) throw outputError("generation_placeholder_unresolved", payload, text, "validate_placeholders");
 
   const topic = String(context?.input?.topic || "");
+  const intent = generationIntent(topic);
   const units = Array.isArray(context?.units) ? context.units : [];
   const projects = Array.isArray(context?.projects) ? context.projects : [];
   const areaIntent = /مساح|متر|\barea|\bsize/i.test(topic);
@@ -341,9 +367,17 @@ function validateDraftFacts(value, context, payload, text) {
   if (areaIntent && (renderedUnits.filter((unit) => Number.isFinite(unit.area_sqm)).length < 1 || (hasComparisonIntent && renderedUnits.filter((unit) => Number.isFinite(unit.area_sqm)).length < 2))) throw outputError("generation_topic_unsupported", payload, text, "validate_topic_intent");
   if (availabilityIntent && renderedUnits.length < 1) throw outputError("generation_topic_unsupported", payload, text, "validate_availability_intent");
 
-  const comparisonProjectIds = Array.isArray(value.comparison_project_ids) ? value.comparison_project_ids : [];
+  const comparisonProjectIds = value.comparison_project_ids;
   const knownProjectIds = new Set(projects.map((project) => project.id).filter(Boolean));
-  if (new Set(comparisonProjectIds).size !== comparisonProjectIds.length || comparisonProjectIds.some((id) => !knownProjectIds.has(id)) || comparisonProjectIds.length === 1) {
+  if (!Array.isArray(comparisonProjectIds) || comparisonProjectIds.some((id) => typeof id !== "string" || !knownProjectIds.has(id)) || new Set(comparisonProjectIds).size !== comparisonProjectIds.length) {
+    throw outputError("generation_topic_unsupported", payload, text, "validate_comparison_entities");
+  }
+  const selectedProjectOnly = !hasComparisonIntent && !crossProjectIntent(topic)
+    && context?.input?.targetType === "project" && projects.length === 1
+    && context.input.projectId === projects[0].id
+    && comparisonProjectIds.length === 1 && comparisonProjectIds[0] === projects[0].id;
+  if (selectedProjectOnly) value.comparison_project_ids = [];
+  else if (comparisonProjectIds.length === 1) {
     throw outputError("generation_topic_unsupported", payload, text, "validate_comparison_entities");
   }
 
@@ -352,14 +386,14 @@ function validateDraftFacts(value, context, payload, text) {
   const modelClaims = typedClaims(commercialText);
   const unsupportedCommercialAssertion = hasCommercialAssertion(commercialText);
   const availabilityProse = hasAvailabilityAssertion(commercialText);
-  if (modelClaims.length) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_numeric_claim");
-  if (unsupportedCommercialAssertion && !(introductionIntent(topic) && recoverIntroduction(value, context, payload, text))) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_commercial_assertion");
-  if (availabilityProse && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_availability_claim");
+  if (modelClaims.length) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_numeric_claim", 502, { reason: "numeric_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], (field) => typedClaims(field).length > 0), recovery_eligible: false, intent });
+  if (unsupportedCommercialAssertion && !(introductionIntent(topic) && recoverIntroduction(value, context, payload, text))) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_commercial_assertion", 502, { reason: "commercial_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], hasCommercialAssertion), recovery_eligible: introductionIntent(topic), intent });
+  if (availabilityProse && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_availability_claim", 502, { reason: "availability_prose", fields: problemFields(value, ["slug", "excerpt", "meta_description", "body_markdown"], hasAvailabilityAssertion), recovery_eligible: false, intent });
   const titleText = normalizedDigits([value.title, value.meta_title].join("\n"));
   const titleHasNonAvailabilityCommercialClaim = typedClaims(titleText).length > 0 || (COMMERCIAL_WORDS_RE.test(titleText) && !isBenignCommercialGuidance(titleText)) || hasUnsupportedCommercialAssertion(titleText);
   const titleHasAvailabilityClaim = hasAvailabilityAssertion(titleText);
-  if (titleHasNonAvailabilityCommercialClaim) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_commercial_claim");
-  if (titleHasAvailabilityClaim && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_availability_claim");
+  if (titleHasNonAvailabilityCommercialClaim) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_commercial_claim", 502, { reason: "title_commercial", fields: problemFields(value, ["title", "meta_title"], (field) => typedClaims(field).length > 0 || hasCommercialAssertion(field)), recovery_eligible: false, intent });
+  if (titleHasAvailabilityClaim && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_title_availability_claim", 502, { reason: "title_availability", fields: problemFields(value, ["title", "meta_title"], hasAvailabilityAssertion), recovery_eligible: false, intent });
 
   const evidence = Array.isArray(value.claim_evidence) ? value.claim_evidence : [];
   const renderedClaims = [];
@@ -367,7 +401,7 @@ function validateDraftFacts(value, context, payload, text) {
     const unit = units.find((candidate) => candidate.id === proof?.unit_id);
     const sourceDate = String(unit?.source_last_updated_at || "");
     const displayValue = sourceDisplayValue(unit || {}, proof?.kind);
-    if (!unit || !sourceValues(unit, proof?.kind).length || !displayValue) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_commercial_selection");
+    if (!unit || !sourceValues(unit, proof?.kind).length || !displayValue) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_commercial_selection", 502, { reason: "claim_evidence", fields: ["claim_evidence"], recovery_eligible: false, intent });
     if (!sourceDate || !unit.source_url) throw outputError("generation_commercial_review_required", payload, text, "validate_commercial_provenance");
     renderedClaims.push({ kind: proof.kind, value: displayValue, unit });
   }
@@ -391,6 +425,7 @@ function validateDraftFacts(value, context, payload, text) {
 function validateGeneratedResult(value, action, payload, text, context = {}) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw outputError("generation_shape_invalid", payload, text, "validate");
   delete value.generation_diagnostics;
+  delete value.generation_failure;
   if (action === "topics") {
     if (!Array.isArray(value.topics) || value.topics.length < 4 || value.topics.length > 6) throw outputError("generation_shape_invalid", payload, text, "validate_topics");
     for (const topic of value.topics) {
