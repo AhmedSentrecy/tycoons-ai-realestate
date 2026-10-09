@@ -7,7 +7,7 @@ const path = require("node:path");
 process.env.OPENAI_API_KEY = "test-only-not-a-real-key";
 const { renderSafeMarkdown } = require("../netlify/functions/_article-render.cjs");
 const { renderEditorialArticle, renderGuide } = require("../netlify/functions/_seo-utils.cjs");
-const { buildOpenAiRequest, parseOpenAiOutput } = require("../netlify/functions/_article-generation.cjs");
+const { buildOpenAiRequest, parseOpenAiOutput, groundInputForFacts, neutralProjectChecklist } = require("../netlify/functions/_article-generation.cjs");
 const { handler } = require("../netlify/functions/article-generate.cjs");
 
 const originalFetch = global.fetch;
@@ -59,7 +59,7 @@ function durableFetch({
 }
 
 (async () => {
-  const topics = Array.from({ length: 4 }, (_, index) => ({ title: `Topic ${index}`, rationale: `Rationale ${index}`, angle: `Angle ${index}` }));
+  const topics = Array.from({ length: 4 }, (_, index) => ({ title: `Topic ${index}`, rationale: `Rationale ${index}`, angle: `Angle ${index}`, project_ids: [] }));
   const topicJson = JSON.stringify({ topics });
   const completedTopics = parseOpenAiOutput({
     id: "resp_test", model: "gpt-5-mini", status: "completed",
@@ -94,6 +94,7 @@ function durableFetch({
     { id: "unit-2", project_id: "project-1", unit_type: "Villa Type B", area_sqm: 240, starting_price_egp: 31000000, down_payment: "", installments: "", delivery: "", availability: "available", source_last_updated_at: "2026-02-11", source_url: "/units/unit-2" },
   ];
   const factualDraft = {
+    comparison_project_ids: [],
     title: "مقارنة مساحات الوحدات", slug: "unit-area-comparison", excerpt: "مقارنة موثقة", meta_title: "مقارنة المساحات", meta_description: "دليل للمساحات",
     body_markdown: "## مقارنة المساحات\nمقارنة مباشرة بين نماذج الوحدات في العينة الحديثة.",
     unit_evidence: [
@@ -114,6 +115,58 @@ function durableFetch({
   assert.match(groundedDraft.body_markdown, /Villa Type B[^\n]+240 م²/);
   assert.match(groundedDraft.body_markdown, /\/units\/unit-1/);
   assert.match(groundedDraft.body_markdown, /2026-02-10/);
+  const guidanceComparison = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({
+    ...factualDraft,
+    title: "مقارنة سريعة: 5A ومشاريع مشابهة",
+    slug: "5a-comparison-checklist",
+    excerpt: "إطار عملي لتقييم المشروع دون افتراض حقائق إضافية.",
+    meta_title: "دليل مقارنة مشروع 5A",
+    meta_description: "راجع أحدث الأسعار وخطط السداد ومواعيد الاستلام مع المطور قبل اتخاذ القرار.",
+    body_markdown: "## كيف تستخدم الدليل\nقيّم الموقع ونمط المشروع والخدمات.\n\nاطلب من المطور أحدث الأسعار وخطط السداد ومواعيد الاستلام قبل اتخاذ القرار.\n\n## مصادر ومراجعة\nيجب التحقق من التفاصيل قبل النشر.",
+    unit_evidence: [],
+    claim_evidence: [],
+  }) }, "draft", { input: { topic: "مقارنة سريعة: 5A ومشاريع مشابهة", language: "ar" }, units: sourceUnits });
+  assert.match(guidanceComparison.body_markdown, /أحدث الأسعار وخطط السداد ومواعيد الاستلام/);
+  assert.doesNotMatch(guidanceComparison.body_markdown, /26760000|31000000/);
+  assert.match(guidanceComparison.excerpt, /دون افتراض حقائق إضافية/);
+  const missingAvailabilityInformation = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, title: "معلومات التوافر غير متاحة عن 5A", meta_title: "معلومات التوافر غير متاحة عن 5A" }) }, "draft", { input: { topic: "دليل بحث مشروع 5A", language: "ar" }, units: sourceUnits });
+  assert.match(missingAvailabilityInformation.title, /معلومات التوافر غير متاحة/);
+  const groundedProjectComparison = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, comparison_project_ids: ["project-1", "project-2"] }) }, "draft", { input: { topic: "مقارنة مشروعين", language: "ar" }, projects: [{ id: "project-1" }, { id: "project-2" }], units: sourceUnits });
+  assert.deepEqual(groundedProjectComparison.comparison_project_ids, ["project-1", "project-2"]);
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, comparison_project_ids: ["project-1", "missing-project"] }) }, "draft", { input: { topic: "مقارنة مشروعين", language: "ar" }, projects: [{ id: "project-1" }], units: sourceUnits }),
+    (error) => error.message === "generation_topic_unsupported" && error.diagnostics?.stage === "validate_comparison_entities",
+  );
+  for (const unsupportedAssertion of ["Delivery is immediate.", "التسليم غداً.", "السعر مليون جنيه.", "خطة السداد بدون مقدم.", "المشروع أرخص من مشروع المنافس Other Project."]) {
+    assert.throws(
+      () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, body_markdown: unsupportedAssertion }) }, "draft", { input: { topic: "مقارنة مشروعين", language: "ar" }, projects: [{ id: "project-1" }], units: sourceUnits }),
+      (error) => error.message === "generation_commercial_fact_unverified",
+      unsupportedAssertion,
+    );
+  }
+  for (const subtleUnsupportedAssertion of ["راجع الأسعار المنخفضة في المشروع.", "Check prices are low.", "الوحدات غير متاحة."]) {
+    assert.throws(
+      () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, body_markdown: subtleUnsupportedAssertion }) }, "draft", { input: { topic: "دليل تقييم مشروع", language: "ar" }, projects: [{ id: "project-1" }], units: sourceUnits }),
+      (error) => error.message === "generation_commercial_fact_unverified",
+      subtleUnsupportedAssertion,
+    );
+  }
+  const reframedInput = groundInputForFacts({ action: "draft", language: "ar", targetType: "project", topic: "5A مقابل Other Project" }, [{ id: "project-1", name: "5A" }]);
+  assert.equal(reframedInput.topic, "دليل تقييم 5A: قائمة تحقق عملية");
+  assert.doesNotMatch(reframedInput.topic, /Other|مقابل/);
+  const unitAreaComparisonInput = { action: "draft", language: "ar", targetType: "project", topic: "مقارنة مساحات الوحدات في 97 Hills" };
+  assert.equal(groundInputForFacts(unitAreaComparisonInput, [{ id: "project-1", name: "97 Hills" }]), unitAreaComparisonInput, "within-project unit comparisons must preserve their area intent");
+  const deterministicChecklist = neutralProjectChecklist({ action: "draft", language: "ar", targetType: "project", topic: "5A مقابل Other Project" }, [{ id: "project-1", name: "5A" }]);
+  assert.match(deterministicChecklist.title, /دليل تقييم 5A/);
+  assert.doesNotMatch(JSON.stringify(deterministicChecklist), /Other|مقابل/);
+  const rewrittenTopics = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ topics: Array.from({ length: 4 }, (_, index) => ({ title: `5A مقابل Other Project ${index}`, rationale: "مقارنة مرافق المشروعين", angle: "الخدمات", project_ids: [] })) }) }, "topics", { input: { language: "ar" }, projects: [{ id: "project-1", name: "5A" }] });
+  assert.equal(rewrittenTopics.topics.length, 4);
+  assert.equal(new Set(rewrittenTopics.topics.map((topic) => topic.title)).size, 4, "rewritten comparison suggestions must be deduplicated and refilled deterministically");
+  assert.ok(rewrittenTopics.topics.every((topic) => topic.project_ids[0] === "project-1"));
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ topics: Array.from({ length: 4 }, () => ({ title: "موضوع", rationale: "سبب", angle: "زاوية", project_ids: ["missing-project"] })) }) }, "topics", { input: { language: "ar" }, projects: [{ id: "project-1", name: "5A" }] }),
+    (error) => error.message === "generation_topic_unsupported" && error.diagnostics?.stage === "validate_topic_entities",
+  );
   assert.match(groundedDraft.body_markdown, /يجب التحقق منه قبل النشر/);
   const availabilityDraft = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...factualDraft, title: "أنواع الوحدات المتاحة في 97 Hills", meta_title: "أنواع الوحدات المتاحة", body_markdown: "## نظرة عامة\nتعرف على الأنواع في العينة الحديثة.", unit_evidence: [{ unit_id: "unit-1" }], claim_evidence: [] }) }, "draft", { input: { topic: "أنواع الوحدات المتاحة في 97 Hills", language: "ar" }, units: sourceUnits });
   assert.match(availabilityDraft.body_markdown, /عينة حديثة من الوحدات المتاحة/);
@@ -194,7 +247,13 @@ function durableFetch({
   assert.equal(groundedFacts.public_facts.available_units[0].area_sqm, 185);
   assert.equal(groundedFacts.public_facts.available_units[0].source_last_updated_at, "2026-02-10");
   assert.match(groundedRequest.input[0].content, /Never output template placeholders/);
+  const topicRequestRules = buildOpenAiRequest({ action: "topics", language: "ar", targetType: "project", topic: "" }, [{ id: "project-1", name: "5A", slug: "5a" }], []);
+  assert.match(topicRequestRules.input[0].content, /do not propose named cross-project comparisons/i);
+  assert.match(topicRequestRules.input[0].content, /absent from public_facts\.projects/i);
+  assert.ok(topicRequestRules.text.format.schema.properties.topics.items.required.includes("project_ids"));
   assert.deepEqual(Object.keys(groundedRequest.text.format.schema.properties.unit_evidence.items.properties), ["unit_id"]);
+  assert.ok(groundedRequest.text.format.schema.required.includes("comparison_project_ids"));
+  assert.equal(groundedRequest.text.format.schema.properties.comparison_project_ids.maxItems, 12);
   assert.deepEqual(Object.keys(groundedRequest.text.format.schema.properties.claim_evidence.items.properties).sort(), ["kind", "unit_id"]);
 
   const safe = renderSafeMarkdown('## Heading\n<script>alert(1)</script>\n[Project](/projects/project-one)\n[Unit](/units/11111111-1111-4111-8111-111111111111)\n[Bad](https://evil.example)');
@@ -253,6 +312,15 @@ function durableFetch({
   assert.equal(availabilityFirstTry.statusCode, 200, "an availability-focused title must succeed on its first grounded response");
   assert.match(JSON.parse(availabilityFirstTry.body).body_markdown, /عينة حديثة من الوحدات المتاحة/);
   assert.equal(availabilityStore.providerCalls(), 1);
+
+  const crossProjectFallbackStore = durableFetch({ provider: async () => { throw new Error("provider must not be called for deterministic fallback"); }, projects: [{ id: "project-1", name: "5A", slug: "5a" }] });
+  global.fetch = crossProjectFallbackStore.fetch;
+  const crossProjectFallback = await handler(event("cross-project-fallback-1234", "k".repeat(40), { topic: "5A مقابل Other Project" }));
+  assert.equal(crossProjectFallback.statusCode, 200);
+  const fallbackBody = JSON.parse(crossProjectFallback.body);
+  assert.match(fallbackBody.title, /دليل تقييم 5A/);
+  assert.doesNotMatch(JSON.stringify(fallbackBody), /Other|مقابل/);
+  assert.equal(crossProjectFallbackStore.providerCalls(), 0, "cross-project fallback must not make a paid provider call");
 
   const concurrentStore = durableFetch({ provider: async () => { await new Promise((resolve) => setTimeout(resolve, 15)); return response(200, { output_text: JSON.stringify({ title: "Concurrent draft", slug: "concurrent-draft", excerpt: "Intro", meta_title: "Title", meta_description: "Description", body_markdown: "## Draft\nGrounded content" }) }); } });
   global.fetch = concurrentStore.fetch;

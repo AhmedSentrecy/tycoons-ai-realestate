@@ -1,7 +1,7 @@
 "use strict";
 
 const crypto = require("node:crypto");
-const { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, buildOpenAiRequest, parseOpenAiOutput } = require("./_article-generation.cjs");
+const { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, buildOpenAiRequest, parseOpenAiOutput, groundInputForFacts, neutralProjectChecklist } = require("./_article-generation.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
@@ -124,6 +124,9 @@ async function loadPublicFacts(input) {
 
 async function generate(input, safetyId) {
   const { projects, units } = await loadPublicFacts(input);
+  const checklist = neutralProjectChecklist(input, projects);
+  if (checklist) return { ...checklist, source_refs: sourceRefs(projects, units), generated_as: "draft" };
+  const groundedInput = groundInputForFacts(input, projects);
   if (input.action === "draft" && /مساح|متر|\barea|\bsize/i.test(input.topic)) {
     const requiredUnits = /مقارن|compar/i.test(input.topic) ? 2 : 1;
     if (units.filter((unit) => Number.isFinite(unit.area_sqm)).length < requiredUnits) {
@@ -137,9 +140,9 @@ async function generate(input, safetyId) {
       "content-type": "application/json",
       "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
     },
-    body: JSON.stringify(buildOpenAiRequest(input, projects, units)),
+    body: JSON.stringify(buildOpenAiRequest(groundedInput, projects, units)),
   }, 60000, true);
-  return { ...parseOpenAiOutput(response, input.action, { input, units }), source_refs: sourceRefs(projects, units), generated_as: "draft" };
+  return { ...parseOpenAiOutput(response, groundedInput.action, { input: groundedInput, projects, units }), source_refs: sourceRefs(projects, units), generated_as: "draft" };
 }
 
 exports.handler = async function handler(event) {
