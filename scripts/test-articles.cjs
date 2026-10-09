@@ -147,7 +147,7 @@ function durableFetch({
   assert.throws(() => parseSelectedIntro({ ...selectedIntroDraft, body_markdown: "السعر 9 EGP." }), (error) => error.diagnostics?.stage === "validate_public_numeric_claim", "normalization must not bypass commercial guards");
   assert.throws(() => parseSelectedIntro({ ...selectedIntroDraft, claim_evidence: [{ kind: "price", unit_id: "missing" }] }), (error) => error.diagnostics?.stage === "validate_commercial_selection");
   assert.match(buildOpenAiRequest({ action: "draft", language: "ar", targetType: "project", topic: "مقدمة" }, selectedIntroContext.projects).input[0].content, /For every non-comparison draft.*comparison_project_ids must be \[\]/);
-  const missingAvailabilityInformation = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, title: "معلومات التوافر غير متاحة عن 5A", meta_title: "معلومات التوافر غير متاحة عن 5A" }) }, "draft", { input: { topic: "دليل بحث مشروع 5A", language: "ar" }, units: sourceUnits });
+  const missingAvailabilityInformation = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, title: "معلومات التوافر غير متاحة عن 5A", meta_title: "معلومات التوافر غير متاحة عن 5A" }) }, "draft", { input: { topic: "دليل بحث مشروع 5A", language: "ar" }, projects: [{ id: "project-1", name: "5A" }], units: sourceUnits });
   assert.match(missingAvailabilityInformation.title, /معلومات التوافر غير متاحة/);
   const recoveredIntroduction = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({
     ...guidanceComparison,
@@ -404,6 +404,51 @@ function durableFetch({
   assert.equal(singletonReplay.headers["x-idempotent-replay"], "true");
   assert.equal(singletonReplay.body, singletonResult.body);
   assert.equal(singletonStore.providerCalls(), 1, "normalization and replay must not retry generation");
+  const availabilitySafeBody = "يقع مشروع 5A في التجمع الخامس وتعرض هذه المقدمة معلومات الموقع والخدمات.";
+  const availabilityBaseDraft = { title: "مقدمة 5A", slug: "5a-intro", excerpt: "نظرة عامة", meta_title: "مقدمة 5A", meta_description: "معلومات المشروع", comparison_project_ids: [], unit_evidence: [], claim_evidence: [] };
+  const informationSentences = ["المعلومات المتاحة عن المشروع.", "حقائق غير متاحة.", "معلومات التوافر غير متاحة.", "تحقق من الوحدات المتاحة مع المطور قبل اتخاذ القرار.", "Available project information.", "Availability information is unavailable.", "Check availability with the developer."];
+  const inventorySentences = ["الوحدات متاحة.", "الوحدات غير متاحة.", "توجد وحدات متوفرة.", "Units are unavailable.", "Units are not available.", "Units are available.", "الوحدات متاحة للحجز بسعر مناسب.", "المعلومات المتاحة عن المشروع والوحدات متاحة.", "Check availability with the developer and units are available.", "Availability information is unavailable but units are available."];
+  let availabilityFixture = 0;
+  for (const [topic, sentences, shouldRecover] of [["مقدمة عن 5A", informationSentences, false], ["مقدمة عن 5A", inventorySentences, true], ["دليل مشروع 5A", inventorySentences, false]]) {
+    for (const sentence of sentences) {
+      const store = durableFetch({ provider: async () => response(200, { status: "completed", output_text: JSON.stringify({ ...availabilityBaseDraft, body_markdown: `${availabilitySafeBody}\n${sentence}` }) }), projects: [{ id: "project-1", name: "5A", location: "التجمع الخامس" }] });
+      global.fetch = store.fetch;
+      const logs = [];
+      const savedInfo = console.info;
+      console.info = (...args) => logs.push(args.join(" "));
+      let result;
+      try { result = await handler(event(`availability-classification-${++availabilityFixture}`, "v".repeat(40), { topic })); }
+      finally { console.info = savedInfo; }
+      const body = JSON.parse(result.body);
+      const shouldReject = topic === "دليل مشروع 5A";
+      assert.equal(result.statusCode, shouldReject ? 502 : 200, sentence);
+      assert.equal(store.providerCalls(), 1, "availability classification must never retry the provider");
+      if (shouldReject) {
+        assert.equal(body.error, "generation_commercial_fact_unverified");
+        assert.equal(body.generation_failure.recovery_eligible, false);
+      } else {
+        assert.match(body.body_markdown, /يقع مشروع 5A/);
+        if (shouldRecover) {
+          assert.ok(!body.body_markdown.includes(sentence), sentence);
+          assert.match(body.body_markdown, /مراجعة بشرية مطلوبة/);
+          assert.deepEqual(body.generation_diagnostics.fields, ["body_markdown"]);
+        } else {
+          assert.ok(body.body_markdown.includes(sentence));
+          assert.equal(body.generation_diagnostics, undefined);
+        }
+      }
+    }
+  }
+  const availabilityContext = { input: { topic: "مقدمة عن 5A", language: "ar" }, projects: [{ id: "project-1", name: "5A" }], units: [] };
+  const parseAvailability = (changes) => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...availabilityBaseDraft, body_markdown: availabilitySafeBody, ...changes }) }, "draft", availabilityContext);
+  assert.throws(() => parseAvailability({ body_markdown: "## مقدمة\nUnits are unavailable." }), (error) => error.message === "generation_commercial_review_required", "recovery must reject an empty substantive remainder");
+  assert.throws(() => parseAvailability({ body_markdown: `${availabilitySafeBody}\nUnits are available for 9 EGP.` }), (error) => error.generationFailure?.reason === "numeric_prose");
+  assert.throws(() => parseAvailability({ title: "Units are unavailable." }), (error) => error.generationFailure?.reason === "title_availability");
+  assert.throws(() => parseAvailability({ body_markdown: `${availabilitySafeBody}\nUnits are unavailable.`, claim_evidence: [{ kind: "availability", unit_id: "missing" }] }), (error) => error.generationFailure?.reason === "claim_evidence");
+  const metadataRecovery = parseAvailability({ meta_description: "Units are unavailable." });
+  assert.match(metadataRecovery.body_markdown, /مراجعة بشرية مطلوبة/);
+  assert.deepEqual(metadataRecovery.generation_diagnostics.fields, ["meta_description"]);
+
   const crossProjectFallbackStore = durableFetch({ provider: async () => { throw new Error("provider must not be called for deterministic fallback"); }, projects: [{ id: "project-1", name: "5A", slug: "5a" }] });
   global.fetch = crossProjectFallbackStore.fetch;
   const crossProjectFallback = await handler(event("cross-project-fallback-1234", "k".repeat(40), { topic: "5A مقابل Other Project" }));
