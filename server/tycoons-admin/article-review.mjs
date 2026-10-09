@@ -136,15 +136,30 @@ export function assessArticleReview(article, sources = {}) {
       if (field === "body_markdown" && /(?:source updated|تاريخ المصدر|source status|الحالة في بيانات المصدر)|^-\s*(?:Price|Down payment|Installments|Delivery|Availability|السعر|الدفعة المقدمة|التقسيط|التسليم|التوافر):/i.test(line)) {
         add("invalid_typed_fact", field, "blocker", "A sourced fact no longer matches its exact unit, fact type, value, or source date. Refresh or remove that statement.");
       }
-      let numericText = stripKnownNames(line, groundedProjects);
-      // URLs are identifiers, not values. Unknown unit/project links still block.
-      numericText = numericText.replace(/\[([^\]]*)\]\(([^)]+)\)/g, (_, label, url) => {
-        if (/^\/(?:projects|units)\//.test(url) && !links.has(url)) add("source_reference_invalid", field, "blocker", "An internal project or unit link has no matching scoped source reference.");
-        return label;
-      }).replace(/^\s*\d+[.)]\s+/, "");
+      // Resolve complete reference tokens before replacing entity names: otherwise
+      // a project name/slug inside a valid URL can itself be rewritten.
+      const checkReference = (url) => {
+        if (links.has(url)) return true;
+        if (/^\/(?:projects|units)\//.test(url)) add("source_reference_invalid", field, "blocker", "An internal project or unit link has no matching scoped source reference.");
+        return false;
+      };
+      let numericText = line.replace(/\[([^\]]*)\]\(([^)]+)\)/g, (_, label, url) => {
+        return checkReference(url) ? label : `${label} ${url}`;
+      });
+      // Only exact current, scoped source paths are identifiers. Never exempt a
+      // UUID/number generally, a partial path, or a URL carrying extra data.
+      numericText = numericText.replace(/(?<![\p{L}\p{N}/.:])(و?)(\/(?:projects|units)\/[^\s<>"'\[\]()`]+)/gu, (_, conjunction, token) => {
+        const path = token.replace(/[.,،؛:!?؟]+$/, "");
+        return checkReference(path) ? `${conjunction}source reference` : `${conjunction}${token}`;
+      });
+      numericText = stripKnownNames(numericText, groundedProjects).replace(/^\s*\d+[.)]\s+/, "");
       // Unicode numbers include fullwidth, Arabic/Persian, and other numeral
       // scripts. An alternate glyph must not bypass numeric fact validation.
-      if (/\p{N}/u.test(numericText)) add("unsupported_numeric_claim", field, "blocker", "A numeric claim is not bound to a current sourced unit and fact type. Remove it or use an exact sourced statement before publication.");
+      const numeric = /\p{N}/u.exec(numericText);
+      if (numeric) {
+        const excerpt = numericText.slice(Math.max(0, numeric.index - 45), numeric.index + 95);
+        add("unsupported_numeric_claim", field, "blocker", `Numeric text requires source verification: “${excerpt}”. Remove it or use an exact sourced statement before publication.`);
+      }
       prose.push(line);
     }
     if (/(?:price|payment|installment|delivery|handover|availability|available|best|lowest|guarantee|return|amenit|facilit|سعر|أسعار|سداد|مقدم(?!ة)|تقسيط|تسليم|استلام|توافر|متاح|متوفر|أفضل|أرخص|عائد|خدمات|مرافق)/i.test(prose.join("\n"))) {

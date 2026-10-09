@@ -10,7 +10,7 @@
     "test:search": "node --import tsx scripts/test-property-search.ts",
     "test:mcp": "node --import tsx scripts/test-mcp-server.mjs",
     "test:realtime": "node scripts/test-realtime-function.cjs && node scripts/test-voice-features.cjs",
-    "test:articles": "node scripts/test-articles.cjs && node scripts/test-article-review-server.cjs && node scripts/test-draft-review-client.cjs && node --import tsx scripts/test-article-generation-client.ts && node --check netlify/functions/article-generate.cjs && node --check netlify/functions/_article-generation.cjs && node --check netlify/functions/_article-render.cjs",
+    "test:articles": "node scripts/test-articles.cjs && node scripts/test-article-raw-references.cjs && node scripts/test-article-review-server.cjs && node scripts/test-draft-review-client.cjs && node --import tsx scripts/test-article-generation-client.ts && node --check netlify/functions/article-generate.cjs && node --check netlify/functions/_article-generation.cjs && node --check netlify/functions/_article-render.cjs",
     "test:seo": "node scripts/validate-seo.cjs && node scripts/test-data-pages.cjs && node scripts/test-sitemap.cjs && node --check netlify/functions/_seo-utils.cjs && node --check netlify/functions/_project-indexing.cjs && node --check netlify/functions/seo-page.cjs && node --check netlify/functions/sitemap.cjs && node --check scripts/generate-data-pages.cjs",
     "test:agent-ready": "node scripts/validate-agent-readiness.mjs",
     "check": "npm run test:search && npm run test:mcp && npm run test:realtime && npm run test:articles && npm run test:seo && npm run test:agent-ready && npm run build",
