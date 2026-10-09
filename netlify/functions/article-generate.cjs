@@ -5,6 +5,16 @@ const { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourc
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
+const RECOVERY_FIELDS = new Set(["slug", "excerpt", "meta_description", "body_markdown"]);
+
+function safeRecoveryDiagnostics(parsed) {
+  const raw = parsed?.generation_diagnostics;
+  delete parsed.generation_diagnostics;
+  if (raw?.recovery !== "intro_commercial_prose_removed" || !Array.isArray(raw.fields)) return null;
+  const fields = [...new Set(raw.fields.filter((field) => RECOVERY_FIELDS.has(field)))];
+  if (!fields.length) return null;
+  return { recovery: "intro_commercial_prose_removed", fields };
+}
 
 const PROVIDER_CREDIT_CODES = new Set(["credit_balance_exhausted"]);
 const PROVIDER_SPEND_CODES = new Set(["organization_spend_limit_exceeded", "project_spend_limit_exceeded", "billing_hard_limit_reached"]);
@@ -142,7 +152,13 @@ async function generate(input, safetyId) {
     },
     body: JSON.stringify(buildOpenAiRequest(groundedInput, projects, units)),
   }, 60000, true);
-  return { ...parseOpenAiOutput(response, groundedInput.action, { input: groundedInput, projects, units }), source_refs: sourceRefs(projects, units), generated_as: "draft" };
+  const parsed = parseOpenAiOutput(response, groundedInput.action, { input: groundedInput, projects, units });
+  const diagnostics = safeRecoveryDiagnostics(parsed);
+  if (diagnostics) {
+    parsed.generation_diagnostics = diagnostics;
+    console.info("[article-generate]", JSON.stringify({ event: "generation_recovered", ...diagnostics }));
+  }
+  return { ...parsed, source_refs: sourceRefs(projects, units), generated_as: "draft" };
 }
 
 exports.handler = async function handler(event) {

@@ -131,6 +131,31 @@ function durableFetch({
   assert.match(guidanceComparison.excerpt, /دون افتراض حقائق إضافية/);
   const missingAvailabilityInformation = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, title: "معلومات التوافر غير متاحة عن 5A", meta_title: "معلومات التوافر غير متاحة عن 5A" }) }, "draft", { input: { topic: "دليل بحث مشروع 5A", language: "ar" }, units: sourceUnits });
   assert.match(missingAvailabilityInformation.title, /معلومات التوافر غير متاحة/);
+  const recoveredIntroduction = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({
+    ...guidanceComparison,
+    title: "مقدمة شاملة عن مشروع 5A",
+    slug: "5a-introduction",
+    excerpt: "مقدمة عن موقع مشروع 5A في التجمع الخامس.",
+    meta_title: "مقدمة مشروع 5A",
+    meta_description: "تعرف على موقع 5A وخطط السداد المرنة.",
+    body_markdown: "## مقدمة\nيقع مشروع 5A في التجمع الخامس ويقدم تصوراً عمرانياً واضحاً.\n\nيقدم المشروع خطط سداد مرنة.\n\n## مصادر ومراجعة\nيجب التحقق من التفاصيل الواقعية قبل النشر.",
+  }) }, "draft", { input: { topic: "مقدمة شاملة عن مشروع 5A", language: "ar" }, projects: [{ id: "project-1", name: "5A", location: "التجمع الخامس" }], units: sourceUnits });
+  assert.match(recoveredIntroduction.body_markdown, /يقع مشروع 5A في التجمع الخامس/);
+  assert.doesNotMatch(recoveredIntroduction.body_markdown, /خطط سداد مرنة/);
+  assert.match(recoveredIntroduction.body_markdown, /مراجعة بشرية مطلوبة/);
+  assert.deepEqual(recoveredIntroduction.generation_diagnostics, { recovery: "intro_commercial_prose_removed", fields: ["meta_description", "body_markdown"] });
+  const metadataOnlyRecovery = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, title: "مقدمة مشروع 5A", meta_title: "مقدمة مشروع 5A", meta_description: "خطط السداد المرنة في المشروع.", body_markdown: "## مقدمة\nيقع مشروع 5A في التجمع الخامس وتعرض هذه المقدمة معلومات الموقع والخدمات." }) }, "draft", { input: { topic: "مقدمة مشروع 5A", language: "ar" }, projects: [{ id: "project-1", name: "5A", location: "التجمع الخامس" }], units: sourceUnits });
+  assert.match(metadataOnlyRecovery.body_markdown, /مراجعة بشرية مطلوبة/, "metadata-only recovery must still warn the reviewer in the article body");
+  assert.deepEqual(metadataOnlyRecovery.generation_diagnostics.fields, ["meta_description"]);
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, title: "مقدمة مشروع 5A", meta_title: "مقدمة مشروع 5A", body_markdown: "## مقدمة\nخطط السداد مرنة.\n\n## مصادر ومراجعة\nيجب التحقق قبل النشر." }) }, "draft", { input: { topic: "مقدمة مشروع 5A", language: "ar" }, projects: [{ id: "project-1", name: "5A" }], units: sourceUnits }),
+    (error) => error.message === "generation_commercial_review_required" && error.diagnostics?.stage === "recover_intro_no_substantive_content",
+    "recovery must fail for human review when no substantive body remains",
+  );
+  assert.throws(
+    () => parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...recoveredIntroduction, body_markdown: "## مقدمة\nالسعر 9 EGP." }) }, "draft", { input: { topic: "مقدمة شاملة عن مشروع 5A", language: "ar" }, projects: [{ id: "project-1", name: "5A" }], units: sourceUnits }),
+    (error) => error.message === "generation_commercial_fact_unverified" && error.diagnostics?.stage === "validate_public_numeric_claim",
+  );
   const groundedProjectComparison = parseOpenAiOutput({ status: "completed", output_text: JSON.stringify({ ...guidanceComparison, comparison_project_ids: ["project-1", "project-2"] }) }, "draft", { input: { topic: "مقارنة مشروعين", language: "ar" }, projects: [{ id: "project-1" }, { id: "project-2" }], units: sourceUnits });
   assert.deepEqual(groundedProjectComparison.comparison_project_ids, ["project-1", "project-2"]);
   assert.throws(
@@ -312,6 +337,27 @@ function durableFetch({
   assert.equal(availabilityFirstTry.statusCode, 200, "an availability-focused title must succeed on its first grounded response");
   assert.match(JSON.parse(availabilityFirstTry.body).body_markdown, /عينة حديثة من الوحدات المتاحة/);
   assert.equal(availabilityStore.providerCalls(), 1);
+
+  const introStore = durableFetch({ provider: async () => response(200, { status: "completed", output_text: JSON.stringify({
+    title: "مقدمة شاملة عن مشروع 5A", slug: "5a-introduction", excerpt: "نظرة على 5A في التجمع الخامس.", meta_title: "مقدمة مشروع 5A", meta_description: "الموقع والخدمات وخطط السداد المرنة.",
+    body_markdown: "## مقدمة\nيقع 5A في التجمع الخامس ويعرض فكرة المشروع وخدماته.\n\nيوفر المشروع خطط سداد مرنة.\n\n## مصادر ومراجعة\nيجب التحقق قبل النشر.",
+    comparison_project_ids: [], unit_evidence: [], claim_evidence: [], generation_diagnostics: { recovery: "PRIVATE_RECOVERY", fields: ["PRIVATE_FIELD"], secret: "PRIVATE_LOG_MARKER" },
+  }) }), projects: [{ id: "project-1", name: "5A", slug: "5a", location: "التجمع الخامس" }] });
+  global.fetch = introStore.fetch;
+  const introLogs = [];
+  const originalConsoleInfo = console.info;
+  console.info = (...args) => { introLogs.push(args.join(" ")); };
+  let introResult;
+  try { introResult = await handler(event("intro-recovery-1234", "l".repeat(40), { topic: "مقدمة شاملة عن مشروع 5A" })); }
+  finally { console.info = originalConsoleInfo; }
+  assert.equal(introResult.statusCode, 200, "a grounded introduction must recover from non-numeric commercial prose");
+  const introBody = JSON.parse(introResult.body);
+  assert.ok([introBody.title, introBody.excerpt, introBody.meta_title, introBody.meta_description, introBody.body_markdown].every((field) => typeof field === "string" && field.trim()), "recovered introduction fields must remain populated");
+  assert.match(introBody.body_markdown, /يقع 5A في التجمع الخامس/);
+  assert.doesNotMatch(introBody.body_markdown, /خطط سداد مرنة/);
+  assert.deepEqual(introBody.generation_diagnostics, { recovery: "intro_commercial_prose_removed", fields: ["meta_description", "body_markdown"] });
+  assert.doesNotMatch(`${introResult.body}\n${introLogs.join("\n")}`, /PRIVATE_/, "model-provided diagnostic keys and values must never reach the response or logs");
+  assert.equal(introStore.providerCalls(), 1, "introduction recovery must use the completed provider response without a paid retry");
 
   const crossProjectFallbackStore = durableFetch({ provider: async () => { throw new Error("provider must not be called for deterministic fallback"); }, projects: [{ id: "project-1", name: "5A", slug: "5a" }] });
   global.fetch = crossProjectFallbackStore.fetch;
