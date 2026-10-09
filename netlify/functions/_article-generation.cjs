@@ -144,7 +144,7 @@ function buildOpenAiRequest(input, projects, units = []) {
     rules.push("Return a source-grounded draft, not a published article. Use Markdown headings, paragraphs, and lists only.");
     rules.push("Never output template placeholders such as {{min_area}}. Omit unknown values instead of describing them as available or inventing replacements.");
     rules.push("The available_units list is a bounded recent sample, not an exhaustive inventory. Never claim a project-wide minimum, maximum, complete range, or all unit types from it. Do not write numeric unit areas in prose. Select relevant source rows only by adding unit_evidence entries containing unit_id; never repeat area or freshness values. The server will render a labeled sample deterministically.");
-    rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims in prose or descriptive metadata. Harmless editorial guidance may name categories such as prices, payment plans, and delivery only as a direct instruction to ask or verify them with the developer before a decision. If a requested comparison names entities absent from public_facts.projects, reframe it as a neutral checklist for evaluating the supplied project; do not invent comparisons. Put every project used in a factual comparison in comparison_project_ids; use an empty array for a neutral checklist. A title may mirror an availability-focused user topic, but the body must leave the supporting availability statement to the server. To request a commercial fact, add only its typed kind and unit_id to claim_evidence, and only when that unit row contains the corresponding non-empty field; never repeat the commercial value or source date. The server reads both from the validated row and renders them deterministically.");
+    rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims in prose or descriptive metadata. Do not mention commercial categories at all unless the requested topic specifically asks for a review checklist; then use only a direct instruction to verify them with the developer. If a requested comparison names entities absent from public_facts.projects, reframe it as a neutral checklist for evaluating the supplied project; do not invent comparisons. Put every project used in a factual comparison in comparison_project_ids; use an empty array for a neutral checklist. A title may mirror an availability-focused user topic, but the body must leave the supporting availability statement to the server. To request a commercial fact, add only its typed kind and unit_id to claim_evidence, and only when that unit row contains the corresponding non-empty field; never repeat the commercial value or source date. The server reads both from the validated row and renders them deterministically.");
     rules.push(`Only link to these approved internal URLs: ${refs.map((ref) => ref.url).join(', ') || 'none'}. Do not create any other links.`);
     rules.push("Add a final section titled 'مصادر ومراجعة' in Arabic or 'Sources and review' in English, saying factual details should be verified before publication.");
   }
@@ -256,6 +256,44 @@ function groundInputForFacts(input, projects = []) {
   return { ...input, topic: input.language === "en" ? `${name} evaluation checklist` : `دليل تقييم ${name}: قائمة تحقق عملية` };
 }
 
+function introductionIntent(value) {
+  return /مقدمة|نظرة عامة|\bintroduction\b|\boverview\b/i.test(String(value || ""));
+}
+
+function hasCommercialAssertion(value) {
+  return (COMMERCIAL_WORDS_RE.test(value) && !isBenignCommercialGuidance(value)) || hasUnsupportedCommercialAssertion(value);
+}
+
+function recoverIntroduction(value, context, payload, text) {
+  const english = context?.input?.language === "en";
+  const project = Array.isArray(context?.projects) ? context.projects[0] : null;
+  const name = project?.name || (english ? "the selected project" : "المشروع المحدد");
+  const location = project?.location ? (english ? ` in ${project.location}` : ` في ${project.location}`) : "";
+  const recoveredFields = [];
+  for (const field of ["slug", "excerpt", "meta_description"]) {
+    if (!hasCommercialAssertion(normalizedDigits(String(value[field] || "")))) continue;
+    recoveredFields.push(field);
+    if (field === "slug") value[field] = "project-introduction";
+    else if (field === "excerpt") value[field] = english ? `An overview of ${name}${location} based on the available project information.` : `نظرة عامة على ${name}${location} اعتماداً على معلومات المشروع المتاحة.`;
+    else value[field] = english ? `Review the location, concept, and services of ${name} using the available public information.` : `راجع موقع وفكرة وخدمات ${name} بالاعتماد على المعلومات العامة المتاحة.`;
+  }
+  const bodyParts = String(value.body_markdown || "").split(/(?<=[.!؟])\s+|\n+/).map((part) => part.trim()).filter(Boolean);
+  const safeBodyParts = bodyParts.filter((part) => !hasCommercialAssertion(normalizedDigits(part)));
+  if (safeBodyParts.length !== bodyParts.length) recoveredFields.push("body_markdown");
+  if (recoveredFields.includes("body_markdown")) {
+    const safeBody = safeBodyParts.join("\n\n");
+    const substantive = safeBodyParts.filter((part) => !/^#{1,6}\s/.test(part) && !/^(?:مصادر ومراجعة|يجب التحقق.*قبل النشر|Sources and review|Factual details should be verified)/i.test(part)).join(" ").trim();
+    if (substantive.length < 30) throw outputError("generation_commercial_review_required", payload, text, "recover_intro_no_substantive_content", 422);
+    value.body_markdown = safeBody;
+  }
+  if (recoveredFields.length) {
+    const reviewNote = english ? "## Human review required\nUnsupported commercial prose was removed. Verify missing details before publication." : "## مراجعة بشرية مطلوبة\nتم حذف تفاصيل تجارية غير موثقة. تحقق من التفاصيل الناقصة قبل النشر.";
+    value.body_markdown = `${String(value.body_markdown || "").trim()}\n\n${reviewNote}`;
+    value.generation_diagnostics = { recovery: "intro_commercial_prose_removed", fields: [...new Set(recoveredFields)] };
+  }
+  return recoveredFields.length > 0;
+}
+
 function neutralProjectChecklist(input, projects = []) {
   if (input?.action !== "draft" || projects.length !== 1 || !crossProjectIntent(input.topic)) return null;
   const project = projects[0];
@@ -312,10 +350,10 @@ function validateDraftFacts(value, context, payload, text) {
   const descriptiveFields = [value.slug, value.excerpt, value.meta_description, value.body_markdown];
   const commercialText = normalizedDigits(descriptiveFields.join("\n"));
   const modelClaims = typedClaims(commercialText);
-  const unsupportedCommercialAssertion = (COMMERCIAL_WORDS_RE.test(commercialText) && !isBenignCommercialGuidance(commercialText)) || hasUnsupportedCommercialAssertion(commercialText);
+  const unsupportedCommercialAssertion = hasCommercialAssertion(commercialText);
   const availabilityProse = hasAvailabilityAssertion(commercialText);
   if (modelClaims.length) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_numeric_claim");
-  if (unsupportedCommercialAssertion) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_commercial_assertion");
+  if (unsupportedCommercialAssertion && !(introductionIntent(topic) && recoverIntroduction(value, context, payload, text))) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_commercial_assertion");
   if (availabilityProse && !availabilityIntent) throw outputError("generation_commercial_fact_unverified", payload, text, "validate_public_availability_claim");
   const titleText = normalizedDigits([value.title, value.meta_title].join("\n"));
   const titleHasNonAvailabilityCommercialClaim = typedClaims(titleText).length > 0 || (COMMERCIAL_WORDS_RE.test(titleText) && !isBenignCommercialGuidance(titleText)) || hasUnsupportedCommercialAssertion(titleText);
@@ -352,6 +390,7 @@ function validateDraftFacts(value, context, payload, text) {
 
 function validateGeneratedResult(value, action, payload, text, context = {}) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw outputError("generation_shape_invalid", payload, text, "validate");
+  delete value.generation_diagnostics;
   if (action === "topics") {
     if (!Array.isArray(value.topics) || value.topics.length < 4 || value.topics.length > 6) throw outputError("generation_shape_invalid", payload, text, "validate_topics");
     for (const topic of value.topics) {
