@@ -75,9 +75,11 @@ function stripKnownNames(value, projects) {
     // editable area_name is never an exemption, nor is a digits-only slug.
     const names = [project.name, project.slug, /\p{L}/u.test(location) ? location : "", /[a-z]/i.test(locationSlug) ? locationSlug : ""];
     for (const name of names.filter(Boolean).sort((a, b) => b.length - a.length)) {
-      // A digit-bearing name (5A, 97 Hills) is an entity, not a quantity.
+      // A digit-bearing name (5A, 97 Hills) is an entity, not a quantity. Arabic
+      // writes attached prepositions/article before names (لـ5A، بـ5A، و5A، ال5A),
+      // optionally with a tatweel; those prefixes keep the name an identity.
       const escaped = String(name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      result = result.replace(new RegExp(`(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`, "giu"), "project");
+      result = result.replace(new RegExp(`(?<![\\p{L}\\p{N}])((?:وبال|وال|بال|فال|كال|لل|ال|و|ف|ب|ل|ك)?ـ*)${escaped}(?![\\p{L}\\p{N}])`, "giu"), "$1project");
     }
   }
   return result;

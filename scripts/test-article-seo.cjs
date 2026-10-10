@@ -148,6 +148,10 @@ const draft = {
   check(sandbox.seo.seoScore(strongChecks) === 100, `a complete article scores 100 (got ${sandbox.seo.seoScore(strongChecks)}: ${strongChecks.filter((c) => c.earned < c.weight).map((c) => c.id).join(",")})`);
   check(strongChecks.reduce((sum, item) => sum + item.weight, 0) === 100, "weights add up to 100");
   check(sandbox.seo.seoScore(sandbox.seo.seoChecks({ ...strong, focus_keyword: "كمبوند ماونتن فيو".replace("ة", "ه") })) === 100, "Arabic letter variants still match");
+  const spread = sandbox.seo.seoChecks({ ...strong, focus_keyword: "5A التجمع الخامس", meta_description: "5A في التجمع الخامس على الطريق الدائري" });
+  check(spread.find((item) => item.id === "keyword_meta_description").earned === 4, "keyword words separated by في still count");
+  const missing = sandbox.seo.seoChecks({ ...strong, focus_keyword: "5A التجمع الخامس", meta_description: "مشروع في القاهرة الجديدة" });
+  check(missing.find((item) => item.id === "keyword_meta_description").earned === 0, "missing keyword words do not count");
   const empty = sandbox.seo.seoChecks({ ...strong, focus_keyword: "", title: "", slug: "", meta_title: "", meta_description: "", excerpt: "", body_markdown: "", key_takeaways: [], faq: [] });
   check(sandbox.seo.seoScore(empty) === 0, "an empty article scores 0");
 

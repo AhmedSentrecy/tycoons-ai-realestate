@@ -44,9 +44,14 @@ const normalizeSearchText = (value: string) => String(value || "")
   .replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
   .replace(/\s+/g, " ").trim();
 
+// Exact phrase, or every keyword word present (Arabic inserts في/من between words).
 const containsKeyword = (haystack: string, keyword: string) => {
   const needle = normalizeSearchText(keyword);
-  return Boolean(needle) && normalizeSearchText(haystack).includes(needle);
+  if (!needle) return false;
+  const text = normalizeSearchText(haystack);
+  if (text.includes(needle)) return true;
+  const words = needle.split(" ").filter((word) => word.length > 1);
+  return words.length > 1 && words.every((word) => text.includes(word));
 };
 
 const countWords = (value: string) => String(value || "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").split(/\s+/).filter((word) => /\p{L}/u.test(word)).length;
