@@ -10,7 +10,8 @@ const { webcrypto } = require("node:crypto");
 const { pathToFileURL } = require("node:url");
 const ts = require("typescript");
 const root = path.resolve(__dirname, "..");
-const { parseOpenAiOutput, buildOpenAiRequest } = require("../netlify/functions/_article-generation.cjs");
+const { parseOpenAiOutput, buildOpenAiRequest, areaLinks, ensureKeywordHeading } = require("../netlify/functions/_article-generation.cjs");
+const { renderSafeMarkdown } = require("../netlify/functions/_article-render.cjs");
 const { renderEditorialArticle } = require("../netlify/functions/_seo-utils.cjs");
 const copy = (value) => JSON.parse(JSON.stringify(value));
 const transpile = (code) => ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
@@ -154,6 +155,21 @@ const draft = {
   check(missing.find((item) => item.id === "keyword_meta_description").earned === 0, "missing keyword words do not count");
   const empty = sandbox.seo.seoChecks({ ...strong, focus_keyword: "", title: "", slug: "", meta_title: "", meta_description: "", excerpt: "", body_markdown: "", key_takeaways: [], faq: [] });
   check(sandbox.seo.seoScore(empty) === 0, "an empty article scores 0");
+
+  // Area hub links, keyword heading repair and the longer body target.
+  check(JSON.stringify(areaLinks([{ location: "New Cairo" }, { location: "التجمع الخامس" }, { location: "Unknown place" }], "ar")) === JSON.stringify([{ label: "القاهرة الجديدة والتجمع", url: "/ar/areas/new-cairo" }]), "area links are deduplicated, indexable and localized");
+  check(areaLinks([{ location: "New Cairo" }], "en")[0].url === "/en/areas/new-cairo", "English drafts link the English area page");
+  const draftRequest = JSON.stringify(buildOpenAiRequest({ action: "draft", language: "ar", targetType: "project", projectId: "project-1", topic: "دليل Mountain View" }, projects, []));
+  check(draftRequest.includes("/ar/areas/new-cairo") && draftRequest.includes("area page at least once"), "draft prompt approves and asks for the area page link");
+  check(draftRequest.includes("at least 1100") && draftRequest.includes("first '## ' heading"), "draft prompt asks for a longer body and the keyword in the first heading");
+  const repaired = ensureKeywordHeading("مقدمة\n\n## ليه موقع Avelin مهم؟\nنص\n## قبل ما تقرر\nنص", "Avelin التجمع الخامس");
+  check(repaired.includes("## Avelin التجمع الخامس: ليه موقع Avelin مهم؟"), "a missing keyword is added to the first content heading");
+  check(ensureKeywordHeading("## Avelin في التجمع الخامس\nنص", "Avelin التجمع الخامس") === "## Avelin في التجمع الخامس\nنص", "a heading with every keyword word is left alone");
+  check(ensureKeywordHeading("## قبل ما تقرر\nنص", "Avelin") === "## قبل ما تقرر\nنص", "the closing section heading is never rewritten");
+  check(ensureKeywordHeading("## عنوان\nنص", "") === "## عنوان\nنص", "no keyword means no change");
+  const areaHtml = renderSafeMarkdown("شوف [التجمع الخامس](/ar/areas/new-cairo) و[المطور](/en/developers/times) و[x](/ar/areas/../a) و[y](https://evil.example)");
+  check(areaHtml.includes('<a href="/ar/areas/new-cairo">') && areaHtml.includes('<a href="/en/developers/times">'), "area and developer links render publicly");
+  check(!areaHtml.includes('href="/ar/areas/..') && !areaHtml.includes('href="https://evil'), "unsafe or external links stay plain text");
 
   console.log(`Article SEO/GEO field tests passed (${checks} checks; offline only).`);
 })().catch((error) => { console.error(error); process.exitCode = 1; });

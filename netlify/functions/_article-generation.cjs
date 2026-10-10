@@ -1,5 +1,7 @@
 "use strict";
 
+const { areaFor } = require("./_seo-utils.cjs");
+
 const MAX_BODY_BYTES = 48 * 1024;
 const IDEMPOTENCY_RE = /^[a-zA-Z0-9._:-]{16,120}$/;
 
@@ -215,6 +217,19 @@ function sourceRefs(projects, units = []) {
   }))].slice(0, 30);
 }
 
+// Public area hub pages for the projects' locations. They are navigation links only:
+// never source references, never evidence for a fact.
+function areaLinks(projects, language = "ar") {
+  const lang = language === "en" ? "en" : "ar";
+  const seen = new Map();
+  for (const project of projects) {
+    const area = areaFor(project?.location || "");
+    if (!area.indexable || seen.has(area.slug)) continue;
+    seen.set(area.slug, { label: lang === "en" ? area.en : area.ar, url: `/${lang}/areas/${area.slug}` });
+  }
+  return [...seen.values()].slice(0, 3);
+}
+
 function topicSchema() {
   return {
     type: "object",
@@ -275,12 +290,12 @@ function seoDraftRules(language) {
   const ar = language !== "en";
   return [
     `SEO/GEO structure: choose one focus_keyword of 2 to 6 words that a buyer would actually type into Google ${ar ? "in Egyptian Arabic, e.g. \"كمبوند <project name> التجمع الخامس\" or the buyer's question" : "in English"}. Write the project name exactly as supplied (keep Latin letters and digits such as 5A or 97 Hills, never spell them out phonetically). No other digits. Describe the project type accurately: never call a commercial or administrative project a compound (كمبوند) or a residential project a mall.`,
-    "Put the focus_keyword, or its closest natural form, at the start of title and meta_title, once in the first paragraph of body_markdown, and in at least one '## ' heading. Never stuff it.",
+    "Put the focus_keyword, or its closest natural form, at the start of title and meta_title, once in the first paragraph of body_markdown, and in the first '## ' heading (write every word of the keyword in that heading). Never stuff it.",
     "Never attach an Arabic preposition or article directly to a Latin project name (write إلى 5A or لمشروع 5A, never لـ5A or ل5A).",
     "meta_title: 35 to 60 characters. meta_description: 120 to 155 characters that start with the exact focus_keyword, written as a direct answer plus a reason to click. excerpt: one or two sentences, at most 220 characters.",
     "slug: lowercase English words joined by hyphens, 3 to 7 words, ASCII only, using real English words (project name as written, e.g. 5a-waterway, then English words such as new-cairo, investment, guide). Never transliterate Arabic words phonetically. Digits only when part of the project name.",
     "key_takeaways: 3 to 5 short standalone sentences (each under 160 characters) that state concrete facts answering the topic (developer, location, concept, unit types, who it suits), so an AI assistant can quote them. Never write takeaways about verification, reviews, sources, documents or advice to consult someone. No digits except in the project name, and no prices, payment terms, delivery dates or availability.",
-    "body_markdown: open with a direct 2 to 3 sentence answer paragraph (no heading before it), then 4 to 7 '## ' sections, several phrased as the questions buyers ask. Use short paragraphs, '### ' subsections and '-' lists where useful. Write at least 900 and up to 1500 words of original, specific, useful text grounded in the supplied facts; when facts are limited, reach the length with practical buyer guidance on the topic (what to check on a site visit, questions to ask the developer, how the location fits daily commuting), never with filler or repetition. Do not repeat the takeaways or FAQ inside the body.",
+    "body_markdown: open with a direct 2 to 3 sentence answer paragraph (no heading before it), then 6 to 8 '## ' sections, several phrased as the questions buyers ask, each section 150 to 250 words. Use short paragraphs, '### ' subsections and '-' lists where useful. The body alone must reach at least 1100 and up to 1600 words (count before answering; the takeaways and FAQ do not count) of original, specific, useful text grounded in the supplied facts; when facts are limited, reach the length with practical buyer guidance on the topic (what to check on a site visit, questions to ask the developer, how the location fits daily commuting), never with filler or repetition. Do not repeat the takeaways or FAQ inside the body.",
     "Inside body_markdown, link to each relevant approved internal URL at least once using Markdown [label](url) with a descriptive label.",
     "faq: 3 to 6 real questions a buyer asks about this project or area (where is it, who is the developer, what unit types exist, who it suits, what is nearby), with self-contained answers of 1 to 3 sentences. Never ask about this website, its data, its reliability or the review process. FAQ answers follow the same restrictions as the body: no digits except in the project name, no prices, payment terms, delivery dates or availability claims; for those say the Tycoons team confirms current details on request.",
     `${ar ? "Arabic drafts: write Egyptian place names in Arabic (New Cairo → القاهرة الجديدة or التجمع الخامس, Sheikh Zayed → الشيخ زايد, North Coast → الساحل الشمالي, Ain Sokhna → العين السخنة, Mostakbal City → مستقبل سيتي, New Capital → العاصمة الإدارية الجديدة). Keep project and developer names exactly as supplied." : "Keep project and developer names exactly as supplied."}`,
@@ -307,7 +322,9 @@ function buildOpenAiRequest(input, projects, units = []) {
     rules.push("Never output template placeholders such as {{min_area}}. Omit unknown values instead of describing them as available or inventing replacements.");
     rules.push("The available_units list is a bounded recent sample, not an exhaustive inventory. Never claim a project-wide minimum, maximum, complete range, or all unit types from it. Do not write numeric unit areas in prose. Select relevant source rows only by adding unit_evidence entries containing unit_id; never repeat area or freshness values. The server will render a labeled sample deterministically.");
     rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims in prose or descriptive metadata. You may discuss commercial questions without inventing answers. Missing facts need explicit editorial verification. Preserve the requested topic. If a comparison lacks source entities, explain the missing comparison evidence in the draft; never substitute a generic checklist or invent comparisons. Put every project used in a factual comparison in comparison_project_ids. For every non-comparison draft, including introductions, overviews, and neutral checklists, comparison_project_ids must be []; do not put the selected project ID in this field. A title may mirror an availability-focused user topic, but the body must leave the supporting availability statement to the server. To request a commercial fact, add only its typed kind and unit_id to claim_evidence, and only when that unit row contains the corresponding non-empty field; never repeat the commercial value or source date. The server reads both from the validated row and renders them deterministically.");
-    rules.push(`Only link to these approved internal URLs: ${refs.map((ref) => ref.url).join(', ') || 'none'}. Do not create any other links.`);
+    const areas = areaLinks(projects, input.language);
+    rules.push(`Only link to these approved internal URLs: ${[...refs.map((ref) => ref.url), ...areas.map((area) => area.url)].join(', ') || 'none'}. Do not create any other links.`);
+    if (areas.length) rules.push(`Internal linking: link the project page at least once and the area page at least once (${areas.map((area) => `[${area.label}](${area.url})`).join(', ')}), each with a descriptive label inside a sentence, not as a bare list.`);
     rules.push("End with a short section titled 'قبل ما تقرر' in Arabic or 'Before you decide' in English: two or three sentences inviting the reader to confirm current prices, payment plans and availability with the Tycoons team. Never mention editors, human review, AI, drafts or verification processes anywhere in the article.");
     rules.push(...seoDraftRules(input.language));
   }
@@ -453,6 +470,39 @@ function validateDraftFacts(value, context, payload, text) {
   value.review_issues = issues;
 }
 
+const normalizeKeywordText = (value) => String(value || "")
+  .normalize("NFKC").toLocaleLowerCase()
+  .replace(/[\u064B-\u0652\u0640]/g, "")
+  .replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
+  .replace(/\s+/g, " ").trim();
+
+// Same rule as the editor's SEO score: exact phrase, or every keyword word present.
+function containsKeyword(haystack, keyword) {
+  const needle = normalizeKeywordText(keyword);
+  if (!needle) return false;
+  const text = normalizeKeywordText(haystack);
+  if (text.includes(needle)) return true;
+  const words = needle.split(" ").filter((word) => word.length > 1);
+  return words.length > 1 && words.every((word) => text.includes(word));
+}
+
+const CLOSING_HEADING_RE = /^##\s+(?:قبل ما تقرر|before you decide)\s*$/i;
+
+// The model sometimes forgets the keyword in every '## ' heading. Prefix the first
+// content heading with it instead of failing or retrying the whole (slow) draft.
+function ensureKeywordHeading(body, keyword) {
+  const phrase = String(keyword || "").trim();
+  if (!phrase) return body;
+  const lines = String(body || "").split("\n");
+  const headings = lines.map((line, index) => [line.trim(), index]).filter(([line]) => /^##\s/.test(line));
+  if (headings.some(([line]) => containsKeyword(line, phrase))) return body;
+  const target = headings.find(([line]) => !CLOSING_HEADING_RE.test(line));
+  if (!target) return body;
+  const [line, index] = target;
+  lines[index] = `## ${phrase}: ${line.replace(/^##\s+/, "")}`;
+  return lines.join("\n");
+}
+
 // Older providers/fixtures may omit the SEO fields: default them instead of failing.
 // Present-but-malformed values are a shape error, like any other field.
 function normalizeSeoFields(value, payload, text) {
@@ -527,6 +577,7 @@ function validateGeneratedResult(value, action, payload, text, context = {}) {
     if (fields.some((field) => typeof value[field] !== "string" || !value[field].trim())) throw outputError("generation_shape_invalid", payload, text, "validate_draft");
     if (value.title.length > 180 || value.meta_title.length > 180 || value.excerpt.length > 500 || value.meta_description.length > 500 || value.body_markdown.length > 30000) throw outputError("generation_shape_invalid", payload, text, "validate_draft_limits");
     normalizeSeoFields(value, payload, text);
+    value.body_markdown = ensureKeywordHeading(value.body_markdown, value.focus_keyword);
     validateDraftFacts(value, context, payload, text);
     return Object.fromEntries([...fields, "focus_keyword", "key_takeaways", "faq", "comparison_project_ids", "unit_evidence", "claim_evidence", "review_issues"].map(field => [field, value[field]]));
   }
@@ -555,5 +606,5 @@ function parseOpenAiOutput(payload, action = "draft", context = {}) {
   return validateGeneratedResult(value, action, payload, text, context);
 }
 
-module.exports = { RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, parseOpenAiOutput, groundInputForFacts, sanitizeResearchFacts };
+module.exports = { areaLinks, ensureKeywordHeading, RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, parseOpenAiOutput, groundInputForFacts, sanitizeResearchFacts };
 

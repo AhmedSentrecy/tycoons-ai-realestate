@@ -7,7 +7,7 @@ function escapeHtml(value) {
 function inlineMarkdown(value) {
   const escaped = escapeHtml(value);
   return escaped
-    .replace(/\[([^\]]{1,160})\]\((\/(?:projects|guides|units)\/[a-z0-9-]+\/?)\)/g, (_, label, href) => `<a href="${href}">${label}</a>`)
+    .replace(/\[([^\]]{1,160})\]\((\/(?:projects|guides|units|(?:ar|en)\/(?:areas|developers))\/[a-z0-9-]+\/?)\)/g, (_, label, href) => `<a href="${href}">${label}</a>`)
     .replace(/\*\*([^*]{1,200})\*\*/g, "<strong>$1</strong>");
 }
 
