@@ -60,11 +60,10 @@ export default function EditorialWorkflowPanel({ projects }: { projects: AdminPr
     catch (error) { handleError(error); } finally { setBusy(""); }
   }
 
-  const config = workflow?.config;
   return <section className="mb-5 rounded-3xl border border-[#ded3bd] bg-[#fbf8f2] p-5">
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div><h2 className="text-xl font-black">تشغيل المحتوى</h2><p className="mt-1 text-sm text-[#5c6a62]">بحث نوعي موثّق → مسودتان عربية وإنجليزية → فحوص → استثناء أو مسار آلي مستقل.</p></div>
-      <div className="flex flex-wrap items-center gap-2"><Badge tone="pending">الجدولة متوقفة</Badge><Badge tone="pending">السقف المقترح ${(config?.monthly_budget_cents ?? 5000) / 100}/شهر</Badge>{workflow && <Badge tone="muted">{workflow.jobs.length} مهمة</Badge>}<button onClick={() => setOpen(!open)} aria-expanded={open} className="rounded-lg border bg-white px-3 py-1 text-sm font-bold">{open ? "إخفاء" : "عرض"}</button></div>
+      <div className="flex flex-wrap items-center gap-2"><Badge tone="pending">الجدولة متوقفة</Badge>{workflow && <Badge tone="muted">{workflow.jobs.length} مهمة</Badge>}<button onClick={() => setOpen(!open)} aria-expanded={open} className="rounded-lg border bg-white px-3 py-1 text-sm font-bold">{open ? "إخفاء" : "عرض"}</button></div>
     </div>
     {open && <>
     <div className="mt-4 grid gap-3 md:grid-cols-3">
