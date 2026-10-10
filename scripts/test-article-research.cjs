@@ -77,6 +77,7 @@ const projects = [{ id: "project-1", name: "5A", slug: "5a--waterway", developer
     check(blockers({ ...base, body_markdown: `مشروع 5A.\n${claim}` }).some((issue) => issue.code === "unsupported_numeric_claim"), `real numbers next to the name still block: ${claim}`);
   }
   check(/Never attach an Arabic preposition/.test(rules) && /start with the exact focus_keyword/.test(rules) && /never call a commercial or administrative project a compound/.test(rules) && /at least 1100/.test(rules), "draft rules: no attached prefixes, keyword in description, minimum length");
+  check(/Never use abstract words buyers do not search/.test(rules) && /Never mix English words into Arabic sentences/.test(rules) && /worded differently from meta_description/.test(rules), "draft rules: searchable keyword, Arabic only, excerpt differs from description");
   const topicRules = gen.buildOpenAiRequest({ action: "topics", language: "ar", targetType: "project", topic: "" }, projects, []).input[0].content;
   check(/التجمع الخامس/.test(topicRules) && /never topics about requesting documents/.test(topicRules), "topic rules: Arabic places and buyer topics");
 
