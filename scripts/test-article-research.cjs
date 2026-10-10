@@ -69,6 +69,17 @@ const projects = [{ id: "project-1", name: "5A", slug: "5a--waterway", developer
   check(blockers({ ...base, source_refs: refs }).some((issue) => issue.code === "source_grounding_missing"), "web citations alone never ground an article");
   check(blockers({ ...base, title: "دليل 5A waterway", slug: "5a-waterway-new-cairo-investment", focus_keyword: "كمبوند 5A التجمع الخامس" }).length === 0, "project-name digits are allowed in keyword, title and slug");
 
+  // ---- Arabic prefixes attached to digit-bearing project names ----
+  for (const heading of ["## ازاي توصل لـ5A التجمع الخامس؟", "زيارة ل5A", "مكاتب بـ5A", "و5A مشروع تجاري", "الوصول إلى 5A"]) {
+    check(!blockers({ ...base, body_markdown: `مشروع 5A.\n${heading}` }).some((issue) => issue.code === "unsupported_numeric_claim"), `attached Arabic prefix keeps 5A a name: ${heading}`);
+  }
+  for (const claim of ["5A فيه 3 مداخل", "لـ5A مساحة 40 فدان", "مول5A"]) {
+    check(blockers({ ...base, body_markdown: `مشروع 5A.\n${claim}` }).some((issue) => issue.code === "unsupported_numeric_claim"), `real numbers next to the name still block: ${claim}`);
+  }
+  check(/Never attach an Arabic preposition/.test(rules) && /exact focus_keyword words in the same order/.test(rules) && /at least 900/.test(rules), "draft rules: no attached prefixes, keyword in description, minimum length");
+  const topicRules = gen.buildOpenAiRequest({ action: "topics", language: "ar", targetType: "project", topic: "" }, projects, []).input[0].content;
+  check(/التجمع الخامس/.test(topicRules) && /never topics about requesting documents/.test(topicRules), "topic rules: Arabic places and buyer topics");
+
   // ---- public page ----
   const published = {
     status: "published", language: "ar", title: "دليل 5A", slug: "5a-waterway-guide", excerpt: "e", meta_title: "m", meta_description: "d",
