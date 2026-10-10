@@ -1,6 +1,14 @@
 // Pure shared review policy. Inputs in `sources` must be freshly loaded public rows,
 // never the article's source_refs snapshots or model/client review flags.
-const FIELDS = ["title", "slug", "excerpt", "meta_title", "meta_description", "body_markdown"];
+const FIELDS = ["focus_keyword", "title", "slug", "excerpt", "meta_title", "meta_description", "key_takeaways", "body_markdown", "faq"];
+// Structured SEO fields are reviewed as plain text, one line per item, with
+// exactly the same numeric/commercial policy as the article body.
+function fieldText(article, field) {
+  const value = article?.[field];
+  if (field === "key_takeaways") return Array.isArray(value) ? value.map((item) => String(item ?? "")).join("\n") : "";
+  if (field === "faq") return Array.isArray(value) ? value.flatMap((item) => [String(item?.question ?? ""), String(item?.answer ?? "")]).join("\n") : "";
+  return String(value ?? "");
+}
 const KINDS = ["price", "down_payment", "installments", "delivery", "availability"];
 const clean = (value, max = 2000) => String(value ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 const key = (value) => clean(value).normalize("NFKC").toLocaleLowerCase();
@@ -116,13 +124,13 @@ export function assessArticleReview(article, sources = {}) {
   for (const id of referencedUnits) {
     if (!referencedProjects.has(unitById.get(id).project_id)) add("source_reference_invalid", "source_refs", "blocker", "Each unit source must belong to a referenced project in the article's target.");
   }
-  const combined = FIELDS.filter((field) => field !== "slug").map((field) => String(article?.[field] ?? "")).join("\n");
+  const combined = FIELDS.filter((field) => field !== "slug").map((field) => fieldText(article, field)).join("\n");
   if (groundedProjects.length && !groundedProjects.some((project) => (clean(project.name) && key(combined).includes(key(project.name))) || combined.includes(`](/projects/${project.slug})`))) {
     add("source_grounding_missing", "body_markdown", "blocker", "Explain which sourced project the article describes, using its current name or project link.");
   }
   const canonical = new Set(units.filter((unit) => referencedUnits.has(unit.id) && referencedProjects.has(unit.project_id)).flatMap((unit) => canonicalLines(unit, article.language)));
   for (const field of FIELDS) {
-    const value = String(article?.[field] ?? "");
+    const value = fieldText(article, field);
     if (/\{\{[^{}]*\}\}|\$\{[^{}]*\}|\b(?:min|max)_(?:area|price)\b|\b(?:TODO|TBD|INSERT[_ ](?:PRICE|AREA|VALUE))\b|\[(?:insert|add|ضع|أدخل)\b[^\]]*\]/i.test(value)) {
       add("unresolved_placeholder", field, "blocker", "Replace or remove the unresolved placeholder before publication.");
     }

@@ -1306,21 +1306,45 @@ function renderGuide(slug, lang = "ar") {
   });
 }
 
-function renderEditorialArticle(article) {
+function editorialGuidePath(article) {
+  return article.language === "en" ? `/en/guides/${article.slug}/` : `/guides/${article.slug}/`;
+}
+
+// `translation` is the published counterpart in the other language (same
+// translation_key), or null. Only then are hreflang alternates emitted.
+function renderEditorialArticle(article, translation = null) {
   if (!article || article.status !== "published" || !article.published_at || !article.reviewed_at) return null;
   const lang = article.language === "en" ? "en" : "ar";
   const ar = lang === "ar";
-  const path = ar ? `/guides/${article.slug}/` : `/en/guides/${article.slug}/`;
+  const path = editorialGuidePath(article);
+  const pair = translation && translation.status === "published" && translation.slug && translation.language !== article.language
+    && article.translation_key && translation.translation_key === article.translation_key ? translation : null;
   const reviewedDate = new Date(article.reviewed_at).toISOString().slice(0, 10);
+  const takeaways = (Array.isArray(article.key_takeaways) ? article.key_takeaways : []).map((item) => String(item || "").trim()).filter(Boolean).slice(0, 6);
+  const faq = (Array.isArray(article.faq) ? article.faq : [])
+    .map((item) => [String(item?.question || "").trim(), String(item?.answer || "").trim()])
+    .filter(([question, answer]) => question && answer).slice(0, 10);
+  const image = /^https:\/\/[^\s"'<>]+$/.test(String(article.hero_image_url || "")) ? String(article.hero_image_url) : "";
+  const takeawaysHtml = takeaways.length
+    ? `<div class="answer" id="key-takeaways"><h2>${ar ? "الخلاصة" : "Key takeaways"}</h2><ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>`
+    : "";
+  const faqHtml = faq.length
+    ? `<section aria-labelledby="guide-faq"><h2 id="guide-faq">${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([question, answer]) => `<h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p>`).join("")}</section>`
+    : "";
   const body = `<main class="guide"><p class="crumbs"><a href="/">${ar ? "الرئيسية" : "Home"}</a> / ${ar ? "الأدلة" : "Guides"} / ${escapeHtml(article.title)}</p>
-  <section class="hero"><span class="eyebrow">${ar ? "دليل مستقل تمت مراجعته قبل النشر" : "Independent guide reviewed before publication"}</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(article.excerpt)}</p><p class="updated">${ar ? "تاريخ المراجعة" : "Reviewed"}: ${escapeHtml(reviewedDate)}</p></section>
+  <section class="hero"><span class="eyebrow">${ar ? "دليل مستقل تمت مراجعته قبل النشر" : "Independent guide reviewed before publication"}</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(article.excerpt)}</p>${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title)}" width="1200" height="630" loading="eager" style="width:100%;height:auto;border-radius:16px;margin-top:12px">` : ""}<p class="updated">${ar ? "تاريخ المراجعة" : "Reviewed"}: ${escapeHtml(reviewedDate)}</p></section>
+  ${takeawaysHtml}
   <article>${renderSafeMarkdown(article.body_markdown)}</article>
+  ${faqHtml}
   <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المعلومات تعليمية وتتغير بمرور الوقت. أعد تأكيد أي تفاصيل تجارية قبل اتخاذ قرار." : "This is educational content. Reconfirm time-sensitive commercial details before deciding."}</p></section></main>`;
+  const keyword = String(article.focus_keyword || "").trim();
   return renderPage({
     lang,
     title: article.meta_title || `${article.title} | Tycoons Investments`,
     description: article.meta_description || article.excerpt,
     path,
+    alternatePath: pair ? editorialGuidePath(pair) : undefined,
+    image,
     body,
     schemas: [
       breadcrumbSchema([{ name: ar ? "الرئيسية" : "Home", path: "/" }, { name: ar ? "الأدلة" : "Guides", path }, { name: article.title, path }]),
@@ -1329,10 +1353,20 @@ function renderEditorialArticle(article) {
         description: article.meta_description || article.excerpt,
         datePublished: article.published_at, dateModified: article.updated_at || article.reviewed_at,
         inLanguage: ar ? "ar-EG" : "en", mainEntityOfPage: `${SITE_URL}${path}`,
+        ...(keyword ? { keywords: keyword } : {}),
+        ...(image ? { image: [image] } : {}),
+        ...(takeaways.length ? { abstract: takeaways.join(" ") } : {}),
         author: { "@type": "Organization", name: "Tycoons Investments", url: `${SITE_URL}/about` },
         reviewedBy: { "@type": "Person", name: article.reviewed_by_name },
         publisher: { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL },
       },
+      ...(faq.length
+        ? [{
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: faq.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
+          }]
+        : []),
     ],
   });
 }

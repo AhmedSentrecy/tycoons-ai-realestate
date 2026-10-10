@@ -220,7 +220,7 @@ async function listUnits(body: Json) {
 async function listArticles() {
   const { data, error } = await db
     .from("editorial_articles")
-    .select("id,status,language,title,slug,excerpt,meta_title,meta_description,target_type,project_id,area_name,source_refs,reviewed_by_name,reviewed_at,published_at,created_at,updated_at,projects(name,slug)")
+    .select("id,status,language,title,slug,excerpt,meta_title,meta_description,focus_keyword,translation_key,target_type,project_id,area_name,source_refs,reviewed_by_name,reviewed_at,published_at,created_at,updated_at,projects(name,slug)")
     .order("updated_at", { ascending: false });
   fail(error);
   return { articles: data ?? [] };
@@ -310,6 +310,18 @@ function cleanArticle(input: Json) {
   if (targetType === "area" && !areaName) throw new HttpError(400, "article_area_required");
   if (!['project', 'area'].includes(targetType)) throw new HttpError(400, "article_target_invalid");
   if (!refs.length || refs.length > 30 || refs.some((ref) => typeof ref !== "object" || !ref)) throw new HttpError(400, "article_sources_required");
+  const oneLine = (value: unknown, max: number) => text(value).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").slice(0, max);
+  const focusKeyword = oneLine(input.focus_keyword, 200);
+  if (focusKeyword.length > 80) throw new HttpError(400, "article_keyword_too_long");
+  const rawTakeaways = Array.isArray(input.key_takeaways) ? input.key_takeaways : [];
+  const keyTakeaways = rawTakeaways.map((item) => oneLine(item, 400)).filter(Boolean);
+  if (keyTakeaways.length > 6 || keyTakeaways.some((item) => item.length > 240)) throw new HttpError(400, "article_takeaways_invalid");
+  const rawFaq = Array.isArray(input.faq) ? input.faq : [];
+  const faq = rawFaq
+    .map((item) => (item && typeof item === "object" ? { question: oneLine((item as Json).question, 400), answer: oneLine((item as Json).answer, 1200) } : { question: "", answer: "" }))
+    .filter((item) => item.question || item.answer);
+  if (faq.length > 10 || faq.some((item) => !item.question || !item.answer || item.question.length > 200 || item.answer.length > 700)) throw new HttpError(400, "article_faq_invalid");
+  const heroImageUrl = cleanUrl(input.hero_image_url, "hero_image_url");
   return {
     language,
     title,
@@ -322,7 +334,49 @@ function cleanArticle(input: Json) {
     project_id: targetType === "project" ? projectId : null,
     area_name: targetType === "area" ? areaName : null,
     source_refs: refs,
+    focus_keyword: focusKeyword,
+    key_takeaways: keyTakeaways,
+    faq,
+    hero_image_url: heroImageUrl,
   };
+}
+
+// Pairs an article with its counterpart in the other language (hreflang). The
+// pair key is metadata, not content: it never changes revision/hash or review.
+// `undefined` leaves the pairing untouched; "" or null removes it.
+async function linkTranslation(article: Json, translationArticleId: unknown) {
+  if (translationArticleId === undefined) return article;
+  const otherId = text(translationArticleId);
+  if (!otherId) {
+    if (!article.translation_key) return article;
+    const { data, error } = await db.from("editorial_articles").update({ translation_key: null }).eq("id", article.id).select("*").single();
+    fail(error);
+    return data;
+  }
+  if (otherId === article.id) throw new HttpError(400, "article_translation_invalid");
+  const { data: other, error: otherError } = await db.from("editorial_articles")
+    .select("id,language,target_type,project_id,area_name,translation_key").eq("id", otherId).maybeSingle();
+  fail(otherError);
+  if (!other) throw new HttpError(404, "article_translation_not_found");
+  if (other.language === article.language) throw new HttpError(400, "article_translation_same_language");
+  if (other.target_type !== article.target_type || (other.project_id ?? null) !== (article.project_id ?? null) || text(other.area_name) !== text(article.area_name)) {
+    throw new HttpError(400, "article_translation_target_mismatch");
+  }
+  const key = (other.translation_key as string | null) || (article.translation_key as string | null) || crypto.randomUUID();
+  if (other.translation_key && other.translation_key !== article.translation_key) {
+    const { data: taken, error: takenError } = await db.from("editorial_articles").select("id")
+      .eq("translation_key", other.translation_key).eq("language", article.language).neq("id", article.id).maybeSingle();
+    fail(takenError);
+    if (taken) throw new HttpError(409, "article_translation_taken");
+  }
+  if (!other.translation_key) {
+    const { error } = await db.from("editorial_articles").update({ translation_key: key }).eq("id", other.id).is("translation_key", null);
+    fail(error);
+  }
+  const { data, error } = await db.from("editorial_articles").update({ translation_key: key }).eq("id", article.id).select("*").single();
+  if (error && /duplicate|unique/i.test(error.message || "")) throw new HttpError(409, "article_translation_taken");
+  fail(error);
+  return data;
 }
 
 async function saveArticle(user: AdminUser, body: Json) {
@@ -351,7 +405,7 @@ async function saveArticle(user: AdminUser, body: Json) {
     }).eq("id", id).eq("revision", expectedRevision).select("*").maybeSingle();
     fail(error);
     if (!data) throw new HttpError(409, "article_stale");
-    return { article: { ...data, review_issues: reviewIssues } };
+    return { article: { ...(await linkTranslation(data, body.translation_article_id)), review_issues: reviewIssues } };
   }
   const { data, error } = await db.from("editorial_articles").insert({
     ...values,
@@ -361,7 +415,7 @@ async function saveArticle(user: AdminUser, body: Json) {
     updated_by: user.id,
   }).select("*").single();
   fail(error);
-  return { article: { ...data, review_issues: reviewIssues } };
+  return { article: { ...(await linkTranslation(data, body.translation_article_id)), review_issues: reviewIssues } };
 }
 
 async function publishArticle(user: AdminUser, body: Json) {

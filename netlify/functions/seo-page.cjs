@@ -18,18 +18,40 @@ const {
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 
-async function fetchEditorialArticle(slug, lang) {
-  const params = new URLSearchParams({
-    select: "id,status,language,title,slug,excerpt,body_markdown,meta_title,meta_description,reviewed_by_name,reviewed_at,published_at,updated_at",
-    slug: `eq.${slug}`, language: `eq.${lang}`, status: "eq.published", limit: "1",
-  });
+const EDITORIAL_BASE_COLUMNS = "id,status,language,title,slug,excerpt,body_markdown,meta_title,meta_description,reviewed_by_name,reviewed_at,published_at,updated_at";
+const EDITORIAL_SEO_COLUMNS = `${EDITORIAL_BASE_COLUMNS},focus_keyword,key_takeaways,faq,translation_key,hero_image_url`;
+
+async function fetchPublishedEditorial(filters, columns) {
+  const params = new URLSearchParams({ select: columns, ...filters, status: "eq.published", limit: "1" });
   const response = await fetch(`${SUPABASE_URL}/rest/v1/published_editorial_articles?${params}`, {
     headers: { apikey: SUPABASE_KEY, Accept: "application/json" }, signal: AbortSignal.timeout(8000),
   });
-  if ([400, 404].includes(response.status)) return null;
+  if ([400, 404].includes(response.status)) return { missing: true, row: null };
   if (!response.ok) throw new Error(`editorial article ${response.status}`);
   const rows = await response.json();
-  return Array.isArray(rows) ? rows[0] || null : null;
+  return { missing: false, row: Array.isArray(rows) ? rows[0] || null : null };
+}
+
+async function fetchEditorialArticle(slug, lang) {
+  const filters = { slug: `eq.${slug}`, language: `eq.${lang}` };
+  let result = await fetchPublishedEditorial(filters, EDITORIAL_SEO_COLUMNS);
+  // Before the SEO-fields migration is applied the new columns do not exist (400):
+  // fall back to the original column list so published guides keep rendering.
+  if (result.missing) result = await fetchPublishedEditorial(filters, EDITORIAL_BASE_COLUMNS);
+  return result.row;
+}
+
+async function fetchEditorialTranslation(article) {
+  if (!article?.translation_key || !/^[0-9a-f-]{36}$/i.test(String(article.translation_key))) return null;
+  try {
+    const { row } = await fetchPublishedEditorial({
+      translation_key: `eq.${article.translation_key}`,
+      language: `eq.${article.language === "en" ? "ar" : "en"}`,
+    }, EDITORIAL_SEO_COLUMNS);
+    return row;
+  } catch {
+    return null; // hreflang is optional; never fail the page for it
+  }
 }
 
 exports.handler = async function handler(event) {
@@ -73,7 +95,10 @@ exports.handler = async function handler(event) {
     let html = null;
     if (type === "guide") {
       html = renderGuide(slug, lang);
-      if (!html) html = renderEditorialArticle(await fetchEditorialArticle(slug, lang));
+      if (!html) {
+        const article = await fetchEditorialArticle(slug, lang);
+        html = renderEditorialArticle(article, article ? await fetchEditorialTranslation(article) : null);
+      }
     }
     if (type === "static") html = renderStaticPage(slug);
     if (!["guide", "static"].includes(type)) {

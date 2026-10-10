@@ -100,10 +100,16 @@ function topicSchema() {
 function draftSchema() {
   return {
     type: "object", additionalProperties: false,
-    required: ["title", "slug", "excerpt", "meta_title", "meta_description", "body_markdown", "comparison_project_ids", "unit_evidence", "claim_evidence"],
+    required: ["focus_keyword", "title", "slug", "excerpt", "meta_title", "meta_description", "key_takeaways", "body_markdown", "faq", "comparison_project_ids", "unit_evidence", "claim_evidence"],
     properties: {
+      focus_keyword: { type: "string" },
       title: { type: "string" }, slug: { type: "string" }, excerpt: { type: "string" },
       meta_title: { type: "string" }, meta_description: { type: "string" }, body_markdown: { type: "string" },
+      key_takeaways: { type: "array", minItems: 3, maxItems: 5, items: { type: "string" } },
+      faq: {
+        type: "array", minItems: 3, maxItems: 6,
+        items: { type: "object", additionalProperties: false, required: ["question", "answer"], properties: { question: { type: "string" }, answer: { type: "string" } } },
+      },
       comparison_project_ids: { type: "array", maxItems: 12, items: { type: "string" } },
       unit_evidence: {
         type: "array", maxItems: 24,
@@ -128,6 +134,22 @@ function draftSchema() {
   };
 }
 
+// Search and AI-answer structure. These rules shape the draft only; every new
+// field still passes the same numeric/commercial review as the body before publication.
+function seoDraftRules(language) {
+  const ar = language !== "en";
+  return [
+    `SEO/GEO structure: choose one focus_keyword of 2 to 6 words that a buyer would actually type into Google ${ar ? "in Egyptian Arabic (for example the project name plus the area or the buyer question)" : "in English"}, with no digits.`,
+    "Put the focus_keyword, or its closest natural form, at the start of title and meta_title, once in the first paragraph of body_markdown, and in at least one '## ' heading. Never stuff it.",
+    "meta_title: 35 to 60 characters. meta_description: 120 to 155 characters, written as a direct answer plus a reason to click. excerpt: one or two sentences, at most 220 characters.",
+    "slug: lowercase English words joined by hyphens, 3 to 7 words, ASCII only, describing the topic (transliterate Arabic names). No digits.",
+    "key_takeaways: 3 to 5 short standalone sentences (each under 160 characters) that directly answer the topic, so an AI assistant can quote them. No digits, prices, payment terms, delivery dates or availability.",
+    "body_markdown: open with a direct 2 to 3 sentence answer paragraph (no heading before it), then 4 to 7 '## ' sections, several phrased as the questions buyers ask. Use short paragraphs, '### ' subsections and '-' lists where useful. Aim for 900 to 1500 words of original, specific, useful text grounded in the supplied facts. Do not repeat the takeaways or FAQ inside the body.",
+    "Inside body_markdown, link to each relevant approved internal URL at least once using Markdown [label](url) with a descriptive label.",
+    "faq: 3 to 6 real buyer questions with self-contained answers of 1 to 3 sentences. FAQ answers follow the same restrictions as the body: no digits, prices, payment terms, delivery dates or availability claims; say that those details must be confirmed with the team instead.",
+  ];
+}
+
 function buildOpenAiRequest(input, projects, units = []) {
   const refs = sourceRefs(projects, units);
   const rules = [
@@ -140,6 +162,7 @@ function buildOpenAiRequest(input, projects, units = []) {
   if (input.action === 'topics') {
     rules.push("Suggest 4 to 6 distinct, useful editorial topics. Keep each title, rationale, and angle concise. Rationale must be qualitative; do not claim search volume or ranking data.");
     rules.push("Suggest only topics that can be completed from the supplied project records. Do not suggest prices, payment plans, installments, delivery, availability, unit inventory, or comparisons with any project or developer absent from public_facts.projects. Put every project used by a topic in that topic's project_ids. For a single-project target, do not propose named cross-project comparisons.");
+    rules.push("Each title should read like a real search query or question a buyer types into Google or asks an AI assistant (informational intent: location, concept, what to check, who it suits). In angle, name the main search phrase the guide would target.");
   } else {
     rules.push("Return a source-grounded draft, not a published article. Use Markdown headings, paragraphs, and lists only.");
     rules.push("Never output template placeholders such as {{min_area}}. Omit unknown values instead of describing them as available or inventing replacements.");
@@ -147,6 +170,7 @@ function buildOpenAiRequest(input, projects, units = []) {
     rules.push("Do not write prices, down payments, installment durations, delivery dates, or availability claims in prose or descriptive metadata. You may discuss commercial questions without inventing answers. Missing facts need explicit editorial verification. Preserve the requested topic. If a comparison lacks source entities, explain the missing comparison evidence in the draft; never substitute a generic checklist or invent comparisons. Put every project used in a factual comparison in comparison_project_ids. For every non-comparison draft, including introductions, overviews, and neutral checklists, comparison_project_ids must be []; do not put the selected project ID in this field. A title may mirror an availability-focused user topic, but the body must leave the supporting availability statement to the server. To request a commercial fact, add only its typed kind and unit_id to claim_evidence, and only when that unit row contains the corresponding non-empty field; never repeat the commercial value or source date. The server reads both from the validated row and renders them deterministically.");
     rules.push(`Only link to these approved internal URLs: ${refs.map((ref) => ref.url).join(', ') || 'none'}. Do not create any other links.`);
     rules.push("Add a final section titled 'مصادر ومراجعة' in Arabic or 'Sources and review' in English, saying factual details should be verified before publication.");
+    rules.push(...seoDraftRules(input.language));
   }
   const schema = input.action === 'topics' ? topicSchema() : draftSchema();
   const model = process.env.OPENAI_ARTICLE_MODEL || "gpt-5-mini";
@@ -157,9 +181,9 @@ function buildOpenAiRequest(input, projects, units = []) {
       { role: "user", content: `BEGIN_UNTRUSTED_PUBLIC_FACTS\n${JSON.stringify({ task: input.action, topic: input.topic || undefined, target: input.targetType, public_facts: { projects, available_units: units } })}\nEND_UNTRUSTED_PUBLIC_FACTS` },
     ],
     text: { format: { type: "json_schema", name: input.action === 'topics' ? "article_topics" : "article_draft", strict: true, schema } },
-    max_output_tokens: input.action === 'topics' ? 2400 : 6000,
+    max_output_tokens: input.action === 'topics' ? 2400 : 14000,
   };
-  if (/^gpt-5(?:-|$)/.test(model)) request.reasoning = { effort: "low" };
+  if (/^gpt-5(?:-|$)/.test(model)) request.reasoning = { effort: input.action === 'topics' ? "low" : "medium" };
   return request;
 }
 
@@ -290,6 +314,21 @@ function validateDraftFacts(value, context, payload, text) {
   value.review_issues = issues;
 }
 
+// Older providers/fixtures may omit the SEO fields: default them instead of failing.
+// Present-but-malformed values are a shape error, like any other field.
+function normalizeSeoFields(value, payload, text) {
+  const oneLine = (item, max) => String(item).replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+  if (value.focus_keyword === undefined) value.focus_keyword = "";
+  if (typeof value.focus_keyword !== "string") throw outputError("generation_shape_invalid", payload, text, "validate_seo_fields");
+  value.focus_keyword = oneLine(value.focus_keyword, 80);
+  if (value.key_takeaways === undefined) value.key_takeaways = [];
+  if (!Array.isArray(value.key_takeaways) || value.key_takeaways.some((item) => typeof item !== "string")) throw outputError("generation_shape_invalid", payload, text, "validate_seo_fields");
+  value.key_takeaways = value.key_takeaways.map((item) => oneLine(item, 240)).filter(Boolean).slice(0, 6);
+  if (value.faq === undefined) value.faq = [];
+  if (!Array.isArray(value.faq) || value.faq.some((item) => !item || typeof item.question !== "string" || typeof item.answer !== "string")) throw outputError("generation_shape_invalid", payload, text, "validate_seo_fields");
+  value.faq = value.faq.map((item) => ({ question: oneLine(item.question, 200), answer: oneLine(item.answer, 700) })).filter((item) => item.question && item.answer).slice(0, 10);
+}
+
 function validateGeneratedResult(value, action, payload, text, context = {}) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw outputError("generation_shape_invalid", payload, text, "validate");
   delete value.generation_diagnostics;
@@ -348,8 +387,9 @@ function validateGeneratedResult(value, action, payload, text, context = {}) {
     const fields = ["title", "slug", "excerpt", "meta_title", "meta_description", "body_markdown"];
     if (fields.some((field) => typeof value[field] !== "string" || !value[field].trim())) throw outputError("generation_shape_invalid", payload, text, "validate_draft");
     if (value.title.length > 180 || value.meta_title.length > 180 || value.excerpt.length > 500 || value.meta_description.length > 500 || value.body_markdown.length > 30000) throw outputError("generation_shape_invalid", payload, text, "validate_draft_limits");
+    normalizeSeoFields(value, payload, text);
     validateDraftFacts(value, context, payload, text);
-    return Object.fromEntries([...fields, "comparison_project_ids", "unit_evidence", "claim_evidence", "review_issues"].map(field => [field, value[field]]));
+    return Object.fromEntries([...fields, "focus_keyword", "key_takeaways", "faq", "comparison_project_ids", "unit_evidence", "claim_evidence", "review_issues"].map(field => [field, value[field]]));
   }
   return value;
 }
