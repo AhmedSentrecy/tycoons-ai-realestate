@@ -258,15 +258,30 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}, to
   return data as T;
 }
 
+// Long drafts can outlive the hosting gateway's request timeout (HTTP 504) while
+// the function keeps running and stores its result under the idempotency key.
+// Re-sending the same key returns that stored result (or "in progress" until it
+// is ready), so polling never pays for a second generation.
+export const GENERATION_POLL = { delayMs: 5000, maxWaitMs: 150000 };
+
 async function generate<T>(token: string, idempotencyKey: string, payload: Record<string, unknown>): Promise<T> {
-  const response = await fetch("/.netlify/functions/article-generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-admin-token": token, "x-idempotency-key": idempotencyKey },
-    body: JSON.stringify(payload),
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure), safeReviewIssues(data.review_issues));
-  return data as T;
+  const started = Date.now();
+  for (;;) {
+    const response = await fetch("/.netlify/functions/article-generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-admin-token": token, "x-idempotency-key": idempotencyKey },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) return data as T;
+    const pending = response.status === 504 || (response.status === 409 && data.error === "generation_in_progress");
+    if (pending && Date.now() - started < GENERATION_POLL.maxWaitMs) {
+      const hinted = Number(data.retry_after_seconds) * 1000;
+      await new Promise((resolve) => setTimeout(resolve, Number.isFinite(hinted) && hinted > 0 ? Math.min(hinted, 15000) : GENERATION_POLL.delayMs));
+      continue;
+    }
+    throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure), safeReviewIssues(data.review_issues));
+  }
 }
 
 export const adminApi = {
@@ -422,6 +437,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 Object.assign(ERROR_MESSAGES, {
+  http_504: "التوليد أخد وقت أطول من المعتاد. اضغط نفس الزرار تاني بعد دقيقة — هيجيب النتيجة اللي اتعملت من غير ما يتحسب تاني.",
+  generation_in_progress: "لسه بيتولّد. استنى دقيقة واضغط نفس الزرار تاني.",
   article_keyword_too_long: "الكلمة المفتاحية طويلة — أقصى حد 80 حرف",
   article_takeaways_invalid: "الخلاصة: أقصى حد 6 نقاط، وكل نقطة أقل من 240 حرف",
   article_faq_invalid: "الأسئلة الشائعة: أقصى حد 10 أسئلة، وكل سؤال لازم يكون له إجابة (السؤال أقل من 200 حرف والإجابة أقل من 700)",

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { AdminApiError, adminApi, errorMessage } from "../src/lib/adminApi.ts";
+import { AdminApiError, GENERATION_POLL, adminApi, errorMessage } from "../src/lib/adminApi.ts";
 
 const originalFetch = globalThis.fetch;
 
@@ -61,7 +61,39 @@ async function expectGenerationFailure(reason: string, expectedMessage: RegExp) 
   }
 }
 
+async function expectTimeoutPolling() {
+  GENERATION_POLL.delayMs = 1;
+  const draft = { title: "عنوان", slug: "slug-ok", excerpt: "", body_markdown: "نص", meta_title: "", meta_description: "", source_refs: [], generated_as: "draft" };
+  const keys: string[] = [];
+  const replies = [
+    new Response("<html>gateway timeout</html>", { status: 504 }),
+    new Response(JSON.stringify({ error: "generation_in_progress", retry_after_seconds: 0 }), { status: 409, headers: { "content-type": "application/json" } }),
+    new Response(JSON.stringify(draft), { status: 200, headers: { "content-type": "application/json" } }),
+  ];
+  globalThis.fetch = async (_url, init) => {
+    keys.push(String((init?.headers as Record<string, string>)["x-idempotency-key"]));
+    return replies.shift()!;
+  };
+  const result = await adminApi.articleDraft("test-token", "draft:client-timeout-poll-1234", { language: "ar", target_type: "project", project_id: "project-1", area_name: null }, "موضوع");
+  assert.equal(result.title, "عنوان", "a gateway timeout is followed by polling the same request");
+  assert.deepEqual(keys, Array(3).fill("draft:client-timeout-poll-1234"), "polling reuses one idempotency key, so nothing is generated twice");
+
+  GENERATION_POLL.maxWaitMs = 0;
+  globalThis.fetch = async () => new Response("timeout", { status: 504 });
+  try {
+    await adminApi.articleDraft("test-token", "draft:client-timeout-gives-up", { language: "ar", target_type: "project", project_id: "project-1", area_name: null }, "موضوع");
+    assert.fail("polling must stop after the wait budget");
+  } catch (error) {
+    assert.ok(error instanceof AdminApiError);
+    assert.equal(error.code, "http_504");
+    assert.match(errorMessage(error), /اضغط نفس الزرار تاني/);
+  }
+  GENERATION_POLL.maxWaitMs = 150000;
+  GENERATION_POLL.delayMs = 5000;
+}
+
 try {
+  await expectTimeoutPolling();
   await expectRateLimit("generation_provider_rate_limited", 45, /45 ثانية/);
   await expectRateLimitWithoutTiming();
   await expectRateLimit("generation_rate_limited", 540, /9 دقائق/);
