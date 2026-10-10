@@ -105,6 +105,16 @@ export function assessArticleReview(article, sources = {}) {
   if (!refs.length || refs.length > 30) add("source_reference_invalid", "source_refs", "blocker", "Add a valid current project source for this article's target.");
   for (const ref of refs.slice(0, 30)) {
     const type = ref?.type;
+    // External web sources are citations for qualitative facts only. They never
+    // ground the article's target, authorize a link, or make a number acceptable.
+    if (type === "web") {
+      const identity = `web:${typeof ref?.url === "string" ? ref.url : ""}`;
+      let valid = false;
+      try { const url = new URL(String(ref?.url || "")); valid = url.protocol === "https:" && !url.username && !url.password && String(ref.url).length <= 500; } catch { valid = false; }
+      if (!valid || !clean(ref?.label) || seen.has(identity)) add("source_reference_invalid", "source_refs", "blocker", "A web source must be a unique https link with a title.");
+      else seen.add(identity);
+      continue;
+    }
     const id = typeof ref?.id === "string" ? ref.id : "";
     const row = type === "project" ? projectById.get(id) : type === "unit" ? unitById.get(id) : null;
     const url = row ? (type === "project" ? `/projects/${row.slug}` : `/units/${encodeURIComponent(row.id)}`) : "";

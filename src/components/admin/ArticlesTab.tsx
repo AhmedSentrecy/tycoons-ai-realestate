@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { adminApi, AdminApiError, type AdminArticle, type AdminProject, type ArticleFaqItem, type ArticleValues, type TopicIdea } from "../../lib/adminApi";
+import { adminApi, AdminApiError, type AdminArticle, type AdminProject, type ArticleFaqItem, type ArticleValues, type ResearchFact, type ResearchResult, type TopicIdea } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import { Badge, EmptyState, Modal, inputClass } from "./ui";
 import EditorialWorkflowPanel from "./EditorialWorkflowPanel";
@@ -163,7 +163,10 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
   const [ideas, setIdeas] = useState<TopicIdea[]>([]);
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<"load" | "topics" | "draft" | "save" | "publish" | "">("");
+  const [busy, setBusy] = useState<"load" | "topics" | "research" | "draft" | "save" | "publish" | "">("");
+  // Web research results; only facts the editor keeps checked are sent to the draft.
+  const [research, setResearch] = useState<ResearchResult | null>(null);
+  const [droppedFacts, setDroppedFacts] = useState<number[]>([]);
   const [preview, setPreview] = useState(false);
   const [reviewConfirmed, setReviewConfirmed] = useState(false);
   // null = keep the saved AR/EN pairing; "" = unlink; an id = link on next save.
@@ -202,6 +205,8 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       setBusy("");
       idempotency.current.clear();
       setIdeas([]);
+      setResearch(null);
+      setDroppedFacts([]);
       setTopic("");
       setSelectedId(null);
       setLoadedArticle(null);
@@ -268,14 +273,14 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       const { article } = await adminApi.article(token, id);
       if (operation !== operationId.current || context !== editorContext.current) return;
       const normalized = withSeoDefaults(article);
-      setSelectedId(id); setLoadedArticle(normalized); setValues(normalized); setSavedFingerprint(articleFingerprint(normalized)); setIdeas([]); setTopic(article.title); setReviewConfirmed(false); setTranslationChoice(null);
+      setSelectedId(id); setLoadedArticle(normalized); setValues(normalized); setSavedFingerprint(articleFingerprint(normalized)); setIdeas([]); setResearch(null); setDroppedFacts([]); setTopic(article.title); setReviewConfirmed(false); setTranslationChoice(null);
     } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
   }
 
   function newArticle() {
     if (busyRef.current) return;
     editorContext.current += 1;
-    setSelectedId(null); setLoadedArticle(null); setValues(emptyArticle()); setSavedFingerprint(""); setIdeas([]); setTopic(""); setReviewConfirmed(false); setTranslationChoice(null);
+    setSelectedId(null); setLoadedArticle(null); setValues(emptyArticle()); setSavedFingerprint(""); setIdeas([]); setResearch(null); setDroppedFacts([]); setTopic(""); setReviewConfirmed(false); setTranslationChoice(null);
   }
 
   const generationTarget = () => ({ language: values.language, target_type: values.target_type, project_id: values.target_type === "project" ? values.project_id : null, area_name: values.target_type === "area" ? values.area_name : null });
@@ -296,13 +301,34 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
     } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
   }
 
+  const selectedFacts = (): ResearchFact[] => (research?.facts ?? []).filter((_, index) => !droppedFacts.includes(index));
+
+  async function researchTopic() {
+    if (!topic.trim()) return;
+    const operation = beginOperation("research");
+    if (!operation) return;
+    const context = editorContext.current;
+    try {
+      const result = await adminApi.articleResearch(token, requestKey("research", topic.trim()), generationTarget(), topic.trim());
+      if (operation !== operationId.current || context !== editorContext.current) return;
+      setResearch(result); setDroppedFacts([]);
+      notify(result.facts.length ? `لقيت ${result.facts.length} معلومة من مصادر موثوقة. راجعها وشيل اللي مش عاجبك قبل إنشاء المسودة.` : "ما لقيتش معلومات موثوقة كفاية من النت. تقدر تنشئ المسودة من بيانات الموقع بس.");
+    } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
+  }
+
+  function toggleFact(index: number) {
+    if (busyRef.current) return;
+    setDroppedFacts((current) => current.includes(index) ? current.filter((item) => item !== index) : [...current, index]);
+  }
+
   async function generateDraft() {
     if (!topic.trim()) return;
     const operation = beginOperation("draft");
     if (!operation) return;
     const context = editorContext.current;
     try {
-      const result = await adminApi.articleDraft(token, requestKey("draft", topic.trim()), generationTarget(), topic.trim());
+      const facts = selectedFacts();
+      const result = await adminApi.articleDraft(token, requestKey("draft", `${topic.trim()}|${JSON.stringify(facts.map((fact) => fact.fact))}`), generationTarget(), topic.trim(), facts);
       if (operation !== operationId.current || context !== editorContext.current) return;
       patchValues({
         ...result, source_refs: result.source_refs, review_issues: result.review_issues ?? [],
@@ -369,8 +395,18 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       <div className="mt-4 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-4">
         <div className="flex flex-wrap gap-2"><button disabled={!canGenerate || Boolean(busy)} onClick={() => void suggestTopics()} className="rounded-xl bg-[#d9b87c] px-4 py-2 font-black disabled:opacity-50">{busy === "topics" ? "جارٍ الاقتراح…" : "اقترح موضوعات"}</button></div>
         {ideas.length > 0 && <div className="mt-3 grid gap-2 md:grid-cols-2">{ideas.map((idea) => <button disabled={Boolean(busy)} key={idea.title} onClick={() => setTopic(idea.title)} className="rounded-xl border bg-white p-3 text-start disabled:opacity-50"><strong>{idea.title}</strong><span className="mt-1 block text-xs text-[#5c6a62]">{idea.rationale}</span>{idea.angle && <span className="mt-1 block text-xs text-[#a3854e]">{idea.angle}</span>}</button>)}</div>}
-        <div className="mt-3 flex gap-2"><input disabled={Boolean(busy)} className={inputClass} value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="موضوع المقال" /><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void generateDraft()} className="shrink-0 rounded-xl bg-[#0d1f18] px-4 py-2 font-black text-white disabled:opacity-50">{busy === "draft" ? "جارٍ إنشاء المسودة… (قد تستغرق دقيقة)" : "أنشئ مسودة"}</button></div>
-        <p className="mt-2 text-xs text-[#5c6a62]">لا توجد بيانات حجم بحث أو GSC هنا. الاقتراحات نوعية ومبنية فقط على معلومات المشاريع العامة.</p>
+        <div className="mt-3 flex gap-2"><input disabled={Boolean(busy)} className={inputClass} value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="موضوع المقال" /><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void researchTopic()} className="shrink-0 rounded-xl bg-[#d9b87c] px-4 py-2 font-black disabled:opacity-50">{busy === "research" ? "جارٍ البحث في النت… (حتى دقيقة)" : "ابحث في النت"}</button><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void generateDraft()} className="shrink-0 rounded-xl bg-[#0d1f18] px-4 py-2 font-black text-white disabled:opacity-50">{busy === "draft" ? "جارٍ إنشاء المسودة… (قد تستغرق دقيقة)" : "أنشئ مسودة"}</button></div>
+        {research && <div className="mt-3 rounded-xl border bg-white p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2"><strong>معلومات من النت ({selectedFacts().length} من {research.facts.length} مختارة)</strong><small className="text-[#5c6a62]">الأسعار والسداد والتسليم والمتاح بتيجي من بيانات الموقع بس، مش من النت.</small></div>
+          {research.facts.length === 0 ? <p className="mt-2 text-sm text-[#5c6a62]">مفيش معلومات موثوقة من مصدرين أو من موقع المطور.</p> : <ul className="mt-2 space-y-2">{research.facts.map((fact, index) => <li key={index} className="flex items-start gap-2 text-sm">
+            <input type="checkbox" className="mt-1" disabled={Boolean(busy)} checked={!droppedFacts.includes(index)} onChange={() => toggleFact(index)} aria-label={`استخدم المعلومة ${index + 1}`} />
+            <span><span className={droppedFacts.includes(index) ? "text-[#9aa39d] line-through" : ""}>{fact.fact}</span> <Badge tone={fact.confidence === "official" ? "ok" : "gold"}>{fact.confidence === "official" ? "موقع المطور" : "مصدرين متفقين"}</Badge>
+              <span className="mt-1 flex flex-wrap gap-2" dir="ltr">{fact.sources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer" className="break-all text-xs text-[#a3854e] underline">{source.title || new URL(source.url).hostname}</a>)}</span></span>
+          </li>)}</ul>}
+          {research.excluded.length > 0 && <details className="mt-2 text-xs text-[#5c6a62]"><summary>اتشال {research.excluded.length} معلومة (مصدر واحد أو معلومة تجارية)</summary><ul className="mt-1 list-disc ps-5">{research.excluded.map((fact, index) => <li key={index}>{fact.fact} — {fact.reason === "commercial" ? "معلومة تجارية" : "مصدر واحد بس"}</li>)}</ul></details>}
+          {research.notes && <p className="mt-2 text-xs text-[#5c6a62]">ملاحظات البحث: {research.notes}</p>}
+        </div>}
+        <p className="mt-2 text-xs text-[#5c6a62]">لا توجد بيانات حجم بحث أو GSC هنا. الأفضل: اختار موضوع ← "ابحث في النت" ← راجع المعلومات ← "أنشئ مسودة".</p>
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_320px]">

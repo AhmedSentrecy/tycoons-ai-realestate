@@ -1,7 +1,7 @@
 "use strict";
 
 const crypto = require("node:crypto");
-const { IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, buildOpenAiRequest, parseOpenAiOutput, groundInputForFacts } = require("./_article-generation.cjs");
+const { RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, parseOpenAiOutput, groundInputForFacts } = require("./_article-generation.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
@@ -121,7 +121,31 @@ async function loadPublicFacts(input) {
   return { projects, units };
 }
 
+async function research(input, safetyId) {
+  const { projects } = await loadPublicFacts(input);
+  const call = (modelOverride, timeoutMs) => fetchJson("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "content-type": "application/json",
+      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
+    },
+    body: JSON.stringify(buildResearchRequest(input, projects, modelOverride)),
+  }, timeoutMs, true);
+  let response;
+  try {
+    response = await call("", 50000);
+  } catch (error) {
+    // A model that rejects web search fails fast with a request/model error;
+    // retry once on the documented web-search model. Timeouts are not retried.
+    if (!["generation_provider_request_invalid", "generation_provider_model_access_failed"].includes(error?.message)) throw error;
+    response = await call(RESEARCH_FALLBACK_MODEL, 45000);
+  }
+  return parseOpenAiOutput(response, "research", { input, projects });
+}
+
 async function generate(input, safetyId) {
+  if (input.action === "research") return research(input, safetyId);
   const { projects, units } = await loadPublicFacts(input);
   const groundedInput = groundInputForFacts(input, projects);
   // Do not buy a draft for a unit-area comparison when the source has no usable sample.
@@ -139,7 +163,7 @@ async function generate(input, safetyId) {
     body: JSON.stringify(buildOpenAiRequest(groundedInput, projects, units)),
   }, 60000, true);
   const parsed = parseOpenAiOutput(response, groundedInput.action, { input: groundedInput, projects, units });
-  const result = { ...parsed, source_refs: sourceRefs(projects, units), generated_as: "draft" };
+  const result = { ...parsed, source_refs: [...sourceRefs(projects, units), ...(input.action === "draft" ? webSourceRefs(input.researchFacts) : [])], generated_as: "draft" };
   if (input.action === "draft") {
     const { assessArticleReview } = await import("../../server/tycoons-admin/article-review.mjs");
     result.review_issues = [...(parsed.review_issues || []), ...assessArticleReview({ ...result, language: input.language, target_type: input.targetType, project_id: input.projectId, area_name: input.areaName }, { projects, units })];

@@ -38,7 +38,7 @@ export interface AdminProject extends MediaFields {
 }
 
 export interface ArticleSourceRef {
-  type: "project" | "unit";
+  type: "project" | "unit" | "web";
   id: string;
   label: string;
   url: string;
@@ -106,6 +106,16 @@ export interface EditorialWorkflow {
 }
 
 export interface TopicIdea { title: string; rationale: string; angle: string }
+
+export interface ResearchSource { url: string; title: string }
+export interface ResearchFact {
+  fact: string;
+  category: "location" | "developer" | "concept" | "amenities" | "master_plan" | "access" | "design" | "other";
+  confidence: "official" | "corroborated" | "single";
+  sources: ResearchSource[];
+  reason?: "commercial" | "single_source";
+}
+export interface ResearchResult { facts: ResearchFact[]; excluded: ResearchFact[]; notes: string; generated_as: "research" }
 
 export const UNIT_FIELDS = [
   "unit_type",
@@ -285,8 +295,10 @@ export const adminApi = {
   editorialJobControl: (token: string, id: string, controlAction: string, expectedRevision: number, extra: Record<string, unknown> = {}) => call<Record<string, unknown>>("editorial_job_control", { id, control_action: controlAction, expected_revision: expectedRevision, ...extra }, token),
   articleTopics: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">) =>
     generate<{ topics: TopicIdea[]; source_refs: ArticleSourceRef[]; generated_as: "draft" }>(token, idempotencyKey, { action: "topics", ...target }),
-  articleDraft: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string) =>
-    generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "focus_keyword" | "key_takeaways" | "faq" | "source_refs" | "review_issues"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target }),
+  articleResearch: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string) =>
+    generate<ResearchResult>(token, idempotencyKey, { action: "research", topic, ...target }),
+  articleDraft: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string, researchFacts: ResearchFact[] = []) =>
+    generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "focus_keyword" | "key_takeaways" | "faq" | "source_refs" | "review_issues"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target, ...(researchFacts.length ? { research_facts: researchFacts } : {}) }),
   signUpload: (token: string, body: { target: MediaTarget; id: string; kind: MediaKind; content_type: string; size: number }) =>
     call<{ upload_url: string; path: string; public_url: string }>("sign_upload", body, token),
   saveMedia: (

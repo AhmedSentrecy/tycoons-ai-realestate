@@ -1306,6 +1306,24 @@ function renderGuide(slug, lang = "ar") {
   });
 }
 
+// The stored body keeps the exact reviewed fact lines (the review contract binds
+// unit, value and source date). Visitors get the same facts without internal
+// review wording, with readable prices.
+function publicEditorialMarkdown(markdown, ar) {
+  const money = (value) => String(value).replace(/(\d{4,})\s*EGP/g, (_, digits) => `${Number(digits).toLocaleString("en-US")} ${ar ? "جنيه" : "EGP"}`);
+  return String(markdown || "").split("\n").map((line) => {
+    let next = line;
+    if (/^##\s+حقائق تجارية موثقة للمراجعة\s*$/.test(next)) return "## الأسعار وخطط السداد (تُؤكَّد وقت الطلب)";
+    if (/^##\s+Sourced commercial facts for review\s*$/i.test(next)) return "## Prices and payment terms (reconfirmed on request)";
+    next = next
+      .replace(/\s—\s(?:الحالة في بيانات المصدر|source status):\s*available\s(?=—)/, " ")
+      .replace(/\s—\s(?:يجب التحقق منه قبل النشر|must be verified before publication)\.?\s*$/, "")
+      .replace(/(?:تاريخ المصدر):\s*(\d{4}-\d{2}-\d{2})\.?/, "آخر تحديث: $1")
+      .replace(/(?:source updated):\s*(\d{4}-\d{2}-\d{2})\.?/, "last updated: $1");
+    return /^-\s/.test(next) ? money(next) : next;
+  }).join("\n");
+}
+
 function editorialGuidePath(article) {
   return article.language === "en" ? `/en/guides/${article.slug}/` : `/guides/${article.slug}/`;
 }
@@ -1328,14 +1346,21 @@ function renderEditorialArticle(article, translation = null) {
   const takeawaysHtml = takeaways.length
     ? `<div class="answer" id="key-takeaways"><h2>${ar ? "الخلاصة" : "Key takeaways"}</h2><ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>`
     : "";
+  const webSources = (Array.isArray(article.source_refs) ? article.source_refs : [])
+    .filter((ref) => ref?.type === "web" && /^https:\/\/[^\s"'<>]+$/.test(String(ref.url || "")) && String(ref.label || "").trim())
+    .slice(0, 12);
+  const webSourcesHtml = webSources.length
+    ? `<section aria-labelledby="guide-sources"><h2 id="guide-sources">${ar ? "المصادر" : "Sources"}</h2><ul>${webSources.map((ref) => `<li><a href="${escapeHtml(ref.url)}" rel="nofollow noopener" target="_blank">${escapeHtml(String(ref.label).slice(0, 160))}</a></li>`).join("")}</ul></section>`
+    : "";
   const faqHtml = faq.length
     ? `<section aria-labelledby="guide-faq"><h2 id="guide-faq">${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([question, answer]) => `<h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p>`).join("")}</section>`
     : "";
   const body = `<main class="guide"><p class="crumbs"><a href="/">${ar ? "الرئيسية" : "Home"}</a> / ${ar ? "الأدلة" : "Guides"} / ${escapeHtml(article.title)}</p>
   <section class="hero"><span class="eyebrow">${ar ? "دليل مستقل تمت مراجعته قبل النشر" : "Independent guide reviewed before publication"}</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(article.excerpt)}</p>${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title)}" width="1200" height="630" loading="eager" style="width:100%;height:auto;border-radius:16px;margin-top:12px">` : ""}<p class="updated">${ar ? "تاريخ المراجعة" : "Reviewed"}: ${escapeHtml(reviewedDate)}</p></section>
   ${takeawaysHtml}
-  <article>${renderSafeMarkdown(article.body_markdown)}</article>
+  <article>${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar))}</article>
   ${faqHtml}
+  ${webSourcesHtml}
   <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المعلومات تعليمية وتتغير بمرور الوقت. أعد تأكيد أي تفاصيل تجارية قبل اتخاذ قرار." : "This is educational content. Reconfirm time-sensitive commercial details before deciding."}</p></section></main>`;
   const keyword = String(article.focus_keyword || "").trim();
   return renderPage({
@@ -1356,6 +1381,7 @@ function renderEditorialArticle(article, translation = null) {
         ...(keyword ? { keywords: keyword } : {}),
         ...(image ? { image: [image] } : {}),
         ...(takeaways.length ? { abstract: takeaways.join(" ") } : {}),
+        ...(webSources.length ? { citation: webSources.map((ref) => ({ "@type": "CreativeWork", name: String(ref.label).slice(0, 160), url: ref.url })) } : {}),
         author: { "@type": "Organization", name: "Tycoons Investments", url: `${SITE_URL}/about` },
         reviewedBy: { "@type": "Person", name: article.reviewed_by_name },
         publisher: { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL },

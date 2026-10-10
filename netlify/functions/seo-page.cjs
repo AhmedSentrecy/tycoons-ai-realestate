@@ -19,7 +19,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.s
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 
 const EDITORIAL_BASE_COLUMNS = "id,status,language,title,slug,excerpt,body_markdown,meta_title,meta_description,reviewed_by_name,reviewed_at,published_at,updated_at";
-const EDITORIAL_SEO_COLUMNS = `${EDITORIAL_BASE_COLUMNS},focus_keyword,key_takeaways,faq,translation_key,hero_image_url`;
+const EDITORIAL_SEO_COLUMNS = `${EDITORIAL_BASE_COLUMNS},source_refs,focus_keyword,key_takeaways,faq,translation_key,hero_image_url`;
 
 async function fetchPublishedEditorial(filters, columns) {
   const params = new URLSearchParams({ select: columns, ...filters, status: "eq.published", limit: "1" });
