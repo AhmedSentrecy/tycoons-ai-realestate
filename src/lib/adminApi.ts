@@ -64,7 +64,17 @@ export interface ArticleValues {
   project_id: string | null;
   area_name: string | null;
   source_refs: ArticleSourceRef[];
+  focus_keyword?: string;
+  key_takeaways?: string[];
+  faq?: ArticleFaqItem[];
+  hero_image_url?: string | null;
+  translation_key?: string | null;
   review_issues?: ArticleReviewIssue[];
+}
+
+export interface ArticleFaqItem {
+  question: string;
+  answer: string;
 }
 
 export interface AdminArticle extends ArticleValues {
@@ -263,8 +273,9 @@ export const adminApi = {
     ),
   articles: (token: string) => call<{ articles: AdminArticle[] }>("articles", {}, token),
   article: (token: string, id: string) => call<{ article: AdminArticle }>("article", { id }, token),
-  articleSave: (token: string, id: string | null, values: ArticleValues, expectedRevision: number | null) =>
-    call<{ article: AdminArticle }>("article_save", { id, values, expected_revision: expectedRevision }, token),
+  // translationArticleId: undefined = keep the current AR/EN pairing, "" = unlink, id = link.
+  articleSave: (token: string, id: string | null, values: ArticleValues, expectedRevision: number | null, translationArticleId?: string) =>
+    call<{ article: AdminArticle }>("article_save", { id, values, expected_revision: expectedRevision, ...(translationArticleId === undefined ? {} : { translation_article_id: translationArticleId }) }, token),
   articlePublish: (token: string, id: string, expectedRevision: number, expectedContentHash: string) =>
     call<{ article: AdminArticle }>("article_publish", { id, expected_revision: expectedRevision, expected_content_hash: expectedContentHash, review_confirmed: true }, token),
   editorialWorkflow: (token: string) => call<EditorialWorkflow>("editorial_workflow", {}, token),
@@ -275,7 +286,7 @@ export const adminApi = {
   articleTopics: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">) =>
     generate<{ topics: TopicIdea[]; source_refs: ArticleSourceRef[]; generated_as: "draft" }>(token, idempotencyKey, { action: "topics", ...target }),
   articleDraft: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string) =>
-    generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "source_refs" | "review_issues"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target }),
+    generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "focus_keyword" | "key_takeaways" | "faq" | "source_refs" | "review_issues"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target }),
   signUpload: (token: string, body: { target: MediaTarget; id: string; kind: MediaKind; content_type: string; size: number }) =>
     call<{ upload_url: string; path: string; public_url: string }>("sign_upload", body, token),
   saveMedia: (
@@ -399,6 +410,14 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 Object.assign(ERROR_MESSAGES, {
+  article_keyword_too_long: "الكلمة المفتاحية طويلة — أقصى حد 80 حرف",
+  article_takeaways_invalid: "الخلاصة: أقصى حد 6 نقاط، وكل نقطة أقل من 240 حرف",
+  article_faq_invalid: "الأسئلة الشائعة: أقصى حد 10 أسئلة، وكل سؤال لازم يكون له إجابة (السؤال أقل من 200 حرف والإجابة أقل من 700)",
+  article_translation_invalid: "مينفعش تربط المقال بنفسه",
+  article_translation_not_found: "النسخة اللي اخترتها للربط مش موجودة",
+  article_translation_same_language: "النسخة المقابلة لازم تكون باللغة التانية",
+  article_translation_target_mismatch: "النسخة المقابلة لازم تكون لنفس المشروع أو نفس المنطقة",
+  article_translation_taken: "النسخة دي مربوطة بالفعل بمقال تاني بنفس اللغة",
   article_review_blocked: "توجد ملاحظات تمنع النشر. راجع الملاحظات في المحرر، ثم صحّحها واحفظ المسودة لإعادة الفحص.",
   article_review_confirmation_required: "راجع حقائق النسخة المحفوظة ومصادرها وجميع ملاحظات المراجعة، ثم أكّد المراجعة قبل النشر.",
   generation_provider_credit_exhausted: "رصيد OpenAI API المستخدم بالموقع منتهٍ. أضف رصيدًا من إعدادات الفوترة ثم حاول مجددًا.",
