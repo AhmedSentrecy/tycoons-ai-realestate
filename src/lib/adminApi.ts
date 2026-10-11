@@ -343,6 +343,25 @@ export const adminApi = {
   rebuild: (token: string) => call<AdminSettings>("rebuild", {}, token),
 };
 
+const projectKey = (value: string | null | undefined) => String(value || "").normalize("NFKC").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "");
+
+/**
+ * Older imports left duplicate project rows: no slug (no public page), no units,
+ * and a twin with a page under the same name (or a longer name, e.g. Mindset ->
+ * Mindset Residences). They are hidden from the admin lists so nobody edits or
+ * links the wrong row. Rows without a twin stay visible.
+ */
+export function hideLegacyDuplicates<T extends Pick<AdminProject, "slug" | "name" | "units_count">>(projects: T[]): T[] {
+  const live = projects.filter((project) => project.slug);
+  const names = new Set(live.map((project) => projectKey(project.name)));
+  const bases = live.map((project) => String(project.slug).split("--")[0]);
+  return projects.filter((project) => {
+    if (project.slug || project.units_count > 0) return true;
+    const key = projectKey(project.name);
+    return !(names.has(key) || (key.length >= 4 && bases.some((base) => base === key || base.startsWith(`${key}-`))));
+  });
+}
+
 export function splitUrls(value: string | null | undefined): string[] {
   return [...new Set(String(value || "").split(",").map((url) => url.trim()).filter(Boolean))];
 }
