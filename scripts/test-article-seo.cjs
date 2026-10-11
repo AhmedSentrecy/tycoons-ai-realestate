@@ -10,7 +10,7 @@ const { webcrypto } = require("node:crypto");
 const { pathToFileURL } = require("node:url");
 const ts = require("typescript");
 const root = path.resolve(__dirname, "..");
-const { parseOpenAiOutput, buildOpenAiRequest, areaLinks, ensureKeywordHeading } = require("../netlify/functions/_article-generation.cjs");
+const { parseOpenAiOutput, buildOpenAiRequest, areaLinks, ensureKeywordHeading, normalizeClosingHeading, ensureProjectLink, factualTakeaways, isBrokerSource } = require("../netlify/functions/_article-generation.cjs");
 const { renderSafeMarkdown } = require("../netlify/functions/_article-render.cjs");
 const { renderEditorialArticle } = require("../netlify/functions/_seo-utils.cjs");
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -170,6 +170,33 @@ const draft = {
   const areaHtml = renderSafeMarkdown("شوف [التجمع الخامس](/ar/areas/new-cairo) و[المطور](/en/developers/times) و[x](/ar/areas/../a) و[y](https://evil.example)");
   check(areaHtml.includes('<a href="/ar/areas/new-cairo">') && areaHtml.includes('<a href="/en/developers/times">'), "area and developer links render publicly");
   check(!areaHtml.includes('href="/ar/areas/..') && !areaHtml.includes('href="https://evil'), "unsafe or external links stay plain text");
+
+  // Closing heading, project link, factual takeaways, broker sources.
+  check(normalizeClosingHeading("نص\n\nقبل ما تقرر\nنص", "ar").includes("\n## قبل ما تقرر\n"), "a plain closing line becomes a ## heading");
+  check(normalizeClosingHeading("**Before you decide:**", "en") === "## Before you decide", "bold English closing line becomes a ## heading");
+  check(normalizeClosingHeading("قبل ما تقرر تأكد من المعلومات", "ar") === "قبل ما تقرر تأكد من المعلومات", "a sentence starting with the phrase is untouched");
+  const mv = { name: "Mountain View 1.1", slug: "mountain-view-1-1--mountain-view" };
+  const linked = ensureProjectLink("مقدمة\n\n## عنوان\nنص", mv, "ar");
+  check(linked.split("\n")[2].includes("[Mountain View 1.1](/projects/mountain-view-1-1--mountain-view)") && linked.indexOf("](/projects/") < linked.indexOf("## عنوان"), "a missing project link is added after the opening paragraph");
+  check(ensureProjectLink(linked, mv, "ar") === linked, "an existing project link is not duplicated");
+  check(JSON.stringify(factualTakeaways(["أ", "ب", "ج", "قبل الشراء راجع دلائل الإدارة."])) === JSON.stringify(["أ", "ب", "ج"]), "advice takeaways are dropped when three facts remain");
+  check(factualTakeaways(["أ", "راجع العقد"]).length === 2, "takeaways are kept when dropping would leave fewer than three");
+  check(isBrokerSource({ url: "https://shary.eg/ar/project/x", title: "x" }) && isBrokerSource({ url: "https://new-projects-media.propertyfinder.com/a.pdf", title: "brochure" }), "portals and brokers are not sources");
+  check(isBrokerSource({ url: "https://www.mountain-viewegypt.org/", title: "ماونتن فيو 1.1 | استلام فوري من 14.5 مليون" }), "sales landing pages are not sources");
+  check(!isBrokerSource({ url: "https://www.mountainviewegypt.com/", title: "Mountain View Projects | Luxury Gated Community In Egypt" }), "developer sites stay");
+  const parsedDraft = parseOpenAiOutput({ output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ title: "Mountain View دليل", slug: "mountain-view-guide", excerpt: "مقدمة", meta_title: "Mountain View دليل", meta_description: "وصف", body_markdown: "Mountain View مشروع.\n\n## Mountain View\nنص\n\nقبل ما تقرر\nنص", focus_keyword: "Mountain View", key_takeaways: ["أ", "ب", "ج", "تأكد من العقد"], faq: [], comparison_project_ids: [], unit_evidence: [], claim_evidence: [] }) }] }] }, "draft", { input: { action: "draft", language: "ar", targetType: "project", projectId: "project-1" }, projects, units: [] });
+  check(parsedDraft.body_markdown.includes("[Mountain View](/projects/mountain-view)") && parsedDraft.body_markdown.includes("## قبل ما تقرر") && parsedDraft.key_takeaways.length === 3, "draft output gets the project link, closing heading and factual takeaways");
+  const pageHero = renderEditorialArticle({ ...published, hero_image_url: "https://tycoons-inv.com/projects/mountain-view-1-1--mountain-view" });
+  check(!pageHero.includes('og:image" content="https://tycoons-inv.com/projects/'), "a page URL never becomes og:image");
+  const realHero = renderEditorialArticle({ ...published, hero_image_url: "https://coqnjymekrkoausiiytm.supabase.co/storage/v1/object/public/media/a.webp" });
+  check(realHero.includes("a.webp"), "an image file becomes og:image");
+
+  const research = parseOpenAiOutput({ output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ notes: "", facts: [
+    { fact: "المشروع قريب من الطريق الدائري.", category: "location", confidence: "corroborated", sources: [{ url: "https://shary.eg/a", title: "x" }, { url: "https://dev.example/a", title: "Developer" }] },
+    { fact: "المشروع فيه نادي اجتماعي كبير.", category: "amenities", confidence: "official", sources: [{ url: "https://dev.example/b", title: "Developer" }, { url: "https://www.aqarmap.com.eg/b", title: "Aqarmap" }] },
+  ] }) }] }] }, "research", { input: { action: "research", language: "ar", targetType: "project", topic: "دليل" }, projects });
+  check(research.facts.length === 1 && research.facts[0].sources.every((source) => !/aqarmap|shary/.test(source.url)), "broker sources are removed from research facts");
+  check(research.excluded.some((item) => item.reason === "broker_source"), "a fact corroborated only with a broker is excluded");
 
   console.log(`Article SEO/GEO field tests passed (${checks} checks; offline only).`);
 })().catch((error) => { console.error(error); process.exitCode = 1; });

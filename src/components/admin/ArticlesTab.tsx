@@ -1,8 +1,9 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { adminApi, AdminApiError, type AdminArticle, type AdminProject, type ArticleFaqItem, type ArticleValues, type ResearchFact, type ResearchResult, type TopicIdea } from "../../lib/adminApi";
+import { adminApi, AdminApiError, isImageUrl, type AdminArticle, type AdminProject, type ArticleFaqItem, type ArticleValues, type ResearchFact, type ResearchResult, type TopicIdea } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import { Badge, EmptyState, Modal, inputClass } from "./ui";
 import EditorialWorkflowPanel from "./EditorialWorkflowPanel";
+import HeroImagePicker from "./HeroImagePicker";
 
 const emptyArticle = (): ArticleValues => ({
   language: "ar", title: "", slug: "", excerpt: "", body_markdown: "", meta_title: "", meta_description: "",
@@ -346,6 +347,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
   }
 
   async function save() {
+    if (values.hero_image_url && !isImageUrl(values.hero_image_url)) { notify("الصورة الرئيسية لازم تكون رابط صورة (.jpg أو .png أو .webp). اختار صورة أو شيلها قبل الحفظ.", "error"); return; }
     const operation = beginOperation("save");
     if (!operation) return;
     try {
@@ -432,8 +434,8 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
             </div>)}</div>}
           </div>
 
+          <div className="mt-4"><HeroImagePicker projects={projects} defaultProjectId={values.target_type === "project" ? values.project_id ?? null : projects.find((project) => project.location?.trim() === values.area_name)?.id ?? null} value={values.hero_image_url ?? null} disabled={Boolean(busy)} onChange={(url) => patchValues({ hero_image_url: url })} /></div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <label className="text-sm font-bold">الصورة الرئيسية (رابط https — اختياري)<input disabled={Boolean(busy)} dir="ltr" className={inputClass} value={values.hero_image_url ?? ""} onChange={(event) => patchValues({ hero_image_url: event.target.value.trim() || null })} placeholder="https://…" /></label>
             <label className="text-sm font-bold">النسخة باللغة التانية (hreflang)<select disabled={Boolean(busy)} className={inputClass} value={translationValue} onChange={(event) => setTranslationChoice(event.target.value)}><option value="">— بدون ربط —</option>{translationCandidates.map((article) => <option key={article.id} value={article.id}>{article.title} ({article.status === "published" ? "منشور" : "مسودة"})</option>)}</select>{translationChoice !== null && translationChoice !== pairedId && <small className="mt-1 block font-normal text-amber-700">الربط هيتطبق لما تحفظ.</small>}</label>
           </div>
         </div>

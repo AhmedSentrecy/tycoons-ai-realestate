@@ -396,6 +396,9 @@ export async function optimizeImage(file: File): Promise<Blob> {
   }
 }
 
+/** og:image / Article.image must be an image file, never a page URL. */
+export const isImageUrl = (value: string) => /^https:\/\/[^\s"'<>?#]+\.(?:jpe?g|png|webp|avif|gif)(?:\?[^\s"'<>]*)?$/i.test(value);
+
 export function isUploadableImage(type: string) {
   return ["image/webp", "image/jpeg", "image/png", "image/avif"].includes(type);
 }
