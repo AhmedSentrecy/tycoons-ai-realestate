@@ -2,7 +2,8 @@
 
 const fs = require("node:fs/promises");
 const path = require("node:path");
-const { renderProjectStatic, renderUnitStatic } = require("./lib/data-pages.cjs");
+const { renderProjectStatic, renderUnitStatic, pageShell } = require("./lib/data-pages.cjs");
+const { editorialArticleView } = require("../netlify/functions/_seo-utils.cjs");
 const { projectAliases } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
 
@@ -57,12 +58,45 @@ async function main() {
     unitsByProject.set(unit.project_id, list);
   }
 
+  // Published guides: built as pages on the site's own shell so visitors get the full
+  // site (header, footer, contact) and crawlers get the article HTML at the same URL.
+  let guides = [];
+  try {
+    guides = await fetchRows("published_editorial_articles", "*");
+  } catch (error) {
+    console.warn(`Guides skipped: ${error.message}`);
+  }
+  const guidesByProject = new Map();
+  for (const guide of guides) {
+    if (!guide.project_id) continue;
+    const list = guidesByProject.get(guide.project_id) || [];
+    list.push(guide);
+    guidesByProject.set(guide.project_id, list);
+  }
+  for (const list of guidesByProject.values()) list.sort((a, b) => String(b.published_at).localeCompare(String(a.published_at)));
+  let guideCount = 0;
+  for (const guide of guides) {
+    if (!/^[a-z0-9-]+$/.test(String(guide.slug || ""))) continue;
+    const project = guide.project_id ? projectById.get(guide.project_id) : null;
+    const related = (guidesByProject.get(guide.project_id) || []).filter((item) => item.language === guide.language);
+    const view = editorialArticleView({ status: "published", ...guide }, null, { project, related });
+    if (!view) continue;
+    const canonical = `https://tycoons-inv.com${view.path}`;
+    const html = pageShell(shell, {
+      title: view.title, description: view.description, canonical, image: view.image, keywords: guide.focus_keyword ? [guide.focus_keyword] : [],
+      body: view.body, schemas: view.schemas.map(({ "@context": _context, ...schema }) => schema),
+    });
+    await writePage(path.join(guide.language === "en" ? "en/guides" : "guides", guide.slug, "index.html"), html);
+    guideCount += 1;
+  }
+
   let projectCount = 0;
   let unitCount = 0;
   for (const project of normalizedProjects) {
     if (!project.slug) continue;
     const projectUnits = unitsByProject.get(project.id) || [];
-    await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, project, projectUnits));
+    const projectGuides = (guidesByProject.get(project.id) || []).filter((guide) => guide.language === "ar");
+    await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, project, projectUnits, projectGuides));
     projectCount += 1;
   }
   for (const unit of units) {
@@ -91,7 +125,7 @@ async function main() {
   await fs.writeFile(path.join(dist, "_redirects"), `${redirects.join("\n")}\n`, "utf8");
 
   console.log(
-    `Generated ${projectCount} project pages and ${unitCount} unit pages (${indexableIds.size} indexable) plus ${redirects.length} redirect rules from Supabase and private app routing.`,
+    `Generated ${guideCount} guide pages, ${projectCount} project pages and ${unitCount} unit pages (${indexableIds.size} indexable) plus ${redirects.length} redirect rules from Supabase and private app routing.`,
   );
 }
 

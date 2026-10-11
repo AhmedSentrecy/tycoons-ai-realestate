@@ -417,7 +417,10 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       const { article } = await adminApi.articlePublish(token, selectedId, loadedArticle.revision, loadedArticle.content_hash);
       if (operation !== operationId.current) return;
       const normalized = withSeoDefaults(article);
-      setLoadedArticle(normalized); setValues(normalized); setSavedFingerprint(articleFingerprint(normalized)); setReviewConfirmed(false); await refresh(); notify("تم نشر المقال بعد المراجعة.");
+      setLoadedArticle(normalized); setValues(normalized); setSavedFingerprint(articleFingerprint(normalized)); setReviewConfirmed(false); await refresh();
+      // Rebuild the site so the guide gets its full page and shows on the project page.
+      const rebuilt = await adminApi.rebuild(token).then(() => true, () => false);
+      notify(rebuilt ? "تم نشر المقال. الموقع بيتحدّث دلوقتي، والمقال هيظهر في صفحة المشروع خلال دقايق." : "تم نشر المقال. دوس \"حدّث الموقع\" علشان يظهر في صفحة المشروع.");
     } catch (error) {
       if (operation !== operationId.current) return;
       if (error instanceof AdminApiError && error.code === "article_review_blocked") {

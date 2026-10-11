@@ -54,6 +54,29 @@ async function fetchEditorialTranslation(article) {
   }
 }
 
+async function fetchRest(path, params) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${path}?${new URLSearchParams(params)}`, {
+      headers: { apikey: SUPABASE_KEY, Accept: "application/json" }, signal: AbortSignal.timeout(6000),
+    });
+    if (!response.ok) return [];
+    const rows = await response.json();
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return []; // links are optional; never fail the page for them
+  }
+}
+
+// The article's project row and the other published guides about it.
+async function fetchEditorialExtras(article) {
+  if (!article?.project_id || !/^[0-9a-f-]{36}$/i.test(String(article.project_id))) return {};
+  const [projects, related] = await Promise.all([
+    fetchRest("projects", { select: "id,name,slug,developer,location,image_url", id: `eq.${article.project_id}`, limit: "1" }),
+    fetchRest("published_editorial_articles", { select: "title,slug,language,project_id", project_id: `eq.${article.project_id}`, language: `eq.${article.language}`, order: "published_at.desc", limit: "9" }),
+  ]);
+  return { project: projects[0] || null, related };
+}
+
 exports.handler = async function handler(event) {
   const params = event.queryStringParameters || {};
   const originalPath = (() => {
@@ -97,7 +120,8 @@ exports.handler = async function handler(event) {
       html = renderGuide(slug, lang);
       if (!html) {
         const article = await fetchEditorialArticle(slug, lang);
-        html = renderEditorialArticle(article, article ? await fetchEditorialTranslation(article) : null);
+        const [translation, extras] = article ? await Promise.all([fetchEditorialTranslation(article), fetchEditorialExtras(article)]) : [null, {}];
+        html = renderEditorialArticle(article, translation, extras);
       }
     }
     if (type === "static") html = renderStaticPage(slug);
@@ -114,7 +138,10 @@ exports.handler = async function handler(event) {
         html = hasCanonicalProject ? renderProject(projects, slug, lang) : null;
       }
       if (type === "unit") html = renderUnit(projects, slug, "ar");
-      if (type === "area") html = renderCollection(projects, "area", slug, lang);
+      if (type === "area") {
+        const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
+        html = renderCollection(projects, "area", slug, lang, guides);
+      }
       if (type === "developer") html = renderCollection(projects, "developer", slug, lang);
     }
     if (!html) {

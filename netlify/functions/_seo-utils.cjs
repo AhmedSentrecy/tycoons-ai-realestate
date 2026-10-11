@@ -536,6 +536,7 @@ function groupProjects(units, projectsMeta = []) {
     metaById.set(meta.id, { ...meta, slug });
     if (!grouped.has(slug)) {
       grouped.set(slug, {
+        id: meta.id,
         slug,
         name: clean(meta.name, ""),
         developer: clean(meta.developer, "Tycoons verified developer"),
@@ -1111,7 +1112,7 @@ function renderUnit(projects, unitId, lang = "ar") {
   });
 }
 
-function renderCollection(projects, kind, slug, lang) {
+function renderCollection(projects, kind, slug, lang, guides = []) {
   const ar = lang === "ar";
   const matches =
     kind === "area"
@@ -1149,6 +1150,13 @@ function renderCollection(projects, kind, slug, lang) {
       ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${(searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}`
       : "";
   const editorialSection = editorial?.sections?.length ? renderLocalizedSections(editorial.sections, { escapeHtml, replaceTokens: (value) => value }) : "";
+  // Buyer-question guides about this area's projects (or the area itself), linked under the FAQ.
+  const matchIds = new Set(matches.map((project) => String(project.id || "")).filter(Boolean));
+  const areaGuides = kind === "area" ? (Array.isArray(guides) ? guides : []).filter((guide) => guide && guide.slug && guide.title
+    && ((guide.project_id && matchIds.has(String(guide.project_id))) || (guide.target_type === "area" && areaFor(guide.area_name || "").slug === slug))).slice(0, 12) : [];
+  const areaGuidesHtml = areaGuides.length
+    ? `<section aria-labelledby="area-buyer-questions"><h2 id="area-buyer-questions">${ar ? `عايز تفاصيل أكتر؟ أسئلة المشترين عن ${escapeHtml(label)}` : `Buyer questions about ${escapeHtml(label)}`}</h2><ul>${areaGuides.map((guide) => `<li><a href="${escapeHtml(editorialGuidePath(guide))}">${escapeHtml(guide.title)}</a></li>`).join("")}</ul></section>`
+    : "";
   const projectUnitCount = matches.reduce((total, project) => total + project.units.length, 0);
   const branches = kind === "area"
     ? [...new Map(matches.map((project) => [slugify(project.developer), {
@@ -1203,6 +1211,7 @@ function renderCollection(projects, kind, slug, lang) {
   ${branchHtml}
   <h2>${ar ? "المشاريع المتاحة" : "Available projects"}</h2>${cards(matches, lang)}
   ${faq.length ? `<h2>${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}` : ""}
+  ${areaGuidesHtml}
   <p class="note">${ar ? "النطاق مبني على الوحدات الظاهرة وليس تقييمًا للسوق بالكامل." : "The range is based on listed units and is not a valuation of the whole market."}</p></main>`;
   return renderPage({
     lang,
@@ -1330,8 +1339,12 @@ function editorialGuidePath(article) {
 
 // `translation` is the published counterpart in the other language (same
 // translation_key), or null. Only then are hreflang alternates emitted.
-function renderEditorialArticle(article, translation = null) {
+// `extras.project` is the article's public project row ({name, slug, developer,
+// location, image_url}); `extras.related` other published guides about it.
+function editorialArticleView(article, translation = null, extras = {}) {
   if (!article || article.status !== "published" || !article.published_at || !article.reviewed_at) return null;
+  const project = extras.project && extras.project.slug && extras.project.name ? extras.project : null;
+  const related = (Array.isArray(extras.related) ? extras.related : []).filter((item) => item && item.slug && item.title && item.slug !== article.slug).slice(0, 8);
   const lang = article.language === "en" ? "en" : "ar";
   const ar = lang === "ar";
   const path = editorialGuidePath(article);
@@ -1356,15 +1369,33 @@ function renderEditorialArticle(article, translation = null) {
   const faqHtml = faq.length
     ? `<section aria-labelledby="guide-faq"><h2 id="guide-faq">${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([question, answer]) => `<h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p>`).join("")}</section>`
     : "";
-  const body = `<main class="guide"><p class="crumbs"><a href="/">${ar ? "الرئيسية" : "Home"}</a> / ${ar ? "الأدلة" : "Guides"} / ${escapeHtml(article.title)}</p>
+  const area = areaFor(project?.location || article.area_name || "");
+  const projectPath = project ? (ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`) : "";
+  const crumbs = [
+    { name: ar ? "الرئيسية" : "Home", path: "/" },
+    ...(area.indexable ? [{ name: ar ? area.ar : area.en, path: `/${lang}/areas/${area.slug}` }] : []),
+    ...(project ? [{ name: project.name, path: projectPath }] : []),
+    { name: article.title, path },
+  ];
+  const message = encodeURIComponent(`${ar ? "السلام عليكم Tycoons، قريت مقال" : "Hello Tycoons, I read"}: ${article.title}\n${SITE_URL}${path}`);
+  const projectCard = project
+    ? `<section class="answer" aria-label="${ar ? "المشروع" : "Project"}"><p><strong>${ar ? "المقال ده عن" : "This guide is about"}:</strong> <a href="${escapeHtml(projectPath)}">${escapeHtml(project.name)}</a> — ${escapeHtml(project.developer || "")}${area.indexable ? ` · ${escapeHtml(ar ? area.ar : area.en)}` : ""}</p><p><a class="cta" href="${escapeHtml(projectPath)}">${ar ? "شوف الوحدات المتاحة" : "See available units"}</a> <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اسأل على واتساب" : "Ask on WhatsApp"}</a></p></section>`
+    : "";
+  const relatedHtml = related.length && project
+    ? `<section aria-labelledby="guide-related"><h2 id="guide-related">${ar ? `أسئلة تانية عن ${escapeHtml(project.name)}` : `More questions about ${escapeHtml(project.name)}`}</h2><ul>${related.map((item) => `<li><a href="${escapeHtml(editorialGuidePath(item))}">${escapeHtml(item.title)}</a></li>`).join("")}</ul></section>`
+    : "";
+  const floating = `<a href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" aria-label="${ar ? "تواصل على واتساب" : "WhatsApp"}" style="position:fixed;bottom:20px;left:20px;z-index:40;background:#1faa59;color:#fff;border-radius:999px;padding:14px 20px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.2)">${ar ? "واتساب" : "WhatsApp"}</a>`;
+  const body = `<main class="guide"><p class="crumbs">${crumbs.slice(0, -1).map((item) => `<a href="${escapeHtml(item.path)}">${escapeHtml(item.name)}</a>`).join(" / ")} / ${escapeHtml(article.title)}</p>
   <section class="hero"><span class="eyebrow">${ar ? "دليل مستقل تمت مراجعته قبل النشر" : "Independent guide reviewed before publication"}</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(article.excerpt)}</p>${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title)}" width="1200" height="630" loading="eager" style="width:100%;height:auto;border-radius:16px;margin-top:12px">` : ""}<p class="updated">${ar ? "تاريخ المراجعة" : "Reviewed"}: ${escapeHtml(reviewedDate)}</p></section>
+  ${projectCard}
   ${takeawaysHtml}
   <article>${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar))}</article>
   ${faqHtml}
+  ${relatedHtml}
   ${webSourcesHtml}
-  <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المعلومات تعليمية وتتغير بمرور الوقت. أعد تأكيد أي تفاصيل تجارية قبل اتخاذ قرار." : "This is educational content. Reconfirm time-sensitive commercial details before deciding."}</p></section></main>`;
+  <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المعلومات تعليمية وتتغير بمرور الوقت. أعد تأكيد أي تفاصيل تجارية قبل اتخاذ قرار." : "This is educational content. Reconfirm time-sensitive commercial details before deciding."}</p></section></main>${floating}`;
   const keyword = String(article.focus_keyword || "").trim();
-  return renderPage({
+  return {
     lang,
     title: article.meta_title || `${article.title} | Tycoons Investments`,
     description: article.meta_description || article.excerpt,
@@ -1373,7 +1404,7 @@ function renderEditorialArticle(article, translation = null) {
     image,
     body,
     schemas: [
-      breadcrumbSchema([{ name: ar ? "الرئيسية" : "Home", path: "/" }, { name: ar ? "الأدلة" : "Guides", path }, { name: article.title, path }]),
+      breadcrumbSchema(crumbs),
       {
         "@context": "https://schema.org", "@type": "Article", headline: article.title,
         description: article.meta_description || article.excerpt,
@@ -1395,7 +1426,12 @@ function renderEditorialArticle(article, translation = null) {
           }]
         : []),
     ],
-  });
+  };
+}
+
+function renderEditorialArticle(article, translation = null, extras = {}) {
+  const view = editorialArticleView(article, translation, extras);
+  return view ? renderPage(view) : null;
 }
 
 function renderStaticPage(type) {
@@ -1495,6 +1531,8 @@ module.exports = {
   renderCollection,
   renderGuide,
   renderEditorialArticle,
+  editorialArticleView,
+  editorialGuidePath,
   renderStaticPage,
   notFound,
   escapeHtml,

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
+import FloatingContact from "@/components/FloatingContact";
 import Calculator from "@/sections/Calculator";
 import { loadUnitPage, loadUnitSiblings, type SiblingUnitRow, type UnitPageData } from "@/lib/unitPages";
 import { arabicField } from "@/lib/arabicFields";
@@ -183,7 +184,7 @@ export default function UnitPage() {
   const move = (step: number) => setImageIndex((current) => (current + step + images.length) % images.length);
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
+    <main dir="rtl" className="min-h-screen bg-[#f7f2ea] pb-24 text-[#1b2420] md:pb-0">
       <Navbar />
       <section className="bg-[#0d1f18] px-5 pb-12 pt-32 text-white lg:px-8">
         <div className="mx-auto max-w-6xl">
@@ -254,6 +255,7 @@ export default function UnitPage() {
 
       <Calculator initialPrice={unit.starting_price} initialDown={5} initialYears={8} whatsappHref={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`} />
       <Footer />
+      <FloatingContact message={decodeURIComponent(message)} />
       <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
     </main>
   );
