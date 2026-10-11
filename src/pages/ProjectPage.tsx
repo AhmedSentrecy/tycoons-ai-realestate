@@ -21,6 +21,7 @@ import Calculator from "@/sections/Calculator";
 import FloatingContact from "@/components/FloatingContact";
 import { guidePath, loadProjectGuidesBySlug, type GuideLink } from "@/lib/editorialGuides";
 import { fallbackImageFor, useInventory, type InventoryUnit } from "@/lib/inventory";
+import { buildProjectFaq, isCuratedFaq, projectsFromUnits } from "@/lib/projectFaq";
 import {
   loadProjectPage,
   type ProjectPageContent,
@@ -272,6 +273,8 @@ export default function ProjectPage() {
     [slug, units],
   );
   const project = projectUnits[0];
+  // Other public projects with units, for the "nearby" and "same developer" FAQ answers.
+  const faqProjects = useMemo(() => projectsFromUnits(units.filter((unit) => unit.project_slug)), [units]);
 
   useEffect(() => {
     let active = true;
@@ -439,15 +442,24 @@ export default function ProjectPage() {
       ]
     : storedArticleSections;
   const storedFaq = localizedArabic?.faq.length ? localizedArabic.faq : content?.faq || [];
+  // Hand-written questions stay as they are; template ones are replaced by questions computed from the live units.
+  const computedFaq = isCuratedFaq(storedFaq)
+    ? []
+    : buildProjectFaq(
+        { name: content?.name || project.project_name, developer: content?.developer || project.developer, location: content?.location || project.location },
+        projectUnits,
+        { otherProjects: faqProjects },
+      );
+  const baseFaq = computedFaq.length ? computedFaq : storedFaq;
   const faq = isIcityOctober
     ? [
-        ...storedFaq,
+        ...baseFaq,
         {
           question: `فين ألاقي master plan ${project.project_name}؟`,
           answer: `استخدم النسخة الرسمية من ${project.developer} لتأكيد المراحل والمداخل. الصفحة تعرض الوحدات والأسعار للمقارنة ولا تستبدل المخطط المساحي الرسمي.`,
         },
       ]
-    : storedFaq;
+    : baseFaq;
   const visibleFaq = localizedArabic?.article_sections.length ? [] : faq;
   const unitListItems = [
     ...priceRanges.map((range, index) => ({
