@@ -64,4 +64,12 @@ const ok = gen.parseOpenAiOutput({ status: "completed", output: [{ type: "messag
 check(ok.lines.length === 2, "a same-length rewrite is accepted");
 assert.throws(() => gen.parseOpenAiOutput({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ lines: ["أ"] }) }] }] }, "rewrite", { input }), /generation_shape_invalid/); checks += 1;
 
+// Place names in Arabic topics and more broker portals.
+check(gen.arabicPlaces("هل Mountain View 1.1 مناسب في Fifth Settlement, New Cairo؟", [good.name]) === "هل Mountain View 1.1 مناسب في التجمع الخامس؟", "English locations become Arabic in topics");
+check(gen.arabicPlaces("Mountain View iCity New Cairo في New Cairo", ["Mountain View iCity New Cairo"]) === "Mountain View iCity New Cairo في القاهرة الجديدة", "project names keep their English place words");
+check(gen.isBrokerSource({ url: "https://realestate.eg/x", title: "Mountain View" }) && gen.isBrokerSource({ url: "https://r1-properties.com/a", title: "x" }) && isBrokerSource({ url: "https://realestate.eg/x", label: "x" }), "realestate.eg and r1-properties are brokers (server and editor)");
+check(!gen.isBrokerSource({ url: "https://www.reportage-properties.com/", title: "Reportage" }), "a developer named Properties is not a broker");
+const topicOut = gen.parseOpenAiOutput({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ topics: [1, 2, 3, 4].map((n) => ({ title: `سؤال ${n} عن Mountain View 1.1 في Fifth Settlement, New Cairo`, rationale: "سبب", angle: "زاوية New Cairo", project_ids: ["good"] })) }) }] }] }, "topics", { input: { action: "topics", language: "ar" }, projects: [good] });
+check(topicOut.topics.every((t: any) => !/New Cairo|Fifth Settlement/.test(t.title + t.angle)), "suggested Arabic topics carry no English place names");
+
 console.log(`Article auto-fix tests passed (${checks} checks; offline only).`);
