@@ -195,7 +195,9 @@ async function run() {
 
   const ivilla = completeMatches(searchInventory(units, "آي فيلا في التجمع 3 غرف"));
   assert.ok(ivilla.length > 0, "iVilla Arabic query should return complete structured matches");
-  assert.ok(ivilla.every((result) => /ivilla/i.test(result.unit.unit_type)));
+  // Developers label iVillas as "iVilla", "I-Villa" or a product name (e.g. Mountain
+  // View "Millennial" described as "iVilla Park-Millennial"), so check type + description.
+  assert.ok(ivilla.every((result) => /i-?\s?villa/i.test(`${result.unit.unit_type} ${result.unit.description}`)), "iVilla matches must be iVilla units");
 
   const budget = completeMatches(searchInventory(units, "شقة تحت 7 مليون"));
   assert.ok(budget.every((result) => result.unit.starting_price <= 7_000_000));

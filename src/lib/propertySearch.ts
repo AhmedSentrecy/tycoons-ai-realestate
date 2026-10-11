@@ -74,7 +74,7 @@ const REGION_GROUPS = [
 ];
 
 const TYPE_GROUPS = [
-  { label: "iVilla", aliases: ["ivilla", "i villa", "اي فيلا", "آي فيلا", "اى فيلا"] },
+  { label: "iVilla", aliases: ["ivilla", "i villa", "i-villa", "اي فيلا", "آي فيلا", "اى فيلا"] },
   { label: "Standalone Villa", aliases: ["standalone", "stand alone", "ستاندالون", "فيلا مستقله", "فيلا مستقلة"] },
   { label: "Twin House", aliases: ["twin house", "توين هاوس", "توين"] },
   { label: "Townhouse", aliases: ["townhouse", "town house", "تاون هاوس", "تاون"] },
