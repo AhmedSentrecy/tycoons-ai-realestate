@@ -312,6 +312,8 @@ export const adminApi = {
     generate<{ topics: TopicIdea[]; source_refs: ArticleSourceRef[]; generated_as: "draft" }>(token, idempotencyKey, { action: "topics", ...target }),
   articleResearch: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string) =>
     generate<ResearchResult>(token, idempotencyKey, { action: "research", topic, ...target }),
+  articleRewrite: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, lines: string[]) =>
+    generate<{ lines: string[]; generated_as: "rewrite" }>(token, idempotencyKey, { action: "rewrite", lines, ...target }),
   articleDraft: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string, researchFacts: ResearchFact[] = []) =>
     generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "focus_keyword" | "key_takeaways" | "faq" | "source_refs" | "review_issues"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target, ...(researchFacts.length ? { research_facts: researchFacts } : {}) }),
   signUpload: (token: string, body: { target: MediaTarget; id: string; kind: MediaKind; content_type: string; size: number }) =>

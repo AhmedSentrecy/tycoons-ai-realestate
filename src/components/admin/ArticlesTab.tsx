@@ -4,6 +4,7 @@ import { useAdmin } from "./AdminContext";
 import { Badge, EmptyState, Modal, inputClass } from "./ui";
 import EditorialWorkflowPanel from "./EditorialWorkflowPanel";
 import HeroImagePicker from "./HeroImagePicker";
+import { applyLines, articleProjects, canonicalProject, cleanBody, cleanText, issueInArabic, numericLines, repairSources, safeSlug, stripNumbers } from "../../lib/articleAutofix";
 
 const emptyArticle = (): ArticleValues => ({
   language: "ar", title: "", slug: "", excerpt: "", body_markdown: "", meta_title: "", meta_description: "",
@@ -169,7 +170,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
   const [ideas, setIdeas] = useState<TopicIdea[]>([]);
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<"load" | "topics" | "research" | "draft" | "save" | "publish" | "">("");
+  const [busy, setBusy] = useState<"load" | "topics" | "research" | "draft" | "save" | "publish" | "fix" | "">("");
   // Web research results; only facts the editor keeps checked are sent to the draft.
   const [research, setResearch] = useState<ResearchResult | null>(null);
   const [droppedFacts, setDroppedFacts] = useState<number[]>([]);
@@ -359,6 +360,55 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
     } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
   }
 
+  // One click: re-ground the article on the project row that has a public page, clean
+  // sources and links, save (server re-review), then rewrite lines with unverified numbers.
+  async function autoFix() {
+    if (!selectedId || !loadedArticle || dirty) return;
+    const operation = beginOperation("fix");
+    if (!operation) return;
+    try {
+      const current = values.target_type === "project" ? projects.find((project) => project.id === values.project_id) ?? null : null;
+      const project = values.target_type === "project" ? canonicalProject(projects, values.project_id) : null;
+      const projectChanged = Boolean(project && current && project.id !== current.id);
+      const source_refs = repairSources(values, project, projectChanged);
+      const allowed = new Set(source_refs.filter((ref) => ref.type !== "web").map((ref) => ref.url));
+      let next: ArticleValues = {
+        ...values,
+        project_id: project ? project.id : values.project_id,
+        source_refs,
+        hero_image_url: values.hero_image_url && isImageUrl(values.hero_image_url) ? values.hero_image_url : null,
+        title: cleanText(values.title, allowed), excerpt: cleanText(values.excerpt, allowed),
+        meta_title: cleanText(values.meta_title, allowed), meta_description: cleanText(values.meta_description, allowed),
+        body_markdown: cleanBody(values.body_markdown, allowed),
+        key_takeaways: (values.key_takeaways ?? []).map((item) => cleanText(item, allowed)).filter((item) => item.trim()),
+        faq: (values.faq ?? []).map((item) => ({ question: cleanText(item.question, allowed), answer: cleanText(item.answer, allowed) })),
+      };
+      let saved = (await adminApi.articleSave(token, selectedId, next, loadedArticle.revision)).article;
+      if (operation !== operationId.current) return;
+      let normalized = withSeoDefaults(saved);
+      const names = projects.filter((item) => source_refs.some((ref) => ref.type === "project" && ref.id === item.id)).map((item) => item.name);
+      const lines = numericLines(normalized, normalized.review_issues ?? [], names);
+      const slugBlocked = (normalized.review_issues ?? []).some((issue) => issue.severity === "blocker" && issue.field === "slug");
+      if (lines.length || slugBlocked) {
+        const target = { language: normalized.language, target_type: normalized.target_type, project_id: normalized.project_id, area_name: normalized.area_name };
+        let rewritten: string[] = lines.map((line) => line.text);
+        if (lines.length) try {
+          const result = await adminApi.articleRewrite(token, `rewrite:${crypto.randomUUID()}`, target, lines.map((line) => line.text));
+          if (Array.isArray(result.lines) && result.lines.length === lines.length) rewritten = result.lines;
+        } catch (error) { if (error instanceof AdminApiError && error.status === 401) throw error; }
+        if (operation !== operationId.current) return;
+        next = applyLines(normalized, lines, rewritten.map((line) => stripNumbers(line, names)));
+        if (slugBlocked) next = { ...next, slug: safeSlug(next.slug, project?.slug) };
+        saved = (await adminApi.articleSave(token, selectedId, next, normalized.revision)).article;
+        if (operation !== operationId.current) return;
+        normalized = withSeoDefaults(saved);
+      }
+      setLoadedArticle(normalized); setValues(normalized); setSavedFingerprint(articleFingerprint(normalized)); setReviewConfirmed(false); setTranslationChoice(null); await refresh();
+      const left = (normalized.review_issues ?? []).filter((issue) => issue.severity === "blocker").length;
+      notify(left ? `اتصلح جزء، وفاضل ${left} ملاحظة محتاجة إيدك. شوف الملاحظات الحمرا تحت.` : `اتصلح كل اللي كان بيمنع النشر${projectChanged ? " (واتربط بالنسخة الصح من المشروع)" : ""}. راجع المقال، علّم على "راجعت" ودوس نشر.`, left ? "error" : "ok");
+    } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
+  }
+
   async function publish() {
     if (!selectedId || !loadedArticle || dirty || hasPublishBlockers || !reviewConfirmed || !isOwner) return;
     const operation = beginOperation("publish");
@@ -397,7 +447,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       <div className="grid gap-3 md:grid-cols-3">
         <label className="text-sm font-bold">اللغة<select disabled={Boolean(busy)} className={inputClass} value={values.language} onChange={(event) => patchValues({ language: event.target.value as "ar" | "en" }, true)}><option value="ar">العربية</option><option value="en">English</option></select></label>
         <label className="text-sm font-bold">النطاق<select disabled={Boolean(busy)} className={inputClass} value={values.target_type} onChange={(event) => patchValues({ target_type: event.target.value as "project" | "area", project_id: null, area_name: null }, true)}><option value="project">مشروع</option><option value="area">منطقة</option></select></label>
-        {values.target_type === "project" ? <label className="text-sm font-bold">المشروع<select disabled={Boolean(busy)} className={inputClass} value={values.project_id || ""} onChange={(event) => patchValues({ project_id: event.target.value || null }, true)}><option value="">اختر مشروعاً</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label> : <label className="text-sm font-bold">المنطقة<select disabled={Boolean(busy)} className={inputClass} value={values.area_name || ""} onChange={(event) => patchValues({ area_name: event.target.value || null }, true)}><option value="">اختر منطقة</option>{areas.map((area) => <option key={area}>{area}</option>)}</select></label>}
+        {values.target_type === "project" ? <label className="text-sm font-bold">المشروع<select disabled={Boolean(busy)} className={inputClass} value={values.project_id || ""} onChange={(event) => patchValues({ project_id: event.target.value || null }, true)}><option value="">اختر مشروعاً</option>{articleProjects(projects).map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}{values.project_id && !articleProjects(projects).some((project) => project.id === values.project_id) && <option value={values.project_id}>{projects.find((project) => project.id === values.project_id)?.name ?? "مشروع"} (نسخة قديمة — دوس صلّح)</option>}</select></label> : <label className="text-sm font-bold">المنطقة<select disabled={Boolean(busy)} className={inputClass} value={values.area_name || ""} onChange={(event) => patchValues({ area_name: event.target.value || null }, true)}><option value="">اختر منطقة</option>{areas.map((area) => <option key={area}>{area}</option>)}</select></label>}
       </div>
       <div className="mt-4 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-4">
         <div className="flex flex-wrap gap-2"><button disabled={!canGenerate || Boolean(busy)} onClick={() => void suggestTopics()} className="rounded-xl bg-[#d9b87c] px-4 py-2 font-black disabled:opacity-50">{busy === "topics" ? "جارٍ الاقتراح…" : "اقترح موضوعات"}</button></div>
@@ -459,9 +509,10 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
         </div>}
         {reviewIssues.length > 0 && <ul className="mt-3 space-y-2">{reviewIssues.map((issue, index) => <li key={`${issue.field}:${issue.code}:${index}`} className="text-sm">
           <strong>{REVIEW_FIELD_LABELS[issue.field] || issue.field}: {issue.severity === "blocker" ? "يمنع النشر" : "تحتاج مراجعة"}</strong>
-          <span className="block">{issue.message}</span>
+          <span className="block">{issueInArabic(issue)}</span>
+          <span className="block text-xs text-[#5c6a62]" dir="ltr">{issue.message}</span>
         </li>)}</ul>}
-        {hasPublishBlockers && <p className="mt-3 text-sm font-bold text-red-700">صحّح الملاحظات التي تمنع النشر ثم احفظ المسودة لإعادة الفحص. يمكنك متابعة التحرير وحفظها كمسودة.</p>}
+        {hasPublishBlockers && <div className="mt-3 rounded-xl bg-red-50 p-3"><p className="text-sm font-bold text-red-700">فيه ملاحظات بتمنع النشر. دوس الزرار وهو يصلحها لوحده ويحفظ ويعيد الفحص. يمكنك متابعة التحرير وحفظها كمسودة.</p>{dirty && <p className="mt-1 text-xs text-red-700">احفظ تعديلاتك الأول.</p>}<button disabled={!selectedId || dirty || Boolean(busy)} onClick={() => void autoFix()} className="mt-2 rounded-xl bg-red-700 px-5 py-2 font-black text-white disabled:opacity-50">{busy === "fix" ? "بيصلّح…" : "صلّح اللي بيمنع النشر"}</button></div>}
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button disabled={!values.title || !values.body_markdown || !values.source_refs.length || Boolean(busy)} onClick={() => void save()} className="rounded-xl bg-[#0d1f18] px-5 py-2 font-black text-white disabled:opacity-50">{busy === "save" ? "جارٍ الحفظ…" : "حفظ كمسودة"}</button>

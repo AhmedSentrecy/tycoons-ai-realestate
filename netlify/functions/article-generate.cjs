@@ -1,7 +1,7 @@
 "use strict";
 
 const crypto = require("node:crypto");
-const { RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, parseOpenAiOutput, groundInputForFacts } = require("./_article-generation.cjs");
+const { RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, buildRewriteRequest, parseOpenAiOutput, groundInputForFacts } = require("./_article-generation.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
@@ -144,8 +144,23 @@ async function research(input, safetyId) {
   return parseOpenAiOutput(response, "research", { input, projects });
 }
 
+async function rewrite(input, safetyId) {
+  const { projects } = await loadPublicFacts(input);
+  const response = await fetchJson("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "content-type": "application/json",
+      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
+    },
+    body: JSON.stringify(buildRewriteRequest(input, projects)),
+  }, 45000, true);
+  return parseOpenAiOutput(response, "rewrite", { input, projects });
+}
+
 async function generate(input, safetyId) {
   if (input.action === "research") return research(input, safetyId);
+  if (input.action === "rewrite") return rewrite(input, safetyId);
   const { projects, units } = await loadPublicFacts(input);
   const groundedInput = groundInputForFacts(input, projects);
   // Do not buy a draft for a unit-area comparison when the source has no usable sample.
