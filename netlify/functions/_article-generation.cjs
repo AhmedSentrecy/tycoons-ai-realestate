@@ -68,7 +68,7 @@ function sanitizeResearchFacts(value) {
     const confidence = ["official", "corroborated"].includes(item.confidence) ? item.confidence : "";
     const sources = (Array.isArray(item.sources) ? item.sources : []).slice(0, 4)
       .map((source) => ({ url: safeHttpsUrl(source?.url), title: cleanLine(source?.title, 160) }))
-      .filter((source) => source.url);
+      .filter((source) => source.url && !isBrokerSource(source));
     if (!fact || fact.length < 8 || !confidence || !sources.length || COMMERCIAL_RE.test(fact) || seen.has(fact)) continue;
     seen.add(fact);
     facts.push({ fact, category, confidence, sources });
@@ -109,7 +109,7 @@ function buildResearchRequest(input, projects, modelOverride = "") {
   const subject = projects.map((project) => `${project.name} by ${project.developer} in ${project.location}`).join("; ");
   const rules = [
     "You are a careful real-estate research assistant for an Egyptian property broker. Use web search to collect verifiable, non-commercial facts for an article.",
-    "Search the developer's official website first, then reputable Egyptian property portals and news sites. Use at most 5 distinct websites.",
+    "Search the developer's official website first, then government sources and established Egyptian news sites. Use at most 5 distinct websites. Never use property portals, listing sites, brokers or marketing landing pages that sell units (for example Property Finder, Aqarmap, Nawy, Shary, Bayut, Dubizzle, OLX, or look-alike sites named after the project): they are competitors and their pages mix in prices and sales claims.",
     "Collect only qualitative or physical facts: exact location and nearby landmarks or roads, the developer and its other well-known projects, the project concept, master plan and land size, architects or designers, amenities and services, access routes.",
     "Never collect prices, price ranges, down payments, installments, payment plans, delivery or handover dates, availability, discounts, offers, returns or rental yields. Those come only from the broker's own inventory.",
     "confidence = official when the developer's own website states it; corroborated when at least two independent websites agree; single otherwise. Keep conflicting claims out and describe the conflict in notes.",
@@ -134,6 +134,18 @@ function buildResearchRequest(input, projects, modelOverride = "") {
   return request;
 }
 
+// Competitor portals/brokers and sales landing pages never count as evidence and are
+// never shown as article sources. Titles carrying prices or sales claims mark a sales page.
+const BROKER_HOST_RE = /(?:^|\.)(?:propertyfinder|aqarmap|nawy|shary|bayut|dubizzle|olx|sakneen|egyptrealestate|propertysorted|realestate-eg|aqar|aqarat|bezaat|opensooq|zillow|homzmart|coldwell|remax|redcon-?properties)\./i;
+
+function isBrokerSource(source) {
+  let host = "";
+  try { host = new URL(source.url).hostname.toLowerCase(); } catch { return true; }
+  return BROKER_HOST_RE.test(host) || COMMERCIAL_RE.test(source.title || "") || /(?:كمبوند|compound)[^|]*(?:تفاصيل|details)/i.test(source.title || "");
+}
+
+const sourceHost = (url) => { try { return new URL(url).hostname.replace(/^www\./, "").toLowerCase(); } catch { return url; } };
+
 function validateResearchResult(value, payload, text) {
   if (!value || typeof value !== "object" || !Array.isArray(value.facts)) throw outputError("generation_shape_invalid", payload, text, "validate_research");
   const all = value.facts.map((item) => ({
@@ -144,8 +156,11 @@ function validateResearchResult(value, payload, text) {
   })).filter((item) => item.fact && item.sources.length);
   const facts = [];
   const excluded = [];
-  for (const item of all) {
-    if (COMMERCIAL_RE.test(item.fact)) excluded.push({ ...item, reason: "commercial" });
+  for (const raw of all) {
+    const item = { ...raw, sources: raw.sources.filter((source) => !isBrokerSource(source)) };
+    const hosts = new Set(item.sources.map((source) => sourceHost(source.url)));
+    if (COMMERCIAL_RE.test(item.fact)) excluded.push({ ...raw, reason: "commercial" });
+    else if (!item.sources.length || (item.confidence === "corroborated" && hosts.size < 2)) excluded.push({ ...raw, reason: "broker_source" });
     else if (item.confidence === "single") excluded.push({ ...item, reason: "single_source" });
     else facts.push(item);
   }
@@ -503,6 +518,40 @@ function ensureKeywordHeading(body, keyword) {
   return lines.join("\n");
 }
 
+const CLOSING_LINE_RE = /^(?:#{1,6}\s*)?\**\s*(قبل ما تقرر|before you decide)\s*[:：]?\s*\**\s*[:：]?\s*$/i;
+
+// "قبل ما تقرر" must be a real '## ' section heading, never a bold or plain line.
+function normalizeClosingHeading(body, language) {
+  return String(body || "").split("\n").map((line) => CLOSING_LINE_RE.test(line.trim()) ? (language === "en" ? "## Before you decide" : "## قبل ما تقرر") : line).join("\n");
+}
+
+// A project guide always links its project page. Insert one sentence after the
+// opening paragraph when the model forgot the link.
+function ensureProjectLink(body, project, language) {
+  const text = String(body || "");
+  if (!project?.slug || !project?.name) return text;
+  const url = `/projects/${project.slug}`;
+  if (text.includes(`](${url})`)) return text;
+  const sentence = language === "en"
+    ? `See the full project details and units on the [${project.name}](${url}) page.`
+    : `تفاصيل المشروع والوحدات كاملة على صفحة [${project.name}](${url}).`;
+  const lines = text.split("\n");
+  const firstBreak = lines.findIndex((line, index) => index > 0 && !line.trim() && lines.slice(0, index).some((item) => item.trim()));
+  if (firstBreak === -1) return `${text}\n\n${sentence}`;
+  lines.splice(firstBreak, 0, "", sentence);
+  return lines.join("\n");
+}
+
+const ADVICE_RE = /^(?:قبل (?:الشراء|ما|أن)|راجع|تأكد|اسأل|ننصح|يُنصح|ينصح|احرص|لا تنس|before (?:buying|you)|check|ask|verify|make sure|we recommend)/i;
+
+// Takeaways are facts an assistant can quote, not advice. Drop advice lines while
+// at least three takeaways remain.
+function factualTakeaways(items) {
+  const list = Array.isArray(items) ? items : [];
+  const facts = list.filter((item) => !ADVICE_RE.test(String(item).trim()));
+  return facts.length >= 3 ? facts : list;
+}
+
 // Older providers/fixtures may omit the SEO fields: default them instead of failing.
 // Present-but-malformed values are a shape error, like any other field.
 function normalizeSeoFields(value, payload, text) {
@@ -578,6 +627,11 @@ function validateGeneratedResult(value, action, payload, text, context = {}) {
     if (value.title.length > 180 || value.meta_title.length > 180 || value.excerpt.length > 500 || value.meta_description.length > 500 || value.body_markdown.length > 30000) throw outputError("generation_shape_invalid", payload, text, "validate_draft_limits");
     normalizeSeoFields(value, payload, text);
     value.body_markdown = ensureKeywordHeading(value.body_markdown, value.focus_keyword);
+    value.body_markdown = normalizeClosingHeading(value.body_markdown, context?.input?.language);
+    if (context?.input?.targetType === "project" && Array.isArray(context?.projects) && context.projects.length === 1) {
+      value.body_markdown = ensureProjectLink(value.body_markdown, context.projects[0], context?.input?.language);
+    }
+    value.key_takeaways = factualTakeaways(value.key_takeaways);
     validateDraftFacts(value, context, payload, text);
     return Object.fromEntries([...fields, "focus_keyword", "key_takeaways", "faq", "comparison_project_ids", "unit_evidence", "claim_evidence", "review_issues"].map(field => [field, value[field]]));
   }
@@ -606,5 +660,5 @@ function parseOpenAiOutput(payload, action = "draft", context = {}) {
   return validateGeneratedResult(value, action, payload, text, context);
 }
 
-module.exports = { areaLinks, ensureKeywordHeading, RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, parseOpenAiOutput, groundInputForFacts, sanitizeResearchFacts };
+module.exports = { areaLinks, ensureKeywordHeading, normalizeClosingHeading, ensureProjectLink, factualTakeaways, isBrokerSource, RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, parseOpenAiOutput, groundInputForFacts, sanitizeResearchFacts };
 

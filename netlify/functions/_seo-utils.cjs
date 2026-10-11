@@ -1342,7 +1342,8 @@ function renderEditorialArticle(article, translation = null) {
   const faq = (Array.isArray(article.faq) ? article.faq : [])
     .map((item) => [String(item?.question || "").trim(), String(item?.answer || "").trim()])
     .filter(([question, answer]) => question && answer).slice(0, 10);
-  const image = /^https:\/\/[^\s"'<>]+$/.test(String(article.hero_image_url || "")) ? String(article.hero_image_url) : "";
+  // Only a real image file may become og:image / Article.image (never a page URL).
+  const image = /^https:\/\/[^\s"'<>?#]+\.(?:jpe?g|png|webp|avif|gif)(?:\?[^\s"'<>]*)?$/i.test(String(article.hero_image_url || "")) ? String(article.hero_image_url) : "";
   const takeawaysHtml = takeaways.length
     ? `<div class="answer" id="key-takeaways"><h2>${ar ? "الخلاصة" : "Key takeaways"}</h2><ul>${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>`
     : "";
