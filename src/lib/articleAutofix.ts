@@ -23,7 +23,7 @@ export function canonicalProject(projects: AdminProject[], projectId: string | n
   return sameName.find((project) => developer && norm(project.developer).startsWith(developer.split(" ")[0])) ?? sameName[0];
 }
 
-const BROKER_HOST_RE = /(?:^|\.)(?:propertyfinder|aqarmap|nawy|shary|bayut|dubizzle|olx|sakneen|egyptrealestate|propertysorted|realestate-eg|aqar|aqarat|bezaat|opensooq|zillow|homzmart|coldwell|remax|redcon-?properties)\./i;
+const BROKER_HOST_RE = /(?:^|\.)(?:propertyfinder|aqarmap|nawy|shary|bayut|dubizzle|olx|sakneen|egyptrealestate|propertysorted|realestate-eg|aqar|aqarat|bezaat|opensooq|zillow|homzmart|coldwell|remax|redcon-?properties|realestate|r1-properties|o1-properties|egypt-?properties|propertyplus|aqarmasr|bnb-?egypt)\./i;
 const SALES_TITLE_RE = /(?:price|payment|installment|down ?payment|delivery|handover|availab|discount|offer|سعر|أسعار|اسعار|جنيه|مليون|مقدم(?!ة)|تقسيط|أقساط|اقساط|سداد|تسليم|استلام|متاح|خصم|عرض)/i;
 
 /** Competitor portals, brokers and sales landing pages are never article sources. */

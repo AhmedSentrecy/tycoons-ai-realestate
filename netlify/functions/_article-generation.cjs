@@ -141,7 +141,7 @@ function buildResearchRequest(input, projects, modelOverride = "") {
 
 // Competitor portals/brokers and sales landing pages never count as evidence and are
 // never shown as article sources. Titles carrying prices or sales claims mark a sales page.
-const BROKER_HOST_RE = /(?:^|\.)(?:propertyfinder|aqarmap|nawy|shary|bayut|dubizzle|olx|sakneen|egyptrealestate|propertysorted|realestate-eg|aqar|aqarat|bezaat|opensooq|zillow|homzmart|coldwell|remax|redcon-?properties)\./i;
+const BROKER_HOST_RE = /(?:^|\.)(?:propertyfinder|aqarmap|nawy|shary|bayut|dubizzle|olx|sakneen|egyptrealestate|propertysorted|realestate-eg|aqar|aqarat|bezaat|opensooq|zillow|homzmart|coldwell|remax|redcon-?properties|realestate|r1-properties|o1-properties|egypt-?properties|propertyplus|aqarmasr|bnb-?egypt)\./i;
 
 function isBrokerSource(source) {
   let host = "";
@@ -333,7 +333,7 @@ function buildOpenAiRequest(input, projects, units = []) {
     `Write in ${input.language === 'ar' ? 'clear Egyptian-market Arabic' : 'clear English'}.`,
   ];
   if (input.action === 'topics') {
-    rules.push(`Suggest topics a buyer researches before buying (location, concept, who it suits, comparisons with the area, what to check), never topics about requesting documents, payment details, the website or its data. ${input.language === 'ar' ? "Write Egyptian place names in Arabic (New Cairo → التجمع الخامس أو القاهرة الجديدة) and keep project names exactly as supplied." : "Keep project names exactly as supplied."}`);
+    rules.push(`Suggest topics a buyer researches before buying (location, concept, who it suits, comparisons with the area, what to check), never topics about requesting documents, payment details, the website or its data. ${input.language === 'ar' ? "Write title, rationale and angle fully in Arabic: Egyptian place names in Arabic (New Cairo or Fifth Settlement → التجمع الخامس أو القاهرة الجديدة), never copy the English location text, and keep project names exactly as supplied." : "Keep project names exactly as supplied."}`);
     rules.push("Suggest 4 to 6 distinct, useful editorial topics. Keep each title, rationale, and angle concise. Rationale must be qualitative; do not claim search volume or ranking data.");
     rules.push("Suggest only topics that can be completed from the supplied project records. Do not suggest prices, payment plans, installments, delivery, availability, unit inventory, or comparisons with any project or developer absent from public_facts.projects. Put every project used by a topic in that topic's project_ids. For a single-project target, do not propose named cross-project comparisons.");
     rules.push("Each title should read like a real search query or question a buyer types into Google or asks an AI assistant (informational intent: location, concept, what to check, who it suits). In angle, name the main search phrase the guide would target: the project name plus its area or developer, or a buyer question, never abstract words such as concept, design, مفهوم or تصميم. Arabic topics are written fully in Arabic except project and developer names.");
@@ -596,6 +596,10 @@ function validateGeneratedResult(value, action, payload, text, context = {}) {
       }
     }
     const projects = Array.isArray(context?.projects) ? context.projects : [];
+    if (context?.input?.language !== "en") {
+      const names = projects.map((project) => project.name);
+      for (const topic of value.topics) for (const field of ["title", "rationale", "angle"]) topic[field] = arabicPlaces(topic[field], names);
+    }
     if (projects.length === 1) {
       const project = projects[0];
       const seen = new Set();
@@ -681,6 +685,26 @@ function validateRewriteResult(value, payload, text, context = {}) {
   return { lines: value.lines.map((line) => cleanLine(line, 800)), generated_as: "rewrite" };
 }
 
+// English place names (often copied from the project's location field) become Arabic
+// in Arabic text. Project names are protected, e.g. "Mountain View iCity New Cairo".
+const ARABIC_PLACES = [
+  [/Fifth Settlement,?\s*New Cairo/gi, "التجمع الخامس"], [/New Cairo,?\s*Fifth Settlement/gi, "التجمع الخامس"],
+  [/(?:the\s+)?Fifth Settlement/gi, "التجمع الخامس"], [/New Cairo/gi, "القاهرة الجديدة"], [/Sheikh Zayed/gi, "الشيخ زايد"],
+  [/North Coast/gi, "الساحل الشمالي"], [/Ain Sokhna/gi, "العين السخنة"], [/Mostakbal City/gi, "مستقبل سيتي"],
+  [/(?:New Administrative Capital|New Capital)/gi, "العاصمة الإدارية الجديدة"], [/(?:6th of October|6 October|October City)/gi, "السادس من أكتوبر"],
+  [/New Alamein/gi, "العلمين الجديدة"], [/Ras El Hekma/gi, "رأس الحكمة"],
+];
+
+function arabicPlaces(text, projectNames = []) {
+  const kept = [];
+  let result = String(text || "");
+  for (const name of projectNames.filter(Boolean).sort((a, b) => b.length - a.length)) {
+    result = result.split(name).join(String.fromCharCode(0xE100 + kept.push(name) - 1));
+  }
+  for (const [pattern, arabic] of ARABIC_PLACES) result = result.replace(pattern, arabic);
+  return result.replace(/[\uE100-\uE1FF]/g, (char) => kept[char.charCodeAt(0) - 0xE100]).replace(/\s{2,}/g, " ").trim();
+}
+
 function parseOpenAiOutput(payload, action = "draft", context = {}) {
   const content = (Array.isArray(payload?.output) ? payload.output : [])
     .filter((item) => item?.type === "message")
@@ -704,5 +728,5 @@ function parseOpenAiOutput(payload, action = "draft", context = {}) {
   return validateGeneratedResult(value, action, payload, text, context);
 }
 
-module.exports = { buildRewriteRequest, areaLinks, ensureKeywordHeading, normalizeClosingHeading, ensureProjectLink, factualTakeaways, isBrokerSource, RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, parseOpenAiOutput, groundInputForFacts, sanitizeResearchFacts };
+module.exports = { arabicPlaces, buildRewriteRequest, areaLinks, ensureKeywordHeading, normalizeClosingHeading, ensureProjectLink, factualTakeaways, isBrokerSource, RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, parseOpenAiOutput, groundInputForFacts, sanitizeResearchFacts };
 

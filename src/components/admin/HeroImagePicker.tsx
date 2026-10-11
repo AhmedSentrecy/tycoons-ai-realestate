@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { adminApi, AdminApiError, isImageUrl, isUploadableImage, mediaImages, optimizeImage, uploadToSignedUrl, type AdminProject } from "../../lib/adminApi";
+import { adminApi, AdminApiError, hideLegacyDuplicates, isImageUrl, isUploadableImage, mediaImages, optimizeImage, uploadToSignedUrl, type AdminProject } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 
 interface Props {
@@ -13,7 +13,8 @@ interface Props {
 
 export default function HeroImagePicker({ projects, defaultProjectId, value, disabled, onChange }: Props) {
   const { token, handleError, notify } = useAdmin();
-  const withImages = useMemo(() => projects.filter((project) => mediaImages(project).length > 0), [projects]);
+  // Old duplicate rows (same photos, no page) are not offered; the article's own project always is.
+  const withImages = useMemo(() => hideLegacyDuplicates(projects).filter((project) => mediaImages(project).length > 0), [projects]);
   // The editor's own choice applies only while the article's project is unchanged;
   // switching the article's project opens that project's photos again.
   const [choice, setChoice] = useState<{ base: string | null; id: string }>({ base: defaultProjectId, id: defaultProjectId || "" });
