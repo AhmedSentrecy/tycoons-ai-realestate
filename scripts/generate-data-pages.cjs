@@ -6,6 +6,7 @@ const { renderProjectStatic, renderUnitStatic, pageShell } = require("./lib/data
 const { editorialArticleView } = require("../netlify/functions/_seo-utils.cjs");
 const { projectAliases } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
+const { projectsFromUnits } = require("../src/lib/projectFaq.ts");
 
 const root = path.resolve(__dirname, "..");
 const dist = path.join(root, "dist");
@@ -90,13 +91,15 @@ async function main() {
     guideCount += 1;
   }
 
+  // Other public projects (with units) for the "nearby" and "same developer" answers.
+  const faqContext = { otherProjects: projectsFromUnits(units.filter((unit) => projectById.has(unit.project_id))) };
   let projectCount = 0;
   let unitCount = 0;
   for (const project of normalizedProjects) {
     if (!project.slug) continue;
     const projectUnits = unitsByProject.get(project.id) || [];
     const projectGuides = (guidesByProject.get(project.id) || []).filter((guide) => guide.language === "ar");
-    await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, project, projectUnits, projectGuides));
+    await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, project, projectUnits, projectGuides, faqContext));
     projectCount += 1;
   }
   for (const unit of units) {

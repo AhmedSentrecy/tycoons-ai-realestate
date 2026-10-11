@@ -1,6 +1,8 @@
 "use strict";
 
 const { localizedProjectContent, renderSections: renderLocalizedSections } = require("../../netlify/functions/_localized-project-content.cjs");
+// Buyer FAQ computed from the live units (shared with the React project page; needs `node --import tsx`).
+const { buildProjectFaq, isCuratedFaq } = require("../../src/lib/projectFaq.ts");
 
 const SITE_URL = "https://tycoons-inv.com";
 
@@ -283,7 +285,7 @@ function staticUnitCard(unit) {
   return `<details class="overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white p-6"><summary class="cursor-pointer list-none"><h3 class="text-xl font-extrabold">${escapeHtml(arabicField(unit.unit_type))} ${escapeHtml(arabicField(unit.bedrooms_text))}</h3><p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary>${plan ? `<p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml(plan)}</p>` : ""}${unit.id ? `<a href="/units/${escapeHtml(unit.id)}" class="mt-4 inline-block font-bold text-[#8a6630]">كل تفاصيل الوحدة</a>` : ""}</details>`;
 }
 
-function renderProjectStatic(shell, project, projectUnits, guides = []) {
+function renderProjectStatic(shell, project, projectUnits, guides = [], faqContext = {}) {
   const units = uniqueUnits(projectUnits);
   if (!units.length) {
     const canonical = `${SITE_URL}/projects/${project.slug}`;
@@ -322,7 +324,9 @@ function renderProjectStatic(shell, project, projectUnits, guides = []) {
   const title = localized?.seo_title || legacyTitle;
   const description = localized?.seo_description || legacyDescription;
   const storedFaq = localized?.faq?.length ? localized.faq : arrayValue(project.faq);
-  const baseFaq = storedFaq.length ? storedFaq : [
+  // Hand-written questions stay as they are; template ones are replaced by questions computed from the live units.
+  const computedFaq = isCuratedFaq(storedFaq) ? [] : buildProjectFaq({ name: project.name, developer: text(project.developer), location: text(project.location) }, units, faqContext);
+  const baseFaq = computedFaq.length ? computedFaq : storedFaq.length ? storedFaq : [
     {
       question: `ما أقل سعر ظاهر حاليًا في ${project.name}؟`,
       answer: `أقل سعر ظاهر حاليًا يبدأ من {{min_price}} جنيه، ويجب تأكيد السعر والتوفر وقت الطلب.`,
