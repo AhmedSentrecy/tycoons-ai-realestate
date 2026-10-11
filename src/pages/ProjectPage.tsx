@@ -18,6 +18,8 @@ import {
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
 import Calculator from "@/sections/Calculator";
+import FloatingContact from "@/components/FloatingContact";
+import { guidePath, loadProjectGuidesBySlug, type GuideLink } from "@/lib/editorialGuides";
 import { fallbackImageFor, useInventory, type InventoryUnit } from "@/lib/inventory";
 import {
   loadProjectPage,
@@ -253,6 +255,13 @@ export default function ProjectPage() {
   const { units, loading, error } = useInventory();
   const [content, setContent] = useState<ProjectPageContent | null>(null);
   const [loadedSlug, setLoadedSlug] = useState("");
+  // Published buyer-question guides about this project, linked under the FAQ.
+  const [guides, setGuides] = useState<GuideLink[]>([]);
+  useEffect(() => {
+    let active = true;
+    loadProjectGuidesBySlug(slug).then((rows) => { if (active) setGuides(rows); }).catch(() => { if (active) setGuides([]); });
+    return () => { active = false; };
+  }, [slug]);
   const projectUnits = useMemo(
     () => uniqueUnits(units.filter((unit) => {
       const nameSlug = slugify(unit.project_name);
@@ -347,7 +356,7 @@ export default function ProjectPage() {
       `Hello Tycoons Investments,\nI am interested in ${projectContent.name} by ${projectContent.developer}.\nPlease confirm the latest availability and payment plan.\n\nSource: project_page\nPage: ${pageUrl}`,
     );
     return (
-      <main dir="rtl" className="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
+      <main dir="rtl" className="min-h-screen bg-[#f7f2ea] pb-24 text-[#1b2420] md:pb-0">
         <Navbar />
         <section className="mx-auto max-w-4xl px-5 pb-20 pt-36">
           <Link to="/ar/" className="text-sm font-bold text-[#8a6630] hover:underline">دليل المشاريع</Link>
@@ -362,6 +371,7 @@ export default function ProjectPage() {
           </a>
         </section>
         <Footer />
+        <FloatingContact message={decodeURIComponent(message)} />
       </main>
     );
   }
@@ -545,7 +555,7 @@ export default function ProjectPage() {
   };
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
+    <main dir="rtl" className="min-h-screen bg-[#f7f2ea] pb-24 text-[#1b2420] md:pb-0">
       <Navbar />
 
       <section className="bg-[#0d1f18] px-5 pb-12 pt-32 text-white lg:px-8">
@@ -655,6 +665,24 @@ export default function ProjectPage() {
                   </details>
                 ))}
               </div>
+            </section>}
+            {guides.length > 0 && <section className="mt-10" aria-labelledby="project-buyer-questions">
+              <h2 id="project-buyer-questions" className="text-2xl font-extrabold">
+                عايز تفاصيل أكتر؟ أسئلة المشترين عن {project.project_name}
+              </h2>
+              <ul className="mt-6 space-y-3">
+                {guides.map((guide) => (
+                  <li key={guide.slug}>
+                    <a href={guidePath(guide)} className="group flex items-center justify-between gap-4 rounded-2xl border border-[#e0d3bb] bg-white p-5 transition hover:shadow-md">
+                      <span>
+                        <span className="block font-extrabold group-hover:text-[#a3854e]">{guide.title}</span>
+                        {guide.excerpt && <span className="mt-1 block text-sm font-light text-[#5c6a62]">{guide.excerpt}</span>}
+                      </span>
+                      <ArrowLeft className="h-5 w-5 shrink-0 text-[#a3854e]" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </section>}
           </article>
 
@@ -873,6 +901,7 @@ export default function ProjectPage() {
       </section>
 
       <Footer />
+      <FloatingContact message={decodeURIComponent(message)} />
       <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
     </main>
   );

@@ -18,6 +18,7 @@ const SalesWarRoomAppEntry = lazy(() => import('./pages/SalesWarRoomAppEntry'))
 const SalesWarRoomManager = lazy(() => import('./pages/SalesWarRoomManager'))
 const SalesWarRoomV2 = lazy(() => import('./pages/SalesWarRoomV2'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
+const GuidePage = lazy(() => import('./pages/GuidePage'))
 
 export default function App() {
   const nativeApp = Capacitor.isNativePlatform()
@@ -35,6 +36,8 @@ export default function App() {
         <Route path="/en/" element={<Home />} />
         <Route path="/projects/:slug" element={<ProjectPage />} />
         <Route path="/units/:id" element={<UnitPage />} />
+        <Route path="/guides/:slug" element={<GuidePage />} />
+        <Route path="/en/guides/:slug" element={<GuidePage />} />
         <Route path="/regions/:slug" element={<RegionPage />} />
         <Route path="/faq" element={<FaqPage />} />
         <Route path="/about" element={<AboutPage />} />
