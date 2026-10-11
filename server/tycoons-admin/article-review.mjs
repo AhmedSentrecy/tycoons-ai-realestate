@@ -73,7 +73,11 @@ function stripKnownNames(value, projects) {
     const locationSlug = location.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     // Only current, scoped project locations establish place identities. The
     // editable area_name is never an exemption, nor is a digits-only slug.
-    const names = [project.name, project.slug, /\p{L}/u.test(location) ? location : "", /[a-z]/i.test(locationSlug) ? locationSlug : ""];
+    // The URL form of the name (Mountain View 1.1 -> mountain-view-1-1) identifies the
+    // project inside an article slug, like the name does in prose.
+    const nameSlug = clean(project.name).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    const slugBase = clean(project.slug).split("--")[0];
+    const names = [project.name, project.slug, /[a-z]/i.test(nameSlug) ? nameSlug : "", /[a-z]/i.test(slugBase) ? slugBase : "", /\p{L}/u.test(location) ? location : "", /[a-z]/i.test(locationSlug) ? locationSlug : ""];
     for (const name of names.filter(Boolean).sort((a, b) => b.length - a.length)) {
       // A digit-bearing name (5A, 97 Hills) is an entity, not a quantity. Arabic
       // writes attached prepositions/article before names (لـ5A، بـ5A، و5A، ال5A),
