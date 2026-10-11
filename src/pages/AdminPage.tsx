@@ -5,6 +5,7 @@ import {
   adminApi,
   errorMessage,
   formatBytes,
+  hideLegacyDuplicates,
   type AdminProject,
   type AdminSettings,
   type AdminUser,
@@ -178,6 +179,9 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
   const isOwner = user.role === "owner";
   const [tab, setTab] = useState<Tab>("media");
   const [projects, setProjects] = useState<AdminProject[]>([]);
+  // Media and units never show old duplicate rows; articles get the full list so
+  // their auto-fix can move a draft from a duplicate to the project with a page.
+  const visibleProjects = useMemo(() => hideLegacyDuplicates(projects), [projects]);
   const [storage, setStorage] = useState<StorageUsage | null>(null);
   const [pendingTotal, setPendingTotal] = useState(0);
   const [settings, setSettings] = useState<AdminSettings | null>(null);
@@ -352,7 +356,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
         <div className="mx-auto max-w-7xl px-4 py-4">
           {tab === "media" && (
             <MediaTab
-              projects={projects}
+              projects={visibleProjects}
               loading={loading}
               error={loadError}
               onRetry={refresh}
@@ -366,7 +370,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
           )}
           {tab === "units" && (
             <UnitsTab
-              projects={projects}
+              projects={visibleProjects}
               loading={loading}
               error={loadError}
               onRetry={refresh}
