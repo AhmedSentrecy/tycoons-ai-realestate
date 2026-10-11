@@ -5,6 +5,7 @@ import {
   type InventoryUnit,
 } from "@/lib/inventory";
 import { searchInventory } from "@/lib/propertySearch";
+import { agentResultCount, recordAgentToolCall } from "@/lib/agentUsage";
 
 type ToolDefinition = {
   name: string;
@@ -323,6 +324,34 @@ const tools: ToolDefinition[] = [
   },
 ];
 
+// Wraps a tool so every call an AI agent makes is counted in agent_tool_calls.
+// Logging runs in the background and never delays or changes the tool's answer.
+export function withUsageLogging(tool: ToolDefinition): ToolDefinition {
+  return {
+    ...tool,
+    async execute(input) {
+      const args = input && typeof input === "object" ? input : {};
+      const usage = {
+        channel: "webmcp" as const,
+        tool: tool.name,
+        query: args.query ?? args.request,
+        client: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        pagePath: typeof window !== "undefined" ? window.location.pathname : null,
+      };
+      try {
+        const result = await tool.execute(args);
+        void recordAgentToolCall({ ...usage, ok: true, resultCount: agentResultCount(result) });
+        return result;
+      } catch (error) {
+        void recordAgentToolCall({ ...usage, ok: false });
+        throw error;
+      }
+    },
+  };
+}
+
+const loggedTools = tools.map(withUsageLogging);
+
 export async function registerWebMcpTools(): Promise<void> {
   if (registrationStarted || typeof document === "undefined" || typeof navigator === "undefined") return;
 
@@ -337,13 +366,13 @@ export async function registerWebMcpTools(): Promise<void> {
       const controller = new AbortController();
       window.addEventListener("pagehide", () => controller.abort(), { once: true });
       await Promise.all(
-        tools.map((tool) => Promise.resolve(context.registerTool?.(tool, { signal: controller.signal }))),
+        loggedTools.map((tool) => Promise.resolve(context.registerTool?.(tool, { signal: controller.signal }))),
       );
       return;
     }
 
     if (typeof context.provideContext === "function") {
-      await context.provideContext({ tools });
+      await context.provideContext({ tools: loggedTools });
     }
   } catch (error) {
     registrationStarted = false;

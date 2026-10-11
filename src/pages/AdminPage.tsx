@@ -13,6 +13,7 @@ import {
   type StorageUsage,
 } from "../lib/adminApi";
 import { AdminContext } from "../components/admin/AdminContext";
+import AgentUsageTab from "../components/admin/AgentUsageTab";
 import ApprovalsTab from "../components/admin/ApprovalsTab";
 import ArticlesTab from "../components/admin/ArticlesTab";
 import ProjectForm, { type NewProject } from "../components/admin/ProjectForm";
@@ -174,7 +175,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
   );
 }
 
-type Tab = "media" | "units" | "articles" | "faq" | "approvals" | "users";
+type Tab = "media" | "units" | "articles" | "faq" | "approvals" | "users" | "agents";
 
 function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser; onSignOut: () => void }) {
   const isOwner = user.role === "owner";
@@ -341,6 +342,11 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
                 المستخدمين
               </TabButton>
             )}
+            {isOwner && (
+              <TabButton active={tab === "agents"} onClick={() => setTab("agents")}>
+                استخدام الـ AI
+              </TabButton>
+            )}
           </div>
         </header>
 
@@ -385,6 +391,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
           {tab === "faq" && <ProjectFaqTab projects={projects} />}
           {tab === "approvals" && <ApprovalsTab onChanged={refresh} />}
           {tab === "users" && isOwner && <UsersTab />}
+          {tab === "agents" && isOwner && <AgentUsageTab />}
         </div>
 
         {projectFormOpen && (
