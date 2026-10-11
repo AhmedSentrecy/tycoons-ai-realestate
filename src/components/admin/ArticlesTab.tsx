@@ -393,7 +393,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
           </button>)}
       </div>
     </aside>
-    <section className="rounded-3xl bg-white p-5 shadow-sm">
+    <section className="min-w-0 rounded-3xl bg-white p-5 shadow-sm">
       <div className="grid gap-3 md:grid-cols-3">
         <label className="text-sm font-bold">اللغة<select disabled={Boolean(busy)} className={inputClass} value={values.language} onChange={(event) => patchValues({ language: event.target.value as "ar" | "en" }, true)}><option value="ar">العربية</option><option value="en">English</option></select></label>
         <label className="text-sm font-bold">النطاق<select disabled={Boolean(busy)} className={inputClass} value={values.target_type} onChange={(event) => patchValues({ target_type: event.target.value as "project" | "area", project_id: null, area_name: null }, true)}><option value="project">مشروع</option><option value="area">منطقة</option></select></label>
@@ -417,7 +417,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_320px]">
-        <div>
+        <div className="min-w-0">
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm font-bold md:col-span-2">الكلمة المفتاحية (Focus Keyword)<input disabled={Boolean(busy)} className={inputClass} value={values.focus_keyword ?? ""} onChange={(event) => patchValues({ focus_keyword: event.target.value })} placeholder={values.language === "ar" ? "مثال: كمبوند ماونتن فيو التجمع الخامس" : "e.g. Mountain View New Cairo compound"} /></label>
             {([['title','العنوان'],['slug','الرابط'],['meta_title','عنوان SEO'],['meta_description','وصف SEO'],['excerpt','المقدمة']] as const).map(([field,label]) => <label key={field} className={`text-sm font-bold ${field === 'excerpt' ? 'md:col-span-2' : ''}`}>{label}{(field === 'meta_title' || field === 'meta_description') && <small className="ms-2 font-normal text-[#5c6a62]">{values[field].length}/{field === 'meta_title' ? 60 : 160}</small>}<input disabled={Boolean(busy)} dir={field === 'slug' ? 'ltr' : undefined} className={inputClass} value={values[field]} onChange={(event) => patchValues({ [field]: event.target.value })} /></label>)}
