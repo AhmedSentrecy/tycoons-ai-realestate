@@ -46,7 +46,7 @@ export default function HeroImagePicker({ projects, defaultProjectId, value, dis
   };
 
   return (
-    <div className="rounded-2xl border border-[#e7ddc8] p-4">
+    <div className="min-w-0 max-w-full rounded-2xl border border-[#e7ddc8] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-black">الصورة الرئيسية للمقال <span className="text-xs font-normal text-[#5c6a62]">(اختياري — بتظهر في جوجل وواتساب وفيسبوك)</span></h3>
         {value && <button type="button" disabled={disabled} onClick={() => onChange(null)} className="rounded-lg border px-3 py-1 text-sm font-bold disabled:opacity-50">شيل الصورة</button>}
@@ -68,7 +68,7 @@ export default function HeroImagePicker({ projects, defaultProjectId, value, dis
       </label>
 
       {project && (images.length ? (
-        <div className="mt-3 flex snap-x gap-2 overflow-x-auto pb-2" role="listbox" aria-label={`صور ${project.name}`}>
+        <div className="mt-3 flex w-full max-w-full snap-x gap-2 overflow-x-auto pb-2" role="listbox" aria-label={`صور ${project.name}`}>
           {images.map((url, index) => {
             const selected = url === value;
             return (
