@@ -784,8 +784,8 @@ async function projectResearchFaq(body: Json) {
   return { items: Array.isArray(targeting.research_faq) ? targeting.research_faq : [], updated_at: text(targeting.research_faq_updated_at) || null };
 }
 
+/** Any admin may publish reviewed research questions; each save is logged and refreshes the site. */
 async function saveProjectResearchFaq(user: AdminUser, body: Json) {
-  requireOwner(user);
   const id = text(body.project_id);
   if (!id) throw new HttpError(400, "project_id_required");
   const items = cleanResearchFaq(body.items);
@@ -796,7 +796,16 @@ async function saveProjectResearchFaq(user: AdminUser, body: Json) {
   const updatedAt = new Date().toISOString();
   const next = { ...targeting, research_faq: items, research_faq_updated_at: updatedAt };
   fail((await db.from("projects").update({ targeting: next, last_updated_at: updatedAt }).eq("id", id)).error);
-  return { items, updated_at: updatedAt };
+  // History only (already applied): who published which questions, and what was there before.
+  await db.from("admin_change_requests").insert({
+    entity: "project", action: "update", target_id: id, project_id: id,
+    summary: `أسئلة بحثية لـ ${text(row.name)} (${items.length} سؤال)`,
+    ops: [], before: { research_faq: Array.isArray(targeting.research_faq) ? targeting.research_faq : [] },
+    created_by: user.id, status: "approved", reviewed_by: user.role === "owner" ? user.id : null, reviewed_at: updatedAt,
+    result: { research_faq: items.length },
+  }).then(() => undefined, () => undefined);
+  const rebuilt = await triggerRebuild().catch(() => false);
+  return { items, updated_at: updatedAt, rebuilt };
 }
 
 /** A project only gets a public page once it has a slug, so new projects get one right away. */
@@ -1121,6 +1130,18 @@ async function rebuild(user: AdminUser) {
   if (!response.ok) throw new HttpError(502, "build_hook_failed");
   await setSetting("last_rebuild_at", new Date().toISOString());
   return settings();
+}
+
+/** Site refresh after a published content change. Same hook and 3-minute spacing as the owner's button; false when skipped. */
+async function triggerRebuild() {
+  const hook = await getSetting("netlify_build_hook");
+  if (!hook) return false;
+  const last = await getSetting("last_rebuild_at");
+  if (last && Date.now() - new Date(last).getTime() < 3 * 60 * 1000) return false;
+  const response = await fetch(`${hook}?trigger_title=${encodeURIComponent("Research FAQ update")}`, { method: "POST" });
+  if (!response.ok) return false;
+  await setSetting("last_rebuild_at", new Date().toISOString());
+  return true;
 }
 
 Deno.serve(async (req: Request) => {
