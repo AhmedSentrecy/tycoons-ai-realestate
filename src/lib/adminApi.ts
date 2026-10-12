@@ -288,6 +288,28 @@ export interface ResearchFaqItem { question: string; answer: string; sources: { 
 export interface ProjectFaqProposal extends ResearchFaqItem { topic: string; confidence: "official" | "corroborated" | "single" }
 export interface ProjectFaqResearchResult { faq: ProjectFaqProposal[]; excluded: (ProjectFaqProposal & { reason: string })[]; notes: string; generated_as: "project_faq" }
 
+export interface AgentUsageCall {
+  created_at: string;
+  channel: "mcp" | "webmcp";
+  tool: string;
+  ok: boolean;
+  query: string | null;
+  result_count: number | null;
+}
+
+export interface AgentUsageReport {
+  days: number;
+  total: number;
+  truncated: boolean;
+  mcp: number;
+  webmcp: number;
+  failed: number;
+  whatsapp_inquiries: number;
+  by_tool: Array<{ tool: string; calls: number }>;
+  by_day: Array<{ day: string; mcp: number; webmcp: number }>;
+  recent: AgentUsageCall[];
+}
+
 export const adminApi = {
   login: (username: string, password: string) => call<{ token: string; user: AdminUser }>("login", { username, password }),
   me: (token: string) => call<{ user: AdminUser } & AdminSettings>("me", {}, token),
@@ -301,6 +323,7 @@ export const adminApi = {
       token,
     ),
   articles: (token: string) => call<{ articles: AdminArticle[] }>("articles", {}, token),
+  agentUsage: (token: string, days: 7 | 30 | 90) => call<AgentUsageReport>("agent_usage", { days }, token),
   article: (token: string, id: string) => call<{ article: AdminArticle }>("article", { id }, token),
   // translationArticleId: undefined = keep the current AR/EN pairing, "" = unlink, id = link.
   articleSave: (token: string, id: string | null, values: ArticleValues, expectedRevision: number | null, translationArticleId?: string) =>

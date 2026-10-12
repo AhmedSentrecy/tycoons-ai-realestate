@@ -6,6 +6,7 @@ import {
   loadInventory,
 } from "../../src/lib/inventory.ts";
 import { searchInventory } from "../../src/lib/propertySearch.ts";
+import { agentResultCount, recordAgentToolCall } from "../../src/lib/agentUsage.ts";
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -823,8 +824,17 @@ async function handleRpc(request, body) {
         protocolVersion,
       };
     }
+    const toolArgs = body.params?.arguments ?? {};
+    const usage = {
+      channel: "mcp",
+      tool: name,
+      query: toolArgs?.query ?? toolArgs?.request,
+      client: request.headers.get("user-agent"),
+      pagePath: "/mcp",
+    };
     try {
-      const result = await handler(body.params?.arguments ?? {});
+      const result = await handler(toolArgs);
+      await recordAgentToolCall({ ...usage, ok: true, resultCount: agentResultCount(result) });
       return {
         status: 200,
         body: jsonRpcResult(body.id, toolResult(result)),
@@ -834,6 +844,7 @@ async function handleRpc(request, body) {
       if (!(error instanceof ToolInputError)) {
         console.error(`[Tycoons MCP] ${name} failed`, error);
       }
+      await recordAgentToolCall({ ...usage, ok: false });
       return {
         status: 200,
         body: jsonRpcResult(body.id, toolError(error)),

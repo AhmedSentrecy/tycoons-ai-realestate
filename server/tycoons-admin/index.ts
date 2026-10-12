@@ -170,6 +170,51 @@ async function readAll<T>(table: string, columns: string, order: string, filter?
   return rows;
 }
 
+// ---------- AI agent usage (MCP + WebMCP) ----------
+
+const AGENT_USAGE_MAX_ROWS = 10000;
+
+async function agentUsage(user: AdminUser, body: Json) {
+  requireOwner(user);
+  const requested = Number(body.days);
+  const days = [7, 30, 90].includes(requested) ? requested : 30;
+  const since = new Date(Date.now() - days * 86400000).toISOString();
+  const { data, error } = await db
+    .from("agent_tool_calls")
+    .select("created_at,channel,tool,ok,query,result_count")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(AGENT_USAGE_MAX_ROWS);
+  fail(error);
+  const rows = (data ?? []) as Array<{ created_at: string; channel: "mcp" | "webmcp"; tool: string; ok: boolean; query: string | null; result_count: number | null }>;
+
+  const cairoDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
+  const byDay = new Map<string, { mcp: number; webmcp: number }>();
+  for (let i = days - 1; i >= 0; i--) byDay.set(cairoDay(new Date(Date.now() - i * 86400000).toISOString()), { mcp: 0, webmcp: 0 });
+  const byTool = new Map<string, number>();
+  let mcp = 0, webmcp = 0, failed = 0, inquiries = 0;
+  for (const row of rows) {
+    if (row.channel === "webmcp") webmcp++; else mcp++;
+    if (!row.ok) failed++;
+    if (row.tool === "create_whatsapp_inquiry" && row.ok) inquiries++;
+    byTool.set(row.tool, (byTool.get(row.tool) ?? 0) + 1);
+    const day = byDay.get(cairoDay(row.created_at));
+    if (day) day[row.channel === "webmcp" ? "webmcp" : "mcp"]++;
+  }
+  return {
+    days,
+    total: rows.length,
+    truncated: rows.length >= AGENT_USAGE_MAX_ROWS,
+    mcp,
+    webmcp,
+    failed,
+    whatsapp_inquiries: inquiries,
+    by_tool: [...byTool].map(([tool, calls]) => ({ tool, calls })).sort((a, b) => b.calls - a.calls),
+    by_day: [...byDay].map(([day, counts]) => ({ day, ...counts })),
+    recent: rows.slice(0, 25),
+  };
+}
+
 async function pendingSummary() {
   const rows = await readAll<{ id: number; entity: string; action: string; target_id: string | null; project_id: string | null; created_by: string }>(
     "admin_change_requests", "id,entity,action,target_id,project_id,created_by", "id", (q) => q.eq("status", "pending"));
@@ -1125,6 +1170,7 @@ Deno.serve(async (req: Request) => {
       case "rebuild": return reply(await rebuild(user));
       case "project_research_faq": return reply(await projectResearchFaq(body));
       case "project_research_faq_save": return reply(await saveProjectResearchFaq(user, body));
+      case "agent_usage": return reply(await agentUsage(user, body));
       default: return reply({ error: "unknown_action" }, 400);
     }
   } catch (error) {
