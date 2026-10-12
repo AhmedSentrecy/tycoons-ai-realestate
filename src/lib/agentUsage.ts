@@ -19,6 +19,9 @@ const SUPABASE_PUBLISHABLE_KEY =
 
 const LOG_TIMEOUT_MS = 2500;
 
+// Build-time tests call the real tools; they must not count as real AI usage.
+const LOGGING_DISABLED = nodeEnv.AGENT_USAGE_LOGGING === "off";
+
 export type AgentChannel = "mcp" | "webmcp";
 
 export interface AgentToolCall {
@@ -39,7 +42,10 @@ function clip(value: unknown, max: number): string | null {
 
 export function agentToolCallRow(call: AgentToolCall) {
   const tool = String(call.tool || "").toLowerCase().slice(0, 64);
-  const count = Number(call.resultCount);
+  const count =
+    call.resultCount === null || call.resultCount === undefined || call.resultCount === ""
+      ? Number.NaN
+      : Number(call.resultCount);
   return {
     channel: call.channel === "webmcp" ? "webmcp" : "mcp",
     tool: /^[a-z0-9_.-]{1,64}$/.test(tool) ? tool : "unknown",
@@ -57,6 +63,7 @@ export async function recordAgentToolCall(
   call: AgentToolCall,
   fetcher: typeof fetch = fetch,
 ): Promise<boolean> {
+  if (LOGGING_DISABLED) return false;
   try {
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
     const timer = controller ? setTimeout(() => controller.abort(), LOG_TIMEOUT_MS) : null;
