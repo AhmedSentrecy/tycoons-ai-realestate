@@ -21,7 +21,7 @@ import Calculator from "@/sections/Calculator";
 import FloatingContact from "@/components/FloatingContact";
 import { guidePath, loadProjectGuidesBySlug, type GuideLink } from "@/lib/editorialGuides";
 import { fallbackImageFor, useInventory, type InventoryUnit } from "@/lib/inventory";
-import { buildProjectFaq, isCuratedFaq, projectsFromUnits } from "@/lib/projectFaq";
+import { buildProjectFaq, isCuratedFaq, projectsFromUnits, researchFaqItems } from "@/lib/projectFaq";
 import {
   loadProjectPage,
   type ProjectPageContent,
@@ -448,7 +448,7 @@ export default function ProjectPage() {
     : buildProjectFaq(
         { name: content?.name || project.project_name, developer: content?.developer || project.developer, location: content?.location || project.location },
         projectUnits,
-        { otherProjects: faqProjects },
+        { otherProjects: faqProjects, research: researchFaqItems(content?.targeting?.research_faq) },
       );
   const baseFaq = computedFaq.length ? computedFaq : storedFaq;
   const faq = isIcityOctober
