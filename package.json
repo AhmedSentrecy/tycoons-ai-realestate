@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build && node --import tsx scripts/generate-data-pages.cjs",
     "test:search": "node --import tsx scripts/test-property-search.ts",
-    "test:mcp": "node --import tsx scripts/test-mcp-server.mjs",
+    "test:mcp": "AGENT_USAGE_LOGGING=off node --import tsx scripts/test-mcp-server.mjs",
     "test:agent-usage": "node --import tsx scripts/test-agent-usage.ts",
     "test:realtime": "node scripts/test-realtime-function.cjs && node scripts/test-voice-features.cjs",
     "test:articles": "node scripts/test-articles.cjs && node scripts/test-article-seo.cjs && node scripts/test-article-research.cjs && node scripts/test-article-raw-references.cjs && node scripts/test-article-review-server.cjs && node scripts/test-draft-review-client.cjs && node --import tsx scripts/test-article-generation-client.ts && node --import tsx scripts/test-article-autofix.mts && node --import tsx scripts/test-project-research-faq.mts && node --check netlify/functions/article-generate.cjs && node --check netlify/functions/_article-generation.cjs && node --check netlify/functions/_article-render.cjs",

@@ -36,6 +36,9 @@ assert.equal(row.result_count, 3);
 assert.equal(row.client, null);
 assert.equal(agentToolCallRow({ channel: "mcp", tool: "bad tool!", ok: true }).tool, "unknown");
 assert.equal(agentToolCallRow({ channel: "mcp", tool: "x", ok: true, resultCount: -1 }).result_count, null);
+assert.equal(agentToolCallRow({ channel: "mcp", tool: "x", ok: true, resultCount: null }).result_count, null);
+assert.equal(agentToolCallRow({ channel: "mcp", tool: "x", ok: true }).result_count, null);
+assert.equal(agentToolCallRow({ channel: "mcp", tool: "x", ok: true, resultCount: 0 }).result_count, 0);
 
 // 2) Result counting.
 assert.equal(agentResultCount({ results: [1, 2] }), 2);
@@ -102,6 +105,24 @@ const broken = withUsageLogging({
   },
 });
 await assert.rejects(() => Promise.resolve(broken.execute({})), /bad ids/);
+
+// 6) With AGENT_USAGE_LOGGING=off (used by build tests) nothing is sent at all.
+const { execFileSync } = await import("node:child_process");
+const offOutput = execFileSync(
+  process.execPath,
+  [
+    "--import",
+    "tsx",
+    "--input-type=module",
+    "-e",
+    `import { recordAgentToolCall } from "./src/lib/agentUsage.ts";
+     let calls = 0;
+     const sentOk = await recordAgentToolCall({ channel: "mcp", tool: "x", ok: true }, async () => { calls++; return new Response(null, { status: 201 }); });
+     console.log(JSON.stringify({ sentOk, calls }));`,
+  ],
+  { env: { ...process.env, AGENT_USAGE_LOGGING: "off" }, encoding: "utf8" },
+);
+assert.deepEqual(JSON.parse(offOutput.trim()), { sentOk: false, calls: 0 });
 
 globalThis.fetch = realFetch;
 console.log("Agent usage counter tests passed");
