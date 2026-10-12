@@ -284,6 +284,10 @@ async function generate<T>(token: string, idempotencyKey: string, payload: Recor
   }
 }
 
+export interface ResearchFaqItem { question: string; answer: string; sources: { url: string; title: string }[] }
+export interface ProjectFaqProposal extends ResearchFaqItem { topic: string; confidence: "official" | "corroborated" | "single" }
+export interface ProjectFaqResearchResult { faq: ProjectFaqProposal[]; excluded: (ProjectFaqProposal & { reason: string })[]; notes: string; generated_as: "project_faq" }
+
 export const adminApi = {
   login: (username: string, password: string) => call<{ token: string; user: AdminUser }>("login", { username, password }),
   me: (token: string) => call<{ user: AdminUser } & AdminSettings>("me", {}, token),
@@ -341,6 +345,12 @@ export const adminApi = {
   settings: (token: string) => call<AdminSettings>("settings", {}, token),
   saveSettings: (token: string, buildHookUrl: string) => call<AdminSettings>("save_settings", { build_hook_url: buildHookUrl }, token),
   rebuild: (token: string) => call<AdminSettings>("rebuild", {}, token),
+  projectFaqResearch: (token: string, idempotencyKey: string, projectId: string) =>
+    generate<ProjectFaqResearchResult>(token, idempotencyKey, { action: "project_faq", target_type: "project", language: "ar", project_id: projectId }),
+  projectResearchFaq: (token: string, projectId: string) =>
+    call<{ items: ResearchFaqItem[]; updated_at: string | null }>("project_research_faq", { project_id: projectId }, token),
+  projectResearchFaqSave: (token: string, projectId: string, items: ResearchFaqItem[]) =>
+    call<{ items: ResearchFaqItem[]; updated_at: string }>("project_research_faq_save", { project_id: projectId, items }, token),
 };
 
 const projectKey = (value: string | null | undefined) => String(value || "").normalize("NFKC").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "");
@@ -440,6 +450,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   build_hook_missing: "لازم تحط رابط Build Hook من الإعدادات الأول",
   invalid_build_hook: "رابط الـBuild Hook مش صحيح",
   rebuild_too_soon: "لسه عامل تحديث من أقل من 3 دقايق",
+  research_faq_invalid: "في سؤال ناقص: لازم سؤال وإجابة (20 حرف على الأقل) ومصدر واحد على الأقل",
   build_hook_failed: "Netlify رفض طلب التحديث",
   gallery_too_long: "أقصى عدد 60 صورة",
   upload_network: "النت فصل أثناء الرفع",

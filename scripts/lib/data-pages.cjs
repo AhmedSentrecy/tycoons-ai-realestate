@@ -325,7 +325,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   const description = localized?.seo_description || legacyDescription;
   const storedFaq = localized?.faq?.length ? localized.faq : arrayValue(project.faq);
   // Hand-written questions stay as they are; template ones are replaced by questions computed from the live units.
-  const computedFaq = isCuratedFaq(storedFaq) ? [] : buildProjectFaq({ name: project.name, developer: text(project.developer), location: text(project.location) }, units, faqContext);
+  const computedFaq = isCuratedFaq(storedFaq) ? [] : buildProjectFaq({ name: project.name, developer: text(project.developer), location: text(project.location) }, units, { ...faqContext, research: project.targeting?.research_faq });
   const baseFaq = computedFaq.length ? computedFaq : storedFaq.length ? storedFaq : [
     {
       question: `ما أقل سعر ظاهر حاليًا في ${project.name}؟`,

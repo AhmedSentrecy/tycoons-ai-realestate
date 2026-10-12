@@ -24,9 +24,13 @@ export interface FaqProject { name: string; developer: string; location: string 
 
 export interface OtherProject { name: string; developer: string; location: string; minPrice?: number | null }
 
+export interface ResearchFaq { question: string; answer: string; sources?: { url: string; title?: string }[] }
+
 export interface FaqContext {
   /** Other public projects that have available units. */
   otherProjects?: OtherProject[];
+  /** Web-researched questions the owner reviewed and saved for this project (projects.targeting.research_faq). */
+  research?: ResearchFaq[];
   /** Year shown in the price question; defaults to the latest unit update year. */
   year?: number;
 }
@@ -35,6 +39,23 @@ const MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "ماي�
 
 // Questions written by the old bulk template: replaced by computed ones.
 const TEMPLATE_QUESTION = /^(ما نظام سداد|كيف أتأكد من أحدث|متى استلام وحدات|أين يقع مشروع|ما أسعار .* في 20\d\d|من هو مطور|ما أنواع ومساحات الوحدات|ما أنواع الوحدات|ما أقل سعر ظاهر)/;
+
+const hostOf = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; } };
+
+/** Saved research questions, bounded and https-only (the stored JSON is treated as untrusted). */
+export function researchFaqItems(value: unknown): ResearchFaq[] {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 6).flatMap((item) => {
+    const row = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+    const question = String(row.question ?? "").trim().slice(0, 200);
+    const answer = String(row.answer ?? "").trim().slice(0, 700);
+    const sources = (Array.isArray(row.sources) ? row.sources : []).slice(0, 4).flatMap((source) => {
+      const url = String((source as Record<string, unknown>)?.url ?? "").trim();
+      return /^https:\/\//i.test(url) && hostOf(url) ? [{ url, title: String((source as Record<string, unknown>)?.title ?? "").trim().slice(0, 160) }] : [];
+    });
+    return question && answer ? [{ question, answer, sources }] : [];
+  });
+}
 
 /** True when a stored FAQ was written by hand (and should be kept as is). */
 export function isCuratedFaq(faq: FaqItem[] | null | undefined): boolean {
@@ -365,6 +386,19 @@ export function buildProjectFaq(project: FaqProject, units: FaqUnit[], context: 
         answer: `موعد الاستلام المعلن للوحدات المعروضة في ${n} ${labels} حسب الوحدة، والموعد النهائي بيتحدد في عقد الحجز.${dated}`,
       });
     }
+  }
+
+  // Researched questions (reviewed by the owner), each citing its websites.
+  // Same question as a computed one (e.g. the location): the researched answer replaces it,
+  // keeping the computed "nearby projects" line.
+  for (const item of researchFaqItems(context.research)) {
+    const hosts = [...new Set((item.sources || []).map((source) => hostOf(source.url)).filter(Boolean))].slice(0, 2);
+    const answer = `${item.answer}${hosts.length ? ` المصدر: ${hosts.join("، ")}.` : ""}`;
+    const existing = faq.find((entry) => entry.question === item.question);
+    if (existing) {
+      const nearbyLine = existing.answer.match(/ ومن المشاريع القريبة[^]*$/)?.[0] || "";
+      existing.answer = `${answer}${nearbyLine}`;
+    } else faq.push({ question: item.question, answer });
   }
 
   // 10. Developer + their other projects on the site

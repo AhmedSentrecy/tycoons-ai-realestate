@@ -714,6 +714,46 @@ async function saveMedia(user: AdminUser, body: Json) {
   return { ...outcome, values };
 }
 
+/** Web-researched buyer questions the owner reviewed for a project page (stored in projects.targeting.research_faq). */
+function cleanResearchFaq(value: unknown) {
+  if (!Array.isArray(value) || value.length > 6) throw new HttpError(400, "research_faq_invalid");
+  return value.map((raw) => {
+    const item = (raw && typeof raw === "object" ? raw : {}) as Json;
+    const question = text(item.question).slice(0, 200);
+    const answer = text(item.answer).slice(0, 700);
+    const sources = (Array.isArray(item.sources) ? item.sources : []).slice(0, 4).map((source) => {
+      const row = (source && typeof source === "object" ? source : {}) as Json;
+      return { url: text(row.url).slice(0, 500), title: text(row.title).slice(0, 160) };
+    }).filter((source) => /^https:\/\/[^\s/]+\.[^\s]+$/i.test(source.url));
+    if (!question || answer.length < 20 || !sources.length) throw new HttpError(400, "research_faq_invalid");
+    return { question, answer, sources };
+  });
+}
+
+async function projectResearchFaq(body: Json) {
+  const id = text(body.project_id);
+  if (!id) throw new HttpError(400, "project_id_required");
+  const { data, error } = await db.from("projects").select("id,targeting").eq("id", id).single();
+  fail(error);
+  const targeting = ((data as Json)?.targeting && typeof (data as Json).targeting === "object" ? (data as Json).targeting : {}) as Json;
+  return { items: Array.isArray(targeting.research_faq) ? targeting.research_faq : [], updated_at: text(targeting.research_faq_updated_at) || null };
+}
+
+async function saveProjectResearchFaq(user: AdminUser, body: Json) {
+  requireOwner(user);
+  const id = text(body.project_id);
+  if (!id) throw new HttpError(400, "project_id_required");
+  const items = cleanResearchFaq(body.items);
+  const { data, error } = await db.from("projects").select("id,name,targeting").eq("id", id).single();
+  fail(error);
+  const row = data as Json;
+  const targeting = (row.targeting && typeof row.targeting === "object" ? row.targeting : {}) as Json;
+  const updatedAt = new Date().toISOString();
+  const next = { ...targeting, research_faq: items, research_faq_updated_at: updatedAt };
+  fail((await db.from("projects").update({ targeting: next, last_updated_at: updatedAt }).eq("id", id)).error);
+  return { items, updated_at: updatedAt };
+}
+
 /** A project only gets a public page once it has a slug, so new projects get one right away. */
 async function uniqueSlug(base: string) {
   const root = base || "project";
@@ -1083,6 +1123,8 @@ Deno.serve(async (req: Request) => {
       case "settings": return reply(await settings());
       case "save_settings": return reply(await saveSettings(user, body));
       case "rebuild": return reply(await rebuild(user));
+      case "project_research_faq": return reply(await projectResearchFaq(body));
+      case "project_research_faq_save": return reply(await saveProjectResearchFaq(user, body));
       default: return reply({ error: "unknown_action" }, 400);
     }
   } catch (error) {
