@@ -16,7 +16,7 @@ const hostOf = (url: string) => { try { return new URL(url).hostname.replace(/^w
 
 /** Buyer questions per project: the automatic ones (from units) plus researched ones the owner reviews and saves. */
 export default function ProjectFaqTab({ projects }: { projects: AdminProject[] }) {
-  const { token, isOwner, notify, handleError } = useAdmin();
+  const { token, notify, handleError } = useAdmin();
   const list = useMemo(
     () => hideLegacyDuplicates(projects).filter((project) => project.slug).sort((a, b) => a.name.localeCompare(b.name)),
     [projects],
@@ -88,12 +88,9 @@ export default function ProjectFaqTab({ projects }: { projects: AdminProject[] }
       setSaved(result.items);
       setSavedAt(result.updated_at);
       setProposals((current) => current.filter((item) => !result.items.some((kept) => kept.question === item.question)));
-      try {
-        await adminApi.rebuild(token);
-        notify("اتحفظت. الموقع بيتحدّث دلوقتي والأسئلة هتظهر في صفحة المشروع خلال دقايق.");
-      } catch {
-        notify("اتحفظت. اضغط «حدّث الموقع» علشان تظهر في صفحة المشروع.");
-      }
+      notify(result.rebuilt
+        ? "اتحفظت. الموقع بيتحدّث دلوقتي والأسئلة هتظهر في صفحة المشروع خلال دقايق."
+        : "اتحفظت. الموقع لسه متحدّث من شوية، فهتظهر في صفحة المشروع مع التحديث الجاي.");
     } catch (error) {
       handleError(error);
     } finally {
@@ -181,12 +178,11 @@ export default function ProjectFaqTab({ projects }: { projects: AdminProject[] }
                 {tooMany && <p className="mt-3 rounded-xl bg-red-50 p-2 text-sm font-bold text-red-700">أقصى عدد 6 أسئلة بحثية للمشروع. شيل العلامة من {merged.length - 6}.</p>}
                 <button
                   onClick={() => void save(merged)}
-                  disabled={!isOwner || saving || !selected.length || tooMany || selected.some((item) => !item.question.trim() || item.answer.trim().length < 20)}
+                  disabled={saving || !selected.length || tooMany || selected.some((item) => !item.question.trim() || item.answer.trim().length < 20)}
                   className="mt-3 rounded-xl bg-[#1faa59] px-5 py-2 font-black text-white disabled:opacity-50"
                 >
                   {saving ? "بيحفظ…" : `احفظ وانشر (${selected.length})`}
                 </button>
-                {!isOwner && <p className="mt-2 text-xs text-[#5c6a62]">الحفظ للمالك بس.</p>}
               </div>
             )}
 
@@ -198,9 +194,7 @@ export default function ProjectFaqTab({ projects }: { projects: AdminProject[] }
                     <div key={index} className="rounded-2xl bg-[#f7f2ea] p-3">
                       <div className="flex items-start justify-between gap-2">
                         <p className="font-bold">{item.question}</p>
-                        {isOwner && (
-                          <button disabled={saving} onClick={() => void save(saved.filter((_, i) => i !== index))} className="shrink-0 rounded-lg border px-2 py-1 text-xs font-bold disabled:opacity-50">شيله</button>
-                        )}
+                        <button disabled={saving} onClick={() => void save(saved.filter((_, i) => i !== index))} className="shrink-0 rounded-lg border px-2 py-1 text-xs font-bold disabled:opacity-50">شيله</button>
                       </div>
                       <p className="mt-1 text-sm text-[#36423b]">{item.answer}</p>
                       <p className="mt-1 text-xs text-[#5c6a62]">{item.sources.map((source) => hostOf(source.url)).join("، ")}</p>

@@ -373,7 +373,7 @@ export const adminApi = {
   projectResearchFaq: (token: string, projectId: string) =>
     call<{ items: ResearchFaqItem[]; updated_at: string | null }>("project_research_faq", { project_id: projectId }, token),
   projectResearchFaqSave: (token: string, projectId: string, items: ResearchFaqItem[]) =>
-    call<{ items: ResearchFaqItem[]; updated_at: string }>("project_research_faq_save", { project_id: projectId, items }, token),
+    call<{ items: ResearchFaqItem[]; updated_at: string; rebuilt: boolean }>("project_research_faq_save", { project_id: projectId, items }, token),
 };
 
 const projectKey = (value: string | null | undefined) => String(value || "").normalize("NFKC").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "");
