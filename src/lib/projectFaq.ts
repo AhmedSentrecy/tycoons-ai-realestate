@@ -394,7 +394,9 @@ export function buildProjectFaq(project: FaqProject, units: FaqUnit[], context: 
   for (const item of researchFaqItems(context.research)) {
     const hosts = [...new Set((item.sources || []).map((source) => hostOf(source.url)).filter(Boolean))].slice(0, 2);
     const answer = `${item.answer}${hosts.length ? ` المصدر: ${hosts.join("، ")}.` : ""}`;
-    const existing = faq.find((entry) => entry.question === item.question);
+    // The location question is matched by meaning ("... فين بالظبط؟"), not exact wording.
+    const existing = faq.find((entry) => entry.question === item.question)
+      || (/فين/.test(item.question) ? faq.find((entry) => entry.question === `${n} فين بالظبط؟`) : undefined);
     if (existing) {
       const nearbyLine = existing.answer.match(/ ومن المشاريع القريبة[^]*$/)?.[0] || "";
       existing.answer = `${answer}${nearbyLine}`;

@@ -46,6 +46,9 @@ const replaced = withResearch.find((item) => item.question === "Bleu Vert فين
 check(replaced && replaced.answer.includes("R7") && replaced.answer.includes("المصدر: sed.com.eg."), "researched answer cites its website");
 const other = { question: "مساحة Bleu Vert قد إيه؟", answer: "يقام Bleu Vert على مساحة 50 فدان في العاصمة الإدارية الجديدة حسب موقع المطور.", sources: good.sources };
 check(buildProjectFaq(project, units, { research: [other] }).length === plain.length + 1, "a new researched question is added");
+const reworded = buildProjectFaq(project, units, { research: [{ ...other, question: "موقع Bleu Vert فين؟" }] });
+check(reworded.length === plain.length && reworded.some((item) => item.question === "Bleu Vert فين بالظبط؟" && item.answer.includes("50 فدان")), "a reworded location question replaces the computed location answer");
+check(/never transliterated into Arabic/.test(request.input[0].content), "keeps project names in Latin letters");
 check(withResearch[withResearch.length - 1].question.startsWith("مين مطور"), "developer question stays last");
 check(researchFaqItems([{ question: "x؟", answer: "y", sources: [{ url: "javascript:alert(1)" }] }])[0].sources?.length === 0, "unsafe source links are dropped");
 check(researchFaqItems("bad").length === 0 && researchFaqItems(new Array(10).fill({ question: "q", answer: "a" })).length === 6, "stored value is bounded");
