@@ -122,6 +122,7 @@ export default function Footer() {
                 { label: tr("الأسئلة الشائعة"), to: "/faq" },
                 { label: tr("منهجية البيانات"), to: "/methodology", external: true },
                 { label: tr("سياسة التصحيح"), to: "/corrections", external: true },
+                { label: tr("سياسة الخصوصية"), to: "/privacy", external: true },
                 { label: tr("تواصل معنا"), to: "https://wa.me/201200704344", external: true },
               ].map((it) => (
                 <li key={it.label}>

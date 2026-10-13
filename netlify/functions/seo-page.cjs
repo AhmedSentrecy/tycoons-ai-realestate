@@ -89,7 +89,7 @@ exports.handler = async function handler(event) {
   const route = originalPath.match(/^\/(ar|en)\/(projects|areas|developers)\/(.+?)\/?$/);
   const unitRoute = originalPath.match(/^\/units\/(.+?)\/?$/);
   const guideRoute = originalPath.match(/^\/(?:(en)\/)?guides\/(.+?)\/?$/);
-  const staticRoute = originalPath.match(/^\/(about|faq|methodology|corrections|contact)\/?$/);
+  const staticRoute = originalPath.match(/^\/(about|faq|methodology|corrections|contact|privacy)\/?$/);
   const directoryRoute = originalPath.match(/^\/(ar|en)(?:\/directory)?\/?$/);
 
   const lang = route?.[1] === "en" || directoryRoute?.[1] === "en" || guideRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
