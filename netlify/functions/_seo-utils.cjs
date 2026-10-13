@@ -193,7 +193,7 @@ const AREA_SEARCH_CONTENT = {
       ],
     },
     en: {
-      title: ({ minFmt, plural }) => `Mostakbal City Map 2026: Projects, Developers & Prices from ${minFmt} (${plural}) | Tycoons`,
+      title: ({ minFmt, plural }) => `Mostakbal City Map & Projects 2026 | Tycoons`,
       description: ({ minFmt, plural }) => `Mostakbal City map and location, master plan and phases, and ${plural} by developer starting from ${minFmt}. Compare projects, units and payment plans in one updated guide.`,
       map: { heading: "Mostakbal City map", query: "Mostakbal City, New Cairo, Egypt", locality: "Mostakbal City, New Cairo" },
       sections: [
@@ -791,6 +791,7 @@ function renderPage({
   return `<!doctype html>
 <html lang="${lang}" dir="${ar ? "rtl" : "ltr"}"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/png" href="/images/logo.png">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${robots}">
 <link rel="canonical" href="${escapeHtml(canonical)}">
