@@ -550,7 +550,8 @@ async function fetchDevelopers() {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 6000);
   try {
-    const params = new URLSearchParams({ select: "slug,name,name_ar,aliases,parent_slug,website,logo_path,logo_on_dark,about_ar,about_en", limit: "500" });
+    // `website` and logo source URLs stay in Supabase only: the site never shows another website.
+    const params = new URLSearchParams({ select: "slug,name,name_ar,aliases,parent_slug,logo_path,logo_on_dark,about_ar,about_en", limit: "500" });
     const response = await fetch(`${SUPABASE_URL}/rest/v1/developers?${params}`, {
       headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
       signal: controller.signal,
@@ -1259,7 +1260,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
     kind === "area"
       ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${searchContent?.map ? `<section><h2>${escapeHtml(searchContent.map.heading)}</h2><iframe title="${escapeHtml(searchContent.map.heading)}" src="https://www.google.com/maps?q=${encodeURIComponent(searchContent.map.query)}&amp;output=embed" width="100%" height="360" style="border:0;border-radius:16px" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p><a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(searchContent.map.query)}" target="_blank" rel="noopener">${ar ? "افتح الخريطة على Google Maps" : "Open in Google Maps"}</a></p></section>` : ""}${(searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}`
       : devInfo && (ar ? devInfo.about_ar : devInfo.about_en)
-        ? `<h2>${ar ? `عن ${escapeHtml(devInfo.name_ar || devInfo.name)}` : `About ${escapeHtml(devInfo.name)}`}</h2><p>${escapeHtml(ar ? devInfo.about_ar : devInfo.about_en)}</p>${devInfo.website ? `<p class="note">${ar ? "الموقع الرسمي للمطور" : "Developer's official website"}: <a href="${escapeHtml(devInfo.website)}" rel="nofollow noopener" target="_blank">${escapeHtml(devInfo.website.replace(/^https:\/\//, ""))}</a></p>` : ""}`
+        ? `<h2>${ar ? `عن ${escapeHtml(devInfo.name_ar || devInfo.name)}` : `About ${escapeHtml(devInfo.name)}`}</h2><p>${escapeHtml(ar ? devInfo.about_ar : devInfo.about_en)}</p>`
         : "";
   const editorialSection = editorial?.sections?.length ? renderLocalizedSections(editorial.sections, { escapeHtml, replaceTokens: (value) => value }) : "";
   // Buyer-question guides about this area's projects (or the area itself), linked under the FAQ.
@@ -1361,7 +1362,6 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
         "@type": "Organization",
         name: devInfo.name,
         alternateName: [...new Set([devInfo.name_ar, ...(Array.isArray(devInfo.aliases) ? devInfo.aliases : [])].filter((value) => value && value !== devInfo.name))],
-        ...(devInfo.website ? { url: devInfo.website, sameAs: [devInfo.website] } : {}),
         ...(devInfo.logo_path ? { logo: brandLogoUrl(devInfo.logo_path) } : {}),
         ...(devInfo.about_en || devInfo.about_ar ? { description: ar ? devInfo.about_ar : devInfo.about_en } : {}),
       }] : []),
