@@ -23,11 +23,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install dependencies
+      - name: Install dependencies using the existing Netlify policy
         run: |
           corepack enable
           corepack prepare yarn@1.22.22 --activate
-          yarn install --frozen-lockfile --non-interactive
+          yarn install --non-interactive
       - name: Website tests and production build
         env:
           AGENT_USAGE_LOGGING: 'off'
@@ -35,6 +35,9 @@ jobs:
         run: |
           set -o pipefail
           yarn run check 2>&1 | tee "$RUNNER_TEMP/website-check.log"
+      - name: Rendered browser smoke tests
+        if: hashFiles('scripts/test-render-browser.cjs') != ''
+        run: node scripts/test-render-browser.cjs
       - name: Save check evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -43,4 +46,5 @@ jobs:
           path: |
             ${{ runner.temp }}/tested-source.tar.gz
             ${{ runner.temp }}/website-check.log
+            browser-check-evidence/
           retention-days: 7
