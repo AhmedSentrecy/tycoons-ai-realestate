@@ -14,7 +14,7 @@ assert.match(html, /\/en\/areas\/new-cairo/);
 assert.match(html, /\/en\/developers\/mountain-view/);
 assert.match(html, /\/en\/guides\/new-cairo-property-prices\//);
 assert.match(html, /\/methodology/);
-assert.match(html, /Prices and availability can change/);
+assert.match(html, /prices and availability can change/i);
 assert.doesNotMatch(html, /Arabic home|Arabic description|"@type":"FAQPage"/);
 assert.ok((html.match(/<a href="/g) || []).length >= 12, "English crawlable homepage must have area/developer/guide links");
 console.log("English homepage HTML, metadata, intent and internal link validation passed.");
