@@ -3,7 +3,7 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
 const { renderProjectStatic, renderUnitStatic, pageShell } = require("./lib/data-pages.cjs");
-const { editorialArticleView } = require("../netlify/functions/_seo-utils.cjs");
+const { editorialArticleView, fetchDevelopers, projectLogo } = require("../netlify/functions/_seo-utils.cjs");
 const { projectAliases } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
 const { projectsFromUnits } = require("../src/lib/projectFaq.ts");
@@ -40,15 +40,18 @@ async function main() {
   const shell = await fs.readFile(path.join(dist, "index.html"), "utf8");
   await writePage("en/index.html", require("./lib/english-home.cjs")(shell));
   const [projects, units] = await Promise.all([
-    fetchRows("projects", "id,name,slug,developer,location,description,status,min_price,down_payment_text,installments_text,delivery_text,hero_text,seo_title,seo_description,seo_keywords,targeting,article_sections,faq,highlights,image_url,gallery_urls,video_url,last_updated_at"),
+    fetchRows("projects", "id,name,slug,developer,location,description,status,min_price,down_payment_text,installments_text,delivery_text,hero_text,seo_title,seo_description,seo_keywords,targeting,article_sections,faq,highlights,image_url,gallery_urls,video_url,last_updated_at,logo_path,logo_on_dark"),
     fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,brochure_url,video_url,last_updated_at", { availability_status: "eq.available", project_id: "not.is.null" }),
+    fetchDevelopers(),
   ]);
   // Only rows with a stored slug become pages: legacy duplicate rows without a
   // slug would otherwise collide with the canonical row via the generated slug
   // and overwrite its rich page.
   const normalizedProjects = projects
     .filter((project) => String(project.slug || "").trim())
-    .map((project) => ({ ...project, slug: String(project.slug).trim() }));
+    .map((project) => ({ ...project, slug: String(project.slug).trim() }))
+    // Project logo, else the developer logo (Supabase brand-logos); pages render without it.
+    .map((project) => ({ ...project, logo: projectLogo(project) }));
   const projectById = new Map(normalizedProjects.map((project) => [project.id, project]));
   const indexableIds = indexableUnitIds(units);
   const unitsByProject = new Map();

@@ -4,6 +4,7 @@ const {
   CACHE_HEADERS,
   fetchUnits,
   fetchProjectsMeta,
+  fetchDevelopers,
   groupProjects,
   renderDirectory,
   renderProject,
@@ -129,6 +130,7 @@ exports.handler = async function handler(event) {
       const [units, projectsMeta] = await Promise.all([
         fetchUnits(),
         fetchProjectsMeta({ strict: type === "project" }),
+        fetchDevelopers(),
       ]);
       const projects = groupProjects(units, projectsMeta);
       if (type === "home") html = renderDirectory(projects, lang);

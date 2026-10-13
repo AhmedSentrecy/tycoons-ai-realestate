@@ -588,6 +588,11 @@ export default function ProjectPage() {
                   {project.location}
                 </a>
               </div>
+              {content?.logo_url && (
+                <span className={`mt-5 inline-flex h-14 items-center rounded-xl px-3.5 py-2 ${content.logo_on_dark ? "border border-white/20" : "bg-white"}`}>
+                  <img src={content.logo_url} alt={`${project.project_name} logo`} className="h-10 w-auto max-w-[220px] object-contain" decoding="async" />
+                </span>
+              )}
               <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-tight sm:text-4xl">
                 {localizedArabic?.h1 || project.project_name}
               </h1>
