@@ -16,6 +16,164 @@
   status = 301
   force = true
 
+# Old URLs still 404ing in GSC (Oct 2026): retired compare pages, renamed slugs,
+# merged developers and old trust pages. Each points at its closest live page.
+[[redirects]]
+  from = "/compare/aliva-vs-bloomfields"
+  to = "/projects/mountain-view-aliva--mountain-view"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/aliva-vs-eastvale-mostakbal"
+  to = "/projects/mountain-view-aliva--mountain-view"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/31north-vs-amazon-diamond-tower"
+  to = "/projects/31north-tri-t--nile-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/creekview-vs-acasa-mia"
+  to = "/projects/mountain-view-creek-view--mountain-view"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/taj-city-vs-bloomfields"
+  to = "/projects/taj-city--madinet-masr"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/97-hills-vs-grand-valleys"
+  to = "/projects/97-hills--palm-hills-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/badya-vs-mountain-view-zayed"
+  to = "/projects/badya--palm-hills-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/hydepark-vs-mountain-view-new-cairo"
+  to = "/projects/hydepark-new-cairo--hydepark-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare"
+  to = "/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/*"
+  to = "/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/projects/hyde-park-new-cairo-new-launch--hyde-park-developments"
+  to = "/en/projects/hyde-park-new-cairo-new-launch"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/projects/mountain-view-grand-valleys--mountain-view"
+  to = "/en/projects/grand-valleys--mountain-view"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/south-90th-street"
+  to = "/ar/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/areas/south-90th-street"
+  to = "/en/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/east-cairo-القاهرة-الجديدة"
+  to = "/ar/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/east-cairo-%D8%A7%D9%84%D9%82%D8%A7%D9%87%D8%B1%D8%A9-%D8%A7%D9%84%D8%AC%D8%AF%D9%8A%D8%AF%D8%A9"
+  to = "/ar/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/6th-settlement-east-cairo-القاهرة-الجديدة"
+  to = "/ar/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/6th-settlement-east-cairo-%D8%A7%D9%84%D9%82%D8%A7%D9%87%D8%B1%D8%A9-%D8%A7%D9%84%D8%AC%D8%AF%D9%8A%D8%AF%D8%A9"
+  to = "/ar/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/developers/palm-hills"
+  to = "/ar/developers/palm-hills-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/developers/palm-hills"
+  to = "/en/developers/palm-hills-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/developers/people-places"
+  to = "/ar/developers/people-and-places"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/developers/people-places"
+  to = "/en/developers/people-and-places"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/guides/payment-plans-egypt"
+  to = "/guides/payment-plan-comparison/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/guides/payment-plans-egypt"
+  to = "/guides/payment-plan-comparison/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/data-sources"
+  to = "/methodology"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/editorial-policy"
+  to = "/corrections"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/sitemap.xml"
   to = "/.netlify/functions/sitemap"
@@ -172,6 +330,11 @@
 [[redirects]]
   from = "/about"
   to = "/.netlify/functions/seo-page?lang=ar&type=static&slug=about"
+  status = 200
+
+[[redirects]]
+  from = "/privacy"
+  to = "/.netlify/functions/seo-page?lang=ar&type=static&slug=privacy"
   status = 200
 
 [[redirects]]

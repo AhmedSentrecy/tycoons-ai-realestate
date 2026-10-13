@@ -70,6 +70,7 @@ exports.handler = async function handler() {
       [`${SITE_URL}/faq`, null],
       [`${SITE_URL}/methodology`, "2026-07-26"],
       [`${SITE_URL}/corrections`, "2026-07-26"],
+      [`${SITE_URL}/privacy`, "2026-10-13"],
       [`${SITE_URL}/contact`, "2026-07-26"],
       [`${SITE_URL}/ar/`, null],
       [`${SITE_URL}/en/`, null],
