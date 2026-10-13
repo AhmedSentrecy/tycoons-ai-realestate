@@ -542,12 +542,63 @@ async function fetchUnits() {
   }
 }
 
+// Canonical developer brands (Supabase `developers`): Arabic name, aliases, logo,
+// website and a short verified intro. Cached like projects; pages work without it.
+let developersCache = { rows: null, fetchedAt: 0 };
+async function fetchDevelopers() {
+  if (developersCache.rows && Date.now() - developersCache.fetchedAt < 15 * 60 * 1000) return developersCache.rows;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+  try {
+    // `website` and logo source URLs stay in Supabase only: the site never shows another website.
+    const params = new URLSearchParams({ select: "slug,name,name_ar,aliases,parent_slug,logo_path,logo_on_dark,about_ar,about_en", limit: "500" });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/developers?${params}`, {
+      headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`developers ${response.status}`);
+    const rows = await response.json();
+    if (!Array.isArray(rows)) throw new Error("developers invalid");
+    developersCache = { rows, fetchedAt: Date.now() };
+    return rows;
+  } catch {
+    return developersCache.rows || [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function developerInfo(nameOrSlug) {
+  const rows = developersCache.rows || [];
+  const key = String(nameOrSlug || "").trim().toLowerCase();
+  if (!key) return null;
+  return rows.find((row) => row.slug === key || slugify(row.name) === slugify(key)
+    || (Array.isArray(row.aliases) && row.aliases.some((alias) => String(alias).trim().toLowerCase() === key || slugify(alias) === slugify(key)))) || null;
+}
+
+function brandLogoUrl(path) {
+  return path ? `${SUPABASE_URL}/storage/v1/object/public/brand-logos/${String(path).split("/").map(encodeURIComponent).join("/")}` : "";
+}
+
+// Project logo first, then the developer logo; null when neither exists.
+function projectLogo(project) {
+  if (project?.logo_path) return { src: brandLogoUrl(project.logo_path), dark: Boolean(project.logo_on_dark), alt: `${project.name} logo` };
+  const developer = developerInfo(project?.developer);
+  if (developer?.logo_path) return { src: brandLogoUrl(developer.logo_path), dark: Boolean(developer.logo_on_dark), alt: `${developer.name} logo` };
+  return null;
+}
+
+function logoBadge(logo, height = 28) {
+  if (!logo) return "";
+  return `<span class="brand-logo${logo.dark ? " on-dark" : ""}"><img src="${escapeHtml(logo.src)}" alt="${escapeHtml(logo.alt)}" height="${height}" loading="lazy" decoding="async"></span>`;
+}
+
 async function fetchProjectsMeta({ strict = false } = {}) {
   if (projectsCache.projects && Date.now() - projectsCache.fetchedAt < 15 * 60 * 1000) return projectsCache.projects;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8500);
   try {
-    const params = new URLSearchParams({ select: "id,name,slug,developer,location,image_url,gallery_urls,targeting", limit: "1000" });
+    const params = new URLSearchParams({ select: "id,name,slug,developer,location,image_url,gallery_urls,targeting,logo_path,logo_on_dark", limit: "1000" });
     const response = await fetch(`${SUPABASE_URL}/rest/v1/projects?${params}`, {
       headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
       signal: controller.signal,
@@ -588,6 +639,8 @@ function groupProjects(units, projectsMeta = []) {
         image_url: clean(meta.image_url, ""),
         gallery_urls: clean(meta.gallery_urls, ""),
         targeting: meta.targeting && typeof meta.targeting === "object" && !Array.isArray(meta.targeting) ? meta.targeting : {},
+        logo_path: clean(meta.logo_path, ""),
+        logo_on_dark: meta.logo_on_dark === true,
         units: [],
       });
     }
@@ -713,7 +766,7 @@ function styles() {
   header{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px max(20px,calc((100% - 1180px)/2));background:var(--green);color:#fff}header a{text-decoration:none;font-weight:700}.brand{white-space:nowrap;letter-spacing:.03em}nav{display:flex;flex-wrap:wrap;align-items:center;gap:16px}.language-switch{display:inline-flex;align-items:center;gap:4px;padding:4px;border:1px solid rgba(255,255,255,.24);border-radius:999px}.language-switch a{padding:3px 8px;border-radius:999px;font-size:13px}.language-switch a[aria-current="page"]{background:rgba(255,255,255,.18)}
   main{width:min(1120px,calc(100% - 32px));margin:auto;padding:34px 0 70px}.hero,.panel,.card,.table,.answer{background:#fff;border:1px solid var(--line);border-radius:24px}
   .hero{padding:clamp(24px,5vw,52px)}h1{margin:8px 0 18px;font-size:clamp(32px,5vw,54px);line-height:1.2;color:var(--green)}h2{margin:40px 0 16px;color:var(--green)}.lead{font-size:18px;color:var(--muted)}.eyebrow{color:#8a6630;font-weight:800}
-  .answer{padding:22px 24px;margin:24px 0;background:#fffaf1}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{padding:18px;text-decoration:none}.card img{width:100%;height:180px;object-fit:cover;border-radius:16px}.card p{color:var(--muted)}
+  .answer{padding:22px 24px;margin:24px 0;background:#fffaf1}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{padding:18px;text-decoration:none}.card img{width:100%;height:180px;object-fit:cover;border-radius:16px}.card p{color:var(--muted)}.brand-logo{display:inline-flex;align-items:center;height:44px;padding:6px 12px;margin:12px 0 2px;border:1px solid var(--line);border-radius:12px;background:#fff}.brand-logo.on-dark{background:#0d1f18;border-color:#0d1f18}.brand-logo img,.card .brand-logo img{width:auto;height:28px;max-width:160px;object-fit:contain;border-radius:0}.hero .brand-logo{height:56px}.hero .brand-logo img{height:40px;max-width:220px}
   .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:24px}.fact{padding:14px;border:1px solid var(--line);border-radius:15px}.fact small{display:block;color:var(--muted)}.cta{display:inline-block;margin-top:18px;padding:11px 18px;border-radius:999px;background:#1faa59;color:#fff;text-decoration:none;font-weight:800}
   .table{overflow:auto}.table table{width:100%;min-width:760px;border-collapse:collapse}.table th,.table td{padding:13px 15px;text-align:start;border-bottom:1px solid var(--line)}.table th{background:#efe7d8}.updated,.note,.crumbs{font-size:13px;color:var(--muted)}
   .guide section{padding:22px 0;border-bottom:1px solid var(--line)}footer{padding:36px max(20px,calc((100% - 1180px)/2));background:var(--green);color:#fff}footer a{margin-inline-end:14px}
@@ -775,6 +828,7 @@ function cards(projects, lang) {
       const projectPath = ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`;
       return `<a class="card" href="${projectPath}">
       ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(project.name)}" loading="lazy" width="640" height="360">` : ""}
+      ${logoBadge(projectLogo(project))}
       <h3>${escapeHtml(project.name)}</h3><p>${escapeHtml(project.developer)} · ${escapeHtml(projectLocation(project))}</p>
       <strong>${ar ? "يبدأ من" : "Starting from"} ${escapeHtml(formatPrice(projectMinPrice(project), lang))}</strong></a>`;
     })
@@ -864,7 +918,7 @@ function renderProject(projects, slug, lang) {
   const projectFaq = localizedContent?.faq?.length?localizedContent.faq.map((item)=>[item.question,item.answer]):(searchContent?.faq?.(contentVars) || []);
   const visibleProjectFaq = localizedContent?.article_sections?.length ? [] : projectFaq;
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
-  <section class="hero"><span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(localizedContent?.h1 || project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
+  <section class="hero">${logoBadge(projectLogo(project), 40)}<span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(localizedContent?.h1 || project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
   ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:cover;border-radius:20px" fetchpriority="high">` : ""}
   <div class="facts">${hasUnits ? `<div class="fact"><small>${ar ? "يبدأ من" : "Starting from"}</small><strong>${escapeHtml(formatPrice(minPrice, lang))}</strong></div>
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
@@ -1169,7 +1223,8 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const areaFacts = rawAreaFacts && !ar
     ? { context: rawAreaFacts.contextEn || rawAreaFacts.context, buyerNote: rawAreaFacts.buyerNoteEn || rawAreaFacts.buyerNote }
     : rawAreaFacts;
-  const label = kind === "area" ? (ar ? area.ar : area.en) : matches[0].developer;
+  const devInfo = kind === "developer" ? developerInfo(slug) || developerInfo(matches[0].developer) : null;
+  const label = kind === "area" ? (ar ? area.ar : area.en) : (ar ? devInfo?.name_ar || devInfo?.name : devInfo?.name) || matches[0].developer;
   const plural = matches.length === 1 ? (ar ? "مشروع واحد" : "1 project") : ar ? `${matches.length} مشروع` : `${matches.length} projects`;
   const path = `/${lang}/${kind === "area" ? "areas" : "developers"}/${slug}`;
   const alternatePath = `/${ar ? "en" : "ar"}/${kind === "area" ? "areas" : "developers"}/${slug}`;
@@ -1180,10 +1235,19 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const minFmt = formatPrice(min, lang);
   const searchContent = kind === "area" ? AREA_SEARCH_CONTENT[area.slug]?.[lang] : null;
   const editorial = kind === "developer" ? developerContent(slug, lang) : null;
-  const legacyTitle = searchContent?.title?.({ minFmt, plural }) || (ar
+  const devAreas = kind === "developer"
+    ? [...new Set(matches.map((project) => { const a = areaFor(projectLocation(project)); return a.indexable ? (ar ? a.ar : a.en) : ""; }).filter(Boolean))].slice(0, 4)
+    : [];
+  const devTitle = devInfo && (ar
+    ? `مشاريع ${devInfo.name_ar || devInfo.name} (${devInfo.name}) 2026 — الأسعار وأنظمة السداد | Tycoons`
+    : `${devInfo.name} Projects 2026 — Prices, Compounds & Payment Plans | Tycoons`);
+  const devDescription = devInfo && (ar
+    ? `${plural} من ${devInfo.name_ar || devInfo.name} بأسعار تبدأ من ${minFmt}${devAreas.length ? ` في ${devAreas.join(" و")}` : ""}. قارن الكمبوندات والوحدات المتاحة وأنظمة السداد والاستلام في مكان واحد.`
+    : `${plural} by ${devInfo.name} starting from ${minFmt}${devAreas.length ? ` in ${devAreas.join(", ")}` : ""}. Compare compounds, available units, payment plans and delivery in one place.`);
+  const legacyTitle = devTitle || searchContent?.title?.({ minFmt, plural }) || (ar
     ? `مشاريع ${label} 2026 — أسعار من ${minFmt} (${plural}) | Tycoons`
     : `${label} projects 2026 — prices from ${minFmt} (${plural}) | Tycoons`);
-  const legacyDescription = searchContent?.description?.({ minFmt, plural }) || (ar
+  const legacyDescription = devDescription || searchContent?.description?.({ minFmt, plural }) || (ar
     ? `${plural} في ${label} بأسعار تبدأ من ${minFmt}. قارن السعر والمساحة وخطة السداد والاستلام لكل مشروع في مكان واحد.`
     : `${plural} in ${label} starting from ${minFmt}. Compare price, size, payment plan and delivery for each project in one place.`);
   const title = editorial?.seo_title || legacyTitle;
@@ -1195,7 +1259,9 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const contextSection =
     kind === "area"
       ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${searchContent?.map ? `<section><h2>${escapeHtml(searchContent.map.heading)}</h2><iframe title="${escapeHtml(searchContent.map.heading)}" src="https://www.google.com/maps?q=${encodeURIComponent(searchContent.map.query)}&amp;output=embed" width="100%" height="360" style="border:0;border-radius:16px" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p><a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(searchContent.map.query)}" target="_blank" rel="noopener">${ar ? "افتح الخريطة على Google Maps" : "Open in Google Maps"}</a></p></section>` : ""}${(searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}`
-      : "";
+      : devInfo && (ar ? devInfo.about_ar : devInfo.about_en)
+        ? `<h2>${ar ? `عن ${escapeHtml(devInfo.name_ar || devInfo.name)}` : `About ${escapeHtml(devInfo.name)}`}</h2><p>${escapeHtml(ar ? devInfo.about_ar : devInfo.about_en)}</p>`
+        : "";
   const editorialSection = editorial?.sections?.length ? renderLocalizedSections(editorial.sections, { escapeHtml, replaceTokens: (value) => value }) : "";
   // Buyer-question guides about this area's projects (or the area itself), linked under the FAQ.
   const matchIds = new Set(matches.map((project) => String(project.id || "")).filter(Boolean));
@@ -1250,8 +1316,29 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
           ],
           ...(searchContent?.faq || []),
         ]
-      : [];
-  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(editorial?.h1 || label)}</h1>
+      : devInfo
+        ? [
+            [
+              ar ? `أسعار مشاريع ${label} بتبدأ من كام؟` : `What is the starting price of ${label} projects?`,
+              ar
+                ? `أقل سعر ظاهر حاليًا في مشاريع ${label} عندنا ${minFmt}، وأعلى سعر ${escapeHtml(formatPrice(max, lang))}، حسب المشروع ونوع الوحدة. السعر النهائي يتأكد مع المطور وقت الطلب.`
+                : `The lowest price currently listed for ${label} projects is ${minFmt} and the highest is ${escapeHtml(formatPrice(max, lang))}, depending on the project and unit type. Confirm the final price with the developer at inquiry time.`,
+            ],
+            [
+              ar ? `كام مشروع لـ ${label} متاح حاليًا؟` : `How many ${label} projects are available now?`,
+              ar
+                ? `عندنا ${plural} لـ ${label} فيها وحدات متاحة دلوقتي${devAreas.length ? `، في ${devAreas.join(" و")}` : ""}. القائمة كاملة تحت.`
+                : `We have ${plural} by ${label} with units available now${devAreas.length ? `, in ${devAreas.join(", ")}` : ""}. The full list is below.`,
+            ],
+            [
+              ar ? `إزاي أحجز وحدة في مشاريع ${label}؟` : `How do I reserve a unit in a ${label} project?`,
+              ar
+                ? `اختار المشروع والوحدة من القائمة، وكلّم فريق Tycoons على واتساب يأكدلك السعر ونظام السداد والتوافر وقت طلبك قبل أي دفع.`
+                : `Pick the project and unit from the list, then message the Tycoons team on WhatsApp to confirm the price, payment plan and availability before any payment.`,
+            ],
+          ]
+        : [];
+  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero">${devInfo?.logo_path ? logoBadge({ src: brandLogoUrl(devInfo.logo_path), dark: Boolean(devInfo.logo_on_dark), alt: `${devInfo.name} logo` }, 40) : ""}<span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(editorial?.h1 || label)}</h1>
   <div class="answer"><strong>${escapeHtml(description)}</strong></div><div class="facts"><div class="fact"><small>${ar ? "عدد المشاريع" : "Projects"}</small><strong>${plural}</strong></div><div class="fact"><small>${ar ? "الوحدات المتاحة" : "Available units"}</small><strong>${projectUnitCount}</strong></div><div class="fact"><small>${ar ? "أقل سعر ظاهر" : "Lowest listed"}</small><strong>${escapeHtml(minFmt)}</strong></div><div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed"}</small><strong>${escapeHtml(formatPrice(max, lang))}</strong></div></div></section>
   ${contextSection}
   ${editorialSection}
@@ -1270,6 +1357,14 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
     image: projectImage(matches[0]),
     schemas: [
       breadcrumbSchema(crumbs),
+      ...(devInfo ? [{
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        name: devInfo.name,
+        alternateName: [...new Set([devInfo.name_ar, ...(Array.isArray(devInfo.aliases) ? devInfo.aliases : [])].filter((value) => value && value !== devInfo.name))],
+        ...(devInfo.logo_path ? { logo: brandLogoUrl(devInfo.logo_path) } : {}),
+        ...(devInfo.about_en || devInfo.about_ar ? { description: ar ? devInfo.about_ar : devInfo.about_en } : {}),
+      }] : []),
       ...(searchContent?.map ? [{
         "@context": "https://schema.org",
         "@type": "Place",
@@ -1580,6 +1675,10 @@ function notFound(lang = "ar") {
 }
 
 module.exports = {
+  fetchDevelopers,
+  developerInfo,
+  projectLogo,
+  brandLogoUrl,
   SITE_URL,
   CACHE_HEADERS,
   AREAS,

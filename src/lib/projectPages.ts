@@ -54,6 +54,9 @@ export interface ProjectPageContent {
   gallery_urls: string;
   video_url: string;
   last_updated_at: string;
+  /** Project logo, else the developer logo, from the Supabase brand-logos bucket. */
+  logo_url: string;
+  logo_on_dark: boolean;
 }
 
 function text(value: unknown) {
@@ -173,6 +176,8 @@ export async function loadProjectPage(slug: string): Promise<ProjectPageContent 
     "gallery_urls",
     "video_url",
     "last_updated_at",
+    "logo_path",
+    "logo_on_dark",
   ].join(",");
   const params = new URLSearchParams({
     select: columns,
@@ -187,6 +192,7 @@ export async function loadProjectPage(slug: string): Promise<ProjectPageContent 
   const [row] = (await response.json()) as Record<string, unknown>[];
   if (!row) return null;
   const targeting = objectValue(row.targeting);
+  const logo = await resolveLogo(text(row.logo_path), row.logo_on_dark === true, text(row.developer));
   return {
     name: text(row.name),
     slug: text(row.slug),
@@ -207,5 +213,28 @@ export async function loadProjectPage(slug: string): Promise<ProjectPageContent 
     gallery_urls: text(row.gallery_urls),
     video_url: text(row.video_url),
     last_updated_at: text(row.last_updated_at),
+    logo_url: logo.url,
+    logo_on_dark: logo.onDark,
   };
+}
+
+function brandLogoUrl(path: string) {
+  return path ? `${SUPABASE_URL}/storage/v1/object/public/brand-logos/${path.split("/").map(encodeURIComponent).join("/")}` : "";
+}
+
+/** Project logo when stored, otherwise the developer's logo (matched by any alias). Never throws. */
+async function resolveLogo(projectPath: string, projectOnDark: boolean, developer: string) {
+  if (projectPath) return { url: brandLogoUrl(projectPath), onDark: projectOnDark };
+  if (!developer) return { url: "", onDark: false };
+  try {
+    const params = new URLSearchParams({ select: "logo_path,logo_on_dark", aliases: `cs.{"${developer.replace(/["\\{},]/g, "")}"}`, limit: "1" });
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/developers?${params}`, {
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Accept: "application/json" },
+    });
+    if (!response.ok) return { url: "", onDark: false };
+    const [row] = (await response.json()) as { logo_path?: string; logo_on_dark?: boolean }[];
+    return { url: brandLogoUrl(text(row?.logo_path)), onDark: row?.logo_on_dark === true };
+  } catch {
+    return { url: "", onDark: false };
+  }
 }

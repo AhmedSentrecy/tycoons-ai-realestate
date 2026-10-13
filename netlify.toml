@@ -16,6 +16,68 @@
   status = 301
   force = true
 
+# Developer names unified in Supabase (Oct 2026): Hyde Park, Hydepark and Ora
+# variants now resolve to one developer page each. El Shorouk lost its Arabic suffix.
+[[redirects]]
+  from = "/ar/developers/hydepark-developments"
+  to = "/ar/developers/hyde-park-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/developers/hyde-park"
+  to = "/ar/developers/hyde-park-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/developers/ora"
+  to = "/ar/developers/ora-developers"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/el-shorouk-east-cairo-الشروق"
+  to = "/ar/areas/el-shorouk"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/areas/el-shorouk-east-cairo-%D8%A7%D9%84%D8%B4%D8%B1%D9%88%D9%82"
+  to = "/ar/areas/el-shorouk"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/developers/hydepark-developments"
+  to = "/en/developers/hyde-park-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/developers/hyde-park"
+  to = "/en/developers/hyde-park-developments"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/developers/ora"
+  to = "/en/developers/ora-developers"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/areas/el-shorouk-east-cairo-الشروق"
+  to = "/en/areas/el-shorouk"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/areas/el-shorouk-east-cairo-%D8%A7%D9%84%D8%B4%D8%B1%D9%88%D9%82"
+  to = "/en/areas/el-shorouk"
+  status = 301
+  force = true
+
 # Old URLs still 404ing in GSC (Oct 2026): retired compare pages, renamed slugs,
 # merged developers and old trust pages. Each points at its closest live page.
 [[redirects]]
