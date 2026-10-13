@@ -17,7 +17,7 @@ const SUPABASE_KEY =
 const CACHE_HEADERS = {
   "cache-control": "public, max-age=0, s-maxage=900, stale-while-revalidate=86400",
   "content-security-policy":
-    "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co; frame-ancestors 'none'; base-uri 'self'",
+    "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co; frame-src https://www.google.com; frame-ancestors 'none'; base-uri 'self'",
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
 };
@@ -75,48 +75,64 @@ const AREAS = [
 
 const AREA_FACTS = {
   "mostakbal-city": {
+    contextEn: "Mostakbal City is a fast-growing residential city along the Cairo–Suez Road, next to Madinaty and New Cairo, and one of the areas where developers have launched the most new projects in recent years.",
+    buyerNoteEn: "Most projects here are still under construction with long payment plans, so check the developer's delivery record before reserving.",
     context:
       "مستقبل سيتي منطقة سكنية ناشئة على امتداد طريق السويس، قريبة من مدينتي والقاهرة الجديدة، وبقت من أكتر المناطق اللي المطورين بيطلقوا فيها مشاريع جديدة في السنين الأخيرة.",
     buyerNote:
       "غالبية المشاريع هنا لسه تحت الإنشاء بخطط سداد طويلة، فمراجعة سجل تسليم المطور مهمة قبل الحجز.",
   },
   "new-alamein": {
+    contextEn: "New Alamein is a new government-backed coastal city on the western North Coast, with year-round residential projects rather than only seasonal ones.",
+    buyerNoteEn: "When comparing, separate year-round homes in New Alamein from seasonal units elsewhere on the North Coast, because usage and expected returns differ.",
     context:
       "العلمين الجديدة مدينة ساحلية جديدة غرب الساحل الشمالي بدعم حكومي، وفيها مشاريع سكنية دائمة مش موسمية بس زي باقي الساحل.",
     buyerNote:
       "فرّق وانت بتقارن بين وحدات للسكن الدائم في العلمين الجديدة ووحدات موسمية في باقي الساحل الشمالي، لأن نمط الاستخدام والعائد المتوقع مختلف.",
   },
   "new-cairo": {
+    contextEn: "New Cairo and the Fifth Settlement are among the most complete areas of East Cairo for services, with the American University in Cairo (AUC), malls such as Cairo Festival City, and international schools and universities.",
+    buyerNoteEn: "The area has some of the strongest rental and resale demand in East Cairo, especially for delivered or near-delivery projects.",
     context:
       "القاهرة الجديدة والتجمع الخامس من أكتر مناطق شرق القاهرة اكتمالاً من ناحية الخدمات — فيها الجامعة الأمريكية بالقاهرة (AUC)، مولات زي كايرو فيستيفال سيتي، ومدارس وجامعات دولية.",
     buyerNote:
       "المنطقة عليها طلب إيجاري وإعادة بيع من الأعلى في القاهرة الجديدة، خصوصاً في المشاريع المُسلَّمة أو القريبة من التسليم.",
   },
   "north-coast": {
+    contextEn: "The North Coast is the strip of holiday villages along the Alexandria–Matrouh road, where most units are seasonal chalets and villas sold in early-booking phases before summer.",
+    buyerNoteEn: "Separate personal use from seasonal rental and compare the unit's position inside the village and its distance from the beach, because these move the price more than the unit size.",
     context:
       "الساحل الشمالي شريط القرى السياحية على طريق الإسكندرية-مطروح، ومعظم الوحدات فيه شاليهات وفيلات موسمية بتتباع بنظام الحجز المبكر قبل الصيف.",
     buyerNote:
       "افرق بين الاستخدام الشخصي والتأجير الموسمي وانت بتقارن الموقع جوه القرية والمسافة من الشاطئ، لأنها بتأثر على السعر أكتر من مساحة الوحدة نفسها.",
   },
   "ain-sokhna": {
+    contextEn: "Ain Sokhna is the closest beach to Cairo on the Gulf of Suez, which makes it a common choice for a weekend chalet instead of the longer trip to the North Coast.",
+    buyerNoteEn: "Check the village's distance from the Sokhna highway and its winter services, because many villages reduce services outside summer.",
     context:
       "العين السخنة أقرب شاطئ للقاهرة على خليج السويس، وده بيخليها خيار شائع لشاليه ويك إند بدل رحلة الساحل الشمالي الأطول.",
     buyerNote:
       "راجع مسافة القرية عن طريق السخنة السريع وجودة الخدمة الشتوية، لأن كتير من القرى بتقلل خدماتها بره موسم الصيف.",
   },
   "sheikh-zayed": {
+    contextEn: "Sheikh Zayed is West Cairo's extension next to 6th of October, with a mix of delivered compounds and new launches, close to malls such as Mall of Arabia and Hyper One.",
+    buyerNoteEn: "The area has steady residential demand, so projects close to the main roads usually keep higher resale liquidity.",
     context:
       "الشيخ زايد امتداد غرب القاهرة بمحاذاة أكتوبر، وفيها خليط من الكمبوندات المُسلَّمة والمشاريع الجديدة، وقريبة من مولات زي مول العرب وهايبر وان.",
     buyerNote:
       "المنطقة عليها طلب سكني مستقر، فالمشاريع القريبة من المحاور الرئيسية عادة بتحافظ على سيولة إعادة بيع أعلى.",
   },
   "new-capital": {
+    contextEn: "The New Administrative Capital is a city under construction east of Cairo, home to the Government District and the Iconic Tower, with most residential projects still in early or mid delivery stages.",
+    buyerNoteEn: "Because many services are still being built, compare the project's real delivery date with the delivery of surrounding facilities before relying on the developer's schedule alone.",
     context:
       "العاصمة الإدارية الجديدة مدينة قيد الإنشاء شرق القاهرة، فيها الحي الحكومي والبرج الأيقوني، ومعظم مشاريعها السكنية لسه في مراحل تسليم مبكرة أو متوسطة.",
     buyerNote:
       "لأن كتير من الخدمات لسه بتتبني، قارن توقيت التسليم الفعلي للمشروع بجدول تسليم المرافق المحيطة قبل ما تعتمد على جدول المطور وحده.",
   },
   october: {
+    contextEn: "6th of October is an established city west of Cairo with universities, industry and ready residential areas, and prices are usually lower than Sheikh Zayed at a similar distance from Cairo.",
+    buyerNoteEn: "Ready or near-delivery projects in October are usually a cheaper option for buyers who want West Cairo on a lower budget than Zayed.",
     context:
       "السادس من أكتوبر مدينة راسخة غرب القاهرة فيها جامعات وصناعات ومناطق سكنية جاهزة، وأسعارها عادة أقل من زايد على نفس المسافة من القاهرة.",
     buyerNote:
@@ -125,6 +141,8 @@ const AREA_FACTS = {
 };
 
 const GENERIC_AREA_FACTS = {
+  contextEn: "This area is part of Tycoons' current inventory, and its project data is updated continuously.",
+  buyerNoteEn: "Check how close each project is to the main roads and to services that already operate before comparing it with other areas.",
   context: "المنطقة دي من مناطق العرض الحالية في قاعدة بيانات Tycoons، وبتُحدَّث بيانات المشاريع فيها باستمرار.",
   buyerNote: "راجع قرب المشروع من الطرق الرئيسية والخدمات القائمة فعليًا قبل المقارنة بمناطق تانية.",
 };
@@ -135,25 +153,38 @@ const AREA_SEARCH_CONTENT = {
   "mostakbal-city": {
     ar: {
       title: ({ minFmt, plural }) => `مشاريع مستقبل سيتي 2026 — الخريطة والأسعار (${plural}) من ${minFmt} | Tycoons`,
-      description: ({ minFmt, plural }) => `${plural} في مستقبل سيتي بأسعار تبدأ من ${minFmt}. اعرف موقع مستقبل سيتي وقارن المطورين والمشاريع والوحدات وخطط السداد في دليل واحد محدث.`,
+      description: ({ minFmt, plural }) => `خريطة مستقبل سيتي ومكانها، والماستر بلان ومراحل المدينة، و${plural} متاحة حسب المطور بأسعار تبدأ من ${minFmt}. قارن المشاريع والوحدات وخطط السداد في دليل واحد محدث.`,
+      map: { heading: "خريطة مستقبل سيتي", query: "Mostakbal City, New Cairo, Egypt", locality: "Mostakbal City, New Cairo" },
       sections: [
         [
           "موقع مستقبل سيتي فين؟",
-          "مستقبل سيتي موجودة شرق القاهرة على امتداد طريق القاهرة–السويس، وقريبة من مدينتي والقاهرة الجديدة. موقع كل مشروع داخل المدينة بيختلف، لذلك راجع المخطط الرسمي للمطور قبل الحجز.",
+          "مستقبل سيتي شرق القاهرة على طريق القاهرة–السويس، وبتتوصل بالطريق الدائري الإقليمي والدائري الأوسطي. جيرانها المباشرين مدينتي والشروق والعاصمة الإدارية الجديدة، وحسب شركة مدار (المطور الرئيسي للمدينة) فيه وصول مباشر لمحطة القطار السريع في العاصمة الإدارية.",
+        ],
+        [
+          "الماستر بلان ومراحل مستقبل سيتي",
+          "حسب مدار، مساحة مستقبل سيتي الكلية حوالي 5,200 فدان، ومتقسمة لمراحل. المرحلة الأولى حوالي 1,435 فدان قريبة من المدارس والجامعات، والمرحلة التالتة حوالي 1,548 فدان سكني وفيها مول مركاتو المفتوح، والمرحلة الرابعة حوالي 1,806 فدان سكني. موقع كل مشروع جوه المرحلة بيتأكد من الـ master plan الرسمي للمطور قبل الحجز.",
         ],
         [
           "خريطة مشاريع مستقبل سيتي والمطورين",
-          "الدليل التالي بيرتب مشاريع مستقبل سيتي حسب المطور ويربط كل مشروع بصفحته ووحداته المتاحة. ده دليل تنقّل بين المشاريع، مش خريطة مساحية؛ حدود ومراحل كل مشروع تتأكد من الـmaster plan الرسمي للمطور.",
+          "مدار بتقول إن المدينة فيها أكتر من 30 مطور. الدليل اللي تحت بيرتب المشاريع المتاحة عندنا حسب المطور، وبيربط كل مشروع بصفحته ووحداته المتاحة وأسعارها. ده دليل للمشاريع، مش خريطة مساحية؛ حدود ومراحل كل مشروع تتأكد من الـ master plan الرسمي للمطور.",
         ],
       ],
       faq: [
         [
           "موقع مستقبل سيتي فين؟",
-          "مستقبل سيتي شرق القاهرة على امتداد طريق القاهرة–السويس، بالقرب من مدينتي والقاهرة الجديدة. راجع موقع المشروع نفسه داخل المدينة لأن المراحل والمداخل بتختلف.",
+          "مستقبل سيتي شرق القاهرة على طريق القاهرة–السويس، جنب مدينتي والشروق والعاصمة الإدارية، وبتتوصل بالدائري الإقليمي والدائري الأوسطي. افتح الخريطة في الصفحة وراجع موقع المشروع نفسه جوه المدينة لأن المراحل والمداخل بتختلف.",
+        ],
+        [
+          "مساحة مستقبل سيتي كام؟",
+          "حسب شركة مدار، المطور الرئيسي للمدينة، المساحة الكلية حوالي 5,200 فدان، متقسمة لمراحل سكنية وتجارية.",
+        ],
+        [
+          "مين المطورين في مستقبل سيتي؟",
+          "فيه أكتر من 30 مطور في المدينة حسب مدار، منهم Hassan Allam و Mountain View و Tatweer Misr و Madinet Masr و Al Ahly Sabbour. القايمة في الصفحة فيها المطورين اللي عندهم وحدات متاحة دلوقتي عندنا.",
         ],
         [
           "إزاي أشوف خريطة مشاريع مستقبل سيتي؟",
-          "استخدم دليل المطورين والمشاريع في الصفحة للانتقال لكل مشروع. ولتحديد المرحلة والقطعة والمداخل بدقة، راجع الـmaster plan الرسمي الصادر من المطور قبل الحجز.",
+          "الخريطة في الصفحة بتوريك مكان المدينة، ودليل المطورين بيوديك لكل مشروع. ولتحديد المرحلة والقطعة والمداخل بدقة، راجع الـ master plan الرسمي للمطور قبل الحجز.",
         ],
         [
           "هل الاستثمار العقاري في مستقبل سيتي مناسب؟",
@@ -162,26 +193,39 @@ const AREA_SEARCH_CONTENT = {
       ],
     },
     en: {
-      title: ({ minFmt, plural }) => `Mostakbal City projects 2026 — map, developers and prices from ${minFmt} (${plural}) | Tycoons`,
-      description: ({ minFmt, plural }) => `${plural} in Mostakbal City starting from ${minFmt}. Find the location and compare developers, projects, units and payment plans in one updated guide.`,
+      title: ({ minFmt, plural }) => `Mostakbal City Map 2026: Projects, Developers & Prices from ${minFmt} (${plural}) | Tycoons`,
+      description: ({ minFmt, plural }) => `Mostakbal City map and location, master plan and phases, and ${plural} by developer starting from ${minFmt}. Compare projects, units and payment plans in one updated guide.`,
+      map: { heading: "Mostakbal City map", query: "Mostakbal City, New Cairo, Egypt", locality: "Mostakbal City, New Cairo" },
       sections: [
         [
           "Where is Mostakbal City?",
-          "Mostakbal City is in East Cairo along the Cairo–Suez Road, near Madinaty and New Cairo. Each project occupies a different part of the city, so confirm the exact phase on the developer's official master plan before reserving.",
+          "Mostakbal City is in East Cairo on the Cairo–Suez Road, connected to the Regional Ring Road and the Middle Ring Road. Its direct neighbours are Madinaty, El Shorouk and the New Administrative Capital, and according to MIDAR, the city's master developer, it has direct access to the New Capital's high-speed train station.",
+        ],
+        [
+          "Mostakbal City master plan and phases",
+          "According to MIDAR, Mostakbal City covers about 5,200 feddans (about 5,408 acres) and is divided into phases. Phase one covers about 1,490 acres near schools and universities, phase three about 1,607 acres of residential districts including the Mercato open-air mall, and phase four about 1,875 acres of residential districts. Confirm each project's exact phase on the developer's official master plan before reserving.",
         ],
         [
           "Mostakbal City projects and developers map",
-          "The directory below groups Mostakbal City projects by developer and links to each project's available units. It is a navigation map, not a surveyed geographic plan; confirm boundaries, phases and entrances on the developer's official master plan.",
+          "MIDAR lists more than 30 developers in the city. The directory below groups the projects we have available by developer and links each one to its units and prices. It is a project directory, not a surveyed plan; confirm boundaries, phases and entrances on the developer's official master plan.",
         ],
       ],
       faq: [
         [
           "Where is Mostakbal City located?",
-          "Mostakbal City is in East Cairo along the Cairo–Suez Road, near Madinaty and New Cairo. Confirm the project's exact phase and entrance because locations vary within the city.",
+          "Mostakbal City is in East Cairo on the Cairo–Suez Road, next to Madinaty, El Shorouk and the New Administrative Capital, and connected to the Regional and Middle Ring Roads. Open the map on this page and confirm the project's exact phase and entrance, because locations vary within the city.",
+        ],
+        [
+          "How big is Mostakbal City?",
+          "According to MIDAR, the city's master developer, Mostakbal City covers about 5,200 feddans (about 5,408 acres), split into residential and commercial phases.",
+        ],
+        [
+          "Who are the developers in Mostakbal City?",
+          "MIDAR lists more than 30 developers in the city, including Hassan Allam, Mountain View, Tatweer Misr, Madinet Masr and Al Ahly Sabbour. The directory on this page shows the developers with units available in our inventory right now.",
         ],
         [
           "How can I see a map of Mostakbal City projects?",
-          "Use the developer and project directory on this page to open each project. For exact phases, plots and entrances, check the official master plan issued by the developer before reserving.",
+          "The map on this page shows where the city is, and the developer directory links to every project. For exact phases, plots and entrances, check the developer's official master plan before reserving.",
         ],
         [
           "Is Mostakbal City suitable for property investment?",
@@ -1121,7 +1165,10 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   if (!matches.length) return null;
   matches.sort((a, b) => (projectMinPrice(a) || Infinity) - (projectMinPrice(b) || Infinity));
   const area = kind === "area" ? areaFor(projectLocation(matches[0])) : null;
-  const areaFacts = kind === "area" ? AREA_FACTS[area.slug] || GENERIC_AREA_FACTS : null;
+  const rawAreaFacts = kind === "area" ? AREA_FACTS[area.slug] || GENERIC_AREA_FACTS : null;
+  const areaFacts = rawAreaFacts && !ar
+    ? { context: rawAreaFacts.contextEn || rawAreaFacts.context, buyerNote: rawAreaFacts.buyerNoteEn || rawAreaFacts.buyerNote }
+    : rawAreaFacts;
   const label = kind === "area" ? (ar ? area.ar : area.en) : matches[0].developer;
   const plural = matches.length === 1 ? (ar ? "مشروع واحد" : "1 project") : ar ? `${matches.length} مشروع` : `${matches.length} projects`;
   const path = `/${lang}/${kind === "area" ? "areas" : "developers"}/${slug}`;
@@ -1147,7 +1194,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   ];
   const contextSection =
     kind === "area"
-      ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${(searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}`
+      ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${searchContent?.map ? `<section><h2>${escapeHtml(searchContent.map.heading)}</h2><iframe title="${escapeHtml(searchContent.map.heading)}" src="https://www.google.com/maps?q=${encodeURIComponent(searchContent.map.query)}&amp;output=embed" width="100%" height="360" style="border:0;border-radius:16px" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p><a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(searchContent.map.query)}" target="_blank" rel="noopener">${ar ? "افتح الخريطة على Google Maps" : "Open in Google Maps"}</a></p></section>` : ""}${(searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}`
       : "";
   const editorialSection = editorial?.sections?.length ? renderLocalizedSections(editorial.sections, { escapeHtml, replaceTokens: (value) => value }) : "";
   // Buyer-question guides about this area's projects (or the area itself), linked under the FAQ.
@@ -1180,7 +1227,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
       ? `/${lang}/developers/${branch.slug}`
       : `/${lang}/areas/${branch.slug}`;
     const unitsCount = branch.projects.reduce((total, project) => total + project.units.length, 0);
-    return `<section class="card"><h3><a href="${branchPath}">${escapeHtml(branch.label)}</a></h3><p>${ar ? `${branch.projects.length} مشروع · ${unitsCount} وحدة متاحة` : `${branch.projects.length} projects · ${unitsCount} available units`}</p><ul>${branch.projects.map((project) => `<li><a href="${ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`}">${escapeHtml(project.name)}</a></li>`).join("")}</ul></section>`;
+    return `<section class="card"><h3><a href="${branchPath}">${escapeHtml(branch.label)}</a></h3><p>${ar ? `${branch.projects.length} مشروع · ${unitsCount} وحدة متاحة` : `${branch.projects.length} ${branch.projects.length === 1 ? "project" : "projects"} · ${unitsCount} available ${unitsCount === 1 ? "unit" : "units"}`}</p><ul>${branch.projects.map((project) => `<li><a href="${ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`}">${escapeHtml(project.name)}</a></li>`).join("")}</ul></section>`;
   }).join("")}</div>`;
   const faq =
     kind === "area"
@@ -1223,6 +1270,14 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
     image: projectImage(matches[0]),
     schemas: [
       breadcrumbSchema(crumbs),
+      ...(searchContent?.map ? [{
+        "@context": "https://schema.org",
+        "@type": "Place",
+        name: label,
+        address: { "@type": "PostalAddress", addressLocality: searchContent.map.locality, addressCountry: "EG" },
+        hasMap: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchContent.map.query)}`,
+        url: `${SITE_URL}${path}`,
+      }] : []),
       {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
