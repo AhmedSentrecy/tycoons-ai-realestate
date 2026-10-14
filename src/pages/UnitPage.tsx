@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
+import { unitPath } from "@/lib/unitUrl";
 import {
   ArrowLeft,
   ArrowRight,
@@ -94,7 +95,10 @@ export default function UnitPage() {
 
   useEffect(() => {
     if (!unit) return;
-    const pageUrl = `${SITE_URL}/units/${unit.id}`;
+    const canonicalPath = unitPath(unit);
+    const pageUrl = `${SITE_URL}${canonicalPath}`;
+    // Legacy UUID links and outdated words: show the one readable URL in the address bar.
+    if (window.location.pathname.replace(/\/+$/, "") !== canonicalPath) window.history.replaceState(window.history.state, "", canonicalPath + window.location.search + window.location.hash);
     const unitType = arabicField(unit.unit_type);
     const title = `${unitType} ${unit.area_sqm} م² في ${unit.project_name} | Tycoons`;
     const description = `${unitType} في ${unit.project_name} بسعر يبدأ من ${formatPrice(unit.starting_price)} جنيه. اعرف المساحة وخطة السداد والتشطيب.`;
@@ -110,7 +114,7 @@ export default function UnitPage() {
   if (loading) return <main className="grid min-h-screen place-items-center bg-[#f7f2ea]"><p className="font-bold">جاري تحميل الوحدة…</p></main>;
   if (!unit) return <main className="grid min-h-screen place-items-center bg-[#f7f2ea] px-5 text-center"><div><p className="text-xl font-bold">الوحدة غير متاحة</p><Link to="/" className="mt-4 inline-block text-[#a3854e] underline">ارجع للرئيسية</Link></div></main>;
 
-  const pageUrl = `${SITE_URL}/units/${unit.id}`;
+  const pageUrl = `${SITE_URL}${unitPath(unit)}`;
   const unitTypeAr = arabicField(unit.unit_type);
   const projectUrl = unit.project_slug ? `${SITE_URL}/projects/${unit.project_slug}` : SITE_URL;
   const message = encodeURIComponent(
@@ -232,9 +236,9 @@ export default function UnitPage() {
               <tbody>
                 {alternates.map((row) => (
                   <tr key={row.id} className="border-t border-[#e7ddc8]">
-                    <td className="p-3"><Link to={`/units/${row.id}`} className="font-bold text-[#8a6630] hover:underline">{arabicField(row.unit_type, row.unit_type)}</Link></td>
+                    <td className="p-3"><Link to={unitPath({ ...row, project_slug: unit.project_slug, project_name: unit.project_name })} className="font-bold text-[#8a6630] hover:underline">{arabicField(row.unit_type, row.unit_type)}</Link></td>
                     <td className="p-3">{arabicField(row.bedrooms_text, "غير محدد")}{row.area_sqm ? ` · ${row.area_sqm} م²` : ""}</td>
-                    <td className="p-3"><Link to={`/units/${row.id}`} className="hover:underline">{formatPrice(row.starting_price)} جنيه</Link></td>
+                    <td className="p-3"><Link to={unitPath({ ...row, project_slug: unit.project_slug, project_name: unit.project_name })} className="hover:underline">{formatPrice(row.starting_price)} جنيه</Link></td>
                   </tr>
                 ))}
               </tbody>

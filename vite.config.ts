@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     cssCodeSplit: true,
-    commonjsOptions: { include: [/node_modules/, /_(?:article-render|project-schema)\.cjs$/] },
+    commonjsOptions: { include: [/node_modules/, /_(?:article-render|project-schema|unit-url)\.cjs$/] },
     sourcemap: false,
     rollupOptions: {
       output: {

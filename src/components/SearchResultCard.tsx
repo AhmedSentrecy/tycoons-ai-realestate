@@ -14,6 +14,7 @@ import {
 import { fallbackImageFor } from "@/lib/inventory";
 import type { RankedInventoryUnit } from "@/lib/propertySearch";
 import { openUnitWhatsApp } from "@/lib/whatsapp";
+import { unitPath } from "@/lib/unitUrl";
 
 interface Props {
   result: RankedInventoryUnit;
@@ -179,7 +180,7 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
           <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
             {unit.id && (
               <Link
-                to={`/units/${unit.id}`}
+                to={unitPath(unit)}
                 className="inline-flex text-xs font-extrabold text-[#8a6630] hover:underline"
               >
                 افتح صفحة الوحدة

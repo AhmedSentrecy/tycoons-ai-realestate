@@ -11,6 +11,7 @@ const {
 } = require("./_seo-utils.cjs");
 const { indexableUnitIds } = require("./_unit-indexing.cjs");
 const { publishedProjectSlugs } = require("./_project-indexing.cjs");
+const { unitPath } = require("./_unit-url.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY =
@@ -117,7 +118,7 @@ exports.handler = async function handler() {
     for (const unit of units) {
       if (!projectsById.has(unit.project_id)) continue;
       if (!indexableIds.has(String(unit.id))) continue;
-      urls.set(`${SITE_URL}/units/${unit.id}`, unit.last_updated_at || null);
+      urls.set(`${SITE_URL}${unitPath({ ...unit, project_slug: projectsById.get(unit.project_id)?.slug })}`, unit.last_updated_at || null);
     }
 
     const body = `<?xml version="1.0" encoding="UTF-8"?>

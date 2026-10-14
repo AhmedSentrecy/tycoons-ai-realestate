@@ -15,6 +15,8 @@ const {
   renderStaticPage,
   renderGuidesIndex,
   notFound,
+  unitPath,
+  findUnitByParam,
 } = require("./_seo-utils.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
@@ -150,7 +152,16 @@ exports.handler = async function handler(event) {
           String(project.slug || "").trim() === slug);
         html = hasCanonicalProject ? renderProject(projects, slug, lang) : null;
       }
-      if (type === "unit") html = renderUnit(projects, slug, "ar");
+      if (type === "unit") {
+        // Legacy /units/<uuid> and outdated words 301 to the one readable URL.
+        const unit = findUnitByParam(projects.flatMap((project) => project.units), slug);
+        const owner = unit ? projects.find((project) => project.units.includes(unit)) : null;
+        const canonical = unit && owner ? unitPath({ ...unit, project_slug: owner.slug }) : "";
+        if (canonical && `/units/${slug}` !== canonical) {
+          return { statusCode: 301, headers: { ...CACHE_HEADERS, location: canonical }, body: "" };
+        }
+        html = renderUnit(projects, slug, "ar");
+      }
       if (type === "area") {
         const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
         html = renderCollection(projects, "area", slug, lang, guides);

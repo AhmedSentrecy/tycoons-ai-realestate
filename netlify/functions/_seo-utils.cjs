@@ -5,6 +5,7 @@ const { developerContent } = require("./_developer-content.cjs");
 
 const { renderSafeMarkdown } = require("./_article-render.cjs");
 const { buildProjectSchemas } = require("./_project-schema.cjs");
+const { unitPath, findUnitByParam } = require("./_unit-url.cjs");
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -1135,7 +1136,7 @@ function renderProject(projects, slug, lang) {
   }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p>
   ${visibleProjectFaq.map(([question, answer]) => `<section><h2>${escapeHtml(question)}</h2><p>${escapeHtml(answer)}</p></section>`).join("")}</main>`;
   const unitNavigation = hasUnits
-    ? `<section aria-labelledby="unit-links"><h2 id="unit-links">${ar ? "روابط الوحدات المتاحة" : "Available unit links"}</h2><div class="grid">${units.map((unit) => `<article class="card"><h3><a href="/units/${escapeHtml(unit.id)}">${escapeHtml(clean(unit.unit_type))}${unit.area_sqm ? ` - ${escapeHtml(unit.area_sqm)} m²` : ""}</a></h3><p>${escapeHtml(clean(unit.bedrooms_text))} · ${escapeHtml(formatPrice(unit.starting_price, lang))}</p><p>${escapeHtml(clean(unit.delivery_text))}</p></article>`).join("")}</div></section>`
+    ? `<section aria-labelledby="unit-links"><h2 id="unit-links">${ar ? "روابط الوحدات المتاحة" : "Available unit links"}</h2><div class="grid">${units.map((unit) => `<article class="card"><h3><a href="${escapeHtml(unitPath({ ...unit, project_slug: project.slug }))}">${escapeHtml(clean(unit.unit_type))}${unit.area_sqm ? ` - ${escapeHtml(unit.area_sqm)} m²` : ""}</a></h3><p>${escapeHtml(clean(unit.bedrooms_text))} · ${escapeHtml(formatPrice(unit.starting_price, lang))}</p><p>${escapeHtml(clean(unit.delivery_text))}</p></article>`).join("")}</div></section>`
     : "";
 
   return renderPage({
@@ -1151,7 +1152,7 @@ function renderProject(projects, slug, lang) {
       : "noindex,follow",
     schemas: [
       breadcrumbSchema(crumbs),
-      ...buildProjectSchemas({ url: `${SITE_URL}${path}`, name: project.name, location, description,
+      ...buildProjectSchemas({ url: `${SITE_URL}${path}`, name: project.name, projectSlug: project.slug, location, description,
         title: localizedContent?.seo_title || searchContent?.title?.(contentVars) || defaultTitle,
         language: lang, images: image ? [image] : [], modified: updated, units,
         articleSections: localizedContent?.article_sections?.length ? localizedContent.article_sections :
@@ -1266,20 +1267,14 @@ function renderUnitFaq(unit, project, stats, area, unitTypeAr, priceFmt, updated
 }
 
 function renderUnit(projects, unitId, lang = "ar") {
-  let unit = null;
-  let project = null;
-  for (const item of projects) {
-    const match = item.units.find((row) => clean(row.id, "") === unitId);
-    if (match) {
-      unit = match;
-      project = item;
-      break;
-    }
-  }
+  // unitId is the URL parameter: a readable slug (8-hex prefix + words) or a legacy UUID.
+  const unit = findUnitByParam(projects.flatMap((item) => item.units), unitId);
+  const project = unit ? projects.find((item) => item.units.includes(unit)) : null;
   if (!unit || !project) return null;
+  unitId = clean(unit.id, "");
 
   const ar = lang === "ar";
-  const path = `/units/${unitId}`;
+  const path = unitPath({ ...unit, project_slug: project.slug });
   const location = clean(unit.location, projectLocation(project));
   const area = areaFor(location);
   const areaFacts = AREA_FACTS[area.slug] || GENERIC_AREA_FACTS;
@@ -1343,7 +1338,7 @@ function renderUnit(projects, unitId, lang = "ar") {
   <h2>أسئلة شائعة</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}
   <p class="note">الأسعار والتوفر وخطط السداد تتغير ويتم تأكيدها مع المطور وقت الطلب.</p></main>`;
 
-  const entityNavigation = `<nav class="crumbs" aria-label="Entity navigation"><a href="/${lang}/areas/${area.slug}">${escapeHtml(ar ? area.ar : area.en)}</a> / <a href="/${lang}/developers/${slugify(project.developer)}">${escapeHtml(project.developer)}</a> / <a href="${ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`}">${escapeHtml(project.name)}</a>${alternates.map((row) => ` / <a href="/units/${escapeHtml(row.id)}">${escapeHtml(clean(row.unit_type))}</a>`).join("")}</nav>`;
+  const entityNavigation = `<nav class="crumbs" aria-label="Entity navigation"><a href="/${lang}/areas/${area.slug}">${escapeHtml(ar ? area.ar : area.en)}</a> / <a href="/${lang}/developers/${slugify(project.developer)}">${escapeHtml(project.developer)}</a> / <a href="${ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`}">${escapeHtml(project.name)}</a>${alternates.map((row) => ` / <a href="${escapeHtml(unitPath({ ...row, project_slug: project.slug }))}">${escapeHtml(clean(row.unit_type))}</a>`).join("")}</nav>`;
 
   return renderPage({
     lang,
@@ -1890,6 +1885,8 @@ function notFound(lang = "ar") {
 }
 
 module.exports = {
+  unitPath,
+  findUnitByParam,
   renderGuidesIndex,
   fetchDevelopers,
   developerInfo,

@@ -15,6 +15,7 @@ import {
 } from "@/lib/searchDisplay";
 import { openUnitWhatsApp } from "@/lib/whatsapp";
 import { parseSearchQuery } from "@/lib/propertySearch";
+import { unitPath } from "@/lib/unitUrl";
 
 interface Props {
   group: GroupedResult;
@@ -42,7 +43,7 @@ export default function ProjectResultCard({ group, query }: Props) {
   const bestLabel = [arabicType(unit.unit_type), unit.area_sqm ? `${unit.area_sqm} م²` : "", arabicBeds(unit.bedrooms_text)]
     .filter(Boolean)
     .join(" · ");
-  const projectPath = group.projectSlug ? `/projects/${group.projectSlug}` : unit.id ? `/units/${unit.id}` : "";
+  const projectPath = group.projectSlug ? `/projects/${group.projectSlug}` : unit.id ? unitPath(unit) : "";
 
   return (
     <article className="overflow-hidden rounded-2xl border border-[#e7ddc8] bg-white">

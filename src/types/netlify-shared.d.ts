@@ -8,7 +8,7 @@ declare module "*netlify/functions/_article-render.cjs" {
 
 declare module "*netlify/functions/_project-schema.cjs" {
   export interface ProjectSchemaUnit {
-    id?: string; unit_type?: string; bedrooms_text?: string;
+    id?: string; unit_type?: string; bedrooms_text?: string; project_name?: string;
     starting_price?: number | string | null; area_sqm?: number | string | null;
   }
   export interface ProjectSchemaRange {
@@ -18,6 +18,8 @@ declare module "*netlify/functions/_project-schema.cjs" {
     url: string; name: string; location: string; description?: string; title?: string;
     language?: "ar" | "en"; images?: string[]; modified?: string | null; published?: string | null;
     units?: ProjectSchemaUnit[]; ranges?: ProjectSchemaRange[]; articleSections?: unknown[];
+    /** Project slug, used to build readable unit URLs. */
+    projectSlug?: string;
   }
   export function buildProjectSchemas(input: ProjectSchemaInput): Record<string, unknown>[];
   export function hasEditorialContent(sections: unknown): boolean;

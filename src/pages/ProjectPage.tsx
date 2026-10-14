@@ -32,6 +32,7 @@ import { areaFor } from "@/lib/unitContent";
 
 import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
 import PageStructuredData from "@/components/PageStructuredData";
+import { unitPath } from "@/lib/unitUrl";
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -469,7 +470,7 @@ export default function ProjectPage() {
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
-      ...buildProjectSchemas({ url: pageUrl, name: project.project_name, location: project.location,
+      ...buildProjectSchemas({ url: pageUrl, name: project.project_name, projectSlug: slug, location: project.location,
         title: localizedArabic?.seo_title || content?.seo_title || project.project_name,
         description: localizedArabic?.seo_description || content?.seo_description || project.description,
         images, modified: content?.last_updated_at || project.last_updated_at,
@@ -746,7 +747,7 @@ export default function ProjectPage() {
                     />
                     {unit.id && (
                       <div className="bg-[#faf7f1] px-5 pb-5">
-                        <Link to={`/units/${unit.id}`} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
+                        <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
                           كل تفاصيل الوحدة
                           <ArrowLeft className="h-4 w-4" />
                         </Link>
@@ -817,7 +818,7 @@ export default function ProjectPage() {
                 />
                 {unit.id && (
                   <div className="bg-[#faf7f1] px-5 pb-5">
-                    <Link to={`/units/${unit.id}`} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
+                    <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
                       كل تفاصيل الوحدة
                       <ArrowLeft className="h-4 w-4" />
                     </Link>

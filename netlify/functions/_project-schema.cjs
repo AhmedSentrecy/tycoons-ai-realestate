@@ -1,5 +1,6 @@
 "use strict";
 const SITE = "https://tycoons-inv.com";
+const { unitPath } = require("./_unit-url.cjs");
 function text(value) { return String(value ?? "").trim(); }
 function positive(value) {
   const number = Number(text(value).replace(/,/g, ""));
@@ -38,12 +39,12 @@ function buildProjectSchemas(input) {
   }
   const items = [
     ...ranges.map((r, i) => ({ "@type": "ListItem", position: i + 1, name: `${name} - ${text(r.unit_type)}` })),
-    ...units.map((u, i) => ({ "@type": "ListItem", position: ranges.length + i + 1, name: `${name} - ${text(u.unit_type)} ${text(u.bedrooms_text)}`.trim(), url: u.id ? `${SITE}/units/${encodeURIComponent(text(u.id))}` : url })),
+    ...units.map((u, i) => ({ "@type": "ListItem", position: ranges.length + i + 1, name: `${name} - ${text(u.unit_type)} ${text(u.bedrooms_text)}`.trim(), url: u.id ? `${SITE}${unitPath({ ...u, project_slug: input.projectSlug, project_name: u.project_name || name })}` : url })),
   ];
   graph.push({ "@type": "ItemList", "@id": `${url}#unit-options`, name: language === "ar" ? `الوحدات المتاحة في ${name}` : `Available units at ${name}`, numberOfItems: items.length, itemListElement: items });
   // Actual listed accommodation, not merchant products or invented zero prices.
   graph.push({ "@type": "OfferCatalog", url, name: language === "ar" ? `الوحدات المتاحة في ${name}` : `Available units at ${name}`, numberOfItems: units.length, itemListElement: units.map((u) => ({
-    "@type": "Offer", url: u.id ? `${SITE}/units/${encodeURIComponent(text(u.id))}` : url,
+    "@type": "Offer", url: u.id ? `${SITE}${unitPath({ ...u, project_slug: input.projectSlug, project_name: u.project_name || name })}` : url,
     ...(positive(u.starting_price) ? { price: positive(u.starting_price), priceCurrency: "EGP" } : {}),
     availability: "https://schema.org/InStock",
     itemOffered: { "@type": "Accommodation", name: `${text(u.unit_type)} ${name}`,
