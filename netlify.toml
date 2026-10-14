@@ -414,6 +414,19 @@
   to = "/.netlify/functions/seo-page?lang=ar&type=static&slug=contact"
   status = 200
 
+# English visitors and crawlers asked for /en/about (404 in Search Console): send them to the about page.
+[[redirects]]
+  from = "/en/about"
+  to = "/about"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/about/"
+  to = "/about"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/about"
   to = "/.netlify/functions/seo-page?lang=ar&type=static&slug=about"
@@ -652,3 +665,7 @@
   from = "/*"
   to = "/404.html"
   status = 404
+
+# Daily IndexNow ping (Bing / ChatGPT search freshness) for URLs changed in the last 36h.
+[functions."indexnow-ping"]
+  schedule = "@daily"

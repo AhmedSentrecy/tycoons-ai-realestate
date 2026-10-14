@@ -54,7 +54,7 @@ export interface ProjectPageContent {
   gallery_urls: string;
   video_url: string;
   last_updated_at: string;
-  /** Project logo, else the developer logo, from the Supabase brand-logos bucket. */
+  /** The developer's logo, from the Supabase brand-logos bucket. */
   logo_url: string;
   logo_on_dark: boolean;
 }
@@ -222,9 +222,8 @@ function brandLogoUrl(path: string) {
   return path ? `${SUPABASE_URL}/storage/v1/object/public/brand-logos/${path.split("/").map(encodeURIComponent).join("/")}` : "";
 }
 
-/** Project logo when stored, otherwise the developer's logo (matched by any alias). Never throws. */
-async function resolveLogo(projectPath: string, projectOnDark: boolean, developer: string) {
-  if (projectPath) return { url: brandLogoUrl(projectPath), onDark: projectOnDark };
+/** The developer's logo (matched by any alias) is shown on every one of its projects. Never throws. */
+async function resolveLogo(_projectPath: string, _projectOnDark: boolean, developer: string) {
   if (!developer) return { url: "", onDark: false };
   try {
     const params = new URLSearchParams({ select: "logo_path,logo_on_dark", aliases: `cs.{"${developer.replace(/["\\{},]/g, "")}"}`, limit: "1" });

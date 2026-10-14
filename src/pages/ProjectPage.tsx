@@ -254,6 +254,13 @@ function ProjectGallery({
   );
 }
 
+/** Price per square metre from the listed price and area (Western digits), or "" when unknown. */
+function sqmPrice(unit: { starting_price?: unknown; area_sqm?: unknown }) {
+  const price = Number(String(unit.starting_price ?? "").replace(/,/g, ""));
+  const area = Number(String(unit.area_sqm ?? "").replace(/,/g, ""));
+  return price > 0 && area >= 20 ? new Intl.NumberFormat("en-EG").format(Math.round(price / area)) : "";
+}
+
 export default function ProjectPage() {
   const { slug = "" } = useParams();
   const { units, loading, error } = useInventory();
@@ -726,6 +733,7 @@ export default function ProjectPage() {
                       <p className="mt-1 text-xl font-extrabold text-[#14352a]">
                         {formatPrice(unit.starting_price)} جنيه
                       </p>
+                      {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
                       <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                         اعرض المقدم والقسط
                         <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
@@ -794,6 +802,7 @@ export default function ProjectPage() {
                   <p className="mt-1 text-2xl font-extrabold text-[#14352a]">
                     {formatPrice(unit.starting_price)} جنيه
                   </p>
+                  {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
                   <p className="mt-2 text-sm text-[#5c6a62]">{unit.down_payment_text}</p>
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                       اعرض المقدم والقسط

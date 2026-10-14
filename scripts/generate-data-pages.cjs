@@ -50,7 +50,7 @@ async function main() {
   const normalizedProjects = projects
     .filter((project) => String(project.slug || "").trim())
     .map((project) => ({ ...project, slug: String(project.slug).trim() }))
-    // Project logo, else the developer logo (Supabase brand-logos); pages render without it.
+    // Developer logo (Supabase brand-logos) on every project; pages render without it.
     .map((project) => ({ ...project, logo: projectLogo(project) }));
   const projectById = new Map(normalizedProjects.map((project) => [project.id, project]));
   const indexableIds = indexableUnitIds(units);

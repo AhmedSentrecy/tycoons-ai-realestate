@@ -18,7 +18,7 @@ const SUPABASE_KEY =
 const CACHE_HEADERS = {
   "cache-control": "public, max-age=0, s-maxage=900, stale-while-revalidate=86400",
   "content-security-policy":
-    "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co; frame-src https://www.google.com; frame-ancestors 'none'; base-uri 'self'",
+    "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co; frame-src https://www.google.com; frame-ancestors 'none'; base-uri 'self'",
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
 };
@@ -489,7 +489,7 @@ function formatPrice(value, lang) {
 function formatDate(value, lang) {
   const date = new Date(value || "");
   if (Number.isNaN(date.getTime())) return lang === "ar" ? "غير محدد" : "Not specified";
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-GB", {
+  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG-u-nu-latn" : "en-GB", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -583,9 +583,10 @@ function brandLogoUrl(path) {
   return path ? `${SUPABASE_URL}/storage/v1/object/public/brand-logos/${String(path).split("/").map(encodeURIComponent).join("/")}` : "";
 }
 
-// Project logo first, then the developer logo; null when neither exists.
+// The developer's logo is the brand shown on every one of its projects (Ahmed's rule:
+// one company logo, never a different logo per project). Project-level logos stay in
+// Supabase (projects.logo_path) for other uses but are not rendered.
 function projectLogo(project) {
-  if (project?.logo_path) return { src: brandLogoUrl(project.logo_path), dark: Boolean(project.logo_on_dark), alt: `${project.name} logo` };
   const developer = developerInfo(project?.developer);
   if (developer?.logo_path) return { src: brandLogoUrl(developer.logo_path), dark: Boolean(developer.logo_on_dark), alt: `${developer.name} logo` };
   return null;
@@ -765,16 +766,41 @@ function breadcrumbSchema(items) {
 function styles() {
   return `
   :root{--green:#0d1f18;--gold:#c49b5f;--ink:#1b2420;--muted:#667168;--line:#e7ddc8;--warm:#f7f2ea}
-  *{box-sizing:border-box}body{margin:0;background:var(--warm);color:var(--ink);font-family:Arial,"Noto Sans Arabic",sans-serif;line-height:1.75}a{color:inherit}
-  header{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px max(20px,calc((100% - 1180px)/2));background:var(--green);color:#fff}header a{text-decoration:none;font-weight:700}.brand{white-space:nowrap;letter-spacing:.03em}nav{display:flex;flex-wrap:wrap;align-items:center;gap:16px}.language-switch{display:inline-flex;align-items:center;gap:4px;padding:4px;border:1px solid rgba(255,255,255,.24);border-radius:999px}.language-switch a{padding:3px 8px;border-radius:999px;font-size:13px}.language-switch a[aria-current="page"]{background:rgba(255,255,255,.18)}
+  *{box-sizing:border-box}body{margin:0;background:var(--warm);color:var(--ink);font-family:Alexandria,Arial,"Noto Sans Arabic",sans-serif;line-height:1.75}a{color:inherit}
+  header.site{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 8px 40px -12px rgba(20,30,25,.25)}.hd{display:flex;align-items:center;justify-content:space-between;gap:18px;height:66px;width:min(1180px,calc(100% - 32px));margin:auto}header.site a{text-decoration:none}.logo{display:flex;align-items:center;gap:11px;color:#182420}.badge{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#14352a}.badge img{width:24px;height:24px}.logo b{display:block;font-size:16px;letter-spacing:.18em;line-height:1.2}.logo small{display:block;font-size:9.5px;letter-spacing:.42em;color:#8a7a58;line-height:1.3}.nav{display:flex;align-items:center;gap:26px}.nav a{font-size:14px;font-weight:600;color:#3d4a43}.nav a:hover{color:var(--gold)}.nav a[aria-current="page"]{color:#14352a;box-shadow:inset 0 -2px 0 var(--gold);padding-bottom:3px}.acts{display:flex;align-items:center;gap:9px}.lang{display:flex;padding:3px;border-radius:999px;background:#ece3d0;font-size:11px;font-weight:700}.lang a{padding:4px 9px;border-radius:999px;color:#5c4f33}.lang a[aria-current="page"]{background:#fff}.wa{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:999px;background:#1faa59;color:#fff!important;font-size:14px;font-weight:700;box-shadow:0 10px 30px -8px rgba(31,170,89,.6)}.wa svg{width:16px;height:16px}.menu{display:none;position:relative}.menu summary{list-style:none;cursor:pointer;display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#ece3d0;color:#14352a;font-size:20px}.menu summary::-webkit-details-marker{display:none}.menu div{position:absolute;top:48px;inset-inline-end:0;min-width:200px;padding:8px;border-radius:16px;background:#fff;box-shadow:0 20px 50px -20px rgba(0,0,0,.35);display:grid}.menu div a{padding:10px 14px;border-radius:10px;font-weight:600;color:#3d4a43}.menu div a[aria-current="page"]{background:#f6f1e7;color:#14352a}
+  @media(max-width:980px){.nav{display:none}.menu{display:block}}@media(max-width:430px){.wa span{display:none}.wa{padding:10px}.logo small{display:none}}
   main{width:min(1120px,calc(100% - 32px));margin:auto;padding:34px 0 70px}.hero,.panel,.card,.table,.answer{background:#fff;border:1px solid var(--line);border-radius:24px}
   .hero{padding:clamp(24px,5vw,52px)}h1{margin:8px 0 18px;font-size:clamp(32px,5vw,54px);line-height:1.2;color:var(--green)}h2{margin:40px 0 16px;color:var(--green)}.lead{font-size:18px;color:var(--muted)}.eyebrow{color:#8a6630;font-weight:800}
   .answer{padding:22px 24px;margin:24px 0;background:#fffaf1}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{padding:18px;text-decoration:none}.card img{width:100%;height:180px;object-fit:cover;border-radius:16px}.card p{color:var(--muted)}.brand-logo{display:inline-flex;align-items:center;height:44px;padding:6px 12px;margin:12px 0 2px;border:1px solid var(--line);border-radius:12px;background:#fff}.brand-logo.on-dark{background:#0d1f18;border-color:#0d1f18}.brand-logo img,.card .brand-logo img{width:auto;height:28px;max-width:160px;object-fit:contain;border-radius:0}.hero .brand-logo{height:56px}.hero .brand-logo img{height:40px;max-width:220px}
   .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:24px}.fact{padding:14px;border:1px solid var(--line);border-radius:15px}.fact small{display:block;color:var(--muted)}.cta{display:inline-block;margin-top:18px;padding:11px 18px;border-radius:999px;background:#1faa59;color:#fff;text-decoration:none;font-weight:800}
   .table{overflow:auto}.table table{width:100%;min-width:760px;border-collapse:collapse}.table th,.table td{padding:13px 15px;text-align:start;border-bottom:1px solid var(--line)}.table th{background:#efe7d8}.updated,.note,.crumbs{font-size:13px;color:var(--muted)}
   .guide section{padding:22px 0;border-bottom:1px solid var(--line)}footer{padding:36px max(20px,calc((100% - 1180px)/2));background:var(--green);color:#fff}footer a{margin-inline-end:14px}
-  @media(max-width:800px){header{align-items:flex-start;flex-direction:column;gap:12px;padding:14px 16px}.brand{font-size:15px}nav{width:100%;gap:7px}nav>a{padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px}.language-switch{margin-inline-start:auto}.language-switch a{font-size:12px}.grid{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}main{width:min(100% - 24px,1120px);padding:24px 0 54px}.hero{padding:24px 20px;border-radius:20px}h1{font-size:clamp(30px,9vw,40px)}h2{margin-top:32px;font-size:28px}.lead{font-size:16px}.card{padding:16px}}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}.facts{grid-template-columns:1fr 1fr}main{width:min(100% - 24px,1120px);padding:24px 0 54px}.hero{padding:24px 20px;border-radius:20px}h1{font-size:clamp(30px,9vw,40px)}h2{margin-top:32px;font-size:28px}.lead{font-size:16px}.card{padding:16px}}
   `;
+}
+
+
+const WA_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3a.4.4 0 0 0 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 2.9 2.9 0 0 0-.9 2.2 5 5 0 0 0 1 2.7 11.5 11.5 0 0 0 4.4 3.9c1.6.7 2.3.8 3.1.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.4-.3z"/></svg>';
+
+// One header for every server-rendered page: same look, links and order as the homepage navbar.
+function siteHeader(lang, path = "/", arHref = "", enHref = "") {
+  const ar = lang === "ar";
+  const links = ar
+    ? [["الرئيسية", "/", "home"], ["المشاريع", "/ar/", "projects"], ["المناطق", "/ar/#areas", "areas"], ["المطورين", "/ar/#developers", "developers"], ["الأدلة", "/guides/", "guides"], ["من نحن", "/about", "about"]]
+    : [["Home", "/en/", "home"], ["Projects", "/en/directory/", "projects"], ["Areas", "/en/directory/#areas", "areas"], ["Developers", "/en/directory/#developers", "developers"], ["Guides", "/en/guides/", "guides"], ["About", "/en/#about", "about"]];
+  const p = String(path || "/");
+  const active = /\/areas\//.test(p) ? "areas" : /\/developers\//.test(p) ? "developers" : /\/guides\b/.test(p) ? "guides"
+    : /^\/(about|contact|methodology|corrections|privacy|faq)\b/.test(p) ? "about" : /^\/(ar\/|en\/directory|projects\/|en\/projects\/|units\/)/.test(p) ? "projects" : "";
+  const nav = links.map(([label, href, key]) => `<a href="${href}"${key === active ? ' aria-current="page"' : ""}>${label}</a>`).join("");
+  const arLink = arHref || "/";
+  const enLink = enHref || "/en/";
+  return `<header class="site"><div class="hd">
+<a class="logo" href="${ar ? "/" : "/en/"}" aria-label="Tycoons Investments"><span class="badge"><img src="/images/logo-badge-gold.png" alt="" width="24" height="24"></span><span><b>TYCOONS</b><small>INVESTMENTS</small></span></a>
+<nav class="nav" aria-label="${ar ? "القائمة الرئيسية" : "Main menu"}">${nav}</nav>
+<div class="acts"><span class="lang" aria-label="${ar ? "اختيار اللغة" : "Choose language"}"><a href="${escapeHtml(arLink)}" lang="ar"${ar ? ' aria-current="page"' : ""}>عربي</a><a href="${escapeHtml(enLink)}" lang="en"${ar ? "" : ' aria-current="page"'}>EN</a></span>
+<a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>${ar ? "واتساب" : "WhatsApp"}</span></a>
+<details class="menu"><summary aria-label="${ar ? "القائمة" : "Menu"}">☰</summary><div>${nav}</div></details></div>
+</div></header>`;
 }
 
 function renderPage({
@@ -810,14 +836,10 @@ ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ""}
 ${[organizationSchema(), ...schemas]
   .map((schema) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", ...schema }).replace(/</g, "\\u003c")}</script>`)
   .join("")}
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;600;700;800&display=swap">
 <style>${styles()}</style></head><body>
-<header><a class="brand" href="/">TYCOONS INVESTMENTS</a><nav>
-<a href="/${lang}/">${ar ? "دليل المشاريع" : "Project directory"}</a>
-<a href="${ar ? "/guides/off-plan-buying-checklist" : "/en/guides/new-cairo-property-prices/"}">${ar ? "الأدلة" : "Guides"}</a>
-<a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
-<a href="https://wa.me/${WHATSAPP_NUMBER}">${ar ? "واتساب" : "WhatsApp"}</a>
-${alternate ? `<span class="language-switch" aria-label="${ar ? "اختيار اللغة" : "Choose language"}"><a href="${escapeHtml(ar ? canonical : alternate)}" lang="ar" hreflang="ar-EG"${ar ? ` aria-current="page"` : ""}>العربية</a><a href="${escapeHtml(ar ? alternate : canonical)}" lang="en" hreflang="en"${ar ? "" : ` aria-current="page"`}>English</a></span>` : ""}
-</nav></header>${body}
+${siteHeader(lang, path, ar ? canonical : alternate, ar ? alternate : canonical)}${body}
 <footer><strong>Tycoons Investments</strong><p>${ar ? "بيانات الأسعار والتوفر استرشادية ويتم تأكيدها وقت الطلب. العوائد تقديرية وليست ضمانًا." : "Prices and availability are indicative and reconfirmed on request. Returns are estimates, not guarantees."}</p>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
 <a href="/corrections">${ar ? "سياسة التصحيح" : "Corrections"}</a>
@@ -839,33 +861,199 @@ function cards(projects, lang) {
     .join("")}</div>`;
 }
 
-function renderDirectory(allProjects, lang) {
+// Buyer-comparison numbers computed from the listed units (no invented data).
+function pricePerSqm(unit) {
+  const price = numberValue(unit.starting_price);
+  const area = numberValue(unit.area_sqm);
+  return price > 0 && area >= 20 ? Math.round(price / area) : 0;
+}
+function percentValue(text) {
+  const match = String(text || "").match(/(\d+(?:\.\d+)?)\s*%/);
+  return match ? Number(match[1]) : null;
+}
+function yearsValue(text) {
+  const match = String(text || "").match(/(\d+(?:\.\d+)?)\s*(?:years?|yrs?|سنين|سنوات|سنة|عام)/i);
+  return match ? Number(match[1]) : null;
+}
+function projectBuyerStats(units) {
+  const perSqm = units.map(pricePerSqm).filter(Boolean).sort((a, b) => a - b);
+  const downs = units.map((unit) => percentValue(unit.down_payment_text)).filter((v) => v !== null && v >= 0 && v <= 100);
+  const years = units.map((unit) => yearsValue(unit.installments_text)).filter((v) => v && v <= 20);
+  const median = perSqm.length ? perSqm[Math.floor((perSqm.length - 1) / 2)] : 0;
+  return { minSqm: perSqm[0] || 0, medianSqm: median, minDown: downs.length ? Math.min(...downs) : null, maxYears: years.length ? Math.max(...years) : null, sqmCount: perSqm.length };
+}
+function millions(value) {
+  const m = numberValue(value) / 1e6;
+  return m >= 1 ? (Math.round(m * 10) / 10).toString() : "";
+}
+
+const FOCUS_DEVELOPERS = ["mountain-view", "sodic", "palm-hills-developments", "la-vista-developments", "hyde-park-developments", "ora-developers", "madinet-masr"];
+const OTHER_AREA_AR = { "el-shorouk": "الشروق", "al-shorouk": "الشروق", alexandria: "الإسكندرية", "el-gouna": "الجونة", "downtown-cairo": "وسط القاهرة", "central-cairo": "وسط القاهرة", "suez-road": "طريق السويس" };
+
+function unitCategories(project) {
+  const found = new Set();
+  for (const unit of project.units) {
+    const t = String(unit.unit_type || "").toLowerCase();
+    if (/chalet|شاليه/.test(t)) found.add("chalet");
+    else if (/villa|فيلا|standalone/.test(t) && !/ivilla|i-villa/.test(t)) found.add("villa");
+    else if (/town|twin|ths|تاون|توين/.test(t)) found.add("townhouse");
+    else if (/duplex|ivilla|i-villa|دوبلكس/.test(t)) found.add("duplex");
+    else if (/office|clinic|retail|shop|admin|commercial|مكتب|عيادة|محل|تجاري|إداري/.test(t)) found.add("commercial");
+    else if (/apartment|millennial|penthouse|loft|studio|\bb\b|\d\s*b\b|شقة|بنتهاوس|استوديو/.test(t)) found.add("apartment");
+  }
+  return [...found];
+}
+const CATEGORY_LABEL = { apartment: ["شقق", "Apartments"], villa: ["فيلات", "Villas"], townhouse: ["تاون هاوس", "Townhouses"], duplex: ["دوبلكس", "Duplexes"], chalet: ["شاليهات", "Chalets"], commercial: ["تجاري وإداري", "Commercial"] };
+
+function deliveryTag(project, ar) {
+  const texts = project.units.map((unit) => String(unit.delivery_text || "")).filter(Boolean);
+  if (!texts.length) return "";
+  if (texts.some((t) => /ready|immediate|فوري|جاهز/i.test(t))) return ar ? "استلام فوري" : "Ready to move";
+  const years = texts.map((t) => (t.match(/20\d\d/) || [])[0]).filter(Boolean).sort();
+  if (years.length) return ar ? `استلام ${years[0]}` : `Delivery ${years[0]}`;
+  const inYears = texts.map((t) => Number((t.match(/(\d+)\s*years?/i) || [])[1])).filter(Boolean).sort((x, y) => x - y)[0];
+  if (inYears) return ar ? `استلام ${inYears} ${inYears > 2 ? "سنين" : "سنة"}` : `Delivery in ${inYears} years`;
+  return "";
+}
+
+function developerKey(name) {
+  const info = developerInfo(name);
+  return info?.slug || slugify(String(name || "").replace(/\(.*?\)/g, ""));
+}
+
+function directoryStyles() {
+  return `.dhero{background:linear-gradient(rgba(20,53,42,.86),rgba(20,53,42,.94)),url(/images/hero.webp) center/cover;color:#fff;padding:52px 0 58px}.dwrap{width:min(1180px,calc(100% - 32px));margin:auto}.dhero .crumbs,.dhero .crumbs a{color:#d8c9a8}.dhero h1{color:#fff;font-size:clamp(30px,4.6vw,46px);margin:10px 0 8px;font-weight:800}.dhero .lead{color:#dfe6e1;max-width:760px}
+.dsearch{display:flex;gap:8px;margin-top:24px;max-width:860px;padding:8px;border-radius:18px;background:#fff;box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}.dsearch input{flex:1;min-width:0;border:0;outline:0;padding:12px 14px;font:inherit;font-size:15px;color:var(--ink);background:transparent}.dsearch button{border:0;border-radius:12px;padding:0 26px;background:var(--gold);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.stats{display:flex;flex-wrap:wrap;gap:16px 44px;margin-top:28px}.stats b{display:block;font-size:30px;font-weight:800;color:var(--gold);line-height:1.3}.stats span{font-size:13px;color:#cfd8d2}
+.dmain{width:min(1180px,calc(100% - 32px));margin:auto;padding:12px 0 40px}.sh{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:46px 0 18px}.sh h2{margin:0;font-size:28px}.sh p{margin:4px 0 0;color:var(--muted);font-size:14px}.more{flex:none;padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#14352a;font-weight:700;font-size:14px;text-decoration:none}
+.areas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.area{position:relative;display:block;height:190px;border-radius:18px;overflow:hidden;color:#fff;text-decoration:none;background:#14352a}.area img{width:100%;height:100%;object-fit:cover}.area:after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 25%,rgba(10,25,20,.9))}.area div{position:absolute;inset:auto 16px 14px;z-index:1}.area h3{margin:0;font-size:19px;line-height:1.4}.area span{font-size:13px;color:#e8dcc2}
+.chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}.chip{padding:7px 15px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:13px;text-decoration:none}
+.devs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px}.dev{display:block;padding:16px 10px;border:1px solid var(--line);border-radius:16px;background:#fff;text-align:center;text-decoration:none}.dev .lg{display:grid;place-items:center;height:56px;border-radius:10px;padding:6px}.dev .lg.dark{background:#14352a}.dev .lg img{max-width:100%;max-height:44px;object-fit:contain}.dev .lg em{font-style:normal;font-weight:800;color:#14352a;font-size:14px}.dev b{display:block;margin-top:8px;font-size:14px}.dev span{font-size:12px;color:var(--muted)}
+.alldevs{margin-top:16px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:4px 16px}.alldevs summary{cursor:pointer;padding:12px 0;font-weight:700;color:#14352a}.alldevs div{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 16px}
+.fbar{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:18px}.fbar input{position:absolute;opacity:0;pointer-events:none}.fbar label{padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#3d4a43;font-size:13px;font-weight:700;cursor:pointer}.fbar input:checked+label{background:#14352a;border-color:#14352a;color:#fff}.fbar input:focus-visible+label{outline:2px solid var(--gold)}
+.pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.pcard{overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 14px 34px -24px rgba(20,30,25,.5)}.pimg{position:relative;height:190px;background:#e9e1d0}.pimg>a>img{width:100%;height:190px;object-fit:cover;display:block}.tag{position:absolute;top:12px;inset-inline-start:12px;padding:4px 11px;border-radius:999px;background:rgba(20,53,42,.92);color:#fff;font-size:12px}.pimg .brand-logo{position:absolute;bottom:-22px;inset-inline-end:14px;margin:0;height:44px;box-shadow:0 6px 16px -6px rgba(0,0,0,.3)}.pbody{padding:24px 18px 18px}.pbody h3{margin:0;font-size:18px;line-height:1.5}.pbody h3 a{text-decoration:none}.ploc{margin:2px 0 0;font-size:13px;color:var(--muted)}.pprice{margin:12px 0 0;font-size:13px;color:var(--muted)}.pprice b{font-size:21px;color:#14352a}.pmeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.pmeta span{padding:4px 9px;border-radius:8px;background:var(--warm);font-size:12px;color:#3d4a43}.pcta{display:flex;gap:8px;margin-top:14px}.pcta a{flex:1;padding:10px;border-radius:12px;text-align:center;font-weight:700;font-size:13px;text-decoration:none}.pcta .go{background:#14352a;color:#fff}.pcta .w{background:#e9f7ef;color:#137a3f}
+.pcard:nth-child(n+13){display:none}#show-all:checked~.pgrid .pcard{display:block}.showall{text-align:center;margin-top:22px}.showall label{display:inline-block;cursor:pointer}#show-all:checked~.showall{display:none}
+.guides3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.g3{display:block;padding:20px;border:1px solid var(--line);border-radius:16px;background:#fff;text-decoration:none}.g3 small{color:var(--gold);font-weight:700}.g3 h3{margin:6px 0 0;font-size:16px;line-height:1.7}
+.band{margin-top:56px;background:#14352a;color:#fff;padding:36px 0}.band .dwrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:18px}.band h2{margin:0;color:#fff}.band p{margin:4px 0 0;color:#cfd8d2}
+@media(max-width:980px){.areas{grid-template-columns:repeat(2,minmax(0,1fr))}.devs{grid-template-columns:repeat(4,minmax(0,1fr))}.pgrid,.guides3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.areas{grid-template-columns:1fr 1fr;gap:10px}.area{height:150px}.area h3{font-size:16px}.devs{grid-template-columns:repeat(2,minmax(0,1fr))}.pgrid,.guides3{grid-template-columns:1fr}.dsearch{flex-direction:column}.dsearch button{padding:12px}.stats b{font-size:24px}.sh{flex-direction:column;align-items:flex-start}}`;
+}
+
+function renderDirectory(allProjects, lang, articles = []) {
   const ar = lang === "ar";
   const path = ar ? "/ar/" : "/en/directory/";
   const alternatePath = ar ? "/en/directory/" : "/ar/";
   const listedProjects = allProjects.filter(hasAvailableUnits);
-  const projects = listedProjects;
-  const latest = [...listedProjects]
-    .sort((a, b) => String(projectLastUpdated(b)).localeCompare(String(projectLastUpdated(a))))
-    .slice(0, 18);
-  const areas = [...new Map(listedProjects.map((project) => {
+  const unitCount = listedProjects.reduce((sum, project) => sum + project.units.length, 0);
+  const lastUpdated = listedProjects.map(projectLastUpdated).filter(Boolean).sort().pop();
+  const projectsPath = (project) => (ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`);
+  const devName = (name) => { const info = developerInfo(name); return ar ? (info?.name_ar || info?.name || name) : (info?.name || name); };
+
+  // Areas: the main indexable areas as photo cards, ordered by how many projects they have.
+  const areaStats = new Map();
+  const otherAreas = new Map();
+  for (const project of listedProjects) {
     const area = areaFor(projectLocation(project));
-    return [area.slug, area];
-  })).values()];
-  const developers = [...new Map(listedProjects.map((project) => [
-    slugify(project.developer),
-    { slug: slugify(project.developer), name: project.developer },
-  ])).values()].sort((a, b) => a.name.localeCompare(b.name));
+    if (!area.indexable) {
+      if (OTHER_AREA_AR[area.slug] || !ar) otherAreas.set(area.slug, ar ? OTHER_AREA_AR[area.slug] : area.en);
+      continue;
+    }
+    const entry = areaStats.get(area.slug) || { area, projects: [], min: 0 };
+    entry.projects.push(project);
+    const min = projectMinPrice(project);
+    if (min && (!entry.min || min < entry.min)) entry.min = min;
+    areaStats.set(area.slug, entry);
+  }
+  const areaList = [...areaStats.values()].sort((a, b) => b.projects.length - a.projects.length);
+  const areaImage = (entry) => {
+    const top = [...entry.projects].sort((a, b) => b.units.length - a.units.length).find((project) => clean(project.image_url, ""));
+    return top ? projectImage(top) : projectImage(entry.projects[0]);
+  };
+  const areaCards = areaList.map((entry) => `<a class="area" href="/${lang}/areas/${entry.area.slug}"><img src="${escapeHtml(areaImage(entry))}" alt="${escapeHtml(ar ? entry.area.ar : entry.area.en)}" loading="lazy" width="400" height="190"><div><h3>${escapeHtml(ar ? entry.area.ar : entry.area.en)}</h3><span>${entry.projects.length} ${ar ? (entry.projects.length > 10 || entry.projects.length < 3 ? "مشروع" : "مشاريع") : "projects"}${entry.min ? ` · ${ar ? "من" : "from"} ${escapeHtml(formatPrice(entry.min, lang))}` : ""}</span></div></a>`).join("");
+  const otherAreaChips = [...new Set(otherAreas.values())].filter(Boolean).slice(0, 10);
+
+  // Developers: the seven focus brands with logos first, then everyone else (deduplicated).
+  const devGroups = new Map();
+  for (const project of listedProjects) {
+    const key = developerKey(project.developer);
+    const entry = devGroups.get(key) || { key, name: project.developer, slug: slugify(project.developer), count: 0 };
+    entry.count += 1;
+    devGroups.set(key, entry);
+  }
+  const focus = FOCUS_DEVELOPERS.map((slug) => devGroups.get(slug)).filter(Boolean);
+  const devCards = focus.map((entry) => {
+    const info = developerInfo(entry.name);
+    const logo = info?.logo_path ? `<img src="${escapeHtml(brandLogoUrl(info.logo_path))}" alt="${escapeHtml(`${info.name} logo`)}" loading="lazy">` : `<em>${escapeHtml(devName(entry.name))}</em>`;
+    return `<a class="dev" href="/${lang}/developers/${info?.slug || entry.slug}"><span class="lg${info?.logo_on_dark ? " dark" : ""}">${logo}</span><b>${escapeHtml(devName(entry.name))}</b><span>${entry.count} ${ar ? (entry.count > 10 || entry.count < 3 ? "مشروع" : "مشاريع") : "projects"}</span></a>`;
+  }).join("");
+  const others = [...devGroups.values()].filter((entry) => !FOCUS_DEVELOPERS.includes(entry.key)).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+  // Projects: every listed project is in the HTML (crawlable); CSS-only filters and "show all".
+  const sorted = [...listedProjects].sort((a, b) => {
+    const fa = FOCUS_DEVELOPERS.includes(developerKey(a.developer)) ? 1 : 0;
+    const fb = FOCUS_DEVELOPERS.includes(developerKey(b.developer)) ? 1 : 0;
+    return fb - fa || b.units.length - a.units.length;
+  });
+  const topAreas = areaList.slice(0, 3).map((entry) => entry.area);
+  const filters = [
+    ["all", ar ? "الكل" : "All", ""],
+    ...topAreas.map((area) => [`a-${area.slug}`, ar ? area.ar : area.en, `.pcard:not([data-area="${area.slug}"])`]),
+    ["ready", ar ? "استلام فوري" : "Ready to move", ".pcard:not([data-ready])"],
+    ["apartment", ar ? "شقق" : "Apartments", '.pcard:not([data-types~="apartment"])'],
+    ["villa", ar ? "فيلات" : "Villas", '.pcard:not([data-types~="villa"])'],
+    ["chalet", ar ? "شاليهات" : "Chalets", '.pcard:not([data-types~="chalet"])'],
+    ["u10", ar ? "أقل من 10 مليون" : "Under 10M EGP", ".pcard:not([data-u10])"],
+  ];
+  const filterCss = filters.filter(([, , rule]) => rule).map(([id, , rule]) => `.dproj:has(#f-${id}:checked) .pcard{display:block}.dproj:has(#f-${id}:checked) ${rule}{display:none}`).join("")
+    + ".dproj:has(.fbar input:checked:not(#f-all)) .showall{display:none}";
+  const filterBar = `<div class="fbar" role="radiogroup" aria-label="${ar ? "فلترة المشاريع" : "Filter projects"}">${filters.map(([id, label], index) => `<input type="radio" name="pf" id="f-${id}"${index === 0 ? " checked" : ""}><label for="f-${id}">${escapeHtml(label)}</label>`).join("")}</div>`;
+  const message = (project) => encodeURIComponent(`${ar ? "أهلاً Tycoons، مهتم بمشروع" : "Hello Tycoons, I am interested in"} ${project.name}\n${SITE_URL}${projectsPath(project)}`);
+  const projectCards = sorted.map((project) => {
+    const area = areaFor(projectLocation(project));
+    const cats = unitCategories(project);
+    const tag = deliveryTag(project, ar);
+    const min = projectMinPrice(project);
+    const ready = /استلام فوري|Ready/.test(tag);
+    return `<article class="pcard" data-area="${escapeHtml(area.slug)}" data-types="${cats.join(" ")}"${ready ? " data-ready" : ""}${min && min < 10000000 ? " data-u10" : ""}>
+<div class="pimg"><a href="${projectsPath(project)}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(projectImage(project))}" alt="" loading="lazy" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
+<div class="pbody"><h3><a href="${projectsPath(project)}">${escapeHtml(project.name)}</a></h3><p class="ploc">${escapeHtml(area.indexable ? (ar ? area.ar : area.en) : projectLocation(project))} · ${escapeHtml(devName(project.developer))}</p>
+<p class="pprice">${min ? `${ar ? "يبدأ من" : "From"} <b>${escapeHtml(new Intl.NumberFormat("en-EG").format(min))}</b> ${ar ? "ج.م" : "EGP"}` : (ar ? "السعر عند الطلب" : "Price on request")}</p>
+<div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${project.units.length} ${ar ? "وحدة متاحة" : "units available"}</span></div>
+<div class="pcta"><a class="go" href="${projectsPath(project)}">${ar ? "تفاصيل المشروع" : "Project details"}</a><a class="w" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message(project)}" rel="noopener">${ar ? "واتساب" : "WhatsApp"}</a></div></div></article>`;
+  }).join("");
+
+  const guideList = (articles || []).filter((article) => (article.language || "ar") === lang && article.slug && article.title).slice(0, 3);
+  const guideCards = guideList.length
+    ? guideList.map((article) => `<a class="g3" href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/"><small>${ar ? "دليل" : "Guide"}</small><h3>${escapeHtml(article.title)}</h3></a>`).join("")
+    : Object.entries(ar ? GUIDES : ENGLISH_GUIDES).slice(0, 3).map(([slug, guide]) => `<a class="g3" href="${ar ? "" : "/en"}/guides/${slug}/"><small>${ar ? "دليل" : "Guide"}</small><h3>${escapeHtml(guide.title || guide.h1 || slug)}</h3></a>`).join("");
+
   const title = ar
-    ? "مشاريع عقارية في مصر بالأسعار المحدثة | Tycoons Investments"
-    : "Egypt property projects with updated prices | Tycoons Investments";
+    ? `دليل المشاريع العقارية في مصر 2026 — ${listedProjects.length} مشروع بالأسعار | Tycoons`
+    : `Egypt Property Projects 2026 — ${listedProjects.length} Projects with Prices | Tycoons`;
   const description = ar
-    ? "دليل مشاريع عقارية مبني على الوحدات المتاحة في قاعدة بيانات Tycoons مع الأسعار والمساحات وخطط السداد."
-    : "A property project directory based on currently available Tycoons inventory, including prices, areas and payment plans.";
-  const body = `<main><section class="hero"><span class="eyebrow">Tycoons Investments</span><h1>${ar ? "دليل المشاريع العقارية المحدث" : "Updated property project directory"}</h1><p class="lead">${escapeHtml(description)}</p><p class="note">${ar ? `${projects.length} مشروع ظاهر حسب آخر تحميل ناجح للبيانات.` : `${projects.length} projects shown from the latest successful data load.`}</p></section>
-  <h2>${ar ? "استكشف حسب المنطقة" : "Explore by area"}</h2><div class="grid">${areas.map((area) => `<a class="card" href="/${lang}/areas/${area.slug}"><h3>${escapeHtml(ar ? area.ar : area.en)}</h3></a>`).join("")}</div>
-  <h2 id="developers">${ar ? "استكشف حسب المطور" : "Explore by developer"}</h2><div class="grid">${developers.map((developer) => `<a class="card" href="/${lang}/developers/${developer.slug}"><h3>${escapeHtml(developer.name)}</h3></a>`).join("")}</div>
-  <h2>${ar ? "أحدث المشاريع" : "Recently updated projects"}</h2>${cards(latest, lang)}</main>`;
+    ? `قارن ${listedProjects.length} مشروع عقاري و${unitCount} وحدة متاحة في التجمع الخامس والساحل الشمالي والشيخ زايد ومستقبل سيتي: الأسعار والمساحات وأنظمة السداد والاستلام من المطورين مباشرة.`
+    : `Compare ${listedProjects.length} property projects and ${unitCount} available units in New Cairo, North Coast, Sheikh Zayed and Mostakbal City: prices, sizes, payment plans and delivery, direct from developers.`;
+  const body = `<style>${directoryStyles()}${filterCss}</style>
+<section class="dhero"><div class="dwrap"><p class="crumbs"><a href="${ar ? "/" : "/en/"}">${ar ? "الرئيسية" : "Home"}</a> ‹ ${ar ? "دليل المشاريع" : "Project directory"}</p>
+<h1>${ar ? "دليل المشاريع العقارية في مصر 2026" : "Egypt property project directory 2026"}</h1>
+<p class="lead">${ar ? `قارن ${listedProjects.length} مشروع من أكبر المطورين بالأسعار المحدّثة والمساحات وأنظمة السداد ومواعيد الاستلام — من مخزون المطورين مباشرة.` : `Compare ${listedProjects.length} projects from Egypt's leading developers by updated price, size, payment plan and delivery — straight from developer inventory.`}</p>
+<form class="dsearch" action="/search" method="get" role="search"><input name="q" type="search" aria-label="${ar ? "ابحث عن عقار" : "Search properties"}" placeholder="${ar ? "مثال: شقة في التجمع تحت 10 مليون ومقدم 5%" : "e.g. apartment in New Cairo under 10M"}"><button type="submit">${ar ? "اعرض النتائج" : "Search"}</button></form>
+<div class="stats"><div><b>${listedProjects.length}</b><span>${ar ? "مشروع متاح" : "projects"}</span></div><div><b>${new Intl.NumberFormat("en-EG").format(unitCount)}</b><span>${ar ? "وحدة محدّثة" : "units"}</span></div><div><b>${devGroups.size}</b><span>${ar ? "مطور عقاري" : "developers"}</span></div>${lastUpdated ? `<div><b>${escapeHtml(formatDate(lastUpdated, lang))}</b><span>${ar ? "آخر تحديث للأسعار" : "last price update"}</span></div>` : ""}</div>
+</div></section>
+<main class="dmain">
+<div class="sh" id="areas"><div><h2>${ar ? "استكشف حسب المنطقة" : "Explore by area"}</h2><p>${ar ? "أسعار البداية من الوحدات المتاحة حاليًا" : "Starting prices from currently available units"}</p></div></div>
+<div class="areas">${areaCards}</div>
+${otherAreaChips.length ? `<div class="chips"><span class="chip">${ar ? "مناطق تانية:" : "Other areas:"}</span>${[...otherAreas.entries()].filter(([, name]) => name).filter(([, name], i, list) => list.findIndex(([, n]) => n === name) === i).slice(0, 10).map(([slug, name]) => `<a class="chip" href="/${lang}/areas/${escapeHtml(slug)}">${escapeHtml(name)}</a>`).join("")}</div>` : ""}
+<div class="sh" id="developers"><div><h2>${ar ? "أشهر المطورين" : "Leading developers"}</h2><p>${ar ? "لوجو الشركة بيظهر على كل مشاريعها" : "Each developer's logo appears on all of its projects"}</p></div></div>
+<div class="devs">${devCards}</div>
+<details class="alldevs"><summary>${ar ? `كل المطورين (${devGroups.size})` : `All developers (${devGroups.size})`}</summary><div>${others.map((entry) => `<a class="chip" href="/${lang}/developers/${escapeHtml(entry.slug)}">${escapeHtml(devName(entry.name))} · ${entry.count}</a>`).join("")}</div></details>
+<section class="dproj" aria-labelledby="projects-h"><div class="sh"><div><h2 id="projects-h">${ar ? "المشاريع المتاحة" : "Available projects"}</h2><p>${ar ? "اختار فلتر عشان تضيّق النتايج" : "Pick a filter to narrow the list"}</p></div></div>
+${filterBar}<input type="checkbox" id="show-all" hidden><div class="pgrid">${projectCards}</div>
+<div class="showall"><label class="more" for="show-all">${ar ? `اعرض كل المشاريع (${listedProjects.length})` : `Show all projects (${listedProjects.length})`}</label></div></section>
+<div class="sh"><div><h2>${ar ? "أدلة تساعدك تقرر" : "Guides to help you decide"}</h2></div><a class="more" href="${ar ? "/guides/" : "/en/guides/"}">${ar ? "كل الأدلة ←" : "All guides →"}</a></div>
+<div class="guides3">${guideCards}</div>
+</main>
+<div class="band"><div class="dwrap"><div><h2>${ar ? "محتار بين مشروعين؟" : "Torn between two projects?"}</h2><p>${ar ? "ابعتلنا الميزانية والمنطقة ونرشحلك أنسب 3 مشاريع." : "Send us your budget and preferred area and we'll shortlist the best 3 projects."}</p></div><a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>${ar ? "كلمنا على واتساب" : "Chat on WhatsApp"}</span></a></div></div>`;
   return renderPage({
     lang,
     title,
@@ -873,7 +1061,10 @@ function renderDirectory(allProjects, lang) {
     path,
     alternatePath,
     body,
-    schemas: [{ "@context": "https://schema.org", "@type": "CollectionPage", name: title, url: `${SITE_URL}${path}` }],
+    schemas: [
+      { "@context": "https://schema.org", "@type": "CollectionPage", name: title, url: `${SITE_URL}${path}`, description, inLanguage: ar ? "ar-EG" : "en", ...(lastUpdated ? { dateModified: lastUpdated } : {}) },
+      { "@context": "https://schema.org", "@type": "ItemList", name: ar ? "المشاريع المتاحة" : "Available projects", numberOfItems: sorted.length, itemListElement: sorted.slice(0, 50).map((project, index) => ({ "@type": "ListItem", position: index + 1, name: project.name, url: `${SITE_URL}${projectsPath(project)}` })) },
+    ],
   });
 }
 
@@ -894,12 +1085,18 @@ function renderProject(projects, slug, lang) {
   const minPrice = projectMinPrice(project);
   const maxPrice = projectMaxPrice(project);
   const hasUnits = units.length > 0;
+  const buyer = projectBuyerStats(units);
   const priceSummary = hasUnits
     ? (ar
       ? `الأسعار الظاهرة بتبدأ من ${formatPrice(minPrice, lang)} وبتوصل إلى ${formatPrice(maxPrice, lang)} عبر ${units.length} خيار.`
       : `Currently listed prices range from ${formatPrice(minPrice, lang)} to ${formatPrice(maxPrice, lang)} across ${units.length} options.`)
     : (ar ? "لا توجد أسعار تفصيلية منشورة حاليًا." : "No detailed prices are currently published.");
   const localizedContent = localizedProjectContent(project,lang);
+  // Leaders' title pattern: project + intent words + year + "from" price, Western digits.
+  const minM = millions(minPrice);
+  const defaultTitle = ar
+    ? `${project.name}: الأسعار وأنظمة السداد 2026${minM ? ` — من ${minM} مليون` : ""} | Tycoons`
+    : `${project.name} Prices & Payment Plans 2026${minM ? ` — from EGP ${minM}M` : ""} | Tycoons`;
   const searchContent = PROJECT_SEARCH_CONTENT[slug]?.[lang];
   const contentVars = { project, location, priceSummary, unitCount: units.length };
   const description = localizedContent?.seo_description || searchContent?.description?.(contentVars) || (ar
@@ -926,13 +1123,13 @@ function renderProject(projects, slug, lang) {
   ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:cover;border-radius:20px" fetchpriority="high">` : ""}
   <div class="facts">${hasUnits ? `<div class="fact"><small>${ar ? "يبدأ من" : "Starting from"}</small><strong>${escapeHtml(formatPrice(minPrice, lang))}</strong></div>
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
-  <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
+  <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.medianSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Median price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.medianSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
   <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث Availability" : "Request current availability"}</a></section>${extraSections}
   <h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2>${
     hasUnits
-      ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
-  ${units.map((unit) => `<tr><td>${escapeHtml(clean(unit.unit_type))}</td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${escapeHtml(clean(unit.down_payment_text))}</td><td>${escapeHtml(clean(unit.installments_text))}</td><td>${escapeHtml(clean(unit.delivery_text))}</td></tr>`).join("")}
+      ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "سعر المتر" : "Per m²"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
+  ${units.map((unit) => `<tr><td>${escapeHtml(clean(unit.unit_type))}</td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(pricePerSqm(unit))) : "—"}</td><td>${escapeHtml(clean(unit.down_payment_text))}</td><td>${escapeHtml(clean(unit.installments_text))}</td><td>${escapeHtml(clean(unit.delivery_text))}</td></tr>`).join("")}
   </tbody></table></div>`
       : `<p class="note">${ar ? `لا توجد وحدات منشورة بأسعار تفصيلية لـ${project.name} حاليًا. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من ${project.developer}.` : `No units with detailed pricing are published for ${project.name} right now. Message us on WhatsApp and we'll send the latest price list and payment plans from ${project.developer}.`}</p>`
   }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p>
@@ -943,7 +1140,7 @@ function renderProject(projects, slug, lang) {
 
   return renderPage({
     lang,
-    title: localizedContent?.seo_title || searchContent?.title?.(contentVars) || `${project.name} | ${project.developer} | Tycoons Investments`,
+    title: localizedContent?.seo_title || searchContent?.title?.(contentVars) || defaultTitle,
     description,
     path,
     alternatePath,
@@ -955,7 +1152,7 @@ function renderProject(projects, slug, lang) {
     schemas: [
       breadcrumbSchema(crumbs),
       ...buildProjectSchemas({ url: `${SITE_URL}${path}`, name: project.name, location, description,
-        title: localizedContent?.seo_title || searchContent?.title?.(contentVars) || `${project.name} | ${project.developer} | Tycoons Investments`,
+        title: localizedContent?.seo_title || searchContent?.title?.(contentVars) || defaultTitle,
         language: lang, images: image ? [image] : [], modified: updated, units,
         articleSections: localizedContent?.article_sections?.length ? localizedContent.article_sections :
           (searchContent?.sections?.(contentVars) || []).map(([heading, paragraph]) => ({ heading, paragraphs: [paragraph] })),

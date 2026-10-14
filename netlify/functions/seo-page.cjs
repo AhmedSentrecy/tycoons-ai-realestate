@@ -141,7 +141,10 @@ exports.handler = async function handler(event) {
         fetchDevelopers(),
       ]);
       const projects = groupProjects(units, projectsMeta);
-      if (type === "home") html = renderDirectory(projects, lang);
+      if (type === "home") {
+        const articles = await fetchRest("published_editorial_articles", { select: "title,slug,language,published_at", language: `eq.${lang}`, order: "published_at.desc", limit: "6" });
+        html = renderDirectory(projects, lang, articles);
+      }
       if (type === "project") {
         const hasCanonicalProject = projectsMeta.some((project) =>
           String(project.slug || "").trim() === slug);

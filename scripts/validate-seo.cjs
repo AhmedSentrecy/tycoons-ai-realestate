@@ -146,7 +146,10 @@ assert.match(project, /"priceCurrency":"EGP"/);
 assert.match(project, new RegExp(`https://tycoons-inv\\.com/units/${rows[0].id}`), "project unit schema must point to the unit UUID");
 assert.match(project, new RegExp(`href="/units/${rows[0].id}"`), "project unit card must point to the unit UUID");
 assert.doesNotMatch(project, /aggregateRating|"review"|"@type":"Product"/);
-assert.match(directory, /دليل المشاريع العقارية المحدث/);
+assert.match(directory, /دليل المشاريع العقارية في مصر 2026/);
+assert.match(directory, /id="areas"/, "directory must expose the #areas anchor used by the header");
+assert.match(directory, /id="developers"/, "directory must expose the #developers anchor used by the header");
+assert.match(directory, /<header class="site">/, "every SSR page uses the shared site header");
 assert.match(area, /مستقبل سيتي/);
 assert.match(area, /"@type":"FAQPage"/, "area collection page must render FAQ schema with real area content");
 assert.match(area, /غالبية المشاريع هنا لسه تحت الإنشاء/, "area page must include the area-context/buyer-note copy, not just a generic template");
@@ -272,7 +275,7 @@ assert.doesNotMatch(pricedNewCairoOnly, /starting from Price on request/);
 const mixedDirectory = renderDirectory([zeroUnitProject, unpricedAvailableProject], "en");
 assert.match(mixedDirectory, /Price on Request Project/);
 assert.doesNotMatch(mixedDirectory, /Skyline Residences/);
-assert.match(mixedDirectory, /1 projects shown/);
+assert.match(mixedDirectory, /Compare 1 projects/);
 
 const netlify = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -424,7 +427,7 @@ async function validateRouteRecovery() {
       rawUrl: "https://tycoons-inv.com/projects/aliva-old-name--mountain-view",
       queryStringParameters: { lang: "ar", type: "project", slug: "aliva-old-name--mountain-view" },
     });
-    assert.match(projectResponse.body, /Mountain View Aliva \| Mountain View/);
+    assert.match(projectResponse.body, /<title>Mountain View Aliva(: الأسعار وأنظمة السداد| Prices &amp; Payment Plans) 2026/);
     assert.match(projectResponse.body, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/projects\//);
     assert.match(guideResponse.body, /دليل شراء عقار Off-plan في مصر/);
     assert.equal(englishGuideResponse.statusCode, 200);
