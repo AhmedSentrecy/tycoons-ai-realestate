@@ -4,6 +4,8 @@ const SUPABASE_URL = viteEnv.VITE_SUPABASE_URL || "https://coqnjymekrkoausiiytm.
 const SUPABASE_PUBLISHABLE_KEY =
   viteEnv.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 const API = `${SUPABASE_URL}/functions/v1/tycoons-admin`;
+/** Homepage "بتتطرح دلوقتي" carousel (own small function, same admin login). */
+const LAUNCHES_API = `${SUPABASE_URL}/functions/v1/homepage-launches`;
 export const ADMIN_TOKEN_KEY = "tycoons_admin_token";
 
 export type MediaTarget = "project" | "unit";
@@ -243,8 +245,8 @@ function safeGenerationFailure(value: unknown): GenerationFailure | null {
   return { reason: item.reason as GenerationFailureReason, fields, recovery_eligible: item.recovery_eligible === true, intent: item.intent as GenerationIntent };
 }
 
-async function call<T>(action: string, payload: Record<string, unknown> = {}, token = ""): Promise<T> {
-  const response = await fetch(API, {
+async function call<T>(action: string, payload: Record<string, unknown> = {}, token = "", endpoint = API): Promise<T> {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -374,9 +376,9 @@ export const adminApi = {
     call<{ items: ResearchFaqItem[]; updated_at: string | null }>("project_research_faq", { project_id: projectId }, token),
   projectResearchFaqSave: (token: string, projectId: string, items: ResearchFaqItem[]) =>
     call<{ items: ResearchFaqItem[]; updated_at: string; rebuilt: boolean }>("project_research_faq_save", { project_id: projectId, items }, token),
-  homepageLaunches: (token: string) => call<HomepageLaunchList>("homepage_launches", {}, token),
+  homepageLaunches: (token: string) => call<HomepageLaunchList>("homepage_launches", {}, token, LAUNCHES_API),
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
-    call<HomepageLaunchList>("homepage_launches_save", { items }, token),
+    call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
 };
 
 /** One project in the homepage "بتتطرح دلوقتي" carousel (order = position in the list). */
