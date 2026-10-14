@@ -23,6 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Validate Netlify function entrypoints
+        run: node scripts/test-netlify-functions.cjs
       - name: Install dependencies using the existing Netlify policy
         run: |
           corepack enable
@@ -33,6 +35,15 @@ jobs:
         run: |
           set -o pipefail
           yarn run check 2>&1 | tee "$RUNNER_TEMP/website-check.log"
+      - name: Package functions using Netlify's bundler
+        env:
+          NETLIFY_ZISI_MODULE: ${{ runner.temp }}/netlify-tools/node_modules/@netlify/zip-it-and-ship-it/dist/main.js
+          NETLIFY_BUNDLE_OUTPUT: ${{ runner.temp }}/netlify-function-check
+        shell: bash
+        run: |
+          set -o pipefail
+          npm install --prefix "$RUNNER_TEMP/netlify-tools" --no-save --no-package-lock @netlify/zip-it-and-ship-it@16.3.0
+          node scripts/test-netlify-functions.cjs --bundle 2>&1 | tee "$RUNNER_TEMP/netlify-function-check.log"
       - name: Rendered browser smoke tests
         if: hashFiles('scripts/test-render-browser.cjs') != ''
         shell: bash
@@ -48,5 +59,8 @@ jobs:
             ${{ runner.temp }}/tested-source.tar.gz
             ${{ runner.temp }}/website-check.log
             ${{ runner.temp }}/browser-check.log
+            ${{ runner.temp }}/netlify-function-check.log
+            ${{ runner.temp }}/netlify-function-check/manifest.json
+            ${{ runner.temp }}/netlify-function-check/summary.json
             browser-check-evidence/
           retention-days: 7
