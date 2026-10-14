@@ -369,6 +369,31 @@
   status = 301
   force = true
 
+# Guides hub (was a soft 404 that returned the home page).
+[[redirects]]
+  from = "/guides"
+  to = "/.netlify/functions/seo-page?lang=ar&type=guides"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/guides/"
+  to = "/.netlify/functions/seo-page?lang=ar&type=guides"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/ar/guides"
+  to = "/guides/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/guides/"
+  to = "/guides/"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/guides/*"
   to = "/.netlify/functions/seo-page?lang=ar&type=guide&slug=:splat"
@@ -542,6 +567,18 @@
   from = "/en/guides/egypt-real-estate-investment-2026/*"
   to = "/guides/real-estate-investment-egypt/"
   status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/guides"
+  to = "/.netlify/functions/seo-page?lang=en&type=guides"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/en/guides/"
+  to = "/.netlify/functions/seo-page?lang=en&type=guides"
+  status = 200
   force = true
 
 [[redirects]]

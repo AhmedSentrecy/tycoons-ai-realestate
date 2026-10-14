@@ -13,6 +13,7 @@ const {
   renderGuide,
   renderEditorialArticle,
   renderStaticPage,
+  renderGuidesIndex,
   notFound,
 } = require("./_seo-utils.cjs");
 
@@ -89,11 +90,12 @@ exports.handler = async function handler(event) {
   })();
   const route = originalPath.match(/^\/(ar|en)\/(projects|areas|developers)\/(.+?)\/?$/);
   const unitRoute = originalPath.match(/^\/units\/(.+?)\/?$/);
+  const guidesIndexRoute = originalPath.match(/^\/(?:(en)\/)?guides\/?$/);
   const guideRoute = originalPath.match(/^\/(?:(en)\/)?guides\/(.+?)\/?$/);
   const staticRoute = originalPath.match(/^\/(about|faq|methodology|corrections|contact|privacy)\/?$/);
   const directoryRoute = originalPath.match(/^\/(ar|en)(?:\/directory)?\/?$/);
 
-  const lang = route?.[1] === "en" || directoryRoute?.[1] === "en" || guideRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
+  const lang = route?.[1] === "en" || directoryRoute?.[1] === "en" || guideRoute?.[1] === "en" || guidesIndexRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
   let type = String(params.type || "home");
   let rawSlug = String(params.slug || "");
 
@@ -103,6 +105,8 @@ exports.handler = async function handler(event) {
   } else if (unitRoute) {
     type = "unit";
     rawSlug = unitRoute[1];
+  } else if (guidesIndexRoute) {
+    type = "guides";
   } else if (guideRoute) {
     type = "guide";
     rawSlug = guideRoute[2];
@@ -126,7 +130,11 @@ exports.handler = async function handler(event) {
       }
     }
     if (type === "static") html = renderStaticPage(slug);
-    if (!["guide", "static"].includes(type)) {
+    if (type === "guides") {
+      const articles = await fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at", order: "published_at.desc", limit: "300" });
+      html = renderGuidesIndex(lang, articles);
+    }
+    if (!["guide", "guides", "static"].includes(type)) {
       const [units, projectsMeta] = await Promise.all([
         fetchUnits(),
         fetchProjectsMeta({ strict: type === "project" }),

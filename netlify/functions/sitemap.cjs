@@ -54,7 +54,7 @@ async function fetchPublishedArticles() {
 exports.handler = async function handler() {
   try {
     const [projects, units, articles] = await Promise.all([
-      fetchRows("projects", "id,name,slug,developer,location,last_updated_at"),
+      fetchRows("projects", "id,name,slug,developer,location,last_updated_at,image_url,gallery_urls"),
       fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,description,last_updated_at", {
         availability_status: "eq.available",
         project_id: "not.is.null",
@@ -74,7 +74,16 @@ exports.handler = async function handler() {
       [`${SITE_URL}/contact`, "2026-07-26"],
       [`${SITE_URL}/ar/`, null],
       [`${SITE_URL}/en/`, null],
+      [`${SITE_URL}/guides/`, null],
+      [`${SITE_URL}/en/guides/`, null],
     ]);
+    // Image sitemap entries: Google Images is a real discovery path for project searches.
+    const images = new Map();
+    const projectImages = (project) => [project.image_url, ...String(project.gallery_urls || "").split(",")]
+      .map((value) => String(value || "").trim())
+      .filter((value) => /^https:\/\//.test(value))
+      .filter((value, index, list) => list.indexOf(value) === index)
+      .slice(0, 5);
 
     for (const guideSlug of Object.keys(GUIDES)) {
       urls.set(`${SITE_URL}/guides/${guideSlug}/`, "2026-07-26");
@@ -93,6 +102,13 @@ exports.handler = async function handler() {
       const updated = project.last_updated_at || null;
       const area = areaFor(project.location);
       urls.set(`${SITE_URL}/projects/${projectSlug}`, updated);
+      // The English project pages exist and are canonical; list them so Google finds them.
+      urls.set(`${SITE_URL}/en/projects/${projectSlug}`, updated);
+      const imageList = projectImages(project);
+      if (imageList.length) {
+        images.set(`${SITE_URL}/projects/${projectSlug}`, imageList);
+        images.set(`${SITE_URL}/en/projects/${projectSlug}`, imageList);
+      }
       for (const lang of ["ar", "en"]) {
         if (area.indexable) urls.set(`${SITE_URL}/${lang}/areas/${area.slug}`, updated);
         urls.set(`${SITE_URL}/${lang}/developers/${slugify(project.developer)}`, updated);
@@ -105,9 +121,9 @@ exports.handler = async function handler() {
     }
 
     const body = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${[...urls.entries()]
-  .map(([loc, lastmod]) => `  <url><loc>${escapeHtml(loc)}</loc>${lastmod ? `<lastmod>${escapeHtml(new Date(lastmod).toISOString())}</lastmod>` : ""}</url>`)
+  .map(([loc, lastmod]) => `  <url><loc>${escapeHtml(loc)}</loc>${lastmod ? `<lastmod>${escapeHtml(new Date(lastmod).toISOString())}</lastmod>` : ""}${(images.get(loc) || []).map((src) => `<image:image><image:loc>${escapeHtml(src)}</image:loc></image:image>`).join("")}</url>`)
   .join("\n")}
 </urlset>`;
     return {

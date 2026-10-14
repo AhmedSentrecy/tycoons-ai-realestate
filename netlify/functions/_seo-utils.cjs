@@ -478,7 +478,9 @@ function clean(value, fallback = "—") {
 function formatPrice(value, lang) {
   const amount = numberValue(value);
   if (!amount) return lang === "ar" ? "السعر عند الطلب" : "Price on request";
-  const formatted = new Intl.NumberFormat(lang === "ar" ? "ar-EG" : "en-EG", {
+  // Western digits in both languages: Egyptian buyers search "3,000,000" not "٣٬٠٠٠٬٠٠٠",
+  // and titles/snippets should match the query.
+  const formatted = new Intl.NumberFormat("en-EG", {
     maximumFractionDigits: 0,
   }).format(amount);
   return `${formatted} ${lang === "ar" ? "جنيه" : "EGP"}`;
@@ -1456,6 +1458,53 @@ function editorialGuidePath(article) {
   return article.language === "en" ? `/en/guides/${article.slug}/` : `/guides/${article.slug}/`;
 }
 
+// /guides/ and /en/guides/: one hub linking every buyer guide and published article,
+// so guides are no longer orphans and crawlers have a single entry point.
+function renderGuidesIndex(lang = "ar", articles = []) {
+  const ar = lang !== "en";
+  const path = ar ? "/guides/" : "/en/guides/";
+  const alternatePath = ar ? "/en/guides/" : "/guides/";
+  const staticGuides = Object.entries(ar ? GUIDES : ENGLISH_GUIDES).map(([slug, guide]) => ({
+    title: guide.title, description: guide.description, href: ar ? `/guides/${slug}/` : `/en/guides/${slug}/`,
+  }));
+  const published = (Array.isArray(articles) ? articles : [])
+    .filter((article) => article && article.slug && article.title && (ar ? article.language !== "en" : article.language === "en"))
+    .map((article) => ({ title: article.title, description: article.excerpt || "", href: editorialGuidePath(article) }));
+  const items = [...staticGuides, ...published];
+  const title = ar ? `أدلة شراء العقارات في مصر 2026 — ${items.length} دليل | Tycoons` : `Egypt Property Buying Guides 2026 — ${items.length} guides | Tycoons`;
+  const description = ar
+    ? "كل أدلة Tycoons لشراء عقار في مصر: الأسعار، خطط السداد، الشراء تحت الإنشاء، ودليل لكل مشروع عن موقعه ووحداته ولمين يناسب."
+    : "All Tycoons guides to buying property in Egypt: prices, payment plans, off-plan buying, and project guides on location, units and who each project suits.";
+  const crumbs = [
+    { name: ar ? "الرئيسية" : "Home", path: "/" },
+    { name: ar ? "الأدلة" : "Guides", path },
+  ];
+  const list = items.map((item) => `<li style="margin:0 0 14px"><a href="${escapeHtml(item.href)}"><strong>${escapeHtml(item.title)}</strong></a>${item.description ? `<br><span class="note">${escapeHtml(item.description)}</span>` : ""}</li>`).join("");
+  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">Tycoons Investments</span><h1>${ar ? "أدلة شراء العقارات في مصر" : "Egypt property buying guides"}</h1><p class="lead">${escapeHtml(description)}</p></section><ul style="list-style:none;padding:0;margin-top:24px">${list}</ul></main>`;
+  return renderPage({
+    lang,
+    title,
+    description,
+    path,
+    alternatePath,
+    body,
+    schemas: [
+      breadcrumbSchema(crumbs),
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: title,
+        url: `${SITE_URL}${path}`,
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: items.length,
+          itemListElement: items.map((item, index) => ({ "@type": "ListItem", position: index + 1, name: item.title, url: `${SITE_URL}${item.href}` })),
+        },
+      },
+    ],
+  });
+}
+
 // `translation` is the published counterpart in the other language (same
 // translation_key), or null. Only then are hreflang alternates emitted.
 // `extras.project` is the article's public project row ({name, slug, developer,
@@ -1644,6 +1693,7 @@ function notFound(lang = "ar") {
 }
 
 module.exports = {
+  renderGuidesIndex,
   fetchDevelopers,
   developerInfo,
   projectLogo,
