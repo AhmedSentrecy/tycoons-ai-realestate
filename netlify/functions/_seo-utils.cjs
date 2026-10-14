@@ -523,19 +523,28 @@ async function fetchUnits() {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8500);
   try {
-    const params = new URLSearchParams({
-      select: columns,
-      availability_status: "eq.available",
-      order: "starting_price.asc",
-      limit: "5000",
-    });
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/units?${params}`, {
-      headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error(`inventory ${response.status}`);
-    const rows = await response.json();
-    if (!Array.isArray(rows) || !rows.length) throw new Error("inventory empty");
+    // Supabase returns at most 1,000 rows per request, so page through the inventory;
+    // a single request silently dropped the most expensive units once stock passed 1,000.
+    const rows = [];
+    for (let offset = 0; offset < 10000; offset += 1000) {
+      const params = new URLSearchParams({
+        select: columns,
+        availability_status: "eq.available",
+        order: "starting_price.asc,id.asc",
+        limit: "1000",
+        offset: String(offset),
+      });
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/units?${params}`, {
+        headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
+        signal: controller.signal,
+      });
+      if (!response.ok) throw new Error(`inventory ${response.status}`);
+      const page = await response.json();
+      if (!Array.isArray(page)) throw new Error("inventory invalid");
+      rows.push(...page);
+      if (page.length < 1000) break;
+    }
+    if (!rows.length) throw new Error("inventory empty");
     cache = { units: rows, fetchedAt: Date.now() };
     return rows;
   } catch (error) {
