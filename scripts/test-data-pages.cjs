@@ -62,7 +62,7 @@ assert.match(projectHtml, /hreflang="en" href="https:\/\/tycoons-inv\.com\/en\/p
 assert.match(projectHtml, /Project Alpha SEO/);
 assert.match(projectHtml, /Alpha only content/);
 assert.match(projectHtml, /"@type":"RealEstateListing"/);
-assert.doesNotMatch(projectHtml, /"@type":"Article"/, "project inventory is a listing, not a dated news article");
+assert.match(projectHtml, /"@type":"Article"/, "genuine visible editorial sections retain Article markup");
 assert.doesNotMatch(projectHtml, /"@type":"Product"/, "property collection should not generate invalid merchant product markup");
 assert.match(projectHtml, /"@type":"FAQPage"/);
 assert.match(projectHtml, /"@type":"BreadcrumbList"/);

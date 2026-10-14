@@ -1,0 +1,63 @@
+"use strict";
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const { pageShell } = require("./lib/page-shell.cjs");
+const { renderProjectStatic } = require("./lib/data-pages.cjs");
+const { buildProjectSchemas } = require("../netlify/functions/_project-schema.cjs");
+const { renderProject, groupProjects, renderEditorialArticle } = require("../netlify/functions/_seo-utils.cjs");
+const shell = '<!doctype html><html lang="ar" dir="rtl"><head><title>Home</title><link rel="canonical" href="https://tycoons-inv.com/"></head><body><div id="root"><main>Home</main></div><script type="module" src="/assets/app.js"></script></body></html>';
+const base = { title: 'Guide', description: 'Description', canonical: 'https://tycoons-inv.com/en/guides/comparison/', image: '', keywords: [], schemas: [], body: '<main><h1>Compare</h1></main>' };
+const html = pageShell(shell, { ...base, lang: 'en', alternates: [{ hreflang:'ar-EG', href:'https://tycoons-inv.com/guides/comparison/' }] });
+assert.match(html, /<html lang="en" dir="ltr">/);
+assert.match(html, /hreflang="en" href="https:\/\/tycoons-inv.com\/en\/guides\/comparison\/"/);
+assert.match(html, /hreflang="ar-EG" href="https:\/\/tycoons-inv.com\/guides\/comparison\/"/);
+assert.match(html, /hreflang="x-default" href="https:\/\/tycoons-inv.com\/guides\/comparison\/"/);
+assert.match(html, /og:locale" content="en_US"/);
+assert.match(html, /src="\/assets\/app.js"/);
+const noPair = pageShell(shell, { ...base, lang:'en' });
+assert.doesNotMatch(noPair, /hreflang="ar-EG"/);
+const ar = pageShell(shell, { ...base, canonical:'https://tycoons-inv.com/guides/comparison/', lang:'ar' });
+assert.match(ar, /lang="ar" dir="rtl"/);
+assert.match(ar, /og:locale" content="ar_EG"/);
+assert.doesNotMatch(ar, /hreflang="en"/);
+const unit = { id:'unit-one', project_id:'project-one', project_name:'Alpha', developer:'Developer', location:'New Cairo', unit_type:'Apartment', bedrooms_text:'2 bedrooms', area_sqm:120, starting_price:8000000, availability_status:'available', description:'Apartment with a useful description.', last_updated_at:'2026-10-01T00:00:00Z' };
+const project = { id:'project-one', name:'Alpha', slug:'alpha--developer', developer:'Developer', location:'New Cairo', article_sections:[], faq:[], last_updated_at:unit.last_updated_at };
+const input = { url:'https://tycoons-inv.com/projects/alpha--developer', name:'Alpha', location:'New Cairo', units:[unit] };
+const graph = buildProjectSchemas(input);
+assert.ok(graph.some((s) => s['@type'] === 'RealEstateListing'));
+assert.ok(graph.some((s) => s['@type'] === 'OfferCatalog'));
+assert.ok(!graph.some((s) => s['@type'] === 'Article'));
+assert.doesNotMatch(JSON.stringify(graph), /"@type":"Product"|aggregateRating/);
+const realArticle = buildProjectSchemas({ ...input, articleSections:[{ heading:'About', paragraphs:['Reviewed editorial text'] }], modified:'2026-10-01' });
+assert.ok(realArticle.some((s) => s['@type'] === 'Article'));
+assert.equal(realArticle.find((s) => s['@type'] === 'Article').datePublished, undefined);
+const unknownPrice = buildProjectSchemas({ ...input, units:[{ ...unit, starting_price:null }] });
+assert.doesNotMatch(JSON.stringify(unknownPrice), /"price":0|"lowPrice":0/);
+const ranges = buildProjectSchemas({ ...input, ranges:[{ unit_type:'Villa', min_price:20000000, max_price:30000000 }] });
+assert.equal(ranges.find((s) => s['@type'] === 'RealEstateListing').offers.highPrice, 30000000);
+function schemas(source) {
+  return [...source.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].flatMap((m) => {
+    const value = JSON.parse(m[1]); return value['@graph'] || [value];
+  });
+}
+const staticHtml = renderProjectStatic(shell, project, [unit]);
+const serverHtml = renderProject(groupProjects([unit],[project]), project.slug, 'ar');
+const expected = graph.find((s) => s['@type'] === 'RealEstateListing').offers;
+for (const rendered of [staticHtml, serverHtml]) {
+  const nodes=schemas(rendered);
+  assert.deepEqual(nodes.find((s) => s['@type']==='RealEstateListing').offers,expected);
+  assert.doesNotMatch(rendered, /"@type":"Product"/);
+}
+assert.match(staticHtml, /id="tycoons-page-schema"/);
+const projectReact = fs.readFileSync('src/pages/ProjectPage.tsx','utf8');
+assert.match(projectReact, /buildProjectSchemas\(/);
+assert.match(projectReact, /<PageStructuredData value={structuredData}/);
+assert.doesNotMatch(projectReact, /"@type": "Product"/);
+const guideReact = fs.readFileSync('src/components/GuideBody.tsx','utf8');
+assert.match(guideReact, /renderSafeMarkdown\(markdown\)/);
+const guide = { status:'published', language:'en', title:'Buyer guide', slug:'buyer-guide', published_at:'2026-10-01T00:00:00Z', reviewed_at:'2026-10-01T00:00:00Z', reviewed_by_name:'Tycoons', source_refs:[{type:'web',label:'Developer brochure',url:'https://source.example/official'}], body_markdown:'A | B\n--- | ---\nx | y' };
+const guideHtml = renderEditorialArticle(guide);
+assert.match(guideHtml, /<table>/);
+assert.match(guideHtml, /Developer brochure/);
+assert.doesNotMatch(guideHtml, /https:\/\/source\.example/);
+console.log('Render contracts passed: locale, real translation links, shared inventory schema, real Article preservation, source labels and shared table rendering.');

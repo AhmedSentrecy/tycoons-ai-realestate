@@ -88,4 +88,4 @@ export function publicMarkdown(markdown: string, ar: boolean) {
 }
 
 /** Internal links a guide may render as links; anything else stays text. */
-export const SAFE_GUIDE_LINK = /^\/(?:projects|guides|units|(?:ar|en)\/(?:areas|developers))\/[a-z0-9-]+\/?$/;
+export const SAFE_GUIDE_LINK = /^\/(?:(?:(?:(?:ar|en)\/)?(?:projects|guides|units)|(?:ar|en)\/(?:areas|developers))\/[a-z0-9-]+\/?|(?:about|contact|methodology|corrections)\/?)$/;
