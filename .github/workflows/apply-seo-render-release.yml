@@ -80,7 +80,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           while IFS= read -r file; do git add -- "$file"; done < /tmp/seo-approved-paths.txt
           git rm release/seo-edits/part-01.b64 release/seo-edits/part-02.b64 release/seo-edits/part-03.b64
-          git diff --cached --check
+          git -c core.whitespace=cr-at-eol diff --cached --check
           git commit -m 'fix: unify property schemas, localize guides and render comparison tables'
           git push origin HEAD:refs/heads/seo-geo-global-gap-fixes-20261014
           git rev-parse HEAD | tee "$RUNNER_TEMP/tested-commit.txt"
