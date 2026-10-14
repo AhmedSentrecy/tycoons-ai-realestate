@@ -29,15 +29,16 @@ jobs:
           corepack prepare yarn@1.22.22 --activate
           yarn install --non-interactive
       - name: Website tests and production build
-        env:
-          AGENT_USAGE_LOGGING: 'off'
         shell: bash
         run: |
           set -o pipefail
           yarn run check 2>&1 | tee "$RUNNER_TEMP/website-check.log"
       - name: Rendered browser smoke tests
         if: hashFiles('scripts/test-render-browser.cjs') != ''
-        run: node scripts/test-render-browser.cjs
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/test-render-browser.cjs 2>&1 | tee "$RUNNER_TEMP/browser-check.log"
       - name: Save check evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -46,5 +47,6 @@ jobs:
           path: |
             ${{ runner.temp }}/tested-source.tar.gz
             ${{ runner.temp }}/website-check.log
+            ${{ runner.temp }}/browser-check.log
             browser-check-evidence/
           retention-days: 7
