@@ -49,6 +49,8 @@ const copy: Record<string,string> = {
   "المنصة":"Explore",
   "دليل المشاريع":"Project directory",
   "المشاريع":"Projects",
+  "القائمة":"Menu",
+  "اقفل القائمة":"Close menu",
   "المطورين":"Developers",
   "الأدلة":"Guides",
   "من نحن":"About us",

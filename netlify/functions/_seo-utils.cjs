@@ -853,7 +853,7 @@ ${siteHeader(lang, path, ar ? canonical : alternate, ar ? alternate : canonical)
 <footer><strong>Tycoons Investments</strong><p>${ar ? "بيانات الأسعار والتوفر استرشادية ويتم تأكيدها وقت الطلب. العوائد تقديرية وليست ضمانًا." : "Prices and availability are indicative and reconfirmed on request. Returns are estimates, not guarantees."}</p>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
 <a href="/corrections">${ar ? "سياسة التصحيح" : "Corrections"}</a>
-<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer></body></html>`;
+<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer>${String(body).includes("data-tycoons-search") ? '<script type="module" src="/assets/search-widget.js"></script>' : ""}</body></html>`;
 }
 
 function cards(projects, lang) {
@@ -931,6 +931,38 @@ function developerKey(name) {
   return info?.slug || slugify(String(name || "").replace(/\(.*?\)/g, ""));
 }
 
+function devDisplayName(name, lang) {
+  const info = developerInfo(name);
+  return lang === "ar" ? (info?.name_ar || info?.name || name) : (info?.name || name);
+}
+
+// One project card (photo, delivery tag, developer logo, price, unit types, CTAs) shared by
+// the directory, area and developer pages. data-* attributes feed the CSS-only filters.
+function projectCardHtml(project, lang) {
+  const ar = lang === "ar";
+  const href = ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`;
+  const area = areaFor(projectLocation(project));
+  const cats = unitCategories(project);
+  const tag = deliveryTag(project, ar);
+  const min = projectMinPrice(project);
+  const ready = /استلام فوري|Ready/.test(tag);
+  const message = encodeURIComponent(`${ar ? "أهلاً Tycoons، مهتم بمشروع" : "Hello Tycoons, I am interested in"} ${project.name}\n${SITE_URL}${href}`);
+  return `<article class="pcard" data-area="${escapeHtml(area.slug)}" data-types="${cats.join(" ")}"${ready ? " data-ready" : ""}${min && min < 10000000 ? " data-u10" : ""}>
+<div class="pimg"><a href="${href}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(projectImage(project))}" alt="" loading="lazy" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
+<div class="pbody"><h3><a href="${href}">${escapeHtml(project.name)}</a></h3><p class="ploc">${escapeHtml(area.indexable ? (ar ? area.ar : area.en) : projectLocation(project))} · ${escapeHtml(devDisplayName(project.developer, lang))}</p>
+<p class="pprice">${min ? `${ar ? "يبدأ من" : "From"} <b>${escapeHtml(new Intl.NumberFormat("en-EG").format(min))}</b> ${ar ? "ج.م" : "EGP"}` : (ar ? "السعر عند الطلب" : "Price on request")}</p>
+<div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${project.units.length} ${ar ? "وحدة متاحة" : "units available"}</span></div>
+<div class="pcta"><a class="go" href="${href}">${ar ? "الوحدات والأسعار" : "Units & prices"}</a><a class="w" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" rel="noopener">${ar ? "واتساب" : "WhatsApp"}</a></div></div></article>`;
+}
+
+// Server-rendered search box (works without JavaScript). /assets/search-widget.js
+// upgrades it in place to the homepage's AI search bar with the voice agent.
+function searchMount(lang, placeholder = "") {
+  const ar = lang === "ar";
+  const hint = placeholder || (ar ? "مثال: شقة في التجمع تحت 10 مليون ومقدم 5%" : "e.g. apartment in New Cairo under 10M");
+  return `<div class="tsearch" data-tycoons-search data-lang="${ar ? "ar" : "en"}" data-placeholder="${escapeHtml(hint)}"><form class="dsearch" action="/search" method="get" role="search"><input name="q" type="search" aria-label="${ar ? "ابحث عن عقار" : "Search properties"}" placeholder="${escapeHtml(hint)}"><button type="submit">${ar ? "اعرض النتائج" : "Search"}</button></form></div>`;
+}
+
 function directoryStyles() {
   return `.dhero{background:linear-gradient(rgba(20,53,42,.86),rgba(20,53,42,.94)),url(/images/hero.webp) center/cover;color:#fff;padding:52px 0 58px}.dwrap{width:min(1180px,calc(100% - 32px));margin:auto}.dhero .crumbs,.dhero .crumbs a{color:#d8c9a8}.dhero h1{color:#fff;font-size:clamp(30px,4.6vw,46px);margin:10px 0 8px;font-weight:800}.dhero .lead{color:#dfe6e1;max-width:760px}
 .dsearch{display:flex;gap:8px;margin-top:24px;max-width:860px;padding:8px;border-radius:18px;background:#fff;box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}.dsearch input{flex:1;min-width:0;border:0;outline:0;padding:12px 14px;font:inherit;font-size:15px;color:var(--ink);background:transparent}.dsearch button{border:0;border-radius:12px;padding:0 26px;background:var(--gold);color:#fff;font:inherit;font-weight:700;cursor:pointer}
@@ -942,8 +974,9 @@ function directoryStyles() {
 .alldevs{margin-top:16px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:4px 16px}.alldevs summary{cursor:pointer;padding:12px 0;font-weight:700;color:#14352a}.alldevs div{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 16px}
 .fbar{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:18px}.fbar input{position:absolute;opacity:0;pointer-events:none}.fbar label{padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#3d4a43;font-size:13px;font-weight:700;cursor:pointer}.fbar input:checked+label{background:#14352a;border-color:#14352a;color:#fff}.fbar input:focus-visible+label{outline:2px solid var(--gold)}
 .pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.pcard{overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 14px 34px -24px rgba(20,30,25,.5)}.pimg{position:relative;height:190px;background:#e9e1d0}.pimg>a>img{width:100%;height:190px;object-fit:cover;display:block}.tag{position:absolute;top:12px;inset-inline-start:12px;padding:4px 11px;border-radius:999px;background:rgba(20,53,42,.92);color:#fff;font-size:12px}.pimg .brand-logo{position:absolute;bottom:-22px;inset-inline-end:14px;margin:0;height:44px;box-shadow:0 6px 16px -6px rgba(0,0,0,.3)}.pbody{padding:24px 18px 18px}.pbody h3{margin:0;font-size:18px;line-height:1.5}.pbody h3 a{text-decoration:none}.ploc{margin:2px 0 0;font-size:13px;color:var(--muted)}.pprice{margin:12px 0 0;font-size:13px;color:var(--muted)}.pprice b{font-size:21px;color:#14352a}.pmeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.pmeta span{padding:4px 9px;border-radius:8px;background:var(--warm);font-size:12px;color:#3d4a43}.pcta{display:flex;gap:8px;margin-top:14px}.pcta a{flex:1;padding:10px;border-radius:12px;text-align:center;font-weight:700;font-size:13px;text-decoration:none}.pcta .go{background:#14352a;color:#fff}.pcta .w{background:#e9f7ef;color:#137a3f}
-.pcard:nth-child(n+13){display:none}#show-all:checked~.pgrid .pcard{display:block}.showall{text-align:center;margin-top:22px}.showall label{display:inline-block;cursor:pointer}#show-all:checked~.showall{display:none}
+.pgrid.lim .pcard:nth-child(n+13){display:none}#show-all:checked~.pgrid .pcard{display:block}.showall{text-align:center;margin-top:22px}.showall label{display:inline-block;cursor:pointer}#show-all:checked~.showall{display:none}
 .guides3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.g3{display:block;padding:20px;border:1px solid var(--line);border-radius:16px;background:#fff;text-decoration:none}.g3 small{color:var(--gold);font-weight:700}.g3 h3{margin:6px 0 0;font-size:16px;line-height:1.7}
+.tsearch{margin-top:24px;max-width:860px}.tsearch .dsearch{margin-top:0}.dhero .brand-logo{display:flex;width:max-content;margin:0 0 12px}.dhero .eyebrow{color:#d9b87c}.dchips{display:flex;flex-wrap:wrap;gap:10px}.dchip{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;text-decoration:none;font-weight:700;color:#14352a}.dchip img{height:26px;width:auto;max-width:110px;object-fit:contain}.dchip .dk{background:#14352a;border-radius:8px;padding:3px 6px}.dchip span{font-weight:400;color:var(--muted);font-size:13px}.dgroup{margin-top:26px}.dgroup h3{margin:0 0 14px;font-size:20px}.dgroup h3 a{text-decoration:none;color:#14352a}.dgroup h3 span{font-size:14px;color:var(--muted);font-weight:400}.prose{max-width:900px}.prose iframe{max-width:100%}
 .band{margin-top:56px;background:#14352a;color:#fff;padding:36px 0}.band .dwrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:18px}.band h2{margin:0;color:#fff}.band p{margin:4px 0 0;color:#cfd8d2}
 @media(max-width:980px){.areas{grid-template-columns:repeat(2,minmax(0,1fr))}.devs{grid-template-columns:repeat(4,minmax(0,1fr))}.pgrid,.guides3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.areas{grid-template-columns:1fr 1fr;gap:10px}.area{height:150px}.area h3{font-size:16px}.devs{grid-template-columns:repeat(2,minmax(0,1fr))}.pgrid,.guides3{grid-template-columns:1fr}.dsearch{flex-direction:column}.dsearch button{padding:12px}.stats b{font-size:24px}.sh{flex-direction:column;align-items:flex-start}}`;
@@ -1017,20 +1050,7 @@ function renderDirectory(allProjects, lang, articles = []) {
   const filterCss = filters.filter(([, , rule]) => rule).map(([id, , rule]) => `.dproj:has(#f-${id}:checked) .pcard{display:block}.dproj:has(#f-${id}:checked) ${rule}{display:none}`).join("")
     + ".dproj:has(.fbar input:checked:not(#f-all)) .showall{display:none}";
   const filterBar = `<div class="fbar" role="radiogroup" aria-label="${ar ? "فلترة المشاريع" : "Filter projects"}">${filters.map(([id, label], index) => `<input type="radio" name="pf" id="f-${id}"${index === 0 ? " checked" : ""}><label for="f-${id}">${escapeHtml(label)}</label>`).join("")}</div>`;
-  const message = (project) => encodeURIComponent(`${ar ? "أهلاً Tycoons، مهتم بمشروع" : "Hello Tycoons, I am interested in"} ${project.name}\n${SITE_URL}${projectsPath(project)}`);
-  const projectCards = sorted.map((project) => {
-    const area = areaFor(projectLocation(project));
-    const cats = unitCategories(project);
-    const tag = deliveryTag(project, ar);
-    const min = projectMinPrice(project);
-    const ready = /استلام فوري|Ready/.test(tag);
-    return `<article class="pcard" data-area="${escapeHtml(area.slug)}" data-types="${cats.join(" ")}"${ready ? " data-ready" : ""}${min && min < 10000000 ? " data-u10" : ""}>
-<div class="pimg"><a href="${projectsPath(project)}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(projectImage(project))}" alt="" loading="lazy" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
-<div class="pbody"><h3><a href="${projectsPath(project)}">${escapeHtml(project.name)}</a></h3><p class="ploc">${escapeHtml(area.indexable ? (ar ? area.ar : area.en) : projectLocation(project))} · ${escapeHtml(devName(project.developer))}</p>
-<p class="pprice">${min ? `${ar ? "يبدأ من" : "From"} <b>${escapeHtml(new Intl.NumberFormat("en-EG").format(min))}</b> ${ar ? "ج.م" : "EGP"}` : (ar ? "السعر عند الطلب" : "Price on request")}</p>
-<div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${project.units.length} ${ar ? "وحدة متاحة" : "units available"}</span></div>
-<div class="pcta"><a class="go" href="${projectsPath(project)}">${ar ? "تفاصيل المشروع" : "Project details"}</a><a class="w" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message(project)}" rel="noopener">${ar ? "واتساب" : "WhatsApp"}</a></div></div></article>`;
-  }).join("");
+  const projectCards = sorted.map((project) => projectCardHtml(project, lang)).join("");
 
   const guideList = (articles || []).filter((article) => (article.language || "ar") === lang && article.slug && article.title).slice(0, 3);
   const guideCards = guideList.length
@@ -1047,7 +1067,7 @@ function renderDirectory(allProjects, lang, articles = []) {
 <section class="dhero"><div class="dwrap"><p class="crumbs"><a href="${ar ? "/" : "/en/"}">${ar ? "الرئيسية" : "Home"}</a> ‹ ${ar ? "دليل المشاريع" : "Project directory"}</p>
 <h1>${ar ? "دليل المشاريع العقارية في مصر 2026" : "Egypt property project directory 2026"}</h1>
 <p class="lead">${ar ? `قارن ${listedProjects.length} مشروع من أكبر المطورين بالأسعار المحدّثة والمساحات وأنظمة السداد ومواعيد الاستلام — من مخزون المطورين مباشرة.` : `Compare ${listedProjects.length} projects from Egypt's leading developers by updated price, size, payment plan and delivery — straight from developer inventory.`}</p>
-<form class="dsearch" action="/search" method="get" role="search"><input name="q" type="search" aria-label="${ar ? "ابحث عن عقار" : "Search properties"}" placeholder="${ar ? "مثال: شقة في التجمع تحت 10 مليون ومقدم 5%" : "e.g. apartment in New Cairo under 10M"}"><button type="submit">${ar ? "اعرض النتائج" : "Search"}</button></form>
+${searchMount(lang)}
 <div class="stats"><div><b>${listedProjects.length}</b><span>${ar ? "مشروع متاح" : "projects"}</span></div><div><b>${new Intl.NumberFormat("en-EG").format(unitCount)}</b><span>${ar ? "وحدة محدّثة" : "units"}</span></div><div><b>${devGroups.size}</b><span>${ar ? "مطور عقاري" : "developers"}</span></div>${lastUpdated ? `<div><b>${escapeHtml(formatDate(lastUpdated, lang))}</b><span>${ar ? "آخر تحديث للأسعار" : "last price update"}</span></div>` : ""}</div>
 </div></section>
 <main class="dmain">
@@ -1058,7 +1078,7 @@ ${otherAreaChips.length ? `<div class="chips"><span class="chip">${ar ? "منا�
 <div class="devs">${devCards}</div>
 <details class="alldevs"><summary>${ar ? `كل المطورين (${devGroups.size})` : `All developers (${devGroups.size})`}</summary><div>${others.map((entry) => `<a class="chip" href="/${lang}/developers/${escapeHtml(entry.slug)}">${escapeHtml(devName(entry.name))} · ${entry.count}</a>`).join("")}</div></details>
 <section class="dproj" aria-labelledby="projects-h"><div class="sh"><div><h2 id="projects-h">${ar ? "المشاريع المتاحة" : "Available projects"}</h2><p>${ar ? "اختار فلتر عشان تضيّق النتايج" : "Pick a filter to narrow the list"}</p></div></div>
-${filterBar}<input type="checkbox" id="show-all" hidden><div class="pgrid">${projectCards}</div>
+${filterBar}<input type="checkbox" id="show-all" hidden><div class="pgrid lim">${projectCards}</div>
 <div class="showall"><label class="more" for="show-all">${ar ? `اعرض كل المشاريع (${listedProjects.length})` : `Show all projects (${listedProjects.length})`}</label></div></section>
 <div class="sh"><div><h2>${ar ? "أدلة تساعدك تقرر" : "Guides to help you decide"}</h2></div><a class="more" href="${ar ? "/guides/" : "/en/guides/"}">${ar ? "كل الأدلة ←" : "All guides →"}</a></div>
 <div class="guides3">${guideCards}</div>
@@ -1460,13 +1480,15 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const branchHeading = kind === "area"
     ? (ar ? `المطورون ومشاريعهم في ${label}` : `Developers and their projects in ${label}`)
     : (ar ? `مشاريع ${label} حسب المنطقة` : `${label} projects by area`);
-  const branchHtml = `<h2>${escapeHtml(branchHeading)}</h2><div class="grid">${branches.map((branch) => {
-    const branchPath = kind === "area"
-      ? `/${lang}/developers/${branch.slug}`
-      : `/${lang}/areas/${branch.slug}`;
-    const unitsCount = branch.projects.reduce((total, project) => total + project.units.length, 0);
-    return `<section class="card"><h3><a href="${branchPath}">${escapeHtml(branch.label)}</a></h3><p>${ar ? `${branch.projects.length} مشروع · ${unitsCount} وحدة متاحة` : `${branch.projects.length} ${branch.projects.length === 1 ? "project" : "projects"} · ${unitsCount} available ${unitsCount === 1 ? "unit" : "units"}`}</p><ul>${branch.projects.map((project) => `<li><a href="${ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`}">${escapeHtml(project.name)}</a></li>`).join("")}</ul></section>`;
-  }).join("")}</div>`;
+  // Area pages: the developers active here, with their logos. Developer pages: the projects
+  // grouped by area, each as a photo card that opens the project page with all its units.
+  const branchHtml = kind === "area"
+    ? `<div class="sh" id="developers"><div><h2>${escapeHtml(branchHeading)}</h2></div></div><div class="dchips">${branches.map((branch) => {
+        const info = developerInfo(branch.label);
+        const logo = info?.logo_path ? `<img class="${info.logo_on_dark ? "dk" : ""}" src="${escapeHtml(brandLogoUrl(info.logo_path))}" alt="" loading="lazy">` : "";
+        return `<a class="dchip" href="/${lang}/developers/${branch.slug}">${logo}${escapeHtml(devDisplayName(branch.label, lang))} <span>${branch.projects.length} ${ar ? (branch.projects.length > 2 && branch.projects.length < 11 ? "مشاريع" : "مشروع") : (branch.projects.length === 1 ? "project" : "projects")}</span></a>`;
+      }).join("")}</div>`
+    : `<div class="sh" id="projects"><div><h2>${escapeHtml(branchHeading)}</h2><p>${ar ? "اضغط على أي مشروع تشوف كل وحداته وأسعارها وأنظمة السداد" : "Open any project to see all its units, prices and payment plans"}</p></div></div>${branches.map((branch) => `<section class="dgroup"><h3><a href="/${lang}/areas/${branch.slug}">${escapeHtml(branch.label)}</a> <span>· ${branch.projects.length} ${ar ? (branch.projects.length > 2 && branch.projects.length < 11 ? "مشاريع" : "مشروع") : (branch.projects.length === 1 ? "project" : "projects")}</span></h3><div class="pgrid">${branch.projects.map((project) => projectCardHtml(project, lang)).join("")}</div></section>`).join("")}`;
   const faq =
     kind === "area"
       ? [
@@ -1510,15 +1532,29 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
             ],
           ]
         : [];
-  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero">${devInfo?.logo_path ? logoBadge({ src: brandLogoUrl(devInfo.logo_path), dark: Boolean(devInfo.logo_on_dark), alt: `${devInfo.name} logo` }, 40) : ""}<span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span><h1>${escapeHtml(editorial?.h1 || label)}</h1>
-  <div class="answer"><strong>${escapeHtml(description)}</strong></div><div class="facts"><div class="fact"><small>${ar ? "عدد المشاريع" : "Projects"}</small><strong>${plural}</strong></div><div class="fact"><small>${ar ? "الوحدات المتاحة" : "Available units"}</small><strong>${projectUnitCount}</strong></div><div class="fact"><small>${ar ? "أقل سعر ظاهر" : "Lowest listed"}</small><strong>${escapeHtml(minFmt)}</strong></div><div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed"}</small><strong>${escapeHtml(formatPrice(max, lang))}</strong></div></div></section>
+  const heroLogo = devInfo?.logo_path ? logoBadge({ src: brandLogoUrl(devInfo.logo_path), dark: Boolean(devInfo.logo_on_dark), alt: `${devInfo.name} logo` }, 40) : "";
+  const placeholder = kind === "area"
+    ? (ar ? `مثال: شقة في ${label} تحت 10 مليون ومقدم 5%` : `e.g. apartment in ${label} under 10M`)
+    : (ar ? `مثال: فيلا من ${label} في التجمع تحت 20 مليون` : `e.g. ${label} villa in New Cairo under 20M`);
+  const stat = (value, labelText) => `<div><b>${escapeHtml(value)}</b><span>${escapeHtml(labelText)}</span></div>`;
+  const areaProjects = kind === "area"
+    ? `<div class="sh" id="projects"><div><h2>${ar ? `المشاريع المتاحة في ${escapeHtml(label)}` : `Available projects in ${escapeHtml(label)}`}</h2><p>${ar ? "اضغط على أي مشروع تشوف كل وحداته وأسعارها وأنظمة السداد" : "Open any project to see all its units, prices and payment plans"}</p></div></div><input type="checkbox" id="show-all" hidden><div class="pgrid lim">${matches.map((project) => projectCardHtml(project, lang)).join("")}</div>${matches.length > 12 ? `<div class="showall"><label class="more" for="show-all">${ar ? `اعرض كل المشاريع (${matches.length})` : `Show all projects (${matches.length})`}</label></div>` : ""}`
+    : "";
+  const body = `<style>${directoryStyles()}</style>
+<section class="dhero"><div class="dwrap"><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" ‹ ")}</p>${heroLogo}<span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span>
+<h1>${escapeHtml(editorial?.h1 || label)}</h1><p class="lead">${escapeHtml(description)}</p>
+${searchMount(lang, placeholder)}
+<div class="stats">${stat(plural, ar ? "متاحة دلوقتي" : "available now")}${stat(new Intl.NumberFormat("en-EG").format(projectUnitCount), ar ? "وحدة متاحة" : "available units")}${min ? stat(minFmt, ar ? "أقل سعر ظاهر" : "lowest listed") : ""}${max ? stat(formatPrice(max, lang), ar ? "أعلى سعر ظاهر" : "highest listed") : ""}</div></div></section>
+<main class="dmain">
+  ${areaProjects}
+  ${branchHtml}
+  <div class="prose">
   ${contextSection}
   ${editorialSection}
-  ${branchHtml}
-  <h2>${ar ? "المشاريع المتاحة" : "Available projects"}</h2>${cards(matches, lang)}
   ${faq.length ? `<h2>${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}` : ""}
   ${areaGuidesHtml}
-  <p class="note">${ar ? "النطاق مبني على الوحدات الظاهرة وليس تقييمًا للسوق بالكامل." : "The range is based on listed units and is not a valuation of the whole market."}</p></main>`;
+  <p class="note">${ar ? "النطاق مبني على الوحدات الظاهرة وليس تقييمًا للسوق بالكامل." : "The range is based on listed units and is not a valuation of the whole market."}</p></div></main>
+<div class="band"><div class="dwrap"><div><h2>${ar ? `محتار بين مشاريع ${escapeHtml(label)}؟` : `Not sure which ${escapeHtml(label)} project fits?`}</h2><p>${ar ? "ابعتلنا الميزانية ونرشحلك أنسب 3 مشاريع." : "Send us your budget and we'll shortlist the best 3 projects."}</p></div><a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>${ar ? "كلمنا على واتساب" : "Chat on WhatsApp"}</span></a></div></div>`;
   return renderPage({
     lang,
     title,

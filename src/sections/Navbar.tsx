@@ -2,7 +2,7 @@ import { tr, isEnglish } from "@/lib/homeLanguage";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
-import { MessageCircle } from "lucide-react";
+import { Menu, MessageCircle, X } from "lucide-react";
 
 export default function Navbar() {
 // Same links, order and targets as the server-rendered header (siteHeader in _seo-utils.cjs).
@@ -16,6 +16,7 @@ const links = [
 ];
 
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -132,8 +133,39 @@ const links = [
             <MessageCircle className="h-4 w-4" />
             <span className="hidden min-[430px]:inline">{tr("واتساب")}</span>
           </a>
+          {/* Phones and tablets: the same links as desktop, in a menu. */}
+          <button
+            type="button"
+            aria-label={menuOpen ? tr("اقفل القائمة") : tr("القائمة")}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-menu"
+            onClick={() => setMenuOpen((open) => !open)}
+            className={`grid h-10 w-10 place-items-center rounded-xl transition-colors lg:hidden ${
+              scrolled || menuOpen ? "bg-[#ece3d0] text-[#14352a]" : "glass text-white"
+            }`}
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
       </div>
+      {menuOpen && (
+        <nav
+          id="mobile-menu"
+          aria-label={tr("القائمة")}
+          className="mx-4 mb-3 grid gap-1 rounded-2xl bg-white p-2 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.35)] lg:hidden"
+        >
+          {links.map((l) => (
+            <a
+              key={l.to}
+              href={l.to}
+              onClick={() => setMenuOpen(false)}
+              className="rounded-xl px-4 py-3 text-[15px] font-semibold text-[#3d4a43] hover:bg-[#f6f1e7] hover:text-[#14352a]"
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
+      )}
     </motion.header>
   );
 }

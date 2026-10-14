@@ -11,7 +11,14 @@ export default defineConfig({
     commonjsOptions: { include: [/node_modules/, /_(?:article-render|project-schema|unit-url)\.cjs$/] },
     sourcemap: false,
     rollupOptions: {
+      // A second entry: the AI search + voice widget for server-rendered pages, at a
+      // stable URL (/assets/search-widget.js) that the Netlify functions can reference.
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        "search-widget": path.resolve(__dirname, "src/widget/searchWidget.tsx"),
+      },
       output: {
+        entryFileNames: (chunk) => (chunk.name === "search-widget" ? "assets/search-widget.js" : "assets/[name]-[hash].js"),
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
           if (/node_modules\/(react|react-dom|react-router)\//.test(id)) return "react-vendor";
