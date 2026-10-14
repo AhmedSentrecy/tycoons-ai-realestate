@@ -88,7 +88,7 @@ async function main() {
       item.slug && item.translation_key === guide.translation_key && item.language !== guide.language && item.published_at && item.reviewed_at) : null;
     const view = editorialArticleView({ status: "published", ...guide }, translation ? { ...translation, status: "published" } : null, { project, related });
     if (!view) continue;
-    const canonical = `https://tycoons-inv.com${view.path}`;
+    const canonical = `https://tycoons-inv.com${view.canonicalPath || view.path}`;
     const html = pageShell(shell, {
       title: view.title, description: view.description, canonical, image: view.image, keywords: guide.focus_keyword ? [guide.focus_keyword] : [],
       lang: view.lang, alternates: view.alternatePath ? [{ hreflang: view.lang === "en" ? "ar-EG" : "en", href: `https://tycoons-inv.com${view.alternatePath}` }] : [],

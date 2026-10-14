@@ -150,7 +150,11 @@ exports.handler = async function handler(event) {
       if (type === "project") {
         const hasCanonicalProject = projectsMeta.some((project) =>
           String(project.slug || "").trim() === slug);
-        html = hasCanonicalProject ? renderProject(projects, slug, lang) : null;
+        const projectRow = projectsMeta.find((project) => String(project.slug || "").trim() === slug);
+        const [article] = projectRow?.id
+          ? await fetchRest("published_editorial_articles", { select: "*", project_id: `eq.${projectRow.id}`, language: `eq.${lang}`, order: "published_at.desc", limit: "1" })
+          : [];
+        html = hasCanonicalProject ? renderProject(projects, slug, lang, article || null) : null;
       }
       if (type === "unit") {
         // Legacy /units/<uuid> and outdated words 301 to the one readable URL.

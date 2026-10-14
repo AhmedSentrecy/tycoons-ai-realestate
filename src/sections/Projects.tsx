@@ -5,6 +5,7 @@ import { BedDouble, Ruler, KeyRound, MessageCircle, ChevronRight, ChevronLeft } 
 import { projects as defaultProjects } from "@/data/projects";
 import type { Project } from "@/data/projects";
 import { loadHomepageLaunches } from "@/lib/homepageLaunches";
+import DeveloperLogo from "@/components/DeveloperLogo";
 import { openProjectWhatsApp } from "@/lib/whatsapp";
 import { arabicAreaPath } from "@/lib/areaPaths";
 
@@ -116,6 +117,7 @@ export default function Projects() {
               <span className="absolute bottom-4 right-4 rounded-full bg-black/45 px-3.5 py-1.5 text-xs text-white/90 backdrop-blur-sm">
                 {tr(p.location)}
               </span>
+              <DeveloperLogo developer={p.developer} className="absolute left-4 top-4" />
             </div>
 
             {/* Body */}

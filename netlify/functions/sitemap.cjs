@@ -43,7 +43,7 @@ async function fetchRows(table, select, filters = {}) {
 
 async function fetchPublishedArticles() {
   try {
-    return await fetchRows("published_editorial_articles", "slug,language,published_at,updated_at");
+    return await fetchRows("published_editorial_articles", "slug,language,project_id,published_at,updated_at");
   } catch (error) {
     // Safe rollout ordering: before the additive migration exists, publish no
     // dynamic article URLs while keeping the established sitemap available.
@@ -92,8 +92,22 @@ exports.handler = async function handler() {
     for (const guideSlug of Object.keys(ENGLISH_GUIDES)) {
       urls.set(`${SITE_URL}/en/guides/${guideSlug}/`, "2026-08-26");
     }
+    // The newest guide about each project is shown in full on the project page (its
+    // canonical), so only that project page is listed, not the guide URL.
+    const embedded = new Set();
+    const newestByProject = new Map();
+    for (const article of articles) {
+      if (!article.project_id || !article.published_at) continue;
+      const key = `${article.project_id}:${article.language}`;
+      const current = newestByProject.get(key);
+      if (!current || String(article.published_at) > String(current.published_at)) newestByProject.set(key, article);
+    }
+    for (const article of newestByProject.values()) {
+      if (projects.some((project) => project.id === article.project_id && String(project.slug || "").trim())) embedded.add(`${article.language}:${article.slug}`);
+    }
     for (const article of articles) {
       if (!article.published_at || !article.slug) continue;
+      if (embedded.has(`${article.language}:${article.slug}`)) continue;
       const prefix = article.language === "en" ? "/en" : "";
       urls.set(`${SITE_URL}${prefix}/guides/${article.slug}/`, article.updated_at || article.published_at);
     }

@@ -6,6 +6,7 @@ const { developerContent } = require("./_developer-content.cjs");
 const { renderSafeMarkdown } = require("./_article-render.cjs");
 const { buildProjectSchemas } = require("./_project-schema.cjs");
 const { unitPath, findUnitByParam } = require("./_unit-url.cjs");
+const { developerRank } = require("./_developer-rank.cjs");
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -823,9 +824,10 @@ function renderPage({
   image = "",
   schemas = [],
   robots = "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
+  canonicalPath = "",
 }) {
   const ar = lang === "ar";
-  const canonical = `${SITE_URL}${path}`;
+  const canonical = `${SITE_URL}${canonicalPath || path}`;
   const alternate = alternatePath ? `${SITE_URL}${alternatePath}` : "";
   return `<!doctype html>
 <html lang="${lang}" dir="${ar ? "rtl" : "ltr"}"><head>
@@ -1029,14 +1031,10 @@ function renderDirectory(allProjects, lang, articles = []) {
     const logo = info?.logo_path ? `<img src="${escapeHtml(brandLogoUrl(info.logo_path))}" alt="${escapeHtml(`${info.name} logo`)}" loading="lazy">` : `<em>${escapeHtml(devName(entry.name))}</em>`;
     return `<a class="dev" href="/${lang}/developers/${info?.slug || entry.slug}"><span class="lg${info?.logo_on_dark ? " dark" : ""}">${logo}</span><b>${escapeHtml(devName(entry.name))}</b><span>${entry.count} ${ar ? (entry.count > 10 || entry.count < 3 ? "مشروع" : "مشاريع") : "projects"}</span></a>`;
   }).join("");
-  const others = [...devGroups.values()].filter((entry) => !FOCUS_DEVELOPERS.includes(entry.key)).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  const others = [...devGroups.values()].filter((entry) => !FOCUS_DEVELOPERS.includes(entry.key)).sort((a, b) => developerRank(a.name) - developerRank(b.name) || b.count - a.count || a.name.localeCompare(b.name));
 
   // Projects: every listed project is in the HTML (crawlable); CSS-only filters and "show all".
-  const sorted = [...listedProjects].sort((a, b) => {
-    const fa = FOCUS_DEVELOPERS.includes(developerKey(a.developer)) ? 1 : 0;
-    const fb = FOCUS_DEVELOPERS.includes(developerKey(b.developer)) ? 1 : 0;
-    return fb - fa || b.units.length - a.units.length;
-  });
+  const sorted = [...listedProjects].sort((a, b) => developerRank(a.developer) - developerRank(b.developer) || b.units.length - a.units.length);
   const topAreas = areaList.slice(0, 3).map((entry) => entry.area);
   const filters = [
     ["all", ar ? "الكل" : "All", ""],
@@ -1098,7 +1096,7 @@ ${filterBar}<input type="checkbox" id="show-all" hidden><div class="pgrid lim">$
   });
 }
 
-function renderProject(projects, slug, lang) {
+function renderProject(projects, slug, lang, article = null) {
   const project = projects.find((item) => item.slug === slug);
   if (!project) return null;
   const ar = lang === "ar";
@@ -1156,6 +1154,8 @@ function renderProject(projects, slug, lang) {
   <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.medianSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Median price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.medianSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
   <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث Availability" : "Request current availability"}</a></section>${extraSections}
+  ${article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar))}</section>` : ""}
+  ${(() => { const info = developerInfo(project.developer); const about = info && (ar ? info.about_ar : info.about_en); return about ? `<section><h2>${ar ? `عن المطور: ${escapeHtml(info.name_ar || info.name)}` : `About the developer: ${escapeHtml(info.name)}`}</h2><p>${escapeHtml(about)}</p><p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? "كل مشاريع المطور" : "All projects by this developer"}</a></p></section>` : ""; })()}
   <h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2>${
     hasUnits
       ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "سعر المتر" : "Per m²"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
@@ -1409,7 +1409,8 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
       ? projects.filter((project) => hasAvailableUnits(project) && areaFor(projectLocation(project)).slug === slug)
       : projects.filter((project) => hasAvailableUnits(project) && slugify(project.developer) === slug);
   if (!matches.length) return null;
-  matches.sort((a, b) => (projectMinPrice(a) || Infinity) - (projectMinPrice(b) || Infinity));
+  // Best-known developers first (see _developer-rank.cjs), then the cheaper project.
+  matches.sort((a, b) => developerRank(a.developer) - developerRank(b.developer) || (projectMinPrice(a) || Infinity) - (projectMinPrice(b) || Infinity));
   const area = kind === "area" ? areaFor(projectLocation(matches[0])) : null;
   const rawAreaFacts = kind === "area" ? AREA_FACTS[area.slug] || GENERIC_AREA_FACTS : null;
   const areaFacts = rawAreaFacts && !ar
@@ -1468,7 +1469,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
         slug: slugify(project.developer),
         label: project.developer,
         projects: matches.filter((item) => slugify(item.developer) === slugify(project.developer)),
-      }])).values()]
+      }])).values()].sort((a, b) => developerRank(a.label) - developerRank(b.label) || b.projects.length - a.projects.length)
     : [...new Map(matches.map((project) => {
         const projectArea = areaFor(projectLocation(project));
         return [projectArea.slug, {
@@ -1800,12 +1801,17 @@ function editorialArticleView(article, translation = null, extras = {}) {
   ${webSourcesHtml}
   <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المعلومات تعليمية وتتغير بمرور الوقت. أعد تأكيد أي تفاصيل تجارية قبل اتخاذ قرار." : "This is educational content. Reconfirm time-sensitive commercial details before deciding."}</p></section></main>${floating}`;
   const keyword = String(article.focus_keyword || "").trim();
+  // The newest guide about a project is shown in full on the project page, which is
+  // then its canonical URL (one strong page instead of two copies of the same text).
+  const newest = Array.isArray(extras.related) ? extras.related[0] : null;
+  const embeddedInProject = Boolean(project && newest && newest.slug === article.slug);
   return {
     lang,
     title: article.meta_title || `${article.title} | Tycoons Investments`,
     description: article.meta_description || article.excerpt,
     path,
-    alternatePath: pair ? editorialGuidePath(pair) : undefined,
+    canonicalPath: embeddedInProject ? projectPath : "",
+    alternatePath: embeddedInProject ? undefined : (pair ? editorialGuidePath(pair) : undefined),
     image,
     body,
     schemas: [
@@ -1930,6 +1936,7 @@ function notFound(lang = "ar") {
 }
 
 module.exports = {
+  publicEditorialMarkdown,
   unitPath,
   findUnitByParam,
   renderGuidesIndex,

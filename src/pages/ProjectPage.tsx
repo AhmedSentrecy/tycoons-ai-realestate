@@ -19,7 +19,9 @@ import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
 import Calculator from "@/sections/Calculator";
 import FloatingContact from "@/components/FloatingContact";
-import { guidePath, loadProjectGuidesBySlug, type GuideLink } from "@/lib/editorialGuides";
+import { guidePath, loadProjectArticleBySlug, loadProjectGuidesBySlug, publicMarkdown, type GuideLink, type PublishedGuide } from "@/lib/editorialGuides";
+import GuideBody from "@/components/GuideBody";
+import { useDeveloper } from "@/lib/developers";
 import { fallbackImageFor, useInventory, type InventoryUnit } from "@/lib/inventory";
 import { buildProjectFaq, isCuratedFaq, projectsFromUnits, researchFaqItems } from "@/lib/projectFaq";
 import {
@@ -269,9 +271,12 @@ export default function ProjectPage() {
   const [loadedSlug, setLoadedSlug] = useState("");
   // Published buyer-question guides about this project, linked under the FAQ.
   const [guides, setGuides] = useState<GuideLink[]>([]);
+  // The newest article written in the admin for this project, shown in full on this page.
+  const [projectArticle, setProjectArticle] = useState<PublishedGuide | null>(null);
   useEffect(() => {
     let active = true;
     loadProjectGuidesBySlug(slug).then((rows) => { if (active) setGuides(rows); }).catch(() => { if (active) setGuides([]); });
+    loadProjectArticleBySlug(slug).then((row) => { if (active) setProjectArticle(row); }).catch(() => { if (active) setProjectArticle(null); });
     return () => { active = false; };
   }, [slug]);
   const projectUnits = useMemo(
@@ -284,6 +289,7 @@ export default function ProjectPage() {
     [slug, units],
   );
   const project = projectUnits[0];
+  const developerBrand = useDeveloper(project?.developer ?? "");
   // Other public projects with units, for the "nearby" and "same developer" FAQ answers.
   const faqProjects = useMemo(() => projectsFromUnits(units.filter((unit) => unit.project_slug)), [units]);
 
@@ -583,6 +589,39 @@ export default function ProjectPage() {
               </section>
             ))}
 
+            {projectArticle && (
+              <section className="mt-14" aria-labelledby="project-article" id="article">
+                <p className="text-sm font-bold text-[#a3854e]">دليل Tycoons — تمت مراجعته قبل النشر</p>
+                <h2 id="project-article" className="mt-2 text-3xl font-extrabold leading-snug">{projectArticle.title}</h2>
+                {projectArticle.excerpt && <p className="mt-4 text-lg font-light leading-loose text-[#5c6a62]">{projectArticle.excerpt}</p>}
+                {(projectArticle.key_takeaways ?? []).filter(Boolean).length > 0 && (
+                  <div className="mt-6 rounded-2xl border border-[#e7ddc8] bg-[#fffaf1] p-5">
+                    <h3 className="text-xl font-extrabold">الخلاصة</h3>
+                    <ul className="mt-3 list-disc space-y-2 ps-6 leading-loose text-[#5c6a62]">
+                      {(projectArticle.key_takeaways ?? []).filter(Boolean).slice(0, 6).map((item) => <li key={item}>{item}</li>)}
+                    </ul>
+                  </div>
+                )}
+                <div className="text-[#3f4b44]">
+                  <GuideBody markdown={publicMarkdown(projectArticle.body_markdown, true)} />
+                </div>
+                {projectArticle.reviewed_at && (
+                  <p className="mt-6 text-sm text-[#5c6a62]">
+                    آخر مراجعة: {new Date(projectArticle.reviewed_at).toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long", day: "numeric" })}
+                    {projectArticle.reviewed_by_name ? ` — ${projectArticle.reviewed_by_name}` : ""}
+                  </p>
+                )}
+              </section>
+            )}
+
+            {developerBrand?.about_ar && (
+              <section className="mt-14" aria-labelledby="project-developer">
+                <h2 id="project-developer" className="text-2xl font-extrabold">عن المطور: {developerBrand.name_ar || developerBrand.name}</h2>
+                <p className="mt-4 font-light leading-loose text-[#5c6a62]">{developerBrand.about_ar}</p>
+                <a href={`/ar/developers/${developerBrand.slug}`} className="mt-3 inline-block font-bold text-[#a3854e] underline">كل مشاريع {developerBrand.name_ar || developerBrand.name}</a>
+              </section>
+            )}
+
             <h2 className="mt-12 text-2xl font-extrabold">تفاصيل الطرح الحالي</h2>
             <ul className="mt-6 grid gap-4 sm:grid-cols-2">
               {(content?.highlights.length
@@ -619,12 +658,12 @@ export default function ProjectPage() {
                 ))}
               </div>
             </section>}
-            {guides.length > 0 && <section className="mt-10" aria-labelledby="project-buyer-questions">
+            {guides.filter((guide) => guide.slug !== projectArticle?.slug).length > 0 && <section className="mt-10" aria-labelledby="project-buyer-questions">
               <h2 id="project-buyer-questions" className="text-2xl font-extrabold">
                 عايز تفاصيل أكتر؟ أسئلة المشترين عن {project.project_name}
               </h2>
               <ul className="mt-6 space-y-3">
-                {guides.map((guide) => (
+                {guides.filter((guide) => guide.slug !== projectArticle?.slug).map((guide) => (
                   <li key={guide.slug}>
                     <a href={guidePath(guide)} className="group flex items-center justify-between gap-4 rounded-2xl border border-[#e0d3bb] bg-white p-5 transition hover:shadow-md">
                       <span>
