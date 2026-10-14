@@ -10,6 +10,9 @@ import { useVoiceSession } from "@/contexts/VoiceSessionContext";
 interface Props {
   compact?: boolean;
   initialQuery?: string;
+  /** Overrides in-app navigation (used by the widget on server-rendered pages). */
+  onSearch?: (query: string) => void;
+  placeholder?: string;
 }
 
 const WEBMCP_FORM_ATTRS = {
@@ -23,7 +26,7 @@ const WEBMCP_QUERY_ATTRS = {
     "Free-text description of the desired property, in Egyptian Arabic or English. Example: 'شاليه في الساحل تحت 10 مليون'.",
 } as Record<string, string>;
 
-export default function SmartSearchBar({ compact = false, initialQuery = "" }: Props) {
+export default function SmartSearchBar({ compact = false, initialQuery = "", onSearch, placeholder }: Props) {
   const navigate = useNavigate();
   const inventory = useInventory();
   const [query, setQuery] = useState(initialQuery);
@@ -32,8 +35,10 @@ export default function SmartSearchBar({ compact = false, initialQuery = "" }: P
 
   const openResults = useCallback((value: string) => {
     const clean = value.trim();
-    if (clean) navigate(`/search?q=${encodeURIComponent(clean)}`);
-  }, [navigate]);
+    if (!clean) return;
+    if (onSearch) onSearch(clean);
+    else navigate(`/search?q=${encodeURIComponent(clean)}`);
+  }, [navigate, onSearch]);
 
   const onBrowserVoiceText = useCallback((text: string) => {
     setQuery(text);
@@ -102,7 +107,7 @@ export default function SmartSearchBar({ compact = false, initialQuery = "" }: P
           aria-label={tr("اكتب طلبك: نوع الوحدة والمنطقة والميزانية")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={tr("مثال: شقة في التجمع تحت 10 مليون ومقدم 5%")}
+          placeholder={placeholder || tr("مثال: شقة في التجمع تحت 10 مليون ومقدم 5%")}
           {...WEBMCP_QUERY_ATTRS}
           className="min-w-0 flex-1 bg-transparent text-[14px] text-[#22312b] outline-none placeholder:text-[#8c9891] sm:text-[15px]"
         />

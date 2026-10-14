@@ -16,7 +16,11 @@ export function useVoiceSession() {
   return value;
 }
 
-export function VoiceSessionProvider({ children }: { children: ReactNode }) {
+/**
+ * onSearchNavigate: pages outside the single-page app (server-rendered area and developer
+ * pages) keep the voice call alive instead of navigating, and show the results link.
+ */
+export function VoiceSessionProvider({ children, onSearchNavigate }: { children: ReactNode; onSearchNavigate?: (query: string) => void }) {
   const navigate = useNavigate();
   const [confirmEnd, setConfirmEnd] = useState(false);
 
@@ -24,7 +28,8 @@ export function VoiceSessionProvider({ children }: { children: ReactNode }) {
     const startedAt = performance.now();
     const clean = text.trim();
     if (!clean) throw new Error("missing query");
-    navigate(`/search?q=${encodeURIComponent(clean)}`);
+    if (onSearchNavigate) onSearchNavigate(clean);
+    else navigate(`/search?q=${encodeURIComponent(clean)}`);
     const units = await loadInventory(false);
     const inventoryReadyAt = performance.now();
     const search = searchInventoryForVoice(units, clean);
@@ -39,7 +44,7 @@ export function VoiceSessionProvider({ children }: { children: ReactNode }) {
       destination: "/search",
       timing_ms: { inventory: Math.round(inventoryReadyAt - startedAt), search: Math.round(completedAt - inventoryReadyAt) },
     };
-  }, [navigate]);
+  }, [navigate, onSearchNavigate]);
 
   const voice = useRealtimeVoice({ onSearchQuery });
   const active = ["connecting", "connected", "listening", "speaking"].includes(voice.state);

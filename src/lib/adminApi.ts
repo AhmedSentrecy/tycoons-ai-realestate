@@ -374,7 +374,23 @@ export const adminApi = {
     call<{ items: ResearchFaqItem[]; updated_at: string | null }>("project_research_faq", { project_id: projectId }, token),
   projectResearchFaqSave: (token: string, projectId: string, items: ResearchFaqItem[]) =>
     call<{ items: ResearchFaqItem[]; updated_at: string; rebuilt: boolean }>("project_research_faq_save", { project_id: projectId, items }, token),
+  homepageLaunches: (token: string) => call<HomepageLaunchList>("homepage_launches", {}, token),
+  saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
+    call<HomepageLaunchList>("homepage_launches_save", { items }, token),
 };
+
+/** One project in the homepage "بتتطرح دلوقتي" carousel (order = position in the list). */
+export interface HomepageLaunchItem {
+  project_id: string;
+  badge: string;
+  image_url: string;
+  name?: string;
+  rank?: number;
+}
+export interface HomepageLaunchList {
+  items: HomepageLaunchItem[];
+  badges: string[];
+}
 
 const projectKey = (value: string | null | undefined) => String(value || "").normalize("NFKC").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "");
 

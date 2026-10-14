@@ -16,6 +16,7 @@ import { AdminContext } from "../components/admin/AdminContext";
 import AgentUsageTab from "../components/admin/AgentUsageTab";
 import ApprovalsTab from "../components/admin/ApprovalsTab";
 import ArticlesTab from "../components/admin/ArticlesTab";
+import HomepageLaunchesTab from "../components/admin/HomepageLaunchesTab";
 import ProjectForm, { type NewProject } from "../components/admin/ProjectForm";
 import MediaTab from "../components/admin/MediaTab";
 import ProjectFaqTab from "../components/admin/ProjectFaqTab";
@@ -175,7 +176,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
   );
 }
 
-type Tab = "media" | "units" | "articles" | "faq" | "approvals" | "users" | "agents";
+type Tab = "media" | "units" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents";
 
 function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser; onSignOut: () => void }) {
   const isOwner = user.role === "owner";
@@ -332,6 +333,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
             <TabButton active={tab === "units"} onClick={() => setTab("units")}>
               الوحدات
             </TabButton>
+            <TabButton active={tab === "launches"} onClick={() => setTab("launches")}>بتتطرح دلوقتي</TabButton>
             <TabButton active={tab === "articles"} onClick={() => setTab("articles")}>المقالات</TabButton>
             <TabButton active={tab === "faq"} onClick={() => setTab("faq")}>أسئلة المشاريع</TabButton>
             <TabButton active={tab === "approvals"} onClick={() => setTab("approvals")}>
@@ -387,6 +389,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
               onCreateProject={() => setProjectFormOpen(true)}
             />
           )}
+          {tab === "launches" && <HomepageLaunchesTab projects={projects} />}
           {tab === "articles" && <ArticlesTab projects={projects} />}
           {tab === "faq" && <ProjectFaqTab projects={projects} />}
           {tab === "approvals" && <ApprovalsTab onChanged={refresh} />}

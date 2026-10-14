@@ -1,8 +1,10 @@
 import { tr, localeHref, isEnglish } from "@/lib/homeLanguage";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { BedDouble, Ruler, KeyRound, MessageCircle, ChevronRight, ChevronLeft } from "lucide-react";
-import { projects } from "@/data/projects";
+import { projects as defaultProjects } from "@/data/projects";
+import type { Project } from "@/data/projects";
+import { loadHomepageLaunches } from "@/lib/homepageLaunches";
 import { openProjectWhatsApp } from "@/lib/whatsapp";
 import { arabicAreaPath } from "@/lib/areaPaths";
 
@@ -12,6 +14,15 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Projects() {
   const scroller = useRef<HTMLDivElement>(null);
+  // Projects picked in the admin ("بتتطرح دلوقتي" tab); the built-in list until/unless set.
+  const [projects, setProjects] = useState<Project[]>(defaultProjects);
+  useEffect(() => {
+    let active = true;
+    loadHomepageLaunches()
+      .then((items) => { if (active && items.length) setProjects(items); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
   const scrollBy = (dir: number) =>
     scroller.current?.scrollBy({ left: dir * 420, behavior: "smooth" });
 
@@ -74,7 +85,7 @@ export default function Projects() {
       >
         {projects.map((p, i) => (
           <motion.article
-            key={p.title}
+            key={p.id || p.title}
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
