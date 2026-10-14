@@ -4,6 +4,7 @@ const { localizedProjectContent, renderSections: renderLocalizedSections } = req
 const { developerContent } = require("./_developer-content.cjs");
 
 const { renderSafeMarkdown } = require("./_article-render.cjs");
+const { buildProjectSchemas } = require("./_project-schema.cjs");
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -193,7 +194,7 @@ const AREA_SEARCH_CONTENT = {
       ],
     },
     en: {
-      title: ({ minFmt, plural }) => `Mostakbal City Map 2026: Projects, Developers & Prices from ${minFmt} (${plural}) | Tycoons`,
+      title: ({ minFmt, plural }) => `Mostakbal City Map & Projects 2026 | Tycoons`,
       description: ({ minFmt, plural }) => `Mostakbal City map and location, master plan and phases, and ${plural} by developer starting from ${minFmt}. Compare projects, units and payment plans in one updated guide.`,
       map: { heading: "Mostakbal City map", query: "Mostakbal City, New Cairo, Egypt", locality: "Mostakbal City, New Cairo" },
       sections: [
@@ -791,6 +792,7 @@ function renderPage({
   return `<!doctype html>
 <html lang="${lang}" dir="${ar ? "rtl" : "ltr"}"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/png" href="/images/logo.png">
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${robots}">
 <link rel="canonical" href="${escapeHtml(canonical)}">
@@ -804,7 +806,7 @@ ${alternate ? `<link rel="alternate" hreflang="ar-EG" href="${escapeHtml(ar ? ca
 ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ""}
 <meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}">
 ${[organizationSchema(), ...schemas]
-  .map((schema) => `<script type="application/ld+json">${JSON.stringify(schema).replace(/</g, "\\u003c")}</script>`)
+  .map((schema) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", ...schema }).replace(/</g, "\\u003c")}</script>`)
   .join("")}
 <style>${styles()}</style></head><body>
 <header><a class="brand" href="/">TYCOONS INVESTMENTS</a><nav>
@@ -950,45 +952,12 @@ function renderProject(projects, slug, lang) {
       : "noindex,follow",
     schemas: [
       breadcrumbSchema(crumbs),
-      {
-        "@context": "https://schema.org",
-        "@type": "WebPage",
-        name: project.name,
-        url: `${SITE_URL}${path}`,
-        dateModified: updated || undefined,
-        mainEntity: {
-          "@type": "ItemList",
-          numberOfItems: units.length,
-          itemListElement: units.slice(0, 20).map((unit, index) => ({
-            "@type": "ListItem",
-            position: index + 1,
-            name: `${clean(unit.unit_type)} ${clean(unit.area_sqm, "")} ${project.name}`.trim(),
-            url: `${SITE_URL}/units/${clean(unit.id)}`,
-          })),
-        },
-      },
-      {
-        "@context": "https://schema.org",
-        "@type": "OfferCatalog",
-        name: ar ? `الوحدات المتاحة في ${project.name}` : `Available units at ${project.name}`,
-        url: `${SITE_URL}${path}`,
-        numberOfItems: units.length,
-        itemListElement: units.slice(0, 20).map((unit) => ({
-          "@type": "Offer",
-          url: `${SITE_URL}/units/${clean(unit.id)}`,
-          price: numberValue(unit.starting_price),
-          priceCurrency: "EGP",
-          availability: "https://schema.org/InStock",
-          itemOffered: {
-            "@type": "Accommodation",
-            name: `${clean(unit.unit_type)} ${project.name}`,
-            floorSize: unit.area_sqm
-              ? { "@type": "QuantitativeValue", value: numberValue(unit.area_sqm), unitCode: "MTK" }
-              : undefined,
-            numberOfBedrooms: numberValue(unit.bedrooms_text) || undefined,
-          },
-        })),
-      },
+      ...buildProjectSchemas({ url: `${SITE_URL}${path}`, name: project.name, location, description,
+        title: localizedContent?.seo_title || searchContent?.title?.(contentVars) || `${project.name} | ${project.developer} | Tycoons Investments`,
+        language: lang, images: image ? [image] : [], modified: updated, units,
+        articleSections: localizedContent?.article_sections?.length ? localizedContent.article_sections :
+          (searchContent?.sections?.(contentVars) || []).map(([heading, paragraph]) => ({ heading, paragraphs: [paragraph] })),
+      }),
       ...(projectFaq.length
         ? [{
             "@context": "https://schema.org",
@@ -1514,7 +1483,7 @@ function editorialArticleView(article, translation = null, extras = {}) {
     .filter((ref) => ref?.type === "web" && /^https:\/\/[^\s"'<>]+$/.test(String(ref.url || "")) && String(ref.label || "").trim())
     .slice(0, 12);
   const webSourcesHtml = webSources.length
-    ? `<section aria-labelledby="guide-sources"><h2 id="guide-sources">${ar ? "المصادر" : "Sources"}</h2><ul>${webSources.map((ref) => `<li><a href="${escapeHtml(ref.url)}" rel="nofollow noopener" target="_blank">${escapeHtml(String(ref.label).slice(0, 160))}</a></li>`).join("")}</ul></section>`
+    ? `<section aria-labelledby="guide-sources"><h2 id="guide-sources">${ar ? "المصادر" : "Sources"}</h2><ul>${webSources.map((ref) => `<li>${escapeHtml(String(ref.label).slice(0, 160))}</li>`).join("")}</ul></section>`
     : "";
   const faqHtml = faq.length
     ? `<section aria-labelledby="guide-faq"><h2 id="guide-faq">${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([question, answer]) => `<h3>${escapeHtml(question)}</h3><p>${escapeHtml(answer)}</p>`).join("")}</section>`
@@ -1563,7 +1532,7 @@ function editorialArticleView(article, translation = null, extras = {}) {
         ...(keyword ? { keywords: keyword } : {}),
         ...(image ? { image: [image] } : {}),
         ...(takeaways.length ? { abstract: takeaways.join(" ") } : {}),
-        ...(webSources.length ? { citation: webSources.map((ref) => ({ "@type": "CreativeWork", name: String(ref.label).slice(0, 160), url: ref.url })) } : {}),
+        ...(webSources.length ? { citation: webSources.map((ref) => ({ "@type": "CreativeWork", name: String(ref.label).slice(0, 160) })) } : {}),
         author: { "@type": "Organization", name: "Tycoons Investments", url: `${SITE_URL}/about` },
         reviewedBy: { "@type": "Person", name: article.reviewed_by_name },
         publisher: { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL },

@@ -83,11 +83,14 @@ async function main() {
     if (!/^[a-z0-9-]+$/.test(String(guide.slug || ""))) continue;
     const project = guide.project_id ? projectById.get(guide.project_id) : null;
     const related = (guidesByProject.get(guide.project_id) || []).filter((item) => item.language === guide.language);
-    const view = editorialArticleView({ status: "published", ...guide }, null, { project, related });
+    const translation = guide.translation_key ? guides.find((item) =>
+      item.slug && item.translation_key === guide.translation_key && item.language !== guide.language && item.published_at && item.reviewed_at) : null;
+    const view = editorialArticleView({ status: "published", ...guide }, translation ? { ...translation, status: "published" } : null, { project, related });
     if (!view) continue;
     const canonical = `https://tycoons-inv.com${view.path}`;
     const html = pageShell(shell, {
       title: view.title, description: view.description, canonical, image: view.image, keywords: guide.focus_keyword ? [guide.focus_keyword] : [],
+      lang: view.lang, alternates: view.alternatePath ? [{ hreflang: view.lang === "en" ? "ar-EG" : "en", href: `https://tycoons-inv.com${view.alternatePath}` }] : [],
       body: view.body, schemas: view.schemas.map(({ "@context": _context, ...schema }) => schema),
     });
     await writePage(path.join(guide.language === "en" ? "en/guides" : "guides", guide.slug, "index.html"), html);

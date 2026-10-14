@@ -1,0 +1,52 @@
+name: Website checks
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Save tested source
+        run: git archive --format=tar.gz HEAD > "$RUNNER_TEMP/tested-source.tar.gz"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies using the existing Netlify policy
+        run: |
+          corepack enable
+          corepack prepare yarn@1.22.22 --activate
+          yarn install --non-interactive
+      - name: Website tests and production build
+        shell: bash
+        run: |
+          set -o pipefail
+          yarn run check 2>&1 | tee "$RUNNER_TEMP/website-check.log"
+      - name: Rendered browser smoke tests
+        if: hashFiles('scripts/test-render-browser.cjs') != ''
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/test-render-browser.cjs 2>&1 | tee "$RUNNER_TEMP/browser-check.log"
+      - name: Save check evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-check-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/tested-source.tar.gz
+            ${{ runner.temp }}/website-check.log
+            ${{ runner.temp }}/browser-check.log
+            browser-check-evidence/
+          retention-days: 7

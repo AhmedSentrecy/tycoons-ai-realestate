@@ -4,6 +4,9 @@ const { localizedProjectContent, renderSections: renderLocalizedSections } = req
 // Buyer FAQ computed from the live units (shared with the React project page; needs `node --import tsx`).
 const { buildProjectFaq, isCuratedFaq } = require("../../src/lib/projectFaq.ts");
 
+const { pageShell } = require("./page-shell.cjs");
+const { buildProjectSchemas } = require("../../netlify/functions/_project-schema.cjs");
+
 const SITE_URL = "https://tycoons-inv.com";
 
 function escapeHtml(value) {
@@ -207,51 +210,6 @@ const UNIT_INTRO_BANK = [
   (u) => `وحدة من نوع ${u.unitType} في ${u.projectName}، ${u.developer}، ${u.areaAr}، بمساحة ${u.area} م² وسعر يبدأ من ${u.price}. ${u.rank}.`,
 ];
 
-function removeTag(html, expression) {
-  return html.replace(expression, "");
-}
-
-function pageShell(shell, { title, description, canonical, image, keywords, schemas, body, robots = "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1", alternates = [] }) {
-  let html = shell;
-  html = removeTag(html, /<title>[\s\S]*?<\/title>/i);
-  html = removeTag(html, /<meta\s+name=["']description["'][\s\S]*?\/?\s*>/i);
-  html = removeTag(html, /<meta\s+name=["']robots["'][\s\S]*?\/?\s*>/i);
-  html = removeTag(html, /<meta\s+name=["']keywords["'][\s\S]*?\/?\s*>/i);
-  html = removeTag(html, /<link\s+rel=["']canonical["'][\s\S]*?\/?\s*>/i);
-  html = removeTag(html, /<link\s+rel=["']alternate["'][\s\S]*?\/?\s*>/gi);
-  html = removeTag(html, /<meta\s+property=["']og:[^"']+["'][\s\S]*?\/?\s*>/gi);
-  html = removeTag(html, /<meta\s+name=["']twitter:card["'][\s\S]*?\/?\s*>/i);
-  html = removeTag(html, /<script\s+type=["']application\/ld\+json["']>[\s\S]*?<\/script>/gi);
-
-  const head = [
-    `<title>${escapeHtml(title)}</title>`,
-    `<meta name="description" content="${escapeHtml(description)}">`,
-    `<meta name="robots" content="${escapeHtml(robots)}">`,
-    keywords.length ? `<meta name="keywords" content="${escapeHtml(keywords.join(", "))}">` : "",
-    `<link rel="canonical" href="${escapeHtml(canonical)}">`,
-    `<link rel="alternate" hreflang="ar-EG" href="${escapeHtml(canonical)}">`,
-    ...alternates.map(({ hreflang, href }) => `<link rel="alternate" hreflang="${escapeHtml(hreflang)}" href="${escapeHtml(href)}">`),
-    `<link rel="alternate" hreflang="x-default" href="${escapeHtml(canonical)}">`,
-    `<meta property="og:type" content="article">`,
-    `<meta property="og:site_name" content="Tycoons Investments">`,
-    `<meta property="og:title" content="${escapeHtml(title)}">`,
-    `<meta property="og:description" content="${escapeHtml(description)}">`,
-    `<meta property="og:url" content="${escapeHtml(canonical)}">`,
-    image ? `<meta property="og:image" content="${escapeHtml(image)}">` : "",
-    `<meta property="og:locale" content="ar_EG">`,
-    `<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}">`,
-    `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", "@graph": schemas }).replace(/</g, "\\u003c")}</script>`,
-  ].filter(Boolean).join("\n    ");
-  html = html.replace("</head>", `    ${head}\n  </head>`);
-
-  const rootStart = html.indexOf('<div id="root">');
-  const bodyEnd = html.lastIndexOf("</body>");
-  if (rootStart < 0 || bodyEnd < 0) throw new Error("Vite shell is missing the root or body end");
-  const rootTail = html.slice(rootStart, bodyEnd);
-  const bodyScripts = rootTail.match(/<script\s+type=["']module["'][\s\S]*?<\/script>/gi) || [];
-  html = `${html.slice(0, rootStart)}<div id="root">${body}</div>\n    ${bodyScripts.join("\n    ")}\n  ${html.slice(bodyEnd)}`;
-  return html;
-}
 
 function uniqueUnits(units) {
   return [...new Map(units.map((unit) => [
@@ -294,7 +252,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
     const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]"><header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto max-w-4xl"><a href="/ar/">دليل المشاريع</a></nav></header><section class="mx-auto max-w-4xl px-5 py-20"><h1 class="text-4xl font-extrabold">${escapeHtml(project.name)}</h1><p class="mt-3">${escapeHtml(project.developer)} · ${escapeHtml(project.location)}</p><p class="mt-8 rounded-2xl bg-white p-6">معلومات المشروع موجودة، لكن مفيش وحدات متاحة مؤكدة نقدر نعرضها حاليًا. تواصل معنا عشان نراجع أحدث التوافر والأسعار مع المطور.</p><a href="https://wa.me/201200704344" class="mt-8 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اسأل عن آخر المتاح</a></section></main>`;
     return pageShell(shell, {
       title, description, canonical, body, robots: "noindex,follow", image: "", keywords: [],
-      schemas: [{ "@type": "Article", headline: title, description, inLanguage: "ar-EG", mainEntityOfPage: canonical }],
+      schemas: [{ "@type": "WebPage", name: title, description, inLanguage: "ar-EG", url: canonical }],
     });
   }
   const priceRanges = projectPriceRanges(project);
@@ -353,6 +311,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
     ? renderLocalizedSections(localized.article_sections, { escapeHtml, replaceTokens: (value) => replaceTokens(value, minPrice, minArea, maxArea) })
     : "";
   if (localizedArticle) article = { length: 1, map: () => ({ join: () => localizedArticle }) };
+  const schemaProjectName = project.name;
   if (localized?.h1) project = { ...project, name: localized.h1 };
   const visibleFaq = localizedArticle ? [] : faq;
   const developerPath = `/ar/developers/${slugify(project.developer)}`;
@@ -370,62 +329,10 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   </main>`;
 
   const schemas = [
-    {
-      "@type": "RealEstateListing",
-      "@id": `${canonical}#listing`,
-      url: canonical,
-      name: project.name,
-      description,
-      image: imageList,
-      dateModified: project.last_updated_at,
-      ...(totalOptionCount
-        ? { offers: { "@type": "AggregateOffer", priceCurrency: "EGP", lowPrice: minPrice, highPrice, offerCount: totalOptionCount, availability: "https://schema.org/InStock" } }
-        : minPrice
-          ? { offers: { "@type": "Offer", priceCurrency: "EGP", price: minPrice, availability: "https://schema.org/InStock" } }
-          : {}),
-      address: { "@type": "PostalAddress", addressLocality: project.location, addressCountry: "EG" },
-    },
-    {
-      "@type": "Article",
-      "@id": `${canonical}#article`,
-      headline: title,
-      description,
-      inLanguage: "ar-EG",
-      mainEntityOfPage: { "@type": "WebPage", "@id": canonical },
-      about: { "@id": `${canonical}#listing` },
-      dateModified: project.last_updated_at,
-      author: { "@type": "Organization", name: "Tycoons Investments" },
-      publisher: { "@type": "Organization", name: "Tycoons Investments" },
-    },
-    {
-      "@type": "ItemList",
-      "@id": `${canonical}#unit-options`,
-      name: `الوحدات المتاحة في ${project.name}`,
-      numberOfItems: totalOptionCount,
-      itemListElement: [
-        ...priceRanges.map((range, index) => ({
-          "@type": "ListItem",
-          position: index + 1,
-          item: {
-            "@type": "Product",
-            name: `${project.name} - ${range.unit_type}`,
-            floorSize: { "@type": "QuantitativeValue", value: range.area_sqm, unitCode: "MTK" },
-            offers: { "@type": "AggregateOffer", priceCurrency: "EGP", lowPrice: range.min_price, highPrice: range.max_price, availability: "https://schema.org/InStock" },
-          },
-        })),
-        ...units.map((unit, index) => ({
-          "@type": "ListItem",
-          position: priceRanges.length + index + 1,
-          item: {
-            "@type": "Product",
-            name: `${project.name} - ${text(unit.unit_type)} ${text(unit.bedrooms_text)}`.trim(),
-            url: unit.id ? `${SITE_URL}/units/${unit.id}` : canonical,
-            ...(numberValue(unit.area_sqm) ? { floorSize: { "@type": "QuantitativeValue", value: numberValue(unit.area_sqm), unitCode: "MTK" } } : {}),
-            offers: { "@type": "Offer", priceCurrency: "EGP", price: numberValue(unit.starting_price), availability: "https://schema.org/InStock" },
-          },
-        })),
-      ],
-    },
+    ...buildProjectSchemas({ url: canonical, name: schemaProjectName, location: project.location, title, description,
+      images: imageList, modified: project.last_updated_at, units, ranges: priceRanges,
+      articleSections: localized?.article_sections?.length ? localized.article_sections : storedArticle,
+    }),
     {
       "@type": "FAQPage",
       "@id": `${canonical}#faq`,

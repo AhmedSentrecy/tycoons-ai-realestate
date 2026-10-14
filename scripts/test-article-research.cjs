@@ -91,7 +91,7 @@ const projects = [{ id: "project-1", name: "5A", slug: "5a--waterway", developer
   const html = renderEditorialArticle(published);
   check(!/يجب التحقق منه قبل النشر|الحالة في بيانات المصدر|حقائق تجارية موثقة للمراجعة/.test(html), "internal review wording never reaches visitors");
   check(/26,760,000 جنيه/.test(html) && /آخر تحديث: 2026-10-01/.test(html), "prices and dates are readable");
-  check(/id="guide-sources"/.test(html) && /rel="nofollow noopener"/.test(html) && /"citation"/.test(html), "web sources are listed and cited in schema");
+  check(/id="guide-sources"/.test(html) && !/href="https:\/\/www\.waterway.*?"/.test(html) && /"citation"/.test(html), "source names remain visible and cited without external source links");
   check(!/href="\/projects\/5a--waterway"[^>]*rel="nofollow/.test(html), "internal project refs are not listed as external sources");
 
   // ---- endpoint: research goes through the same claim/finish flow, no units loaded ----

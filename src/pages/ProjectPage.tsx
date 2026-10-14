@@ -30,6 +30,9 @@ import {
 import { arabicField } from "@/lib/arabicFields";
 import { areaFor } from "@/lib/unitContent";
 
+import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
+import PageStructuredData from "@/components/PageStructuredData";
+
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
 
@@ -408,11 +411,6 @@ export default function ProjectPage() {
   const priceRanges = content?.price_ranges || [];
   const villaUnits = projectUnits.filter(isVillaLike);
   const otherUnits = projectUnits.filter((unit) => !isVillaLike(unit));
-  const allOptionPrices = [
-    ...projectUnits.map((unit) => unit.starting_price),
-    ...priceRanges.flatMap((range) => [range.min_price, range.max_price]),
-  ];
-  const highestPrice = Math.max(...allOptionPrices);
   const totalOptionCount = projectUnits.length + priceRanges.length;
   const defaultPlan = parseConfirmedPaymentPlan(project.down_payment_text, project.installments_text);
   const pageUrl = `${SITE_URL}/projects/${slug}`;
@@ -461,79 +459,16 @@ export default function ProjectPage() {
       ]
     : baseFaq;
   const visibleFaq = localizedArabic?.article_sections.length ? [] : faq;
-  const unitListItems = [
-    ...priceRanges.map((range, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      item: {
-        "@type": "Product",
-        name: `${project.project_name} - ${range.unit_type}`,
-        floorSize: { "@type": "QuantitativeValue", value: range.area_sqm, unitCode: "MTK" },
-        offers: {
-          "@type": "AggregateOffer",
-          priceCurrency: "EGP",
-          lowPrice: range.min_price,
-          highPrice: range.max_price,
-          availability: "https://schema.org/InStock",
-        },
-      },
-    })),
-    ...projectUnits.map((unit, index) => ({
-      "@type": "ListItem",
-      position: priceRanges.length + index + 1,
-      item: {
-        "@type": "Product",
-        name: `${project.project_name} - ${unit.unit_type} ${unit.bedrooms_text || ""}`.trim(),
-        url: unit.id ? `${SITE_URL}/units/${unit.id}` : pageUrl,
-        floorSize: unit.area_sqm
-          ? { "@type": "QuantitativeValue", value: unit.area_sqm, unitCode: "MTK" }
-          : undefined,
-        offers: {
-          "@type": "Offer",
-          priceCurrency: "EGP",
-          price: unit.starting_price,
-          availability: "https://schema.org/InStock",
-        },
-      },
-    })),
-  ];
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
-      {
-        "@type": "RealEstateListing",
-        "@id": `${pageUrl}#listing`,
-        url: pageUrl,
-        name: project.project_name,
-        description: content?.seo_description || project.description,
-        image: images,
-        dateModified: content?.last_updated_at || project.last_updated_at,
-        offers: {
-          "@type": "AggregateOffer",
-          priceCurrency: "EGP",
-          lowPrice: minPrice,
-          highPrice: highestPrice,
-          offerCount: totalOptionCount,
-          availability: "https://schema.org/InStock",
-        },
-        address: {
-          "@type": "PostalAddress",
-          addressLocality: project.location,
-          addressCountry: "EG",
-        },
-      },
-      {
-        "@type": "Article",
-        "@id": `${pageUrl}#article`,
-        headline: content?.seo_title || project.project_name,
-        description: content?.seo_description || project.description,
-        inLanguage: "ar-EG",
-        mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl },
-        about: { "@id": `${pageUrl}#listing` },
-        dateModified: content?.last_updated_at || project.last_updated_at,
-        author: { "@type": "Organization", name: "Tycoons Investments" },
-        publisher: { "@type": "Organization", name: "Tycoons Investments" },
-      },
+      ...buildProjectSchemas({ url: pageUrl, name: project.project_name, location: project.location,
+        title: localizedArabic?.seo_title || content?.seo_title || project.project_name,
+        description: localizedArabic?.seo_description || content?.seo_description || project.description,
+        images, modified: content?.last_updated_at || project.last_updated_at,
+        units: projectUnits, ranges: priceRanges,
+        articleSections: localizedArabic?.article_sections.length ? localizedArabic.article_sections : content?.article_sections,
+      }),
       {
         "@type": "BreadcrumbList",
         itemListElement: [
@@ -542,13 +477,6 @@ export default function ProjectPage() {
           { "@type": "ListItem", position: 3, name: project.developer, item: `${SITE_URL}/ar/developers/${slugify(project.developer)}` },
           { "@type": "ListItem", position: 4, name: project.project_name, item: pageUrl },
         ],
-      },
-      {
-        "@type": "ItemList",
-        "@id": `${pageUrl}#unit-options`,
-        name: `الوحدات المتاحة في ${project.project_name}`,
-        numberOfItems: totalOptionCount,
-        itemListElement: unitListItems,
       },
       ...(faq.length
         ? [{
@@ -919,7 +847,7 @@ export default function ProjectPage() {
 
       <Footer />
       <FloatingContact message={decodeURIComponent(message)} />
-      <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      <PageStructuredData value={structuredData} />
     </main>
   );
 }
