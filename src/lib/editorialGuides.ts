@@ -27,6 +27,7 @@ export interface PublishedGuide {
   faq?: GuideFaq[];
   hero_image_url?: string | null;
   reviewed_at: string;
+  reviewed_by_name?: string | null;
   published_at: string;
   updated_at: string;
 }
@@ -64,6 +65,19 @@ export async function loadProjectGuides(projectId: string, language: "ar" | "en"
     select: "title,slug,excerpt,language,project_id,hero_image_url",
     project_id: `eq.${projectId}`, language: `eq.${language}`, order: "published_at.desc", limit: "12",
   });
+}
+
+/**
+ * The newest published article about a project, shown in full on the project page
+ * (its own /guides/ URL then points its canonical at the project page).
+ */
+export async function loadProjectArticleBySlug(slug: string, language: "ar" | "en" = "ar"): Promise<PublishedGuide | null> {
+  const projects = await rest<{ id: string }>("projects", { select: "id", slug: `eq.${slug}`, limit: "1" });
+  if (!projects[0]) return null;
+  const rows = await rest<PublishedGuide>("published_editorial_articles", {
+    select: "*", project_id: `eq.${projects[0].id}`, language: `eq.${language}`, order: "published_at.desc", limit: "1",
+  });
+  return rows[0] ?? null;
 }
 
 /** Guides for a project page addressed by its public slug. */

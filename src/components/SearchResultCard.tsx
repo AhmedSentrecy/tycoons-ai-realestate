@@ -15,6 +15,7 @@ import { fallbackImageFor } from "@/lib/inventory";
 import type { RankedInventoryUnit } from "@/lib/propertySearch";
 import { openUnitWhatsApp } from "@/lib/whatsapp";
 import { unitPath } from "@/lib/unitUrl";
+import DeveloperLogo from "@/components/DeveloperLogo";
 
 interface Props {
   result: RankedInventoryUnit;
@@ -138,6 +139,7 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
         )}
 
         <div>
+          <DeveloperLogo developer={unit.developer} className="mb-2 shadow-none ring-1 ring-[#e7ddc8]" />
           <h4 className="break-words text-[15px] font-black leading-snug text-[#18251f]">
             {unit.project_name}
           </h4>

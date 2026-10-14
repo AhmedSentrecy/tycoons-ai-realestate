@@ -45,6 +45,8 @@ export default function GuidePage() {
   const [guide, setGuide] = useState<PublishedGuide | null>(null);
   const [project, setProject] = useState<GuideProject | null>(null);
   const [related, setRelated] = useState<GuideLink[]>([]);
+  // The newest guide about a project is shown in full on the project page; that page is its canonical.
+  const [embeddedInProject, setEmbeddedInProject] = useState(false);
   // Status belongs to the slug it was loaded for; a new slug reads as loading.
   const [loaded, setLoaded] = useState<{ key: string; status: "ready" | "missing" }>({ key: "", status: "missing" });
   const key = `${language}:${slug}`;
@@ -54,6 +56,7 @@ export default function GuidePage() {
   useEffect(() => {
     let active = true;
     const setState = (status: "ready" | "missing") => setLoaded({ key, status });
+    setEmbeddedInProject(false);
     void (async () => {
       try {
         const next = await loadGuide(slug, language);
@@ -65,6 +68,7 @@ export default function GuidePage() {
           if (!active) return;
           setProject(row);
           setRelated(guides.filter((item) => item.slug !== next.slug));
+          setEmbeddedInProject(Boolean(row?.slug) && guides[0]?.slug === next.slug);
         }
         setState("ready");
       } catch {
@@ -86,13 +90,14 @@ export default function GuidePage() {
     const title = guide.meta_title || `${guide.title} | Tycoons Investments`;
     document.title = title;
     setMeta('meta[name="description"]', "content", guide.meta_description || guide.excerpt);
-    setMeta('link[rel="canonical"]', "href", `${SITE_URL}${path}`);
+    const canonicalPath = embeddedInProject && project?.slug ? `${language === "en" ? "/en" : ""}/projects/${project.slug}` : path;
+    setMeta('link[rel="canonical"]', "href", `${SITE_URL}${canonicalPath}`);
     setMeta('meta[property="og:title"]', "content", title);
     setMeta('meta[property="og:description"]', "content", guide.meta_description || guide.excerpt);
     setMeta('meta[property="og:url"]', "content", `${SITE_URL}${path}`);
     setMeta('meta[property="og:locale"]', "content", language === "en" ? "en_US" : "ar_EG");
     window.scrollTo(0, 0);
-  }, [guide, path, language]);
+  }, [guide, path, language, embeddedInProject, project]);
 
   if (state === "loading") {
     return <main className="grid min-h-screen place-items-center bg-[#f7f2ea]"><p className="font-bold text-[#1b2420]">{t('جاري تحميل المقال…', 'Loading article…')}</p></main>;

@@ -7,6 +7,8 @@ const { buildProjectFaq, isCuratedFaq } = require("../../src/lib/projectFaq.ts")
 const { pageShell } = require("./page-shell.cjs");
 const { buildProjectSchemas } = require("../../netlify/functions/_project-schema.cjs");
 const { unitPath } = require("../../netlify/functions/_unit-url.cjs");
+const { renderSafeMarkdown } = require("../../netlify/functions/_article-render.cjs");
+const { publicEditorialMarkdown, developerInfo } = require("../../netlify/functions/_seo-utils.cjs");
 
 const SITE_URL = "https://tycoons-inv.com";
 
@@ -324,7 +326,9 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   <section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]"><article>
   ${article.length ? article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#5c6a62]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join("") : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
   ${visibleFaq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(project.name)}</h2>${visibleFaq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#5c6a62]">${escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea))}</p></details>`).join("")}</section>` : ""}
-  ${buyerQuestionsHtml(project, guides)}
+  ${embeddedArticleHtml(guides[0])}
+  ${developerAboutHtml(project)}
+  ${buyerQuestionsHtml(project, guides.slice(1))}
   </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white">${minPrice ? `<p class="text-sm text-white/55">الأسعار تبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(minPrice)} جنيه</p>` : `<p class="text-sm text-white/55">السعر حسب آخر طرح</p><p class="mt-2 text-xl font-extrabold text-[#ecd9ae]">اسأل عن أحدث الأسعار</p>`}${text(project.down_payment_text) ? `<p class="mt-3 text-sm text-white/70">${escapeHtml(arabicField(project.down_payment_text))}</p>` : ""}${text(project.installments_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.installments_text))}</p>` : ""}${text(project.delivery_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.delivery_text))}</p>` : ""}<a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a></aside></div></section>
   ${totalOptionCount ? `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">اختار وحدتك واعرف خطة السداد</h2><p class="mt-3 text-[#5c6a62]">${totalOptionCount} اختيار متاح من البيانات الحالية للصفحة.</p>${priceRanges.length || villaUnits.length ? `<section class="mt-9 rounded-3xl bg-[#0d1f18] p-6 text-white"><h3 class="text-2xl font-extrabold">فلل وتاون هاوس</h3><div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">${priceRanges.map((range) => `<details class="overflow-hidden rounded-3xl bg-white p-6 text-[#1b2420]"><summary class="cursor-pointer list-none"><h4 class="text-xl font-extrabold">${escapeHtml(range.unit_type)}</h4><p class="mt-3">${range.area_sqm} م² · ${formatPrice(range.min_price)}–${formatPrice(range.max_price)} جنيه</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary><p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml([text(project.down_payment_text), text(project.installments_text)].filter(Boolean).map(arabicField).join(" · "))}</p></details>`).join("")}${villaUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}${otherUnits.length ? `<section class="mt-10"><h3 class="text-2xl font-extrabold">${villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : "الوحدات المتاحة"}</h3><div class="mt-6 grid gap-5 md:grid-cols-2">${otherUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}</div></section>` : `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات في ${escapeHtml(project.name)}</h2><p class="mt-5 max-w-3xl leading-loose text-[#5c6a62]">لا توجد وحدات منشورة بأسعار تفصيلية لهذا المشروع حالياً. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من المطور.</p><a href="https://wa.me/201200704344" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اطلب أحدث الأسعار</a></div></section>`}
   </main>`;
@@ -477,6 +481,22 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
       ? "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
       : "noindex,follow",
   });
+}
+
+// The newest article written in the admin for this project, in full on the project page
+// (its /guides/ URL points its canonical here).
+function embeddedArticleHtml(guide) {
+  if (!guide || !guide.body_markdown || !guide.title) return "";
+  const takeaways = (Array.isArray(guide.key_takeaways) ? guide.key_takeaways : []).map((item) => String(item || "").trim()).filter(Boolean).slice(0, 6);
+  const reviewed = guide.reviewed_at ? new Intl.DateTimeFormat("ar-EG-u-nu-latn", { year: "numeric", month: "long", day: "numeric" }).format(new Date(guide.reviewed_at)) : "";
+  return `<section class="mt-14" id="article"><p class="text-sm font-bold text-[#a3854e]">دليل Tycoons — تمت مراجعته قبل النشر</p><h2 class="mt-2 text-3xl font-extrabold">${escapeHtml(guide.title)}</h2>${guide.excerpt ? `<p class="mt-4 text-lg leading-loose text-[#5c6a62]">${escapeHtml(guide.excerpt)}</p>` : ""}${takeaways.length ? `<div class="mt-6 rounded-2xl border border-[#e7ddc8] bg-[#fffaf1] p-5"><h3 class="text-xl font-extrabold">الخلاصة</h3><ul class="mt-3 list-disc ps-6 leading-loose">${takeaways.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></div>` : ""}<div class="guide-body">${renderSafeMarkdown(publicEditorialMarkdown(guide.body_markdown, true))}</div>${reviewed ? `<p class="mt-6 text-sm text-[#5c6a62]">آخر مراجعة: ${escapeHtml(reviewed)}${guide.reviewed_by_name ? ` — ${escapeHtml(guide.reviewed_by_name)}` : ""}</p>` : ""}</section>`;
+}
+
+// Short developer introduction (Supabase developers.about_ar) with a link to all its projects.
+function developerAboutHtml(project) {
+  const info = developerInfo(project.developer);
+  if (!info || !info.about_ar) return "";
+  return `<section class="mt-14"><h2 class="text-2xl font-extrabold">عن المطور: ${escapeHtml(info.name_ar || info.name)}</h2><p class="mt-4 leading-loose text-[#5c6a62]">${escapeHtml(info.about_ar)}</p><a class="mt-3 inline-block font-bold text-[#a3854e] underline" href="/ar/developers/${escapeHtml(info.slug)}">كل مشاريع ${escapeHtml(info.name_ar || info.name)}</a></section>`;
 }
 
 // Published buyer-question guides about the project, linked right under its FAQ.

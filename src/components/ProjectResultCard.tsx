@@ -16,6 +16,7 @@ import {
 import { openUnitWhatsApp } from "@/lib/whatsapp";
 import { parseSearchQuery } from "@/lib/propertySearch";
 import { unitPath } from "@/lib/unitUrl";
+import DeveloperLogo from "@/components/DeveloperLogo";
 
 interface Props {
   group: GroupedResult;
@@ -59,6 +60,7 @@ export default function ProjectResultCard({ group, query }: Props) {
         <span className="absolute bottom-2.5 left-2.5 rounded-full bg-[#0d1f18]/85 px-2.5 py-1 text-[11px] font-bold text-[#ecd9ae]">
           {unitsCountLabel(group.unitsCount)}
         </span>
+        <DeveloperLogo developer={group.developer} className="absolute bottom-2.5 right-2.5" />
       </div>
       <div className="p-3.5">
         <div className="text-lg font-black text-[#9b793f]">
