@@ -13,6 +13,7 @@ import {
 } from "@/lib/editorialGuides";
 
 import GuideBody from "@/components/GuideBody";
+import { unitPath } from "@/lib/unitUrl";
 
 const SITE_URL = "https://tycoons-inv.com";
 const formatPrice = (value: number) => new Intl.NumberFormat("en-US").format(value);
@@ -178,7 +179,7 @@ export default function GuidePage() {
             <h2 id="guide-units" className="text-2xl font-extrabold">{t("وحدات متاحة دلوقتي في", "Available units at")} {project.name}</h2>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               {projectUnits.slice(0, 4).map((unit) => (
-                <a key={unit.id} href={`/units/${unit.id}`} className="group overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white transition hover:shadow-lg">
+                <a key={unit.id} href={unitPath(unit)} className="group overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white transition hover:shadow-lg">
                   {unit.images[0] && <img src={unit.images[0]} alt={`${ar ? arabicField(unit.unit_type) : unit.unit_type} في ${project.name}`} className="h-40 w-full object-cover" loading="lazy" />}
                   <div className="p-5">
                     <p className="text-lg font-extrabold group-hover:text-[#a3854e]">{ar ? arabicField(unit.unit_type) : unit.unit_type}</p>

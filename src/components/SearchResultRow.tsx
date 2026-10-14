@@ -11,6 +11,7 @@ import {
   unitsCountLabel,
 } from "@/lib/searchDisplay";
 import { openUnitWhatsApp } from "@/lib/whatsapp";
+import { unitPath } from "@/lib/unitUrl";
 
 interface Props {
   group: GroupedResult;
@@ -30,7 +31,7 @@ export default function SearchResultRow({ group, query, onNavigate }: Props) {
   if (extra) chips.push(extra);
   const diff = !group.best.exact && group.best.differences[0];
 
-  const projectPath = group.projectSlug ? `/projects/${group.projectSlug}` : unit.id ? `/units/${unit.id}` : "";
+  const projectPath = group.projectSlug ? `/projects/${group.projectSlug}` : unit.id ? unitPath(unit) : "";
 
   return (
     <div className="flex items-center gap-3 border-b border-[#f1ead9] px-4 py-3 transition-colors hover:bg-[#f6f1e4]">

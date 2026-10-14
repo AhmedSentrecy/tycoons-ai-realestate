@@ -32,6 +32,7 @@ import { areaFor } from "@/lib/unitContent";
 
 import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
 import PageStructuredData from "@/components/PageStructuredData";
+import { unitPath } from "@/lib/unitUrl";
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -254,6 +255,13 @@ function ProjectGallery({
   );
 }
 
+/** Price per square metre from the listed price and area (Western digits), or "" when unknown. */
+function sqmPrice(unit: { starting_price?: unknown; area_sqm?: unknown }) {
+  const price = Number(String(unit.starting_price ?? "").replace(/,/g, ""));
+  const area = Number(String(unit.area_sqm ?? "").replace(/,/g, ""));
+  return price > 0 && area >= 20 ? new Intl.NumberFormat("en-EG").format(Math.round(price / area)) : "";
+}
+
 export default function ProjectPage() {
   const { slug = "" } = useParams();
   const { units, loading, error } = useInventory();
@@ -462,7 +470,7 @@ export default function ProjectPage() {
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
-      ...buildProjectSchemas({ url: pageUrl, name: project.project_name, location: project.location,
+      ...buildProjectSchemas({ url: pageUrl, name: project.project_name, projectSlug: slug, location: project.location,
         title: localizedArabic?.seo_title || content?.seo_title || project.project_name,
         description: localizedArabic?.seo_description || content?.seo_description || project.description,
         images, modified: content?.last_updated_at || project.last_updated_at,
@@ -726,6 +734,7 @@ export default function ProjectPage() {
                       <p className="mt-1 text-xl font-extrabold text-[#14352a]">
                         {formatPrice(unit.starting_price)} جنيه
                       </p>
+                      {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
                       <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                         اعرض المقدم والقسط
                         <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
@@ -738,7 +747,7 @@ export default function ProjectPage() {
                     />
                     {unit.id && (
                       <div className="bg-[#faf7f1] px-5 pb-5">
-                        <Link to={`/units/${unit.id}`} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
+                        <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
                           كل تفاصيل الوحدة
                           <ArrowLeft className="h-4 w-4" />
                         </Link>
@@ -794,6 +803,7 @@ export default function ProjectPage() {
                   <p className="mt-1 text-2xl font-extrabold text-[#14352a]">
                     {formatPrice(unit.starting_price)} جنيه
                   </p>
+                  {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
                   <p className="mt-2 text-sm text-[#5c6a62]">{unit.down_payment_text}</p>
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                       اعرض المقدم والقسط
@@ -808,7 +818,7 @@ export default function ProjectPage() {
                 />
                 {unit.id && (
                   <div className="bg-[#faf7f1] px-5 pb-5">
-                    <Link to={`/units/${unit.id}`} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
+                    <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
                       كل تفاصيل الوحدة
                       <ArrowLeft className="h-4 w-4" />
                     </Link>

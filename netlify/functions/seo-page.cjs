@@ -13,7 +13,10 @@ const {
   renderGuide,
   renderEditorialArticle,
   renderStaticPage,
+  renderGuidesIndex,
   notFound,
+  unitPath,
+  findUnitByParam,
 } = require("./_seo-utils.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
@@ -89,11 +92,12 @@ exports.handler = async function handler(event) {
   })();
   const route = originalPath.match(/^\/(ar|en)\/(projects|areas|developers)\/(.+?)\/?$/);
   const unitRoute = originalPath.match(/^\/units\/(.+?)\/?$/);
+  const guidesIndexRoute = originalPath.match(/^\/(?:(en)\/)?guides\/?$/);
   const guideRoute = originalPath.match(/^\/(?:(en)\/)?guides\/(.+?)\/?$/);
   const staticRoute = originalPath.match(/^\/(about|faq|methodology|corrections|contact|privacy)\/?$/);
   const directoryRoute = originalPath.match(/^\/(ar|en)(?:\/directory)?\/?$/);
 
-  const lang = route?.[1] === "en" || directoryRoute?.[1] === "en" || guideRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
+  const lang = route?.[1] === "en" || directoryRoute?.[1] === "en" || guideRoute?.[1] === "en" || guidesIndexRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
   let type = String(params.type || "home");
   let rawSlug = String(params.slug || "");
 
@@ -103,6 +107,8 @@ exports.handler = async function handler(event) {
   } else if (unitRoute) {
     type = "unit";
     rawSlug = unitRoute[1];
+  } else if (guidesIndexRoute) {
+    type = "guides";
   } else if (guideRoute) {
     type = "guide";
     rawSlug = guideRoute[2];
@@ -126,20 +132,36 @@ exports.handler = async function handler(event) {
       }
     }
     if (type === "static") html = renderStaticPage(slug);
-    if (!["guide", "static"].includes(type)) {
+    if (type === "guides") {
+      const articles = await fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at", order: "published_at.desc", limit: "300" });
+      html = renderGuidesIndex(lang, articles);
+    }
+    if (!["guide", "guides", "static"].includes(type)) {
       const [units, projectsMeta] = await Promise.all([
         fetchUnits(),
         fetchProjectsMeta({ strict: type === "project" }),
         fetchDevelopers(),
       ]);
       const projects = groupProjects(units, projectsMeta);
-      if (type === "home") html = renderDirectory(projects, lang);
+      if (type === "home") {
+        const articles = await fetchRest("published_editorial_articles", { select: "title,slug,language,published_at", language: `eq.${lang}`, order: "published_at.desc", limit: "6" });
+        html = renderDirectory(projects, lang, articles);
+      }
       if (type === "project") {
         const hasCanonicalProject = projectsMeta.some((project) =>
           String(project.slug || "").trim() === slug);
         html = hasCanonicalProject ? renderProject(projects, slug, lang) : null;
       }
-      if (type === "unit") html = renderUnit(projects, slug, "ar");
+      if (type === "unit") {
+        // Legacy /units/<uuid> and outdated words 301 to the one readable URL.
+        const unit = findUnitByParam(projects.flatMap((project) => project.units), slug);
+        const owner = unit ? projects.find((project) => project.units.includes(unit)) : null;
+        const canonical = unit && owner ? unitPath({ ...unit, project_slug: owner.slug }) : "";
+        if (canonical && `/units/${slug}` !== canonical) {
+          return { statusCode: 301, headers: { ...CACHE_HEADERS, location: canonical }, body: "" };
+        }
+        html = renderUnit(projects, slug, "ar");
+      }
       if (type === "area") {
         const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
         html = renderCollection(projects, "area", slug, lang, guides);

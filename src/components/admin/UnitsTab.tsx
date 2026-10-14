@@ -16,6 +16,7 @@ import MediaEditor from "./MediaEditor";
 import ProjectPicker from "./ProjectPicker";
 import UnitForm from "./UnitForm";
 import { Badge, EmptyState, Modal } from "./ui";
+import { unitPath } from "@/lib/unitUrl";
 
 const SITE_URL = "https://tycoons-inv.com";
 
@@ -207,7 +208,7 @@ export default function UnitsTab({
                                 حذف
                               </button>
                               <a
-                                href={`${SITE_URL}/units/${unit.id}`}
+                                href={`${SITE_URL}${unitPath(unit)}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="rounded-lg px-2 py-1 text-xs font-black text-[#8a6630]"

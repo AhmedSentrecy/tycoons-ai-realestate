@@ -6,6 +6,7 @@ const { renderProjectStatic, renderUnitStatic, pageShell } = require("./lib/data
 const { editorialArticleView, fetchDevelopers, projectLogo } = require("../netlify/functions/_seo-utils.cjs");
 const { projectAliases } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
+const { unitPath } = require("../netlify/functions/_unit-url.cjs");
 const { projectsFromUnits } = require("../src/lib/projectFaq.ts");
 
 const root = path.resolve(__dirname, "..");
@@ -50,7 +51,7 @@ async function main() {
   const normalizedProjects = projects
     .filter((project) => String(project.slug || "").trim())
     .map((project) => ({ ...project, slug: String(project.slug).trim() }))
-    // Project logo, else the developer logo (Supabase brand-logos); pages render without it.
+    // Developer logo (Supabase brand-logos) on every project; pages render without it.
     .map((project) => ({ ...project, logo: projectLogo(project) }));
   const projectById = new Map(normalizedProjects.map((project) => [project.id, project]));
   const indexableIds = indexableUnitIds(units);
@@ -113,7 +114,7 @@ async function main() {
     if (!project) continue;
     const siblings = (unitsByProject.get(unit.project_id) || []).filter((sibling) => sibling.id !== unit.id);
     await writePage(
-      path.join("units", `${unit.id}.html`),
+      path.join("units", `${unitPath({ ...unit, project_slug: project.slug }).replace(/^\/units\//, "")}.html`),
       renderUnitStatic(shell, unit, project, siblings, { indexable: indexableIds.has(String(unit.id)) }),
     );
     unitCount += 1;

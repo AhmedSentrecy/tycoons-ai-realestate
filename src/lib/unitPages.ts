@@ -1,3 +1,5 @@
+import { parseUnitParam } from "@/lib/unitUrl";
+
 const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {};
 
 const SUPABASE_URL =
@@ -89,15 +91,23 @@ export async function loadUnitSiblings(projectId: string, excludeId: string): Pr
 }
 
 export async function loadUnitPage(id: string): Promise<UnitPageData | null> {
+  // The URL holds a readable slug ("<8 hex>-words") or a legacy UUID.
+  const parsed = parseUnitParam(id);
+  if (!parsed) return null;
   const unitParams = new URLSearchParams({
     select:
       "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,description,image_url,gallery_urls,brochure_url,video_url,last_updated_at",
-    id: `eq.${id}`,
     availability_status: "eq.available",
-    limit: "1",
+    limit: "2",
   });
-  const [unit] = await getRows("units", unitParams);
-  if (!unit) return null;
+  if (parsed.uuid) unitParams.append("id", `eq.${parsed.uuid}`);
+  else {
+    unitParams.append("id", `gte.${parsed.prefix}-0000-0000-0000-000000000000`);
+    unitParams.append("id", `lte.${parsed.prefix}-ffff-ffff-ffff-ffffffffffff`);
+  }
+  const rows = await getRows("units", unitParams);
+  if (rows.length !== 1) return null;
+  const [unit] = rows;
 
   const projectId = text(unit.project_id);
   const projectParams = new URLSearchParams({

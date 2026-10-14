@@ -17,6 +17,7 @@ import {
   type MediaTarget,
   type StorageUsage,
 } from "../lib/mediaAdminApi";
+import { unitPath } from "@/lib/unitUrl";
 
 const FREE_STORAGE_BYTES = 1024 * 1024 * 1024;
 const SITE_URL = "https://tycoons-inv.com";
@@ -521,7 +522,7 @@ function ProjectWorkspace({
               {selectedUnit.unit_type} {selectedUnit.area_sqm ? `${selectedUnit.area_sqm} م²` : ""} · {formatPrice(selectedUnit.starting_price)}
             </h3>
             <a
-              href={`${SITE_URL}/units/${selectedUnit.id}`}
+              href={`${SITE_URL}${unitPath(selectedUnit)}`}
               target="_blank"
               rel="noreferrer"
               className="mb-3 inline-block text-sm font-bold text-[#8a6630] underline"

@@ -369,6 +369,31 @@
   status = 301
   force = true
 
+# Guides hub (was a soft 404 that returned the home page).
+[[redirects]]
+  from = "/guides"
+  to = "/.netlify/functions/seo-page?lang=ar&type=guides"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/guides/"
+  to = "/.netlify/functions/seo-page?lang=ar&type=guides"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/ar/guides"
+  to = "/guides/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/ar/guides/"
+  to = "/guides/"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/guides/*"
   to = "/.netlify/functions/seo-page?lang=ar&type=guide&slug=:splat"
@@ -388,6 +413,19 @@
   from = "/contact"
   to = "/.netlify/functions/seo-page?lang=ar&type=static&slug=contact"
   status = 200
+
+# English visitors and crawlers asked for /en/about (404 in Search Console): send them to the about page.
+[[redirects]]
+  from = "/en/about"
+  to = "/about"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/about/"
+  to = "/about"
+  status = 301
+  force = true
 
 [[redirects]]
   from = "/about"
@@ -545,6 +583,18 @@
   force = true
 
 [[redirects]]
+  from = "/en/guides"
+  to = "/.netlify/functions/seo-page?lang=en&type=guides"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/en/guides/"
+  to = "/.netlify/functions/seo-page?lang=en&type=guides"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/en/guides/*"
   to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=:splat"
   status = 200
@@ -615,3 +665,7 @@
   from = "/*"
   to = "/404.html"
   status = 404
+
+# Daily IndexNow ping (Bing / ChatGPT search freshness) for URLs changed in the last 36h.
+[functions."indexnow-ping"]
+  schedule = "@daily"

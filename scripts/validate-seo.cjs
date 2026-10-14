@@ -15,6 +15,7 @@ const {
   areaFor,
 } = require("../netlify/functions/_seo-utils.cjs");
 const { developerContent } = require("../netlify/functions/_developer-content.cjs");
+const { unitPath: readableUnitPath, parseUnitParam } = require("../netlify/functions/_unit-url.cjs");
 const developerBatch = require("../content/developer-articles.source.json");
 
 const root = path.resolve(__dirname, "..");
@@ -143,10 +144,14 @@ assert.match(project, /BreadcrumbList/);
 assert.match(project, /ItemList/);
 assert.match(project, /OfferCatalog/);
 assert.match(project, /"priceCurrency":"EGP"/);
-assert.match(project, new RegExp(`https://tycoons-inv\\.com/units/${rows[0].id}`), "project unit schema must point to the unit UUID");
-assert.match(project, new RegExp(`href="/units/${rows[0].id}"`), "project unit card must point to the unit UUID");
+assert.match(project, new RegExp(`https://tycoons-inv\\.com/units/${rows[0].id.slice(0, 8)}-[a-z0-9-]+"`), "project unit schema must point to the readable unit URL");
+assert.match(project, new RegExp(`href="/units/${rows[0].id.slice(0, 8)}-[a-z0-9-]+"`), "project unit card must point to the readable unit URL");
+assert.doesNotMatch(project, new RegExp(`/units/${rows[0].id}`), "no UUID unit links remain");
 assert.doesNotMatch(project, /aggregateRating|"review"|"@type":"Product"/);
-assert.match(directory, /دليل المشاريع العقارية المحدث/);
+assert.match(directory, /دليل المشاريع العقارية في مصر 2026/);
+assert.match(directory, /id="areas"/, "directory must expose the #areas anchor used by the header");
+assert.match(directory, /id="developers"/, "directory must expose the #developers anchor used by the header");
+assert.match(directory, /<header class="site">/, "every SSR page uses the shared site header");
 assert.match(area, /مستقبل سيتي/);
 assert.match(area, /"@type":"FAQPage"/, "area collection page must render FAQ schema with real area content");
 assert.match(area, /غالبية المشاريع هنا لسه تحت الإنشاء/, "area page must include the area-context/buyer-note copy, not just a generic template");
@@ -190,7 +195,7 @@ assert.match(unit, /"@type":"FAQPage"/);
 assert.match(unit, /BreadcrumbList/);
 assert.match(unit, /href="\/ar\/areas\/mostakbal-city"/, "Arabic unit must link its verified area page");
 assert.match(unit, /href="\/ar\/developers\/mountain-view"/, "Arabic unit must link its internal developer page");
-assert.match(unit, new RegExp(`href="/units/${rows[1].id}"`), "related unit must link to its own UUID page");
+assert.match(unit, new RegExp(`href="/units/${rows[1].id.slice(0, 8)}-[a-z0-9-]+"`), "related unit must link to its own readable page");
 const englishUnit = renderUnit(projects, rows[0].id, "en");
 assert.match(englishUnit, /href="\/en\/areas\/mostakbal-city"/, "English unit must stay in the English area hierarchy");
 assert.match(englishUnit, /href="\/en\/developers\/mountain-view"/, "English unit must stay in the English developer hierarchy");
@@ -272,7 +277,7 @@ assert.doesNotMatch(pricedNewCairoOnly, /starting from Price on request/);
 const mixedDirectory = renderDirectory([zeroUnitProject, unpricedAvailableProject], "en");
 assert.match(mixedDirectory, /Price on Request Project/);
 assert.doesNotMatch(mixedDirectory, /Skyline Residences/);
-assert.match(mixedDirectory, /1 projects shown/);
+assert.match(mixedDirectory, /Compare 1 projects/);
 
 const netlify = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
 const index = fs.readFileSync(path.join(root, "index.html"), "utf8");
@@ -347,7 +352,7 @@ assert.match(index, /<h2>قارن المشاريع والوحدات العقار
 assert.match(robots, /OAI-SearchBot/);
 assert.match(robots, /https:\/\/tycoons-inv\.com\/sitemap\.xml/);
 assert.match(sitemap, /SITE_URL}\/projects\/\${projectSlug}/);
-assert.match(sitemap, /SITE_URL}\/units\/\${unit\.id}/);
+assert.match(sitemap, /SITE_URL}\$\{unitPath\(\{ \.\.\.unit, project_slug/, "sitemap lists readable unit URLs");
 assert.match(sitemap, /SITE_URL}\/en\/guides\/\${guideSlug}/);
 assert.match(projectPage, /loadProjectPage\(slug\)/);
 assert.match(projectPage, /mountain-view-icity-october--mountain-view/);
@@ -404,11 +409,28 @@ async function validateRouteRecovery() {
       rawUrl: "https://tycoons-inv.com/en/guides/new-cairo-property-prices/",
       queryStringParameters: { lang: "en" },
     });
-    const unitResponse = await handler({
+    const legacyUnitResponse = await handler({
       path: `/units/${rows[0].id}`,
       rawUrl: `https://tycoons-inv.com/units/${rows[0].id}`,
       queryStringParameters: {},
     });
+    assert.equal(legacyUnitResponse.statusCode, 301, "legacy UUID unit URLs must 301 to the readable URL");
+    const readableUnit = legacyUnitResponse.headers.location;
+    assert.match(readableUnit, new RegExp(`^/units/${rows[0].id.slice(0, 8)}-[a-z0-9-]+$`));
+    assert.deepEqual(parseUnitParam(readableUnit.replace("/units/", "")), { prefix: rows[0].id.slice(0, 8) });
+    const unitResponse = await handler({
+      path: readableUnit,
+      rawUrl: `https://tycoons-inv.com${readableUnit}`,
+      queryStringParameters: {},
+    });
+    const staleWordsResponse = await handler({
+      path: `/units/${rows[0].id.slice(0, 8)}-old-words`,
+      rawUrl: `https://tycoons-inv.com/units/${rows[0].id.slice(0, 8)}-old-words`,
+      queryStringParameters: {},
+    });
+    assert.equal(staleWordsResponse.statusCode, 301);
+    assert.equal(staleWordsResponse.headers.location, readableUnit);
+    assert.equal(typeof readableUnitPath, "function");
     const englishDirectoryResponse = await handler({
       path: "/en/directory/",
       rawUrl: "https://tycoons-inv.com/en/directory/",
@@ -424,7 +446,7 @@ async function validateRouteRecovery() {
       rawUrl: "https://tycoons-inv.com/projects/aliva-old-name--mountain-view",
       queryStringParameters: { lang: "ar", type: "project", slug: "aliva-old-name--mountain-view" },
     });
-    assert.match(projectResponse.body, /Mountain View Aliva \| Mountain View/);
+    assert.match(projectResponse.body, /<title>Mountain View Aliva(: الأسعار وأنظمة السداد| Prices &amp; Payment Plans) 2026/);
     assert.match(projectResponse.body, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/projects\//);
     assert.match(guideResponse.body, /دليل شراء عقار Off-plan في مصر/);
     assert.equal(englishGuideResponse.statusCode, 200);

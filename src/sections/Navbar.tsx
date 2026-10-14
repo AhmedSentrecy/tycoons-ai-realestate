@@ -1,16 +1,18 @@
-import { tr, localeHref, isEnglish } from "@/lib/homeLanguage";
+import { tr, isEnglish } from "@/lib/homeLanguage";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { MessageCircle } from "lucide-react";
 
 export default function Navbar() {
+// Same links, order and targets as the server-rendered header (siteHeader in _seo-utils.cjs).
 const links = [
   { label: tr("الرئيسية"), to: isEnglish() ? "/en/" : "/", external: true },
-  { label: tr("دليل المشاريع"), to: localeHref("/ar/"), external: true },
-  { label: tr("المطورون"), to: localeHref("/ar/#developers"), external: true },
+  { label: tr("المشاريع"), to: isEnglish() ? "/en/directory/" : "/ar/", external: true },
+  { label: tr("المناطق"), to: isEnglish() ? "/en/directory/#areas" : "/ar/#areas", external: true },
+  { label: tr("المطورين"), to: isEnglish() ? "/en/directory/#developers" : "/ar/#developers", external: true },
+  { label: tr("الأدلة"), to: isEnglish() ? "/en/guides/" : "/guides/", external: true },
   { label: tr("من نحن"), to: isEnglish() ? "/en/#about" : "/about", external: true },
-  { label: tr("الأسئلة الشائعة"), to: isEnglish() ? "/en/#faq" : "/faq", external: true },
 ];
 
   const [scrolled, setScrolled] = useState(false);
