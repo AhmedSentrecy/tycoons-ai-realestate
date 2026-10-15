@@ -139,7 +139,7 @@ export default function UnitsTab({
               {unitsLoading && <p className="p-6 text-center text-sm font-bold">جاري التحميل…</p>}
               {!unitsLoading && units && !units.length && <p className="p-6 text-center text-sm font-bold">مفيش وحدات للمشروع ده لسه</p>}
               {!unitsLoading && units && units.length > 0 && (
-                <table className="w-full min-w-[760px] text-right text-sm">
+                <table className="w-full min-w-[880px] text-right text-sm">
                   <thead className="text-xs font-black text-[#5c6a62]">
                     <tr className="border-b border-[#efe7d8]">
                       <th className="p-2">النوع</th>
@@ -148,6 +148,7 @@ export default function UnitsTab({
                       <th className="p-2">المقدم / التقسيط</th>
                       <th className="p-2">الاستلام</th>
                       <th className="p-2">الحالة</th>
+                      <th className="p-2">اتضافت / آخر تحديث</th>
                       <th className="p-2"></th>
                     </tr>
                   </thead>
@@ -172,6 +173,11 @@ export default function UnitsTab({
                             <Badge tone={unit.availability_status === "available" ? "ok" : "muted"}>
                               {STATUS_LABELS[String(unit.availability_status)] ?? unit.availability_status}
                             </Badge>
+                          </td>
+                          <td className="whitespace-nowrap p-2 text-xs text-[#5c6a62]">
+                            {isNewUnit(unit.created_at) && <Badge tone="ok">جديد</Badge>}
+                            <span className="block font-bold text-[#1b2420]">{adminDate(unit.created_at)}</span>
+                            <span className="block">تحديث: {adminDate(unit.last_updated_at)}</span>
                           </td>
                           <td className="p-2">
                             <div className="flex flex-wrap justify-end gap-1">
@@ -269,4 +275,14 @@ export default function UnitsTab({
       )}
     </div>
   );
+}
+
+function adminDate(value: string | null | undefined) {
+  const time = Date.parse(value ?? "");
+  return Number.isFinite(time) ? new Intl.DateTimeFormat("ar-EG-u-nu-latn", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Cairo" }).format(new Date(time)) : "—";
+}
+
+function isNewUnit(value: string | null | undefined) {
+  const time = Date.parse(value ?? "");
+  return Number.isFinite(time) && Date.now() - time <= 7 * 86400000;
 }
