@@ -916,6 +916,9 @@ async function projectDelete(user: AdminUser, body: Json) {
   const { data: project } = await db.from("projects").select("*").eq("id", id).maybeSingle();
   if (!project) throw new HttpError(404, "project_not_found");
   if (text(body.confirm_name) !== text(project.name)) throw new HttpError(400, "confirm_name_mismatch");
+  // Articles written about this project must stay valid (a project article needs its project).
+  const { count: articles } = await db.from("editorial_articles").select("id", { count: "exact", head: true }).eq("project_id", id);
+  if ((articles ?? 0) > 0) throw new HttpError(409, "project_has_articles");
   const { data: units } = await db.from("units").select(UNIT_COLUMNS).eq("project_id", id);
   // The project row and all its units are kept in the log entry so a deletion can be restored by hand.
   const result = await submitChange(user, {

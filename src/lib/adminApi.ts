@@ -523,6 +523,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   too_many_attempts: "محاولات كتير غلط. استنى ربع ساعة وجرّب تاني",
   login_required: "انتهت الجلسة، ادخل تاني",
   owner_only: "الصلاحية دي للمالك بس",
+  project_has_articles: "المشروع ده عليه مقالات — امسح المقالات بتاعته أو انقلها لمشروع تاني الأول",
   confirm_name_mismatch: "اكتب اسم المشروع بالظبط زي ما هو عشان تأكد المسح",
   invalid_logo_path: "ملف اللوجو مش صالح",
   name_required: "اسم المشروع مينفعش يبقى فاضي",
