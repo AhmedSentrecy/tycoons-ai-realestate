@@ -26,7 +26,7 @@ export default function MediaTab({
   onCreateProject: () => void;
   onProjectSaved: (id: string, values: Omit<MediaFields, "id">) => void;
 }) {
-  const { token, user, isOwner, handleError } = useAdmin();
+  const { token, user, handleError } = useAdmin();
   const [pendingValues, setPendingValues] = useState<Omit<MediaFields, "id"> | null>(null);
   const [pendingBy, setPendingBy] = useState<"me" | "other" | null>(null);
   const [checked, setChecked] = useState("");
@@ -99,7 +99,7 @@ export default function MediaTab({
             <div className="p-4">
               {pendingBy === "other" && (
                 <p className="mb-3 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-800">
-                  فيه طلب تعديل صور على المشروع ده مستني {isOwner ? "موافقتك (شوف تبويب الموافقات)" : "موافقة المالك"}.
+                  فيه طلب تعديل صور على المشروع ده قديم لسه مستني (شوف «سجل التعديلات»).
                 </p>
               )}
               {pendingBy === "me" && (

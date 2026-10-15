@@ -2,10 +2,10 @@
 // Backend for /admin — media, units, approvals and users.
 //
 // Roles
-// - owner:  changes apply immediately (still logged in admin_change_requests as approved).
-// - editor: the owner pre-approved adding things, so new projects, new units, an import that only
-//           adds, and media uploads apply at once (still logged). Editing and deleting existing
-//           units stay pending until the owner approves.
+// - owner and editor: every change (add, edit, delete, publish) applies immediately and is
+//   written to admin_change_requests as a log entry (who, what, before). Only users, settings
+//   and the AI usage report stay owner-only. Requests left pending from the old approval flow
+//   can still be applied or cancelled by the owner.
 //
 // Security
 // - Service-role key stays inside this function. Passwords: PBKDF2-SHA256 (210k), per-user salt.
@@ -39,9 +39,9 @@ const FILE_RULES: Record<string, { types: Record<string, string>; maxBytes: numb
 const UNIT_TEXT_FIELDS = ["unit_type", "bedrooms_text", "down_payment_text", "installments_text", "delivery_text", "finishing", "description", "location"] as const;
 const UNIT_STATUSES = ["available", "sold", "not_confirmed", "review_only", "new_launch"];
 const MEDIA_FIELDS = ["image_url", "gallery_urls", "video_url", "brochure_url"] as const;
-const PROJECT_COLUMNS = "id,name,slug,developer,location,image_url,gallery_urls,video_url,brochure_url";
+const PROJECT_COLUMNS = "id,name,slug,developer,location,image_url,gallery_urls,video_url,brochure_url,description,hero_text,seo_title,seo_description,down_payment_text,installments_text,delivery_text,created_at,last_updated_at";
 const UNIT_COLUMNS =
-  "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,video_url,brochure_url,last_updated_at";
+  "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,video_url,brochure_url,created_at,last_updated_at";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -224,15 +224,17 @@ async function pendingSummary() {
 async function listProjects() {
   const [projects, units, pending, usage] = await Promise.all([
     readAll<Json & { id: string }>("projects", PROJECT_COLUMNS, "name"),
-    readAll<{ project_id: string; image_url: string | null; availability_status: string | null }>("units", "id,project_id,image_url,availability_status", "id"),
+    readAll<{ project_id: string; image_url: string | null; availability_status: string | null; created_at: string | null }>("units", "id,project_id,image_url,availability_status,created_at", "id"),
     pendingSummary(),
     db.rpc("media_admin_storage_usage"),
   ]);
-  const stats = new Map<string, { units: number; available: number; with_media: number }>();
+  const stats = new Map<string, { units: number; available: number; with_media: number; new_week: number }>();
+  const weekAgo = Date.now() - 7 * 86400000;
   for (const unit of units) {
-    const entry = stats.get(unit.project_id) ?? { units: 0, available: 0, with_media: 0 };
+    const entry = stats.get(unit.project_id) ?? { units: 0, available: 0, with_media: 0, new_week: 0 };
     entry.units += 1;
     if (unit.availability_status === "available") entry.available += 1;
+    if (unit.availability_status === "available" && unit.created_at && new Date(unit.created_at).getTime() >= weekAgo) entry.new_week += 1;
     if (text(unit.image_url)) entry.with_media += 1;
     stats.set(unit.project_id, entry);
   }
@@ -244,6 +246,7 @@ async function listProjects() {
       units_count: stats.get(project.id)?.units ?? 0,
       available_units: stats.get(project.id)?.available ?? 0,
       units_with_own_media: stats.get(project.id)?.with_media ?? 0,
+      new_units_week: stats.get(project.id)?.new_week ?? 0,
       pending_requests: pendingByProject.get(project.id) ?? 0,
     })),
     pending_total: pending.length,
@@ -464,7 +467,6 @@ async function saveArticle(user: AdminUser, body: Json) {
 }
 
 async function publishArticle(user: AdminUser, body: Json) {
-  requireOwner(user);
   const id = text(body.id);
   const expectedRevision = Number(body.expected_revision);
   const expectedHash = text(body.expected_content_hash);
@@ -691,7 +693,7 @@ function cleanMedia(input: Json) {
 // ---------- change pipeline ----------
 
 interface ChangeInput {
-  entity: "project" | "unit";
+  entity: "project" | "unit" | "developer";
   action: "media" | "create" | "update" | "delete" | "import";
   target_id: string | null;
   project_id: string | null;
@@ -702,31 +704,16 @@ interface ChangeInput {
   autoApprove?: boolean;
 }
 
-/** Owner (or a pre-approved change such as adding projects, units or media): apply now and log as approved. Other editor changes queue for approval (media edits on the same target coalesce). */
+/** Every admin change applies now and is logged (approved) so the log shows who changed what. */
 async function submitChange(user: AdminUser, change: ChangeInput) {
-  const { autoApprove, ...record } = change;
-  if (user.role === "owner" || autoApprove) {
-    const { data: result, error } = await db.rpc("admin_apply_ops", { ops: change.ops });
-    if (error) throw new HttpError(409, `apply_failed:${error.message}`);
-    await db.from("admin_change_requests").insert({
-      ...record, created_by: user.id, status: "approved",
-      reviewed_by: user.role === "owner" ? user.id : null, reviewed_at: new Date().toISOString(), result,
-    });
-    return { applied: true, pending: false, result };
-  }
-
-  if (change.action === "media" && change.target_id) {
-    const { data: existing } = await db.from("admin_change_requests").select("id")
-      .eq("status", "pending").eq("action", "media").eq("entity", change.entity).eq("target_id", change.target_id).eq("created_by", user.id).limit(1);
-    const open = existing?.[0];
-    if (open) {
-      fail((await db.from("admin_change_requests").update({ ops: change.ops, summary: change.summary, created_at: new Date().toISOString() }).eq("id", open.id)).error);
-      return { applied: false, pending: true, request_id: open.id };
-    }
-  }
-  const { data, error } = await db.from("admin_change_requests").insert({ ...record, created_by: user.id }).select("id").single();
-  fail(error);
-  return { applied: false, pending: true, request_id: data!.id };
+  const { autoApprove: _autoApprove, ...record } = change;
+  const { data: result, error } = await db.rpc("admin_apply_ops", { ops: change.ops });
+  if (error) throw new HttpError(409, `apply_failed:${error.message}`);
+  await db.from("admin_change_requests").insert({
+    ...record, created_by: user.id, status: "approved",
+    reviewed_by: user.id, reviewed_at: new Date().toISOString(), result,
+  });
+  return { applied: true, pending: false, result };
 }
 
 async function saveMedia(user: AdminUser, body: Json) {
@@ -893,6 +880,129 @@ async function unitDelete(user: AdminUser, body: Json) {
   });
 }
 
+// ---------- projects: edit / delete ----------
+
+const PROJECT_EDIT_FIELDS = ["name", "developer", "location", "description", "hero_text", "seo_title", "seo_description", "down_payment_text", "installments_text", "delivery_text"] as const;
+const PROJECT_FIELD_LABELS: Record<string, string> = {
+  name: "الاسم", developer: "المطور", location: "المنطقة", description: "الوصف", hero_text: "النص التعريفي",
+  seo_title: "عنوان جوجل", seo_description: "وصف جوجل", down_payment_text: "المقدم", installments_text: "التقسيط", delivery_text: "الاستلام",
+};
+
+async function projectUpdate(user: AdminUser, body: Json) {
+  const id = text(body.id);
+  const { data: projectRow } = await db.from("projects").select(`id,${PROJECT_EDIT_FIELDS.join(",")}`).eq("id", id).maybeSingle();
+  if (!projectRow) throw new HttpError(404, "project_not_found");
+  const project = projectRow as unknown as Json;
+  const input = (body.values as Json) ?? {};
+  const changed: Json = {};
+  for (const key of PROJECT_EDIT_FIELDS) {
+    if (!(key in input)) continue;
+    const limit = key === "description" ? 6000 : key === "seo_description" ? 320 : 300;
+    const value = text(input[key]).slice(0, limit);
+    if ((key === "name" || key === "developer" || key === "location") && !value) throw new HttpError(400, `${key}_required`);
+    if (normalise(project[key]) !== normalise(value)) changed[key] = value || null;
+  }
+  if (!Object.keys(changed).length) return { applied: false, pending: false, unchanged: true };
+  return submitChange(user, {
+    entity: "project", action: "update", target_id: id, project_id: id,
+    summary: `تعديل مشروع ${text(project.name)}: ${Object.keys(changed).map((key) => PROJECT_FIELD_LABELS[key] || key).join("، ")}`,
+    ops: [{ op: "project_update", id, values: changed }],
+    before: Object.fromEntries(Object.keys(changed).map((key) => [key, project[key] ?? null])),
+  });
+}
+
+async function projectDelete(user: AdminUser, body: Json) {
+  const id = text(body.id);
+  const { data: project } = await db.from("projects").select("*").eq("id", id).maybeSingle();
+  if (!project) throw new HttpError(404, "project_not_found");
+  if (text(body.confirm_name) !== text(project.name)) throw new HttpError(400, "confirm_name_mismatch");
+  // Articles written about this project must stay valid (a project article needs its project).
+  const { count: articles } = await db.from("editorial_articles").select("id", { count: "exact", head: true }).eq("project_id", id);
+  if ((articles ?? 0) > 0) throw new HttpError(409, "project_has_articles");
+  const { data: units } = await db.from("units").select(UNIT_COLUMNS).eq("project_id", id);
+  // The project row and all its units are kept in the log entry so a deletion can be restored by hand.
+  const result = await submitChange(user, {
+    entity: "project", action: "delete", target_id: id, project_id: null,
+    summary: `حذف مشروع ${text(project.name)} (${project.developer ?? "—"}) و${(units ?? []).length} وحدة`,
+    ops: [{ op: "project_delete", id }], before: { project, units: units ?? [] },
+  });
+  await triggerRebuild().catch(() => false);
+  return result;
+}
+
+// ---------- developers: page SEO and logo ----------
+
+const DEVELOPER_EDIT_FIELDS = ["name_ar", "about_ar", "about_en", "seo_title_ar", "seo_description_ar", "seo_title_en", "seo_description_en", "logo_path", "logo_on_dark"] as const;
+const DEVELOPER_COLUMNS = `slug,name,aliases,${DEVELOPER_EDIT_FIELDS.join(",")}`;
+const LOGO_BUCKET = "brand-logos";
+
+async function listDevelopers() {
+  const [rows, projects] = await Promise.all([
+    readAll<Json & { slug: string }>("developers", DEVELOPER_COLUMNS, "slug"),
+    readAll<{ developer: string | null; slug: string | null }>("projects", "id,developer,slug", "id"),
+  ]);
+  const counts = new Map<string, number>();
+  for (const project of projects) if (project.slug && text(project.developer)) counts.set(text(project.developer), (counts.get(text(project.developer)) ?? 0) + 1);
+  const matchRow = (name: string) => rows.find((row) => slugify(row.name) === slugify(name) || row.slug === slugify(name)
+    || (Array.isArray(row.aliases) && (row.aliases as unknown[]).some((alias) => slugify(alias) === slugify(name))));
+  const out = new Map<string, Json>();
+  for (const row of rows) out.set(row.slug, { ...row, projects: 0, has_row: true });
+  for (const [name, count] of counts) {
+    const row = matchRow(name);
+    if (row) (out.get(row.slug) as Json).projects = Number((out.get(row.slug) as Json).projects) + count;
+    else {
+      const slug = slugify(name);
+      const existing = out.get(slug);
+      if (existing) existing.projects = Number(existing.projects) + count;
+      else out.set(slug, { slug, name, projects: count, has_row: false });
+    }
+  }
+  return { developers: [...out.values()].filter((row) => Number(row.projects) > 0 || row.has_row).sort((a, b) => Number(b.projects) - Number(a.projects)), logo_prefix: `${SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/` };
+}
+
+async function developerSave(user: AdminUser, body: Json) {
+  const slug = slugify(body.slug);
+  const name = text(body.name).slice(0, 200);
+  if (!slug || !name) throw new HttpError(400, "developer_required");
+  const { data: currentRow } = await db.from("developers").select(DEVELOPER_COLUMNS).eq("slug", slug).maybeSingle();
+  const current = (currentRow ?? null) as unknown as Json | null;
+  const input = (body.values as Json) ?? {};
+  const changed: Json = {};
+  for (const key of DEVELOPER_EDIT_FIELDS) {
+    if (!(key in input)) continue;
+    if (key === "logo_on_dark") { const value = Boolean(input[key]); if (Boolean(current?.[key]) !== value) changed[key] = value; continue; }
+    const limit = key.startsWith("about") ? 4000 : key.startsWith("seo_description") ? 320 : 300;
+    const value = text(input[key]).slice(0, limit);
+    if (key === "logo_path" && value && !/^developers\/[a-z0-9-]+\.(png|webp|jpg)$/.test(value)) throw new HttpError(400, "invalid_logo_path");
+    if (normalise(current?.[key]) !== normalise(value)) changed[key] = value || null;
+  }
+  if (!Object.keys(changed).length) return { ok: true, unchanged: true };
+  const now = new Date().toISOString();
+  if (current) fail((await db.from("developers").update({ ...changed, updated_at: now }).eq("slug", slug)).error);
+  else fail((await db.from("developers").insert({ slug, name, aliases: [name], ...changed, updated_at: now })).error);
+  await db.from("admin_change_requests").insert({
+    entity: "developer", action: current ? "update" : "create", target_id: null, project_id: null,
+    summary: `${current ? "تعديل" : "إضافة بيانات"} المطور ${name}: ${Object.keys(changed).join("، ")}`,
+    ops: [], before: current ? Object.fromEntries(Object.keys(changed).map((key) => [key, current[key] ?? null])) : null,
+    created_by: user.id, status: "approved", reviewed_by: user.id, reviewed_at: now, result: { developer: slug },
+  }).then(() => undefined, () => undefined);
+  await triggerRebuild().catch(() => false);
+  return { ok: true };
+}
+
+async function developerLogoSign(body: Json) {
+  const slug = slugify(body.slug);
+  if (!slug) throw new HttpError(400, "developer_required");
+  const ext = ({ "image/png": "png", "image/webp": "webp", "image/jpeg": "jpg"} as Record<string, string>)[text(body.content_type).toLowerCase()];
+  if (!ext) throw new HttpError(400, "unsupported_file_type");
+  const size = Number(body.size) || 0;
+  if (size <= 0 || size > 3 * MB) throw new HttpError(400, "file_too_large");
+  const path = `developers/${slug}-${Date.now().toString(36)}.${ext}`;
+  const { data, error } = await db.storage.from(LOGO_BUCKET).createSignedUploadUrl(path);
+  if (error || !data) throw new Error(error?.message || "sign_failed");
+  return { upload_url: data.signedUrl, path, public_url: `${SUPABASE_URL}/storage/v1/object/public/${LOGO_BUCKET}/${path}` };
+}
+
 const normalise = (value: unknown) => (value === null || value === undefined ? "" : String(value).trim());
 
 async function unitsImport(user: AdminUser, body: Json) {
@@ -943,7 +1053,6 @@ async function listRequests(user: AdminUser, body: Json) {
   const status = text(body.status) || "pending";
   let query = db.from("admin_change_requests").select("*").order("id", { ascending: false }).limit(200);
   query = status === "pending" ? query.eq("status", "pending") : query.neq("status", "pending");
-  if (user.role !== "owner") query = query.eq("created_by", user.id);
   const { data, error } = await query;
   fail(error);
   const requests = data ?? [];
@@ -1120,8 +1229,7 @@ async function saveSettings(user: AdminUser, body: Json) {
   return settings();
 }
 
-async function rebuild(user: AdminUser) {
-  requireOwner(user);
+async function rebuild(_user: AdminUser) {
   const hook = await getSetting("netlify_build_hook");
   if (!hook) throw new HttpError(400, "build_hook_missing");
   const last = await getSetting("last_rebuild_at");
@@ -1180,6 +1288,11 @@ Deno.serve(async (req: Request) => {
       case "unit_create": return reply(await unitCreate(user, body));
       case "unit_update": return reply(await unitUpdate(user, body));
       case "unit_delete": return reply(await unitDelete(user, body));
+      case "project_update": return reply(await projectUpdate(user, body));
+      case "project_delete": return reply(await projectDelete(user, body));
+      case "developers": return reply(await listDevelopers());
+      case "developer_save": return reply(await developerSave(user, body));
+      case "developer_logo_sign": return reply(await developerLogoSign(body));
       case "units_import": return reply(await unitsImport(user, body));
       case "requests": return reply(await listRequests(user, body));
       case "request_decide": return reply(await decideRequest(user, body));
