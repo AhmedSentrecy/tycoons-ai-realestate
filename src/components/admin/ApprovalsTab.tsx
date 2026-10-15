@@ -19,7 +19,7 @@ const STATUS_TONES: Record<string, "pending" | "ok" | "error" | "muted"> = {
 };
 const STATUS_TEXT: Record<string, string> = {
   pending: "مستني",
-  approved: "اتوافق عليه",
+  approved: "اتطبق",
   rejected: "اترفض",
   failed: "فشل التطبيق",
   cancelled: "اتلغى",
@@ -39,6 +39,11 @@ function diffLines(request: ChangeRequest) {
   const lines: { field: string; before: unknown; after: unknown }[] = [];
   const before = (request.before ?? {}) as Record<string, unknown>;
   for (const op of request.ops) {
+    if ((op.op as string) === "project_delete") {
+      const project = (before.project ?? {}) as Record<string, unknown>;
+      lines.push({ field: "المشروع", before: `${project.name ?? ""} (${((before.units as unknown[]) ?? []).length} وحدة)`, after: "اتمسح" });
+      continue;
+    }
     if (op.op === "delete") {
       lines.push({ field: "الوحدة", before: `${before.unit_type ?? ""} ${before.area_sqm ?? ""} م²`, after: "تتمسح" });
       continue;
@@ -53,9 +58,17 @@ function diffLines(request: ChangeRequest) {
   return lines.slice(0, 40);
 }
 
-export default function ApprovalsTab({ onChanged }: { onChanged: () => void }) {
+function actionLabel(request: ChangeRequest) {
+  if (request.entity === "developer") return "مطور";
+  if (request.entity === "project") return request.action === "create" ? "مشروع جديد" : request.action === "delete" ? "مسح مشروع" : request.action === "media" ? "صور مشروع" : "تعديل مشروع";
+  return request.action === "create" ? "إضافة وحدة" : ACTION_LABELS[request.action] ?? request.action;
+}
+
+/** «سجل التعديلات»: everything added, edited, deleted or published, newest first. Requests left
+ *  from the old approval flow show in their own list until the owner applies or cancels them. */
+export default function ApprovalsTab({ onChanged, pendingTotal = 0 }: { onChanged: () => void; pendingTotal?: number }) {
   const { token, isOwner, user, notify, handleError } = useAdmin();
-  const [tab, setTab] = useState<"pending" | "history">("pending");
+  const [tab, setTab] = useState<"pending" | "history">("history");
   const [requests, setRequests] = useState<ChangeRequest[] | null>(null);
   const [loadedTab, setLoadedTab] = useState<"pending" | "history" | "">("");
   const [busy, setBusy] = useState(0);
@@ -97,18 +110,21 @@ export default function ApprovalsTab({ onChanged }: { onChanged: () => void }) {
 
   return (
     <div>
-      <div className="mb-3 flex gap-2">
-        <Chip active={tab === "pending"} onClick={() => setTab("pending")}>
-          {isOwner ? "مستني موافقتك" : "طلباتي المستنية"}
-        </Chip>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <Chip active={tab === "history"} onClick={() => setTab("history")}>
-          السجل
+          سجل التعديلات
         </Chip>
+        {pendingTotal > 0 && (
+          <Chip active={tab === "pending"} onClick={() => setTab("pending")}>
+            طلبات قديمة لسه مستنية ({pendingTotal})
+          </Chip>
+        )}
+        <span className="text-xs text-[#5c6a62]">أي إضافة أو تعديل أو مسح بيتطبق على طول وبيتسجل هنا: مين عمله وإمتى وكان إيه قبله.</span>
       </div>
 
       {loading && <p className="p-6 text-center text-sm font-bold">جاري التحميل…</p>}
       {!loading && requests && !requests.length && (
-        <EmptyState title={tab === "pending" ? "مفيش طلبات مستنية" : "مفيش سجل لسه"} text={tab === "pending" ? "أي تعديل من مستخدم تاني هيظهر هنا." : undefined} />
+        <EmptyState title={tab === "pending" ? "مفيش طلبات مستنية" : "مفيش سجل لسه"} />
       )}
 
       <div className="space-y-3">
@@ -116,11 +132,7 @@ export default function ApprovalsTab({ onChanged }: { onChanged: () => void }) {
           requests?.map((request) => (
           <article key={request.id} className="rounded-3xl border border-[#e7ddc8] bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="gold">
-                {request.entity === "project" && request.action === "create"
-                  ? "مشروع جديد"
-                  : ACTION_LABELS[request.action] ?? request.action}
-              </Badge>
+              <Badge tone="gold">{actionLabel(request)}</Badge>
               <span className="font-black">{request.summary}</span>
               <Badge tone={STATUS_TONES[request.status]}>{STATUS_TEXT[request.status]}</Badge>
               {request.conflict && <Badge tone="error">البيانات اتغيرت بعد الطلب</Badge>}
@@ -170,7 +182,7 @@ export default function ApprovalsTab({ onChanged }: { onChanged: () => void }) {
                       disabled={busy === request.id}
                       className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
                     >
-                      {busy === request.id ? "…" : "موافقة وتطبيق"}
+                      {busy === request.id ? "…" : "طبّق"}
                     </button>
                   </>
                 )}

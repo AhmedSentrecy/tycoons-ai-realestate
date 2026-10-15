@@ -161,7 +161,7 @@ function SeoScorePanel({ checks }: { checks: SeoCheck[] }) {
 }
 
 export default function ArticlesTab({ projects }: { projects: AdminProject[] }) {
-  const { token, isOwner, handleError, notify } = useAdmin();
+  const { token, handleError, notify } = useAdmin();
   const [articles, setArticles] = useState<AdminArticle[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadedArticle, setLoadedArticle] = useState<AdminArticle | null>(null);
@@ -410,7 +410,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
   }
 
   async function publish() {
-    if (!selectedId || !loadedArticle || dirty || hasPublishBlockers || !reviewConfirmed || !isOwner) return;
+    if (!selectedId || !loadedArticle || dirty || hasPublishBlockers || !reviewConfirmed) return;
     const operation = beginOperation("publish");
     if (!operation) return;
     try {
@@ -520,7 +520,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button disabled={!values.title || !values.body_markdown || !values.source_refs.length || Boolean(busy)} onClick={() => void save()} className="rounded-xl bg-[#0d1f18] px-5 py-2 font-black text-white disabled:opacity-50">{busy === "save" ? "جارٍ الحفظ…" : "حفظ كمسودة"}</button>
         <button disabled={!values.body_markdown} onClick={() => setPreview(true)} className="rounded-xl border px-5 py-2 font-black">معاينة</button>
-        {isOwner && loadedArticle?.status !== "published" && <Fragment><label className="flex items-center gap-2 text-sm font-bold"><input disabled={dirty || hasPublishBlockers || Boolean(busy)} type="checkbox" checked={reviewConfirmed} onChange={(event) => setReviewConfirmed(event.target.checked)} />راجعت حقائق النسخة المحفوظة ومصادرها وجميع ملاحظات المراجعة</label><button disabled={!selectedId || dirty || hasPublishBlockers || !reviewConfirmed || Boolean(busy)} onClick={() => void publish()} className="rounded-xl bg-emerald-700 px-5 py-2 font-black text-white disabled:opacity-50">{busy === "publish" ? "جارٍ النشر…" : "نشر النسخة المحفوظة"}</button></Fragment>}
+        {loadedArticle?.status !== "published" && <Fragment><label className="flex items-center gap-2 text-sm font-bold"><input disabled={dirty || hasPublishBlockers || Boolean(busy)} type="checkbox" checked={reviewConfirmed} onChange={(event) => setReviewConfirmed(event.target.checked)} />راجعت حقائق النسخة المحفوظة ومصادرها وجميع ملاحظات المراجعة</label><button disabled={!selectedId || dirty || hasPublishBlockers || !reviewConfirmed || Boolean(busy)} onClick={() => void publish()} className="rounded-xl bg-emerald-700 px-5 py-2 font-black text-white disabled:opacity-50">{busy === "publish" ? "جارٍ النشر…" : "نشر النسخة المحفوظة"}</button></Fragment>}
       </div>
     </section>
     {preview && <Modal title="معاينة المقال — غير منشور" wide onClose={() => setPreview(false)}><Preview article={values} /><button onClick={() => setPreview(false)} className="mt-5 rounded-xl bg-[#0d1f18] px-5 py-2 font-black text-white">العودة للتحرير</button></Modal>}

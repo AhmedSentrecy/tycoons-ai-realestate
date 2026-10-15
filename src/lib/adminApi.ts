@@ -37,7 +37,36 @@ export interface AdminProject extends MediaFields {
   available_units: number;
   units_with_own_media: number;
   pending_requests: number;
+  new_units_week?: number;
+  description?: string | null;
+  hero_text?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  down_payment_text?: string | null;
+  installments_text?: string | null;
+  delivery_text?: string | null;
+  created_at?: string | null;
+  last_updated_at?: string | null;
 }
+
+export type ProjectEditValues = Partial<Record<"name" | "developer" | "location" | "description" | "hero_text" | "seo_title" | "seo_description" | "down_payment_text" | "installments_text" | "delivery_text", string>>;
+
+export interface AdminDeveloper {
+  slug: string;
+  name: string;
+  projects: number;
+  has_row: boolean;
+  name_ar?: string | null;
+  about_ar?: string | null;
+  about_en?: string | null;
+  seo_title_ar?: string | null;
+  seo_description_ar?: string | null;
+  seo_title_en?: string | null;
+  seo_description_en?: string | null;
+  logo_path?: string | null;
+  logo_on_dark?: boolean | null;
+}
+export type DeveloperEditValues = Partial<Record<"name_ar" | "about_ar" | "about_en" | "seo_title_ar" | "seo_description_ar" | "seo_title_en" | "seo_description_en" | "logo_path", string>> & { logo_on_dark?: boolean };
 
 export interface ArticleSourceRef {
   type: "project" | "unit" | "web";
@@ -149,6 +178,7 @@ export interface AdminUnit extends MediaFields {
   finishing: string | null;
   availability_status: string | null;
   description: string | null;
+  created_at?: string | null;
   last_updated_at: string | null;
 }
 
@@ -164,7 +194,7 @@ export interface ChangeRequest {
   created_at: string;
   created_by: string;
   created_by_name: string;
-  entity: MediaTarget;
+  entity: MediaTarget | "developer";
   action: "media" | "create" | "update" | "delete" | "import";
   target_id: string | null;
   project_id: string | null;
@@ -357,6 +387,13 @@ export const adminApi = {
     call<SubmitResult>("unit_create", { project_id: projectId, values }, token),
   unitUpdate: (token: string, id: string, values: UnitValues) => call<SubmitResult>("unit_update", { id, values }, token),
   unitDelete: (token: string, id: string) => call<SubmitResult>("unit_delete", { id }, token),
+  projectUpdate: (token: string, id: string, values: ProjectEditValues) => call<SubmitResult>("project_update", { id, values }, token),
+  projectDelete: (token: string, id: string, confirmName: string) => call<SubmitResult>("project_delete", { id, confirm_name: confirmName }, token),
+  developers: (token: string) => call<{ developers: AdminDeveloper[]; logo_prefix: string }>("developers", {}, token),
+  developerSave: (token: string, slug: string, name: string, values: DeveloperEditValues) =>
+    call<{ ok: boolean; unchanged?: boolean }>("developer_save", { slug, name, values }, token),
+  developerLogoSign: (token: string, slug: string, contentType: string, size: number) =>
+    call<{ upload_url: string; path: string; public_url: string }>("developer_logo_sign", { slug, content_type: contentType, size }, token),
   unitsImport: (token: string, projectId: string, rows: { id?: string; values: UnitValues }[]) =>
     call<SubmitResult>("units_import", { project_id: projectId, rows }, token),
   requests: (token: string, status: "pending" | "history") => call<{ requests: ChangeRequest[] }>("requests", { status }, token),
@@ -486,6 +523,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   too_many_attempts: "محاولات كتير غلط. استنى ربع ساعة وجرّب تاني",
   login_required: "انتهت الجلسة، ادخل تاني",
   owner_only: "الصلاحية دي للمالك بس",
+  confirm_name_mismatch: "اكتب اسم المشروع بالظبط زي ما هو عشان تأكد المسح",
+  invalid_logo_path: "ملف اللوجو مش صالح",
+  name_required: "اسم المشروع مينفعش يبقى فاضي",
   unsupported_file_type: "نوع الملف مش مدعوم",
   file_too_large: "الملف أكبر من المسموح",
   build_hook_missing: "لازم تحط رابط Build Hook من الإعدادات الأول",

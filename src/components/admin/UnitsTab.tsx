@@ -37,7 +37,7 @@ export default function UnitsTab({
   onSelect: (id: string) => void;
   onCreateProject: () => void;
 }) {
-  const { token, isOwner, notify, handleError, refreshPending } = useAdmin();
+  const { token, notify, handleError, refreshPending } = useAdmin();
   const [units, setUnits] = useState<AdminUnit[] | null>(null);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [loadedId, setLoadedId] = useState("");
@@ -134,12 +134,6 @@ export default function UnitsTab({
                 + وحدة جديدة
               </button>
             </div>
-
-            {!isOwner && (
-              <p className="m-4 rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-800">
-                أي إضافة أو تعديل أو حذف بتعمله بيروح للمالك للموافقة الأول، ومش بيتطبق على الموقع غير بعد ما يوافق.
-              </p>
-            )}
 
             <div className="overflow-x-auto p-4">
               {unitsLoading && <p className="p-6 text-center text-sm font-bold">جاري التحميل…</p>}

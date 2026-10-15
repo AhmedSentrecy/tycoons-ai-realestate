@@ -17,6 +17,9 @@ import AgentUsageTab from "../components/admin/AgentUsageTab";
 import ApprovalsTab from "../components/admin/ApprovalsTab";
 import ArticlesTab from "../components/admin/ArticlesTab";
 import HomepageLaunchesTab from "../components/admin/HomepageLaunchesTab";
+import DevelopersTab from "../components/admin/DevelopersTab";
+import InventorySummary from "../components/admin/InventorySummary";
+import ProjectsTab from "../components/admin/ProjectsTab";
 import ProjectForm, { type NewProject } from "../components/admin/ProjectForm";
 import MediaTab from "../components/admin/MediaTab";
 import ProjectFaqTab from "../components/admin/ProjectFaqTab";
@@ -176,7 +179,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
   );
 }
 
-type Tab = "media" | "units" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents";
+type Tab = "projects" | "media" | "units" | "developers" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents";
 
 function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser; onSignOut: () => void }) {
   const isOwner = user.role === "owner";
@@ -244,7 +247,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
     [token, user, isOwner, notify, handleError, load],
   );
 
-  /** Creating a project applies immediately for the owner, or waits for approval for an editor. */
+  /** Creating a project applies immediately (every admin change does) and shows in the change log. */
   async function createProject(values: NewProject) {
     setCreatingProject(true);
     try {
@@ -261,7 +264,6 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
         );
         if (created) setSelectedId(created.id);
       } else {
-        notify("المشروع اتبعت للمالك للموافقة");
         void load();
       }
     } catch (error) {
@@ -312,32 +314,32 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
                 </div>
               </div>
             )}
+            <button onClick={() => void rebuild()} className="rounded-full bg-[#d9b87c] px-4 py-2 text-sm font-black text-[#0d1f18]">
+              حدّث الموقع
+            </button>
             {isOwner && (
-              <>
-                <button onClick={() => void rebuild()} className="rounded-full bg-[#d9b87c] px-4 py-2 text-sm font-black text-[#0d1f18]">
-                  حدّث الموقع
-                </button>
-                <button onClick={() => setSettingsOpen(true)} className="rounded-full border border-white/25 px-3 py-2 text-sm font-bold">
-                  الإعدادات
-                </button>
-              </>
+              <button onClick={() => setSettingsOpen(true)} className="rounded-full border border-white/25 px-3 py-2 text-sm font-bold">
+                الإعدادات
+              </button>
             )}
             <button onClick={onSignOut} className="rounded-full border border-white/25 px-3 py-2 text-sm font-bold">
               خروج
             </button>
           </div>
           <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto bg-white px-4 pt-2 text-[#1b2420]">
+            <TabButton active={tab === "projects"} onClick={() => setTab("projects")}>المشاريع</TabButton>
             <TabButton active={tab === "media"} onClick={() => setTab("media")}>
               الصور والميديا
             </TabButton>
             <TabButton active={tab === "units"} onClick={() => setTab("units")}>
               الوحدات
             </TabButton>
+            <TabButton active={tab === "developers"} onClick={() => setTab("developers")}>المطورين — SEO</TabButton>
             <TabButton active={tab === "launches"} onClick={() => setTab("launches")}>بتتطرح دلوقتي</TabButton>
             <TabButton active={tab === "articles"} onClick={() => setTab("articles")}>المقالات</TabButton>
             <TabButton active={tab === "faq"} onClick={() => setTab("faq")}>أسئلة المشاريع</TabButton>
             <TabButton active={tab === "approvals"} onClick={() => setTab("approvals")}>
-              {isOwner ? "الموافقات" : "طلباتي"} {pendingTotal > 0 && <Badge tone="pending">{pendingTotal}</Badge>}
+              سجل التعديلات {isOwner && pendingTotal > 0 && <Badge tone="pending">{pendingTotal}</Badge>}
             </TabButton>
             {isOwner && (
               <TabButton active={tab === "users"} onClick={() => setTab("users")}>
@@ -364,6 +366,9 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
         )}
 
         <div className="mx-auto max-w-7xl px-4 py-4">
+          <InventorySummary projects={projects} />
+          {tab === "projects" && <ProjectsTab projects={projects} onChanged={refresh} />}
+          {tab === "developers" && <DevelopersTab />}
           {tab === "media" && (
             <MediaTab
               projects={visibleProjects}
@@ -392,7 +397,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
           {tab === "launches" && <HomepageLaunchesTab projects={projects} />}
           {tab === "articles" && <ArticlesTab projects={projects} />}
           {tab === "faq" && <ProjectFaqTab projects={projects} />}
-          {tab === "approvals" && <ApprovalsTab onChanged={refresh} />}
+          {tab === "approvals" && <ApprovalsTab onChanged={refresh} pendingTotal={pendingTotal} />}
           {tab === "users" && isOwner && <UsersTab />}
           {tab === "agents" && isOwner && <AgentUsageTab />}
         </div>

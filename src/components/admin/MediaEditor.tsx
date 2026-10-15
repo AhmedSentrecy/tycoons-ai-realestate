@@ -41,7 +41,7 @@ export default function MediaEditor({
   hint: string;
   onSaved?: (values: Omit<MediaFields, "id">, applied: boolean) => void;
 }) {
-  const { token, isOwner, notify, handleError, refreshPending } = useAdmin();
+  const { token, notify, handleError, refreshPending } = useAdmin();
   const onNotice = notify;
   const onError = handleError;
   const source = initialValues ?? item;
@@ -144,7 +144,7 @@ export default function MediaEditor({
       }
     };
     await Promise.all([worker(), worker(), worker()]);
-    if (uploaded) onNotice(isOwner ? `اترفع ${uploaded} صورة واتحفظت` : `اترفع ${uploaded} صورة واتبعتت للموافقة`);
+    if (uploaded) onNotice(`اترفع ${uploaded} صورة واتحفظت`);
   }
 
   async function uploadSingle(file: File | undefined, kind: "video" | "brochure") {
@@ -154,7 +154,7 @@ export default function MediaEditor({
     if (kind === "video") setVideoDraft(url);
     else setBrochureDraft(url);
     commit((current) => ({ ...current, [kind]: url }));
-    onNotice(isOwner ? "اترفع الملف واتحفظ" : "اترفع الملف واتبعت للموافقة");
+    onNotice("اترفع الملف واتحفظ");
   }
 
   function move(from: number, to: number) {

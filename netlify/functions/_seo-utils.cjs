@@ -520,6 +520,7 @@ async function fetchUnits() {
     "image_url",
     "gallery_urls",
     "brochure_url",
+    "created_at",
     "last_updated_at",
   ].join(",");
   const controller = new AbortController();
@@ -566,11 +567,14 @@ async function fetchDevelopers() {
   const timer = setTimeout(() => controller.abort(), 6000);
   try {
     // `website` and logo source URLs stay in Supabase only: the site never shows another website.
-    const params = new URLSearchParams({ select: "slug,name,name_ar,aliases,parent_slug,logo_path,logo_on_dark,about_ar,about_en", limit: "500" });
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/developers?${params}`, {
+    const base = "slug,name,name_ar,aliases,parent_slug,logo_path,logo_on_dark,about_ar,about_en";
+    const get = (select) => fetch(`${SUPABASE_URL}/rest/v1/developers?${new URLSearchParams({ select, limit: "500" })}`, {
       headers: { apikey: SUPABASE_KEY, Accept: "application/json" },
       signal: controller.signal,
     });
+    // The Google title / description edited in the admin (falls back if those columns are not there yet).
+    let response = await get(`${base},seo_title_ar,seo_description_ar,seo_title_en,seo_description_en`);
+    if (!response.ok) response = await get(base);
     if (!response.ok) throw new Error(`developers ${response.status}`);
     const rows = await response.json();
     if (!Array.isArray(rows)) throw new Error("developers invalid");
@@ -1194,7 +1198,7 @@ function renderProject(projects, slug, lang, article = null) {
   }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p>
   ${visibleProjectFaq.map(([question, answer]) => `<section><h2>${escapeHtml(question)}</h2><p>${escapeHtml(answer)}</p></section>`).join("")}</main>`;
   const unitNavigation = hasUnits
-    ? `<section aria-labelledby="unit-links"><h2 id="unit-links">${ar ? "روابط الوحدات المتاحة" : "Available unit links"}</h2><div class="grid">${units.map((unit) => `<article class="card"><h3><a href="${escapeHtml(unitPath({ ...unit, project_slug: project.slug }))}">${escapeHtml(clean(unit.unit_type))}${unit.area_sqm ? ` - ${escapeHtml(unit.area_sqm)} m²` : ""}</a></h3><p>${escapeHtml(clean(unit.bedrooms_text))} · ${escapeHtml(formatPrice(unit.starting_price, lang))}</p><p>${escapeHtml(clean(unit.delivery_text))}</p></article>`).join("")}</div></section>`
+    ? `<section aria-labelledby="unit-links"><h2 id="unit-links">${ar ? "روابط الوحدات المتاحة" : "Available unit links"}</h2><div class="grid">${units.map((unit) => `<article class="card"><h3><a href="${escapeHtml(unitPath({ ...unit, project_slug: project.slug }))}">${escapeHtml(clean(unit.unit_type))}${unit.area_sqm ? ` - ${escapeHtml(unit.area_sqm)} m²` : ""}</a>${unit.created_at && Date.now() - Date.parse(unit.created_at) <= 7 * 86400000 ? ` <small style="color:#137a3f;font-weight:700">${ar ? "جديد" : "New"}</small>` : ""}</h3><p>${escapeHtml(clean(unit.bedrooms_text))} · ${escapeHtml(formatPrice(unit.starting_price, lang))}</p><p>${escapeHtml(clean(unit.delivery_text))}</p></article>`).join("")}</div></section>`
     : "";
 
   return renderPage({
@@ -1342,6 +1346,9 @@ function renderUnit(projects, unitId, lang = "ar") {
   const priceFmt = formatPrice(unit.starting_price, lang);
   const updated = clean(unit.last_updated_at, "");
   const updatedText = formatDate(updated, lang);
+  const added = clean(unit.created_at, "");
+  const addedText = added ? formatDate(added, lang) : "";
+  const isNew = added && Date.now() - Date.parse(added) <= 7 * 86400000;
   const seed = unit.id || `${unit.project_name}-${unit.unit_type}-${unit.area_sqm}`;
 
   const introVars = {
@@ -1379,11 +1386,12 @@ function renderUnit(projects, unitId, lang = "ar") {
   );
 
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
-  <section class="hero"><span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(area.ar)}</span><h1>${escapeHtml(`${unitTypeAr} ${clean(unit.area_sqm, "")} م² في ${project.name}`)}</h1>
+  <section class="hero"><span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(area.ar)}</span><h1>${escapeHtml(`${unitTypeAr} ${clean(unit.area_sqm, "")} م² في ${project.name}`)}${isNew ? ` <span class="tag" style="position:static;background:#1faa59;vertical-align:middle">${ar ? "جديد" : "New"}</span>` : ""}</h1>
   <p class="lead">${escapeHtml(intro)}</p>
   <div class="facts"><div class="fact"><small>${ar ? "السعر يبدأ من" : "Starting from"}</small><strong>${escapeHtml(priceFmt)}</strong></div>
   <div class="fact"><small>${ar ? "المساحة" : "Area"}</small><strong>${escapeHtml(clean(unit.area_sqm, "—"))} م²</strong></div>
   <div class="fact"><small>${ar ? "الغرف" : "Bedrooms"}</small><strong>${escapeHtml(clean(unit.bedrooms_text, "غير محدد"))}</strong></div>
+  ${addedText ? `<div class="fact"><small>${ar ? "اتضافت على الموقع" : "Listed on"}</small><strong>${escapeHtml(addedText)}</strong></div>` : ""}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(updatedText)}</strong></div></div>
   <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "تأكيد السعر والمتاح" : "Confirm price and availability"}</a></section>
 
@@ -1476,8 +1484,9 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const legacyDescription = devDescription || searchContent?.description?.({ minFmt, plural }) || (ar
     ? `${plural} في ${label} بأسعار تبدأ من ${minFmt}. قارن السعر والمساحة وخطة السداد والاستلام لكل مشروع في مكان واحد.`
     : `${plural} in ${label} starting from ${minFmt}. Compare price, size, payment plan and delivery for each project in one place.`);
-  const title = editorial?.seo_title || legacyTitle;
-  const description = editorial?.seo_description || legacyDescription;
+  const adminSeo = kind === "developer" && devInfo ? { title: clean(ar ? devInfo.seo_title_ar : devInfo.seo_title_en, ""), description: clean(ar ? devInfo.seo_description_ar : devInfo.seo_description_en, "") } : {};
+  const title = adminSeo.title || editorial?.seo_title || legacyTitle;
+  const description = adminSeo.description || editorial?.seo_description || legacyDescription;
   const crumbs = [
     { name: ar ? "الرئيسية" : "Home", path: "/" },
     { name: label, path },

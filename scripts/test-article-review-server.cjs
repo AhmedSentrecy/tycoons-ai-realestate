@@ -121,11 +121,11 @@ function check(value, message) { assert.ok(value, message); checks += 1; }
   for (const review_confirmed of [undefined, false, "true", 1]) await assert.rejects(h.api.publishArticle(owner, h.publish({ review_confirmed })), codeIs("article_review_confirmation_required"));
   checks += 4;
   check(h.tables.editorial_articles[0].status === "draft", "missing confirmation cannot change status");
-  await assert.rejects(h.api.publishArticle({ ...owner, role: "editor" }, h.publish()), codeIs("owner_only")); checks += 1;
   await assert.rejects(h.api.publishArticle(owner, h.publish({ expected_revision: 999 })), codeIs("article_stale")); checks += 1;
   await assert.rejects(h.api.publishArticle(owner, h.publish({ expected_content_hash: "a".repeat(64) })), codeIs("article_stale")); checks += 1;
   const published = await h.api.publishArticle(owner, h.publish());
   check(published.article.status === "published" && published.article.reviewed_by === owner.id, "reviewed owner can publish exact saved version");
+  { const e = await saved({ review_issues: [] }); const byEditor = await e.api.publishArticle({ ...owner, role: "editor" }, e.publish()); check(byEditor.article.status === "published", "admins (editors) publish directly"); }
   h = await saved({ body_markdown: "5A {{min_area}} costs 9 EGP", review_issues: [] });
   check(blocker(h.article.review_issues, "unresolved_placeholder"), "invalid draft is still editable and saved with blockers");
   await assert.rejects(h.api.publishArticle(owner, h.publish({ review_issues: [], review_confirmed: true })), (error) => error.code === "article_review_blocked" && blocker(error.details.review_issues)); checks += 1;

@@ -155,7 +155,7 @@ function harness({ loaded = article(), generated = article(), saved, owner = tru
   const editor = harness({ owner: false });
   state = editor.render(); await state.openArticle("article-1"); state = editor.render();
   state.setReviewConfirmed(true); state = editor.render(); await state.publish();
-  assert.equal(editor.calls.length, 0, "non-owners cannot invoke publishing");
+  assert.equal(editor.calls.filter(([name]) => name === "publish").length, 1, "admins (editors) can publish directly");
 
   const changedSource = harness({ publishError: new AdminApiError("article_review_blocked", 409, null, null, [issue("blocker", "source_refs")]) });
   state = changedSource.render(); await state.openArticle("article-1"); state = changedSource.render();
