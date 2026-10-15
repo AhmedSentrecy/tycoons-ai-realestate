@@ -7,6 +7,7 @@ const { renderSafeMarkdown } = require("./_article-render.cjs");
 const { buildProjectSchemas } = require("./_project-schema.cjs");
 const { unitPath, findUnitByParam } = require("./_unit-url.cjs");
 const { developerRank } = require("./_developer-rank.cjs");
+const { devGroupKey, developerArabic, devInitials } = require("./_developer-names.cjs");
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201200704344";
@@ -928,14 +929,55 @@ function deliveryTag(project, ar) {
   return "";
 }
 
+// One key per company, whatever spelling the inventory uses ("City Edge" = "City Edge Developments").
 function developerKey(name) {
   const info = developerInfo(name);
-  return info?.slug || slugify(String(name || "").replace(/\(.*?\)/g, ""));
+  return info ? `@${info.slug}` : devGroupKey(name) || slugify(name);
 }
 
 function devDisplayName(name, lang) {
   const info = developerInfo(name);
-  return lang === "ar" ? (info?.name_ar || info?.name || name) : (info?.name || name);
+  return lang === "ar" ? (info?.name_ar || developerArabic(name) || info?.name || name) : (info?.name || name);
+}
+
+// Every listed developer, deduplicated, best-known first: { key, name, slug, count, projects }.
+function developerGroups(projects) {
+  const groups = new Map();
+  for (const project of projects) {
+    const key = developerKey(project.developer);
+    const entry = groups.get(key) || { key, names: new Map(), count: 0, projects: [] };
+    entry.count += 1;
+    entry.projects.push(project);
+    entry.names.set(project.developer, (entry.names.get(project.developer) || 0) + 1);
+    groups.set(key, entry);
+  }
+  return [...groups.values()].map((entry) => {
+    const name = [...entry.names.entries()].sort((a, b) => b[1] - a[1] || a[0].length - b[0].length)[0][0];
+    const info = developerInfo(name);
+    return { key: entry.key, name, slug: info?.slug || slugify(name), count: entry.count, projects: entry.projects };
+  }).sort((a, b) => developerRank(a.name) - developerRank(b.name) || b.count - a.count || a.name.localeCompare(b.name));
+}
+
+// Mix developers in a project list: the best project of each developer (in fame order), then the
+// second of each, and so on, so the first cards are never all from one company.
+function interleaveByDeveloper(projects) {
+  const queues = developerGroups(projects).map((group) => [...group.projects].sort((a, b) => b.units.length - a.units.length));
+  const out = [];
+  for (let round = 0; out.length < projects.length; round += 1) {
+    for (const queue of queues) if (queue[round]) out.push(queue[round]);
+  }
+  return out;
+}
+
+// Developer tile: the logo, or the company initials when there is no logo file yet.
+function developerTile(group, lang) {
+  const ar = lang === "ar";
+  const info = developerInfo(group.name);
+  const label = devDisplayName(group.name, lang);
+  const logo = info?.logo_path
+    ? `<img src="${escapeHtml(brandLogoUrl(info.logo_path))}" alt="${escapeHtml(`${info.name} logo`)}" loading="lazy">`
+    : `<i aria-hidden="true">${escapeHtml(devInitials(group.name))}</i>`;
+  return `<a class="dev" href="/${lang}/developers/${escapeHtml(group.slug)}"><span class="lg${info?.logo_on_dark || !info?.logo_path ? " dark" : ""}">${logo}</span><b>${escapeHtml(label)}</b><span>${group.count} ${ar ? (group.count > 2 && group.count < 11 ? "مشاريع" : "مشروع") : (group.count === 1 ? "project" : "projects")}</span></a>`;
 }
 
 // One project card (photo, delivery tag, developer logo, price, unit types, CTAs) shared by
@@ -973,7 +1015,7 @@ function directoryStyles() {
 .areas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.area{position:relative;display:block;height:190px;border-radius:18px;overflow:hidden;color:#fff;text-decoration:none;background:#14352a}.area img{width:100%;height:100%;object-fit:cover}.area:after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 25%,rgba(10,25,20,.9))}.area div{position:absolute;inset:auto 16px 14px;z-index:1}.area h3{margin:0;font-size:19px;line-height:1.4}.area span{font-size:13px;color:#e8dcc2}
 .chips{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}.chip{padding:7px 15px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:13px;text-decoration:none}
 .devs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px}.dev{display:block;padding:16px 10px;border:1px solid var(--line);border-radius:16px;background:#fff;text-align:center;text-decoration:none}.dev .lg{display:grid;place-items:center;height:56px;border-radius:10px;padding:6px}.dev .lg.dark{background:#14352a}.dev .lg img{max-width:100%;max-height:44px;object-fit:contain}.dev .lg em{font-style:normal;font-weight:800;color:#14352a;font-size:14px}.dev b{display:block;margin-top:8px;font-size:14px}.dev span{font-size:12px;color:var(--muted)}
-.alldevs{margin-top:16px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:4px 16px}.alldevs summary{cursor:pointer;padding:12px 0;font-weight:700;color:#14352a}.alldevs div{display:flex;flex-wrap:wrap;gap:8px;padding:4px 0 16px}
+.dev .lg i{font-style:normal;font-weight:800;font-size:18px;letter-spacing:1px;color:#d9b87c}.dev b{min-height:2.6em;line-height:1.3}.devs.lim .dev:nth-child(n+15){display:none}#all-devs:checked~.devs .dev{display:block}#all-devs:checked~.showall{display:none}
 .fbar{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:18px}.fbar input{position:absolute;opacity:0;pointer-events:none}.fbar label{padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#3d4a43;font-size:13px;font-weight:700;cursor:pointer}.fbar input:checked+label{background:#14352a;border-color:#14352a;color:#fff}.fbar input:focus-visible+label{outline:2px solid var(--gold)}
 .pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.pcard{overflow:hidden;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 14px 34px -24px rgba(20,30,25,.5)}.pimg{position:relative;height:190px;background:#e9e1d0}.pimg>a>img{width:100%;height:190px;object-fit:cover;display:block}.tag{position:absolute;top:12px;inset-inline-start:12px;padding:4px 11px;border-radius:999px;background:rgba(20,53,42,.92);color:#fff;font-size:12px}.pimg .brand-logo{position:absolute;bottom:-22px;inset-inline-end:14px;margin:0;height:44px;box-shadow:0 6px 16px -6px rgba(0,0,0,.3)}.pbody{padding:24px 18px 18px}.pbody h3{margin:0;font-size:18px;line-height:1.5}.pbody h3 a{text-decoration:none}.ploc{margin:2px 0 0;font-size:13px;color:var(--muted)}.pprice{margin:12px 0 0;font-size:13px;color:var(--muted)}.pprice b{font-size:21px;color:#14352a}.pmeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.pmeta span{padding:4px 9px;border-radius:8px;background:var(--warm);font-size:12px;color:#3d4a43}.pcta{display:flex;gap:8px;margin-top:14px}.pcta a{flex:1;padding:10px;border-radius:12px;text-align:center;font-weight:700;font-size:13px;text-decoration:none}.pcta .go{background:#14352a;color:#fff}.pcta .w{background:#e9f7ef;color:#137a3f}
 .pgrid.lim .pcard:nth-child(n+13){display:none}#show-all:checked~.pgrid .pcard{display:block}.showall{text-align:center;margin-top:22px}.showall label{display:inline-block;cursor:pointer}#show-all:checked~.showall{display:none}
@@ -981,7 +1023,7 @@ function directoryStyles() {
 .tsearch{margin-top:24px;max-width:860px}.tsearch .dsearch{margin-top:0}.dhero .brand-logo{display:flex;width:max-content;margin:0 0 12px}.dhero .eyebrow{color:#d9b87c}.dchips{display:flex;flex-wrap:wrap;gap:10px}.dchip{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;text-decoration:none;font-weight:700;color:#14352a}.dchip img{height:26px;width:auto;max-width:110px;object-fit:contain}.dchip .dk{background:#14352a;border-radius:8px;padding:3px 6px}.dchip span{font-weight:400;color:var(--muted);font-size:13px}.dgroup{margin-top:26px}.dgroup h3{margin:0 0 14px;font-size:20px}.dgroup h3 a{text-decoration:none;color:#14352a}.dgroup h3 span{font-size:14px;color:var(--muted);font-weight:400}.prose{max-width:900px}.prose iframe{max-width:100%}
 .band{margin-top:56px;background:#14352a;color:#fff;padding:36px 0}.band .dwrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:18px}.band h2{margin:0;color:#fff}.band p{margin:4px 0 0;color:#cfd8d2}
 @media(max-width:980px){.areas{grid-template-columns:repeat(2,minmax(0,1fr))}.devs{grid-template-columns:repeat(4,minmax(0,1fr))}.pgrid,.guides3{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:620px){.areas{grid-template-columns:1fr 1fr;gap:10px}.area{height:150px}.area h3{font-size:16px}.devs{grid-template-columns:repeat(2,minmax(0,1fr))}.pgrid,.guides3{grid-template-columns:1fr}.dsearch{flex-direction:column}.dsearch button{padding:12px}.stats b{font-size:24px}.sh{flex-direction:column;align-items:flex-start}}`;
+@media(max-width:620px){.areas{grid-template-columns:1fr 1fr;gap:10px}.area{height:150px}.area h3{font-size:16px}.devs{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.dev{padding:10px 6px}.dev .lg{height:44px}.dev .lg img{max-height:34px}.dev b{font-size:12px}.dev span{font-size:11px}.devs.lim .dev:nth-child(n+13){display:none}.pgrid,.guides3{grid-template-columns:1fr}.dsearch{flex-direction:column}.dsearch button{padding:12px}.stats b{font-size:24px}.sh{flex-direction:column;align-items:flex-start}}`;
 }
 
 function renderDirectory(allProjects, lang, articles = []) {
@@ -992,7 +1034,6 @@ function renderDirectory(allProjects, lang, articles = []) {
   const unitCount = listedProjects.reduce((sum, project) => sum + project.units.length, 0);
   const lastUpdated = listedProjects.map(projectLastUpdated).filter(Boolean).sort().pop();
   const projectsPath = (project) => (ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`);
-  const devName = (name) => { const info = developerInfo(name); return ar ? (info?.name_ar || info?.name || name) : (info?.name || name); };
 
   // Areas: the main indexable areas as photo cards, ordered by how many projects they have.
   const areaStats = new Map();
@@ -1017,24 +1058,12 @@ function renderDirectory(allProjects, lang, articles = []) {
   const areaCards = areaList.map((entry) => `<a class="area" href="/${lang}/areas/${entry.area.slug}"><img src="${escapeHtml(areaImage(entry))}" alt="${escapeHtml(ar ? entry.area.ar : entry.area.en)}" loading="lazy" width="400" height="190"><div><h3>${escapeHtml(ar ? entry.area.ar : entry.area.en)}</h3><span>${entry.projects.length} ${ar ? (entry.projects.length > 10 || entry.projects.length < 3 ? "مشروع" : "مشاريع") : "projects"}${entry.min ? ` · ${ar ? "من" : "from"} ${escapeHtml(formatPrice(entry.min, lang))}` : ""}</span></div></a>`).join("");
   const otherAreaChips = [...new Set(otherAreas.values())].filter(Boolean).slice(0, 10);
 
-  // Developers: the seven focus brands with logos first, then everyone else (deduplicated).
-  const devGroups = new Map();
-  for (const project of listedProjects) {
-    const key = developerKey(project.developer);
-    const entry = devGroups.get(key) || { key, name: project.developer, slug: slugify(project.developer), count: 0 };
-    entry.count += 1;
-    devGroups.set(key, entry);
-  }
-  const focus = FOCUS_DEVELOPERS.map((slug) => devGroups.get(slug)).filter(Boolean);
-  const devCards = focus.map((entry) => {
-    const info = developerInfo(entry.name);
-    const logo = info?.logo_path ? `<img src="${escapeHtml(brandLogoUrl(info.logo_path))}" alt="${escapeHtml(`${info.name} logo`)}" loading="lazy">` : `<em>${escapeHtml(devName(entry.name))}</em>`;
-    return `<a class="dev" href="/${lang}/developers/${info?.slug || entry.slug}"><span class="lg${info?.logo_on_dark ? " dark" : ""}">${logo}</span><b>${escapeHtml(devName(entry.name))}</b><span>${entry.count} ${ar ? (entry.count > 10 || entry.count < 3 ? "مشروع" : "مشاريع") : "projects"}</span></a>`;
-  }).join("");
-  const others = [...devGroups.values()].filter((entry) => !FOCUS_DEVELOPERS.includes(entry.key)).sort((a, b) => developerRank(a.name) - developerRank(b.name) || b.count - a.count || a.name.localeCompare(b.name));
+  // Developers: every company once (name variants merged), best-known first, logo or initials.
+  const devList = developerGroups(listedProjects);
+  const devCards = devList.map((group) => developerTile(group, lang)).join("");
 
   // Projects: every listed project is in the HTML (crawlable); CSS-only filters and "show all".
-  const sorted = [...listedProjects].sort((a, b) => developerRank(a.developer) - developerRank(b.developer) || b.units.length - a.units.length);
+  const sorted = interleaveByDeveloper(listedProjects);
   const topAreas = areaList.slice(0, 3).map((entry) => entry.area);
   const filters = [
     ["all", ar ? "الكل" : "All", ""],
@@ -1066,15 +1095,15 @@ function renderDirectory(allProjects, lang, articles = []) {
 <h1>${ar ? "دليل المشاريع العقارية في مصر 2026" : "Egypt property project directory 2026"}</h1>
 <p class="lead">${ar ? `قارن ${listedProjects.length} مشروع من أكبر المطورين بالأسعار المحدّثة والمساحات وأنظمة السداد ومواعيد الاستلام — من مخزون المطورين مباشرة.` : `Compare ${listedProjects.length} projects from Egypt's leading developers by updated price, size, payment plan and delivery — straight from developer inventory.`}</p>
 ${searchMount(lang)}
-<div class="stats"><div><b>${listedProjects.length}</b><span>${ar ? "مشروع متاح" : "projects"}</span></div><div><b>${new Intl.NumberFormat("en-EG").format(unitCount)}</b><span>${ar ? "وحدة محدّثة" : "units"}</span></div><div><b>${devGroups.size}</b><span>${ar ? "مطور عقاري" : "developers"}</span></div>${lastUpdated ? `<div><b>${escapeHtml(formatDate(lastUpdated, lang))}</b><span>${ar ? "آخر تحديث للأسعار" : "last price update"}</span></div>` : ""}</div>
+<div class="stats"><div><b>${listedProjects.length}</b><span>${ar ? "مشروع متاح" : "projects"}</span></div><div><b>${new Intl.NumberFormat("en-EG").format(unitCount)}</b><span>${ar ? "وحدة محدّثة" : "units"}</span></div><div><b>${devList.length}</b><span>${ar ? "مطور عقاري" : "developers"}</span></div>${lastUpdated ? `<div><b>${escapeHtml(formatDate(lastUpdated, lang))}</b><span>${ar ? "آخر تحديث للأسعار" : "last price update"}</span></div>` : ""}</div>
 </div></section>
 <main class="dmain">
 <div class="sh" id="areas"><div><h2>${ar ? "استكشف حسب المنطقة" : "Explore by area"}</h2><p>${ar ? "أسعار البداية من الوحدات المتاحة حاليًا" : "Starting prices from currently available units"}</p></div></div>
 <div class="areas">${areaCards}</div>
 ${otherAreaChips.length ? `<div class="chips"><span class="chip">${ar ? "مناطق تانية:" : "Other areas:"}</span>${[...otherAreas.entries()].filter(([, name]) => name).filter(([, name], i, list) => list.findIndex(([, n]) => n === name) === i).slice(0, 10).map(([slug, name]) => `<a class="chip" href="/${lang}/areas/${escapeHtml(slug)}">${escapeHtml(name)}</a>`).join("")}</div>` : ""}
-<div class="sh" id="developers"><div><h2>${ar ? "أشهر المطورين" : "Leading developers"}</h2><p>${ar ? "لوجو الشركة بيظهر على كل مشاريعها" : "Each developer's logo appears on all of its projects"}</p></div></div>
-<div class="devs">${devCards}</div>
-<details class="alldevs"><summary>${ar ? `كل المطورين (${devGroups.size})` : `All developers (${devGroups.size})`}</summary><div>${others.map((entry) => `<a class="chip" href="/${lang}/developers/${escapeHtml(entry.slug)}">${escapeHtml(devName(entry.name))} · ${entry.count}</a>`).join("")}</div></details>
+<div class="sh" id="developers"><div><h2>${ar ? "المطورين العقاريين" : "Developers"}</h2><p>${ar ? "مرتبين من الأشهر للأقل شهرة — اضغط على أي شركة تشوف كل مشاريعها" : "Best-known first — open any developer to see all its projects"}</p></div></div>
+<input type="checkbox" id="all-devs" hidden><div class="devs${devList.length > 14 ? " lim" : ""}">${devCards}</div>
+${devList.length > 14 ? `<div class="showall"><label class="more" for="all-devs">${ar ? `اعرض كل المطورين (${devList.length})` : `Show all developers (${devList.length})`}</label></div>` : ""}
 <section class="dproj" aria-labelledby="projects-h"><div class="sh"><div><h2 id="projects-h">${ar ? "المشاريع المتاحة" : "Available projects"}</h2><p>${ar ? "اختار فلتر عشان تضيّق النتايج" : "Pick a filter to narrow the list"}</p></div></div>
 ${filterBar}<input type="checkbox" id="show-all" hidden><div class="pgrid lim">${projectCards}</div>
 <div class="showall"><label class="more" for="show-all">${ar ? `اعرض كل المشاريع (${listedProjects.length})` : `Show all projects (${listedProjects.length})`}</label></div></section>
@@ -1407,7 +1436,11 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const matches =
     kind === "area"
       ? projects.filter((project) => hasAvailableUnits(project) && areaFor(projectLocation(project)).slug === slug)
-      : projects.filter((project) => hasAvailableUnits(project) && slugify(project.developer) === slug);
+      : (() => {
+          const exact = projects.find((project) => slugify(project.developer) === slug);
+          const wanted = developerKey(exact ? exact.developer : developerInfo(slug)?.name || slug.replace(/-/g, " "));
+          return projects.filter((project) => hasAvailableUnits(project) && developerKey(project.developer) === wanted);
+        })();
   if (!matches.length) return null;
   // Best-known developers first (see _developer-rank.cjs), then the cheaper project.
   matches.sort((a, b) => developerRank(a.developer) - developerRank(b.developer) || (projectMinPrice(a) || Infinity) - (projectMinPrice(b) || Infinity));
@@ -1465,11 +1498,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
     : "";
   const projectUnitCount = matches.reduce((total, project) => total + project.units.length, 0);
   const branches = kind === "area"
-    ? [...new Map(matches.map((project) => [slugify(project.developer), {
-        slug: slugify(project.developer),
-        label: project.developer,
-        projects: matches.filter((item) => slugify(item.developer) === slugify(project.developer)),
-      }])).values()].sort((a, b) => developerRank(a.label) - developerRank(b.label) || b.projects.length - a.projects.length)
+    ? developerGroups(matches).map((group) => ({ slug: group.slug, label: group.name, projects: group.projects }))
     : [...new Map(matches.map((project) => {
         const projectArea = areaFor(projectLocation(project));
         return [projectArea.slug, {
@@ -1562,6 +1591,7 @@ ${searchMount(lang, placeholder)}
     description,
     path,
     alternatePath,
+    canonicalPath: kind === "developer" && developerGroups(matches)[0].slug !== slug ? `/${lang}/developers/${developerGroups(matches)[0].slug}` : "",
     body,
     image: projectImage(matches[0]),
     schemas: [
@@ -1936,6 +1966,8 @@ function notFound(lang = "ar") {
 }
 
 module.exports = {
+  developerGroups,
+  developerKey,
   publicEditorialMarkdown,
   unitPath,
   findUnitByParam,
