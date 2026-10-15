@@ -1491,10 +1491,11 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const editorialSection = editorial?.sections?.length ? renderLocalizedSections(editorial.sections, { escapeHtml, replaceTokens: (value) => value }) : "";
   // Buyer-question guides about this area's projects (or the area itself), linked under the FAQ.
   const matchIds = new Set(matches.map((project) => String(project.id || "")).filter(Boolean));
-  const areaGuides = kind === "area" ? (Array.isArray(guides) ? guides : []).filter((guide) => guide && guide.slug && guide.title
-    && ((guide.project_id && matchIds.has(String(guide.project_id))) || (guide.target_type === "area" && areaFor(guide.area_name || "").slug === slug))).slice(0, 12) : [];
+  const areaGuides = (Array.isArray(guides) ? guides : []).filter((guide) => guide && guide.slug && guide.title
+    && ((guide.project_id && matchIds.has(String(guide.project_id))) || (kind === "area" && guide.target_type === "area" && areaFor(guide.area_name || "").slug === slug))).slice(0, 12);
+  // Articles written in the admin for these projects, as cards right under the projects.
   const areaGuidesHtml = areaGuides.length
-    ? `<section aria-labelledby="area-buyer-questions"><h2 id="area-buyer-questions">${ar ? `عايز تفاصيل أكتر؟ أسئلة المشترين عن ${escapeHtml(label)}` : `Buyer questions about ${escapeHtml(label)}`}</h2><ul>${areaGuides.map((guide) => `<li><a href="${escapeHtml(editorialGuidePath(guide))}">${escapeHtml(guide.title)}</a></li>`).join("")}</ul></section>`
+    ? `<div class="sh" id="guides"><div><h2>${ar ? `مقالات عن ${kind === "developer" ? "مشاريع " : ""}${escapeHtml(label)}` : `Guides about ${escapeHtml(label)}${kind === "developer" ? " projects" : ""}`}</h2><p>${ar ? "أسعار وأنظمة سداد وتفاصيل كل مشروع — مراجَعة قبل النشر" : "Prices, payment plans and project details — reviewed before publishing"}</p></div></div><div class="guides3">${areaGuides.map((guide) => `<a class="g3" href="${escapeHtml(editorialGuidePath(guide))}"><small>${ar ? "دليل" : "Guide"}</small><h3>${escapeHtml(guide.title)}</h3></a>`).join("")}</div>`
     : "";
   const projectUnitCount = matches.reduce((total, project) => total + project.units.length, 0);
   const branches = kind === "area"
@@ -1578,11 +1579,11 @@ ${searchMount(lang, placeholder)}
 <main class="dmain">
   ${areaProjects}
   ${branchHtml}
+  ${areaGuidesHtml}
   <div class="prose">
   ${contextSection}
   ${editorialSection}
   ${faq.length ? `<h2>${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}` : ""}
-  ${areaGuidesHtml}
   <p class="note">${ar ? "النطاق مبني على الوحدات الظاهرة وليس تقييمًا للسوق بالكامل." : "The range is based on listed units and is not a valuation of the whole market."}</p></div></main>
 <div class="band"><div class="dwrap"><div><h2>${ar ? `محتار بين مشاريع ${escapeHtml(label)}؟` : `Not sure which ${escapeHtml(label)} project fits?`}</h2><p>${ar ? "ابعتلنا الميزانية ونرشحلك أنسب 3 مشاريع." : "Send us your budget and we'll shortlist the best 3 projects."}</p></div><a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>${ar ? "كلمنا على واتساب" : "Chat on WhatsApp"}</span></a></div></div>`;
   return renderPage({
