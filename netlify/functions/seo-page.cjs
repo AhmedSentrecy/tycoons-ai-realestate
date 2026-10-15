@@ -170,7 +170,10 @@ exports.handler = async function handler(event) {
         const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
         html = renderCollection(projects, "area", slug, lang, guides);
       }
-      if (type === "developer") html = renderCollection(projects, "developer", slug, lang);
+      if (type === "developer") {
+        const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
+        html = renderCollection(projects, "developer", slug, lang, guides);
+      }
     }
     if (!html) {
       return {

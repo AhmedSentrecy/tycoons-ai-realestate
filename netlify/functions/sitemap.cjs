@@ -9,6 +9,7 @@ const {
   slugify,
   escapeHtml,
 } = require("./_seo-utils.cjs");
+const { developerGroups, developerKey } = require("./_seo-utils.cjs");
 const { indexableUnitIds } = require("./_unit-indexing.cjs");
 const { publishedProjectSlugs } = require("./_project-indexing.cjs");
 const { unitPath } = require("./_unit-url.cjs");
@@ -111,6 +112,8 @@ exports.handler = async function handler() {
       const prefix = article.language === "en" ? "/en" : "";
       urls.set(`${SITE_URL}${prefix}/guides/${article.slug}/`, article.updated_at || article.published_at);
     }
+    // One developer URL per company (name variants share the canonical developer page).
+    const developerSlugs = new Map(developerGroups(projects).map((group) => [group.key, group.slug]));
     for (const project of projects) {
       const projectSlug = String(project.slug || "").trim();
       if (!publishedSlugs.has(projectSlug)) continue;
@@ -126,7 +129,7 @@ exports.handler = async function handler() {
       }
       for (const lang of ["ar", "en"]) {
         if (area.indexable) urls.set(`${SITE_URL}/${lang}/areas/${area.slug}`, updated);
-        urls.set(`${SITE_URL}/${lang}/developers/${slugify(project.developer)}`, updated);
+        urls.set(`${SITE_URL}/${lang}/developers/${developerSlugs.get(developerKey(project.developer)) || slugify(project.developer)}`, updated);
       }
     }
     for (const unit of units) {
