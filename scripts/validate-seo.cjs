@@ -462,6 +462,15 @@ async function validateRouteRecovery() {
     assert.equal(unknownProjectResponse.headers["x-robots-tag"], "noindex, follow");
     assert.equal(synthesizedProjectResponse.statusCode, 404);
     assert.equal(synthesizedProjectResponse.headers["x-robots-tag"], "noindex, follow");
+    // Production drops the rewrite's query string: an unknown Arabic project slug must
+    // still 404 from its path alone, never render the directory with 200 (soft 404).
+    const pathOnlyUnknownProject = await handler({
+      path: "/projects/mountain-view-icity",
+      rawUrl: "https://tycoons-inv.com/projects/mountain-view-icity",
+      queryStringParameters: {},
+    });
+    assert.equal(pathOnlyUnknownProject.statusCode, 404, "unknown /projects/<slug> must be a real 404");
+    assert.equal(pathOnlyUnknownProject.headers["x-robots-tag"], "noindex, follow");
   } finally {
     global.fetch = originalFetch;
   }

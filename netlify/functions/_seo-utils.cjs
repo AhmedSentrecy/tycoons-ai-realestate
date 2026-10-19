@@ -1473,7 +1473,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
     ? [...new Set(matches.map((project) => { const a = areaFor(projectLocation(project)); return a.indexable ? (ar ? a.ar : a.en) : ""; }).filter(Boolean))].slice(0, 4)
     : [];
   const devTitle = devInfo && (ar
-    ? `مشاريع ${devInfo.name_ar || devInfo.name} (${devInfo.name}) 2026 — الأسعار وأنظمة السداد | Tycoons`
+    ? `مشاريع ${devInfo.name_ar && devInfo.name_ar.trim() !== devInfo.name.trim() ? `${devInfo.name_ar} (${devInfo.name})` : devInfo.name} 2026 — الأسعار وأنظمة السداد | Tycoons`
     : `${devInfo.name} Projects 2026 — Prices, Compounds & Payment Plans | Tycoons`);
   const devDescription = devInfo && (ar
     ? `${plural} من ${devInfo.name_ar || devInfo.name} بأسعار تبدأ من ${minFmt}${devAreas.length ? ` في ${devAreas.join(" و")}` : ""}. قارن الكمبوندات والوحدات المتاحة وأنظمة السداد والاستلام في مكان واحد.`
