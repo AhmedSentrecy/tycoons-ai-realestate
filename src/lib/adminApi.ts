@@ -522,6 +522,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_password: "اسم المستخدم أو كلمة السر غلط",
   too_many_attempts: "محاولات كتير غلط. استنى ربع ساعة وجرّب تاني",
   login_required: "انتهت الجلسة، ادخل تاني",
+  session_check_failed: "في مشكلة مؤقتة في السيرفر، جرّب تاني بعد ثواني",
   owner_only: "الصلاحية دي للمالك بس",
   project_has_articles: "المشروع ده عليه مقالات — امسح المقالات بتاعته أو انقلها لمشروع تاني الأول",
   confirm_name_mismatch: "اكتب اسم المشروع بالظبط زي ما هو عشان تأكد المسح",

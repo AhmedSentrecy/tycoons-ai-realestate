@@ -63,18 +63,43 @@ export default function AdminPage() {
     robots.content = "noindex, nofollow";
   }, []);
 
-  // Resume a stored session without asking for the password again.
+  const [resumeFailed, setResumeFailed] = useState(false);
+  const [resumeAttempt, setResumeAttempt] = useState(0);
+
+  // Resume a stored session without asking for the password again. Only a real
+  // "session invalid" answer (401) clears the token; a network blip, a laptop
+  // waking from sleep or a slow server just retries, so the admin stays signed in.
   useEffect(() => {
     if (!token) return;
-    adminApi
-      .me(token)
-      .then((data) => setUser(data.user))
-      .catch(() => {
-        writeToken("");
-        setToken("");
-      })
-      .finally(() => setChecking(false));
-  }, [token]);
+    let cancelled = false;
+    (async () => {
+      for (let attempt = 0; attempt < 4 && !cancelled; attempt += 1) {
+        try {
+          const data = await adminApi.me(token);
+          if (cancelled) return;
+          setUser(data.user);
+          setChecking(false);
+          return;
+        } catch (error) {
+          if (cancelled) return;
+          if (error instanceof AdminApiError && error.status === 401) {
+            writeToken("");
+            setToken("");
+            setChecking(false);
+            return;
+          }
+          await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+        }
+      }
+      if (!cancelled) {
+        setResumeFailed(true);
+        setChecking(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, resumeAttempt]);
 
   const signOut = useCallback(() => {
     const current = readToken();
@@ -88,6 +113,26 @@ export default function AdminPage() {
     return (
       <main dir="rtl" className="grid min-h-screen place-items-center bg-[#0d1f18] text-white">
         <p className="font-bold">جاري الدخول…</p>
+      </main>
+    );
+  }
+
+  if (token && !user && resumeFailed) {
+    return (
+      <main dir="rtl" className="grid min-h-screen place-items-center bg-[#0d1f18] p-6 text-center text-white">
+        <div>
+          <p className="font-bold">في مشكلة في الاتصال بالسيرفر. إنت لسه مسجل دخول.</p>
+          <button
+            onClick={() => {
+              setChecking(true);
+              setResumeFailed(false);
+              setResumeAttempt((value) => value + 1);
+            }}
+            className="mt-4 rounded-full bg-[#d9b87c] px-5 py-2 font-black text-[#0d1f18]"
+          >
+            حاول تاني
+          </button>
+        </div>
       </main>
     );
   }
@@ -204,12 +249,19 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
   const handleError = useCallback(
     (error: unknown) => {
       if (error instanceof AdminApiError && error.status === 401) {
-        onSignOut();
+        // Double-check before signing out: one stray 401 must not end the session.
+        adminApi
+          .me(token)
+          .then(() => notify("حصلت مشكلة مؤقتة، جرّب تاني.", "error"))
+          .catch((check) => {
+            if (check instanceof AdminApiError && check.status === 401) onSignOut();
+            else notify("في مشكلة في الاتصال بالسيرفر. جرّب تاني.", "error");
+          });
         return;
       }
       notify(errorMessage(error), "error");
     },
-    [onSignOut, notify],
+    [token, onSignOut, notify],
   );
 
   const load = useCallback(
