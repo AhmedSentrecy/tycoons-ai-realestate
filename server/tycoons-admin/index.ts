@@ -144,10 +144,20 @@ async function requireUser(req: Request): Promise<{ user: AdminUser; tokenHash: 
   const token = text(req.headers.get("x-admin-token"));
   if (token.length < 32) throw new HttpError(401, "login_required");
   const tokenHash = await sha256(token);
-  const { data: session } = await db.from("media_admin_sessions").select("user_id, expires_at").eq("token_hash", tokenHash).maybeSingle();
+  // A failed lookup (timeout, pool exhaustion) is not "logged out": answer 503 so the
+  // browser keeps its token and retries instead of throwing the admin out.
+  const { data: session, error: sessionError } = await db.from("media_admin_sessions").select("user_id, expires_at").eq("token_hash", tokenHash).maybeSingle();
+  if (sessionError) throw new HttpError(503, "session_check_failed");
   if (!session?.user_id || new Date(session.expires_at).getTime() < Date.now()) throw new HttpError(401, "login_required");
-  const { data: user } = await db.from("admin_users").select("id,username,display_name,role,active").eq("id", session.user_id).maybeSingle();
+  const { data: user, error: userError } = await db.from("admin_users").select("id,username,display_name,role,active").eq("id", session.user_id).maybeSingle();
+  if (userError) throw new HttpError(503, "session_check_failed");
   if (!user?.active) throw new HttpError(401, "login_required");
+  // Sliding session: while the admin keeps working, push expiry forward instead of
+  // forcing a fresh login every SESSION_DAYS. Best effort; never blocks the request.
+  const expiresAt = new Date(session.expires_at).getTime();
+  if (expiresAt - Date.now() < (SESSION_DAYS - 1) * 86400 * 1000) {
+    await db.from("media_admin_sessions").update({ expires_at: new Date(Date.now() + SESSION_DAYS * 86400 * 1000).toISOString() }).eq("token_hash", tokenHash).then(() => undefined, () => undefined);
+  }
   return { user: user as AdminUser, tokenHash };
 }
 

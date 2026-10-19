@@ -32,9 +32,12 @@ const sha256 = async (value: string) =>
 async function requireUser(req: Request) {
   const token = text(req.headers.get("x-admin-token"));
   if (token.length < 32) throw new HttpError(401, "login_required");
-  const { data: session } = await db.from("media_admin_sessions").select("user_id, expires_at").eq("token_hash", await sha256(token)).maybeSingle();
+  // A failed lookup is a temporary server problem, not a logout (see tycoons-admin).
+  const { data: session, error: sessionError } = await db.from("media_admin_sessions").select("user_id, expires_at").eq("token_hash", await sha256(token)).maybeSingle();
+  if (sessionError) throw new HttpError(503, "session_check_failed");
   if (!session?.user_id || new Date(session.expires_at).getTime() < Date.now()) throw new HttpError(401, "login_required");
-  const { data: user } = await db.from("admin_users").select("id,role,active").eq("id", session.user_id).maybeSingle();
+  const { data: user, error: userError } = await db.from("admin_users").select("id,role,active").eq("id", session.user_id).maybeSingle();
+  if (userError) throw new HttpError(503, "session_check_failed");
   if (!user?.active) throw new HttpError(401, "login_required");
   return user as { id: string; role: string };
 }
