@@ -542,6 +542,13 @@
   status = 301
   force = true
 
+# Duplicate Regent's Square row (old boutique developer name) → the live project page.
+[[redirects]]
+  from = "/projects/regents-square--al-dawlia-boutique-developments"
+  to = "/projects/regent-s-square--al-dawlia-developments"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/projects/*"
   to = "/.netlify/functions/seo-page?lang=ar&type=project&slug=:splat"

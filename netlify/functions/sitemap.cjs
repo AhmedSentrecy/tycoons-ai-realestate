@@ -56,7 +56,7 @@ async function fetchPublishedArticles() {
 exports.handler = async function handler() {
   try {
     const [projects, units, articles] = await Promise.all([
-      fetchRows("projects", "id,name,slug,developer,location,last_updated_at,image_url,gallery_urls"),
+      fetchRows("projects", "id,name,slug,developer,location,last_updated_at,image_url,gallery_urls,targeting"),
       fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,description,last_updated_at", {
         availability_status: "eq.available",
         project_id: "not.is.null",

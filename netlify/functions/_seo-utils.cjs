@@ -1,6 +1,6 @@
 "use strict";
 
-const { localizedProjectContent, renderSections: renderLocalizedSections } = require("./_localized-project-content.cjs");
+const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("./_localized-project-content.cjs");
 const { developerContent } = require("./_developer-content.cjs");
 
 const { renderSafeMarkdown } = require("./_article-render.cjs");
@@ -1209,7 +1209,7 @@ function renderProject(projects, slug, lang, article = null) {
     alternatePath,
     body: body.replace("</main>", `${unitNavigation}</main>`),
     image,
-    robots: hasUnits
+    robots: hasUnits || hasIndexableContent(project, lang)
       ? "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1"
       : "noindex,follow",
     schemas: [

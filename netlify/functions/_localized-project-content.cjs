@@ -10,4 +10,10 @@ function localizedProjectContent(project,lang){const targeting=object(project?.t
 function renderSegments(value,{escapeHtml,replaceTokens=(entry)=>entry}){return value.map((segment)=>{const label=escapeHtml(replaceTokens(segment.text));if(!segment.href)return label;const href=escapeHtml(segment.href);const external=/^https:\/\//i.test(segment.href);return`<a href="${href}"${external?' rel="noopener noreferrer"':""}>${label}</a>`;}).join("");}
 function renderSections(value,helpers){return value.map((section)=>`<section>${section.heading?`<h2>${helpers.escapeHtml(helpers.replaceTokens(section.heading))}</h2>`:""}${section.blocks.map((block)=>{if(block.type==="subheading")return`<h3>${helpers.escapeHtml(helpers.replaceTokens(block.text))}</h3>`;if(block.type==="ordered_list")return`<ol>${block.items.map((item)=>`<li>${renderSegments(item,helpers)}</li>`).join("")}</ol>`;return`<p>${renderSegments(block.content,helpers)}</p>`;}).join("")}</section>`).join("");}
 
-module.exports={localizedProjectContent,renderSections,safeHref};
+// A project with no listed units may still be indexed when it carries a full, original
+// guide (enough words and real FAQs), so Google never sees a thin "no units" page.
+const MIN_INDEXABLE_WORDS=500,MIN_INDEXABLE_FAQ=4;
+function contentWordCount(content){if(!content)return 0;const parts=[];for(const section of content.article_sections){parts.push(section.heading);for(const block of section.blocks){if(block.type==="subheading")parts.push(block.text);else if(block.type==="ordered_list")block.items.forEach((item)=>item.forEach((seg)=>parts.push(seg.text)));else block.content.forEach((seg)=>parts.push(seg.text));}}return parts.join(" ").split(/\s+/).filter(Boolean).length;}
+function hasIndexableContent(project,lang){const content=localizedProjectContent(project,lang);return Boolean(content)&&content.faq.length>=MIN_INDEXABLE_FAQ&&contentWordCount(content)>=MIN_INDEXABLE_WORDS;}
+
+module.exports={localizedProjectContent,renderSections,safeHref,hasIndexableContent,contentWordCount};
