@@ -91,6 +91,9 @@ exports.handler = async function handler(event) {
     }
   })();
   const route = originalPath.match(/^\/(ar|en)\/(projects|areas|developers)\/(.+?)\/?$/);
+  // Arabic project URLs have no /ar prefix. Detect them from the path itself so an unknown
+  // slug returns a real 404 instead of falling back to the directory page (soft 404).
+  const arProjectRoute = originalPath.match(/^\/projects\/(.+?)\/?$/);
   const unitRoute = originalPath.match(/^\/units\/(.+?)\/?$/);
   const guidesIndexRoute = originalPath.match(/^\/(?:(en)\/)?guides\/?$/);
   const guideRoute = originalPath.match(/^\/(?:(en)\/)?guides\/(.+?)\/?$/);
@@ -104,6 +107,9 @@ exports.handler = async function handler(event) {
   if (route) {
     type = { projects: "project", areas: "area", developers: "developer" }[route[2]];
     rawSlug = route[3];
+  } else if (arProjectRoute) {
+    type = "project";
+    rawSlug = arProjectRoute[1];
   } else if (unitRoute) {
     type = "unit";
     rawSlug = unitRoute[1];
