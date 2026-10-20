@@ -1,6 +1,6 @@
 "use strict";
 
-const { localizedProjectContent, renderSections: renderLocalizedSections } = require("../../netlify/functions/_localized-project-content.cjs");
+const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("../../netlify/functions/_localized-project-content.cjs");
 // Buyer FAQ computed from the live units (shared with the React project page; needs `node --import tsx`).
 const { buildProjectFaq, isCuratedFaq } = require("../../src/lib/projectFaq.ts");
 
@@ -260,7 +260,8 @@ function staticUnitCard(unit, projectSlug = "") {
 
 function renderProjectStatic(shell, project, projectUnits, guides = [], faqContext = {}) {
   const units = uniqueUnits(projectUnits);
-  if (!units.length) {
+  // No units but a full written guide: render the normal page (indexable) instead of the thin notice.
+  if (!units.length && !hasIndexableContent(project, "ar")) {
     const canonical = `${SITE_URL}/projects/${project.slug}`;
     const title = `${project.name} | Tycoons Investments`;
     const description = `تفاصيل مشروع ${project.name} من ${project.developer}. تواصل معنا لتأكيد آخر الوحدات المتاحة.`;

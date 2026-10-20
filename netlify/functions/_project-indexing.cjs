@@ -1,5 +1,7 @@
 "use strict";
 
+const { hasIndexableContent } = require("./_localized-project-content.cjs");
+
 function slugify(value) {
   return String(value || "").toLowerCase().normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -43,7 +45,7 @@ function publishedProjectSlugs(projects, units) {
   return new Set(projects
     .filter((project) =>
       String(project.slug || "").trim() &&
-      (unitsByProject.get(project.id) || []).length > 0 &&
+      ((unitsByProject.get(project.id) || []).length > 0 || hasIndexableContent(project, "ar")) &&
       !(aliases.has(String(project.slug).trim()) && storedSlugs.has(aliases.get(String(project.slug).trim()))))
     .map((project) => String(project.slug).trim()));
 }
