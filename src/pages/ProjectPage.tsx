@@ -313,15 +313,30 @@ export default function ProjectPage() {
   const contentLoading = loadedSlug !== slug;
   const isIcityOctober = slug === "mountain-view-icity-october--mountain-view";
   const localizedArabic = content?.localized_content.ar;
+  // Same rule as the pre-rendered page: a no-unit project with a full written guide
+  // (500+ words, 4+ FAQs) is a real page, so it renders that guide and stays indexable.
+  const ownGuide = useMemo(() => {
+    if (!localizedArabic) return false;
+    const parts: string[] = [];
+    for (const section of localizedArabic.article_sections) {
+      parts.push(section.heading || "");
+      for (const block of section.blocks) {
+        if (block.type === "subheading") parts.push(block.text);
+        else if (block.type === "ordered_list") block.items.forEach((item) => item.forEach((segment) => parts.push(segment.text)));
+        else block.content.forEach((segment) => parts.push(segment.text));
+      }
+    }
+    return localizedArabic.faq.length >= 4 && parts.join(" ").split(/\s+/).filter(Boolean).length >= 500;
+  }, [localizedArabic]);
 
   useEffect(() => {
     if (loading || contentLoading || project || !content) return;
-    const title = content.seo_title || `${content.name} | Tycoons Investments`;
+    const title = (ownGuide && localizedArabic?.seo_title) || content.seo_title || `${content.name} | Tycoons Investments`;
     document.title = title;
-    setMeta('meta[name="description"]', "content", content.seo_description || `تفاصيل مشروع ${content.name} من ${content.developer}. تواصل معنا لتأكيد آخر الوحدات المتاحة.`);
+    setMeta('meta[name="description"]', "content", (ownGuide && localizedArabic?.seo_description) || content.seo_description || `تفاصيل مشروع ${content.name} من ${content.developer}. تواصل معنا لتأكيد آخر الوحدات المتاحة.`);
     setMeta('link[rel="canonical"]', "href", `${SITE_URL}/projects/${slug}`);
-    setMeta('meta[name="robots"]', "content", "noindex,follow");
-  }, [content, contentLoading, loading, project, slug]);
+    setMeta('meta[name="robots"]', "content", ownGuide ? "index,follow" : "noindex,follow");
+  }, [content, contentLoading, loading, localizedArabic, ownGuide, project, slug]);
 
   useEffect(() => {
     if (!project) return;
@@ -380,12 +395,31 @@ export default function ProjectPage() {
         <Navbar />
         <section className="mx-auto max-w-4xl px-5 pb-20 pt-36">
           <Link to="/ar/" className="text-sm font-bold text-[#8a6630] hover:underline">دليل المشاريع</Link>
-          <h1 className="mt-5 text-3xl font-extrabold sm:text-4xl">{projectContent.name}</h1>
+          <h1 className="mt-5 text-3xl font-extrabold sm:text-4xl">{(ownGuide && localizedArabic?.h1) || projectContent.name}</h1>
           <p className="mt-3 text-[#5c6a62]">{projectContent.developer} · {projectContent.location}</p>
-          <p className="mt-8 rounded-2xl border border-[#e7ddc8] bg-white p-6 leading-loose">
-            معلومات المشروع موجودة، لكن مفيش وحدات متاحة مؤكدة نقدر نعرضها حاليًا. تواصل معنا عشان نراجع أحدث التوافر والأسعار مع المطور.
-          </p>
-          {projectContent.description && <p className="mt-7 leading-loose text-[#5c6a62]">{projectContent.description}</p>}
+          {ownGuide && localizedArabic ? (
+            <article className="mt-10">
+              {localizedArabic.article_sections.map((section, sectionIndex) => (
+                <section key={section.key || section.heading} className={sectionIndex ? "mt-12" : ""}>
+                  {section.heading && <h2 className={sectionIndex ? "text-2xl font-extrabold" : "text-3xl font-extrabold"}>{section.heading}</h2>}
+                  {section.blocks.map((block, blockIndex) => block.type === "subheading" ? (
+                    <h3 key={blockIndex} className="mt-7 text-xl font-extrabold">{block.text}</h3>
+                  ) : block.type === "ordered_list" ? (
+                    <ol key={blockIndex} className="mt-5 list-decimal space-y-3 pr-6 font-light leading-loose text-[#5c6a62]">{block.items.map((item, itemIndex) => <li key={itemIndex}><RichSegments value={item} minPrice={0} minArea={0} maxArea={0} /></li>)}</ol>
+                  ) : (
+                    <p key={blockIndex} className="mt-5 font-light leading-loose text-[#5c6a62]"><RichSegments value={block.content} minPrice={0} minArea={0} maxArea={0} /></p>
+                  ))}
+                </section>
+              ))}
+            </article>
+          ) : (
+            <>
+              <p className="mt-8 rounded-2xl border border-[#e7ddc8] bg-white p-6 leading-loose">
+                معلومات المشروع موجودة، لكن مفيش وحدات متاحة مؤكدة نقدر نعرضها حاليًا. تواصل معنا عشان نراجع أحدث التوافر والأسعار مع المطور.
+              </p>
+              {projectContent.description && <p className="mt-7 leading-loose text-[#5c6a62]">{projectContent.description}</p>}
+            </>
+          )}
           <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`} target="_blank" rel="noreferrer" className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">
             <MessageCircle className="h-5 w-5" /> اسأل عن آخر المتاح
           </a>
