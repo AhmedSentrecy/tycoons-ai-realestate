@@ -186,6 +186,9 @@ exports.handler = async function handler(event) {
         statusCode: 404,
         headers: {
           ...CACHE_HEADERS,
+          // A 404 can become a real page minutes later (new project): keep it short and per-region.
+          "cache-control": "public, max-age=0, s-maxage=300",
+          "netlify-cdn-cache-control": "public, s-maxage=300",
           "content-language": lang,
           "content-type": "text/html; charset=utf-8",
           "x-robots-tag": "noindex, follow",
@@ -208,6 +211,9 @@ exports.handler = async function handler(event) {
       statusCode: 503,
       headers: {
         ...CACHE_HEADERS,
+        // Never cache a temporary failure, or crawlers keep seeing it after it recovers.
+        "cache-control": "no-store",
+        "netlify-cdn-cache-control": "no-store",
         "content-language": lang,
         "content-type": "text/html; charset=utf-8",
         "retry-after": "60",
