@@ -410,12 +410,30 @@ function renderUnitFaq(vars, seed) {
   return items;
 }
 
+// Same title as the app (src/lib/unitTitle.ts) so Google sees one title before and after
+// JavaScript runs. Bedrooms appear only when the field is really a bedroom count.
+function bedroomsLabel(raw) {
+  const match = String(raw || "").match(/(\d+)\s*(?:bed|br\b|bedroom|غرف|غرفة)/i) || String(raw || "").trim().match(/^(\d+)(?:\.0+)?$/);
+  const count = match ? Number(match[1]) : 0;
+  if (!count || count > 12) return "";
+  if (count === 1) return "غرفة نوم";
+  if (count === 2) return "غرفتين نوم";
+  return count <= 10 ? `${count} غرف نوم` : `${count} غرفة نوم`;
+}
+
+function unitTitle(unitType, bedroomsRaw, areaSqm, projectName) {
+  // Skip when the type already says it ("1 Bedroom", "4BD", "CLEO 3B") or is a studio.
+  const beds = /ستوديو|studio|غرف|غرفة|\d\s*(?:b|bd|br|bed|bedrooms?)\b/i.test(unitType) ? "" : bedroomsLabel(bedroomsRaw);
+  const area = Number(areaSqm) > 0 ? ` ${Number(areaSqm)} م²` : "";
+  return `${unitType}${beds ? ` ${beds}` : ""}${area} في ${projectName} | Tycoons`;
+}
+
 function renderUnitStatic(shell, unit, project, siblings = [], { indexable = true } = {}) {
   const canonical = `${SITE_URL}${unitPath({ ...unit, project_slug: project.slug })}`;
   const projectUrl = `${SITE_URL}/projects/${project.slug}`;
   const unitType = arabicField(unit.unit_type);
   const bedrooms = arabicField(unit.bedrooms_text);
-  const title = `${unitType}${bedrooms ? ` ${bedrooms}` : ""} ${numberValue(unit.area_sqm)} م² في ${text(unit.project_name)} | Tycoons`;
+  const title = unitTitle(unitType, unit.bedrooms_text, unit.area_sqm, text(unit.project_name));
   const area = areaInfo(unit.location || project.location);
   const areaPath = `/ar/areas/${area.slug}`;
   const developerPath = `/ar/developers/${slugify(project.developer)}`;
@@ -530,4 +548,4 @@ function buyerQuestionsHtml(project, guides) {
 }
 
 module.exports = {
-  unitPath, renderProjectStatic, renderUnitStatic, escapeHtml, pageShell };
+  arabicField, unitTitle, unitPath, renderProjectStatic, renderUnitStatic, escapeHtml, pageShell };

@@ -20,6 +20,7 @@ import Calculator from "@/sections/Calculator";
 import { loadUnitPage, loadUnitSiblings, type SiblingUnitRow, type UnitPageData } from "@/lib/unitPages";
 import { arabicField } from "@/lib/arabicFields";
 import { areaFor, areaFacts, computeUnitStats, rankClause, pick } from "@/lib/unitContent";
+import { unitTitle } from "../lib/unitTitle";
 
 const UNIT_INTRO_BANK: Array<(vars: Record<string, string>) => string> = [
   (v) => `${v.unitType} بمساحة ${v.area} م² جوه ${v.projectName} من ${v.developer}، في ${v.areaAr}. ${v.rank}. السعر يبدأ من ${v.price}، والاستلام ${v.delivery}.`,
@@ -100,7 +101,7 @@ export default function UnitPage() {
     // Legacy UUID links and outdated words: show the one readable URL in the address bar.
     if (window.location.pathname.replace(/\/+$/, "") !== canonicalPath) window.history.replaceState(window.history.state, "", canonicalPath + window.location.search + window.location.hash);
     const unitType = arabicField(unit.unit_type);
-    const title = `${unitType} ${unit.area_sqm} م² في ${unit.project_name} | Tycoons`;
+    const title = unitTitle(unitType, unit.bedrooms_text, unit.area_sqm, unit.project_name);
     const description = `${unitType} في ${unit.project_name} بسعر يبدأ من ${formatPrice(unit.starting_price)} جنيه. اعرف المساحة وخطة السداد والتشطيب.`;
     document.title = title;
     setMeta('meta[name="description"]', "content", description);
