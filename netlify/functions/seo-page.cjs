@@ -75,7 +75,7 @@ async function fetchRest(path, params) {
 async function fetchEditorialExtras(article) {
   if (!article?.project_id || !/^[0-9a-f-]{36}$/i.test(String(article.project_id))) return {};
   const [projects, related] = await Promise.all([
-    fetchRest("projects", { select: "id,name,slug,developer,location,image_url", id: `eq.${article.project_id}`, limit: "1" }),
+    fetchRest("projects", { select: "id,name,slug,developer,location,image_url,targeting", id: `eq.${article.project_id}`, limit: "1" }),
     fetchRest("published_editorial_articles", { select: "title,slug,language,project_id", project_id: `eq.${article.project_id}`, language: `eq.${article.language}`, order: "published_at.desc", limit: "9" }),
   ]);
   return { project: projects[0] || null, related };
