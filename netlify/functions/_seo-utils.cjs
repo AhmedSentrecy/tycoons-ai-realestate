@@ -1153,6 +1153,9 @@ function renderProject(projects, slug, lang, article = null) {
       : `Currently listed prices range from ${formatPrice(minPrice, lang)} to ${formatPrice(maxPrice, lang)} across ${units.length} options.`)
     : (ar ? "لا توجد أسعار تفصيلية منشورة حاليًا." : "No detailed prices are currently published.");
   const localizedContent = localizedProjectContent(project,lang);
+  // The project carries its own full written guide: don't repeat an older embedded guide,
+  // the developer bio, or a "no units" notice under it.
+  const ownGuide = hasIndexableContent(project, lang);
   // Leaders' title pattern: project + intent words + year + "from" price, Western digits.
   const minM = millions(minPrice);
   const defaultTitle = ar
@@ -1187,14 +1190,14 @@ function renderProject(projects, slug, lang, article = null) {
   <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.medianSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Median price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.medianSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
   <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث Availability" : "Request current availability"}</a></section>${extraSections}
-  ${article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar))}</section>` : ""}
-  ${(() => { const info = developerInfo(project.developer); const about = info && (ar ? info.about_ar : info.about_en); return about ? `<section><h2>${ar ? `عن المطور: ${escapeHtml(info.name_ar || info.name)}` : `About the developer: ${escapeHtml(info.name)}`}</h2><p>${escapeHtml(about)}</p><p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? "كل مشاريع المطور" : "All projects by this developer"}</a></p></section>` : ""; })()}
-  <h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2>${
+  ${ownGuide && article && article.slug ? `<p><a href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></p>` : ""}${!ownGuide && article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar))}</section>` : ""}
+  ${(() => { const info = developerInfo(project.developer); const about = info && (ar ? info.about_ar : info.about_en); if (ownGuide) return info ? `<p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? `كل مشاريع ${escapeHtml(info.name_ar || info.name)}` : `All projects by ${escapeHtml(info.name)}`}</a></p>` : ""; return about ? `<section><h2>${ar ? `عن المطور: ${escapeHtml(info.name_ar || info.name)}` : `About the developer: ${escapeHtml(info.name)}`}</h2><p>${escapeHtml(about)}</p><p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? "كل مشاريع المطور" : "All projects by this developer"}</a></p></section>` : ""; })()}
+  ${!hasUnits && ownGuide ? "" : `<h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2>`}${
     hasUnits
       ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "سعر المتر" : "Per m²"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
   ${units.map((unit) => `<tr><td>${escapeHtml(clean(unit.unit_type))}</td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(pricePerSqm(unit))) : "—"}</td><td>${escapeHtml(clean(unit.down_payment_text))}</td><td>${escapeHtml(clean(unit.installments_text))}</td><td>${escapeHtml(clean(unit.delivery_text))}</td></tr>`).join("")}
   </tbody></table></div>`
-      : `<p class="note">${ar ? `لا توجد وحدات منشورة بأسعار تفصيلية لـ${project.name} حاليًا. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من ${project.developer}.` : `No units with detailed pricing are published for ${project.name} right now. Message us on WhatsApp and we'll send the latest price list and payment plans from ${project.developer}.`}</p>`
+      : ownGuide ? "" : `<p class="note">${ar ? `لا توجد وحدات منشورة بأسعار تفصيلية لـ${project.name} حاليًا. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من ${project.developer}.` : `No units with detailed pricing are published for ${project.name} right now. Message us on WhatsApp and we'll send the latest price list and payment plans from ${project.developer}.`}</p>`
   }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p>
   ${visibleProjectFaq.map(([question, answer]) => `<section><h2>${escapeHtml(question)}</h2><p>${escapeHtml(answer)}</p></section>`).join("")}</main>`;
   const unitNavigation = hasUnits
@@ -1844,7 +1847,7 @@ function editorialArticleView(article, translation = null, extras = {}) {
   // The newest guide about a project is shown in full on the project page, which is
   // then its canonical URL (one strong page instead of two copies of the same text).
   const newest = Array.isArray(extras.related) ? extras.related[0] : null;
-  const embeddedInProject = Boolean(project && newest && newest.slug === article.slug);
+  const embeddedInProject = Boolean(project && newest && newest.slug === article.slug && !hasIndexableContent(project, lang));
   return {
     lang,
     title: article.meta_title || `${article.title} | Tycoons Investments`,

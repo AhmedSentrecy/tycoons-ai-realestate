@@ -12,6 +12,7 @@ const {
 const { developerGroups, developerKey } = require("./_seo-utils.cjs");
 const { indexableUnitIds } = require("./_unit-indexing.cjs");
 const { publishedProjectSlugs } = require("./_project-indexing.cjs");
+const { hasIndexableContent } = require("./_localized-project-content.cjs");
 const { unitPath } = require("./_unit-url.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
@@ -104,7 +105,9 @@ exports.handler = async function handler() {
       if (!current || String(article.published_at) > String(current.published_at)) newestByProject.set(key, article);
     }
     for (const article of newestByProject.values()) {
-      if (projects.some((project) => project.id === article.project_id && String(project.slug || "").trim())) embedded.add(`${article.language}:${article.slug}`);
+      // A project with its own written guide links the article instead of embedding it,
+      // so that article keeps its own URL in the sitemap.
+      if (projects.some((project) => project.id === article.project_id && String(project.slug || "").trim() && !hasIndexableContent(project, article.language === "en" ? "en" : "ar"))) embedded.add(`${article.language}:${article.slug}`);
     }
     for (const article of articles) {
       if (!article.published_at || !article.slug) continue;
