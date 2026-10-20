@@ -121,7 +121,9 @@ const localizedAr = renderProject(localizedProjects, "prk-vie--upwyde", "ar");
 const localizedEn = renderProject(localizedProjects, "prk-vie--upwyde", "en");
 assert.match(localizedAr, /عنوان بارك في/);
 assert.match(localizedAr, /href="\/ar\/areas\/new-cairo"/);
-assert.match(localizedAr, /href="https:\/\/upwyde\.com\/project\/prk-vie\/" rel="noopener noreferrer"/);
+// Standing rule: no external websites on the site. External hrefs render as plain text.
+assert.doesNotMatch(localizedAr, /<a [^>]*href="https?:\/\/(?!(?:www\.)?tycoons-inv\.com|wa\.me\/)/);
+assert.match(localizedAr, / الرسمي/);
 assert.match(localizedAr, /<h3>قبل الاختيار<\/h3>/);
 assert.match(localizedAr, /<ol><li>راجع الاستخدام<\/li><li>أكد التوفر<\/li><\/ol>/);
 assert.doesNotMatch(localizedAr, /javascript:/);
