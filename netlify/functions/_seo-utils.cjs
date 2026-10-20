@@ -20,6 +20,11 @@ const SUPABASE_KEY =
 
 const CACHE_HEADERS = {
   "cache-control": "public, max-age=0, s-maxage=900, stale-while-revalidate=86400",
+  // Netlify durable cache: one cached copy shared by every edge region, served stale while
+  // it refreshes in the background. Cold misses (2–3 s server renders) then happen about once
+  // per page per 15 minutes globally instead of per region, so Googlebot gets ~150 ms pages.
+  // A deploy (admin "rebuild") still purges it.
+  "netlify-cdn-cache-control": "public, durable, s-maxage=900, stale-while-revalidate=604800",
   "content-security-policy":
     "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co; frame-src https://www.google.com; frame-ancestors 'none'; base-uri 'self'",
   "referrer-policy": "strict-origin-when-cross-origin",

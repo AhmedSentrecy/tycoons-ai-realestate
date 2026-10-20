@@ -256,6 +256,44 @@
   to = "/.netlify/functions/seo-page?lang=en&type=home"
   status = 200
 
+# Short links people type or share without the language prefix: /areas/x and
+# /developers/x (and their singular forms) go to the Arabic pages instead of 404.
+[[redirects]]
+  from = "/areas/*"
+  to = "/ar/areas/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/area/*"
+  to = "/ar/areas/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/developers/*"
+  to = "/ar/developers/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/developer/*"
+  to = "/ar/developers/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/project/*"
+  to = "/projects/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/unit/*"
+  to = "/units/:splat"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/ar/projects/*"
   to = "/projects/:splat"

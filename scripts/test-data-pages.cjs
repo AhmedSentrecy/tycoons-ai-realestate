@@ -92,7 +92,8 @@ assert.match(localizedHtml, /Localized Alpha description/);
 assert.match(localizedHtml, /Localized Alpha H1/);
 assert.match(localizedHtml, /Localized section/);
 assert.match(localizedHtml, /href="\/ar\/areas\/new-cairo"/);
-assert.match(localizedHtml, /href="https:\/\/example\.com\/source" rel="noopener noreferrer"/);
+// Standing rule: no external websites; an external source link renders as plain text.
+assert.doesNotMatch(localizedHtml, /href="https:\/\/example\.com/);
 assert.match(localizedHtml, /<h3>Localized subheading<\/h3>/);
 assert.match(localizedHtml, /<ol><li>First check<\/li><li>Second check<\/li><\/ol>/);
 assert.match(localizedHtml, /Localized question\?/);
