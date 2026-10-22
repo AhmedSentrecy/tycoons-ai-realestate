@@ -9,6 +9,11 @@ const projects = [
   { id: "canonical", name: "One Ninety", slug: "one-ninety--lmd", developer: "LMD", location: "New Cairo" },
   { id: "duplicate", name: "One Ninety", slug: "one-ninety--lmd-2", developer: "LMD", location: "New Cairo" },
   { id: "unpriced", name: "Price on Request", slug: "price-on-request--developer-two", developer: "Developer Two", location: "New Cairo" },
+  // Published through its written guide only (no units): its developer page would 404.
+  { id: "guide-only", name: "Guide Only", slug: "guide-only--guide-only-developments", developer: "Guide Only Developments", location: "New Cairo", targeting: { localized_content: { ar: {
+    article_sections: [{ heading: "About", paragraphs: [Array.from({ length: 520 }, (_, i) => `word${i}`).join(" ")] }],
+    faq: [1, 2, 3, 4].map((n) => ({ question: `Question ${n}?`, answer: `Answer ${n}.` })),
+  } } } },
 ];
 const units = [
   { id: "unit-active", project_id: "active", project_name: "Solana East", developer: "Ora", location: "New Cairo", unit_type: "Apartment", bedrooms_text: "2 bedrooms", area_sqm: 120, starting_price: 12000000, description: "A complete available unit description suitable for indexing and regression coverage." },
@@ -33,6 +38,9 @@ handler({}).then((response) => {
   assert.match(response.body, /\/projects\/price-on-request--developer-two</);
   assert.doesNotMatch(response.body, /regents-square--al-dawlia-boutique-developments/);
   assert.doesNotMatch(response.body, /one-ninety--lmd-2/);
+  assert.match(response.body, /\/projects\/guide-only--guide-only-developments</, "a guide-only project page stays listed");
+  assert.doesNotMatch(response.body, /\/developers\/guide-only-developments/, "no developer URL for a developer with no available units (it 404s)");
+  assert.match(response.body, /\/ar\/developers\/ora</);
   assert.match(response.body, /\/guides\/published-guide\//);
   assert.doesNotMatch(response.body, /draft-guide/);
   console.log("Sitemap published-project eligibility validation passed.");
