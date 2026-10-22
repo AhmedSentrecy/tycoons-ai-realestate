@@ -342,6 +342,47 @@ export interface AgentUsageReport {
   recent: AgentUsageCall[];
 }
 
+export interface WhatsAppClickCount { name: string; clicks: number }
+
+export interface WhatsAppClicksReport {
+  days: number;
+  total: number;
+  truncated: boolean;
+  by_day: Array<{ day: string; clicks: number }>;
+  by_traffic_source: WhatsAppClickCount[];
+  by_project: WhatsAppClickCount[];
+  by_page: WhatsAppClickCount[];
+  by_button: WhatsAppClickCount[];
+  by_device: WhatsAppClickCount[];
+  by_campaign: WhatsAppClickCount[];
+  recent: Array<{
+    created_at: string;
+    code: string | null;
+    page_path: string | null;
+    project: string | null;
+    button: string | null;
+    traffic_source: string | null;
+    device: string | null;
+  }>;
+}
+
+// The WhatsApp clicks report is a database function (admin_whatsapp_clicks_report) that
+// checks the admin session token itself and answers only the owner.
+async function whatsappClicksReport(token: string, days: 7 | 30 | 90): Promise<WhatsAppClicksReport> {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/admin_whatsapp_clicks_report`, {
+    method: "POST",
+    headers: { apikey: SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_token: token, p_days: days }),
+  });
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = String((data as { message?: unknown } | null)?.message || "");
+    const code = ["login_required", "owner_only"].includes(message) ? message : `http_${response.status}`;
+    throw new AdminApiError(code, code === "login_required" ? 401 : code === "owner_only" ? 403 : response.status);
+  }
+  return data as WhatsAppClicksReport;
+}
+
 export const adminApi = {
   login: (username: string, password: string) => call<{ token: string; user: AdminUser }>("login", { username, password }),
   me: (token: string) => call<{ user: AdminUser } & AdminSettings>("me", {}, token),
@@ -356,6 +397,7 @@ export const adminApi = {
     ),
   articles: (token: string) => call<{ articles: AdminArticle[] }>("articles", {}, token),
   agentUsage: (token: string, days: 7 | 30 | 90) => call<AgentUsageReport>("agent_usage", { days }, token),
+  whatsappClicks: (token: string, days: 7 | 30 | 90) => whatsappClicksReport(token, days),
   article: (token: string, id: string) => call<{ article: AdminArticle }>("article", { id }, token),
   // translationArticleId: undefined = keep the current AR/EN pairing, "" = unlink, id = link.
   articleSave: (token: string, id: string | null, values: ArticleValues, expectedRevision: number | null, translationArticleId?: string) =>
