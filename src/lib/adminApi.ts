@@ -342,6 +342,30 @@ export interface AgentUsageReport {
   recent: AgentUsageCall[];
 }
 
+export interface WhatsAppClickCount { name: string; clicks: number }
+
+export interface WhatsAppClicksReport {
+  days: number;
+  total: number;
+  truncated: boolean;
+  by_day: Array<{ day: string; clicks: number }>;
+  by_traffic_source: WhatsAppClickCount[];
+  by_project: WhatsAppClickCount[];
+  by_page: WhatsAppClickCount[];
+  by_button: WhatsAppClickCount[];
+  by_device: WhatsAppClickCount[];
+  by_campaign: WhatsAppClickCount[];
+  recent: Array<{
+    created_at: string;
+    code: string | null;
+    page_path: string | null;
+    project: string | null;
+    button: string | null;
+    traffic_source: string | null;
+    device: string | null;
+  }>;
+}
+
 export const adminApi = {
   login: (username: string, password: string) => call<{ token: string; user: AdminUser }>("login", { username, password }),
   me: (token: string) => call<{ user: AdminUser } & AdminSettings>("me", {}, token),
@@ -356,6 +380,7 @@ export const adminApi = {
     ),
   articles: (token: string) => call<{ articles: AdminArticle[] }>("articles", {}, token),
   agentUsage: (token: string, days: 7 | 30 | 90) => call<AgentUsageReport>("agent_usage", { days }, token),
+  whatsappClicks: (token: string, days: 7 | 30 | 90) => call<WhatsAppClicksReport>("whatsapp_clicks", { days }, token),
   article: (token: string, id: string) => call<{ article: AdminArticle }>("article", { id }, token),
   // translationArticleId: undefined = keep the current AR/EN pairing, "" = unlink, id = link.
   articleSave: (token: string, id: string | null, values: ArticleValues, expectedRevision: number | null, translationArticleId?: string) =>

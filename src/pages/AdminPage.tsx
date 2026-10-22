@@ -14,6 +14,7 @@ import {
 } from "../lib/adminApi";
 import { AdminContext } from "../components/admin/AdminContext";
 import AgentUsageTab from "../components/admin/AgentUsageTab";
+import WhatsAppClicksTab from "../components/admin/WhatsAppClicksTab";
 import ApprovalsTab from "../components/admin/ApprovalsTab";
 import ArticlesTab from "../components/admin/ArticlesTab";
 import HomepageLaunchesTab from "../components/admin/HomepageLaunchesTab";
@@ -224,7 +225,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
   );
 }
 
-type Tab = "projects" | "media" | "units" | "developers" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents";
+type Tab = "projects" | "media" | "units" | "developers" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents" | "whatsapp";
 
 function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser; onSignOut: () => void }) {
   const isOwner = user.role === "owner";
@@ -403,6 +404,11 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
                 استخدام الـ AI
               </TabButton>
             )}
+            {isOwner && (
+              <TabButton active={tab === "whatsapp"} onClick={() => setTab("whatsapp")}>
+                دوسات الواتساب
+              </TabButton>
+            )}
           </div>
         </header>
 
@@ -452,6 +458,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
           {tab === "approvals" && <ApprovalsTab onChanged={refresh} pendingTotal={pendingTotal} />}
           {tab === "users" && isOwner && <UsersTab />}
           {tab === "agents" && isOwner && <AgentUsageTab />}
+          {tab === "whatsapp" && isOwner && <WhatsAppClicksTab />}
         </div>
 
         {projectFormOpen && (

@@ -44,7 +44,8 @@ function pageShell(shell, { title, description, canonical, image, keywords, sche
   const bodyEnd = html.lastIndexOf("</body>");
   if (rootStart < 0 || bodyEnd < 0) throw new Error("Vite shell is missing the root or body end");
   const rootTail = html.slice(rootStart, bodyEnd);
-  const bodyScripts = rootTail.match(/<script\s+type=["']module["'][\s\S]*?<\/script>/gi) || [];
+  // App bundle (module scripts) + the WhatsApp click counter (/wa-track.js).
+  const bodyScripts = rootTail.match(/<script\s+(?:type=["']module["']|src=["']\/wa-track\.js["'])[\s\S]*?<\/script>/gi) || [];
   html = `${html.slice(0, rootStart)}<div id="root">${body}</div>\n    ${bodyScripts.join("\n    ")}\n  ${html.slice(bodyEnd)}`;
   return html;
 }

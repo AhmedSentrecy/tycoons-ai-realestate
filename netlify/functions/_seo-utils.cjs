@@ -18,6 +18,9 @@ const SUPABASE_KEY =
   process.env.SUPABASE_PUBLISHABLE_KEY ||
   "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 
+// Google Analytics 4 for tycoons-inv.com (same tag as index.html).
+const GA4_TAG = `<script>(function(){if(/^\\/(?:admin|sales-war-room|media-admin)(?:\\/|$)/i.test(location.pathname))return;window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments);};window.gtag('js',new Date());window.gtag('config','G-2DC6V5L3XM');var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-2DC6V5L3XM';document.head.appendChild(s);})();</script>`;
+
 const CACHE_HEADERS = {
   "cache-control": "public, max-age=0, s-maxage=900, stale-while-revalidate=86400",
   // Netlify durable cache: one cached copy shared by every edge region, served stale while
@@ -840,7 +843,7 @@ function renderPage({
   const canonical = `${SITE_URL}${canonicalPath || path}`;
   const alternate = alternatePath ? `${SITE_URL}${alternatePath}` : "";
   return `<!doctype html>
-<html lang="${lang}" dir="${ar ? "rtl" : "ltr"}"><head>
+<html lang="${lang}" dir="${ar ? "rtl" : "ltr"}"><head>${GA4_TAG}
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/png" href="/images/logo.png">
 <title>${escapeHtml(title)}</title>
@@ -865,7 +868,7 @@ ${siteHeader(lang, path, ar ? canonical : alternate, ar ? alternate : canonical)
 <footer><strong>Tycoons Investments</strong><p>${ar ? "بيانات الأسعار والتوفر استرشادية ويتم تأكيدها وقت الطلب. العوائد تقديرية وليست ضمانًا." : "Prices and availability are indicative and reconfirmed on request. Returns are estimates, not guarantees."}</p>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
 <a href="/corrections">${ar ? "سياسة التصحيح" : "Corrections"}</a>
-<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer>${String(body).includes("data-tycoons-search") ? '<script type="module" src="/assets/search-widget.js"></script>' : ""}</body></html>`;
+<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer>${String(body).includes("data-tycoons-search") ? '<script type="module" src="/assets/search-widget.js"></script>' : ""}<script src="/wa-track.js" defer></script></body></html>`;
 }
 
 function cards(projects, lang) {
@@ -1984,6 +1987,7 @@ function notFound(lang = "ar") {
 }
 
 module.exports = {
+  GA4_TAG,
   developerGroups,
   developerKey,
   publicEditorialMarkdown,
