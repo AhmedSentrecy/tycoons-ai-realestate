@@ -225,76 +225,6 @@ async function agentUsage(user: AdminUser, body: Json) {
   };
 }
 
-// ---------- WhatsApp clicks (public/wa-track.js → public.whatsapp_clicks) ----------
-
-const WHATSAPP_CLICKS_MAX_ROWS = 20000;
-
-type WhatsAppClickRow = {
-  created_at: string;
-  tracking_id: string | null;
-  source: string | null;
-  button_label: string | null;
-  page_path: string | null;
-  project_slug: string | null;
-  project_name: string | null;
-  traffic_source: string | null;
-  utm_campaign: string | null;
-  device: string | null;
-};
-
-function countBy<T>(rows: T[], key: (row: T) => string | null | undefined, limit = 10) {
-  const counts = new Map<string, number>();
-  for (const row of rows) {
-    const value = (key(row) || "").trim() || "غير معروف";
-    counts.set(value, (counts.get(value) ?? 0) + 1);
-  }
-  return [...counts].map(([name, clicks]) => ({ name, clicks })).sort((a, b) => b.clicks - a.clicks).slice(0, limit);
-}
-
-async function whatsappClicks(user: AdminUser, body: Json) {
-  requireOwner(user);
-  const requested = Number(body.days);
-  const days = [7, 30, 90].includes(requested) ? requested : 30;
-  const since = new Date(Date.now() - days * 86400000).toISOString();
-  const { data, error } = await db
-    .from("whatsapp_clicks")
-    .select("created_at,tracking_id,source,button_label,page_path,project_slug,project_name,traffic_source,utm_campaign,device")
-    .gte("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(WHATSAPP_CLICKS_MAX_ROWS);
-  fail(error);
-  const rows = (data ?? []) as WhatsAppClickRow[];
-
-  const cairoDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Africa/Cairo" });
-  const byDay = new Map<string, number>();
-  for (let i = days - 1; i >= 0; i--) byDay.set(cairoDay(new Date(Date.now() - i * 86400000).toISOString()), 0);
-  for (const row of rows) {
-    const day = cairoDay(row.created_at);
-    if (byDay.has(day)) byDay.set(day, (byDay.get(day) ?? 0) + 1);
-  }
-  return {
-    days,
-    total: rows.length,
-    truncated: rows.length >= WHATSAPP_CLICKS_MAX_ROWS,
-    by_day: [...byDay].map(([day, clicks]) => ({ day, clicks })),
-    by_traffic_source: countBy(rows, (row) => row.traffic_source),
-    by_project: countBy(rows.filter((row) => row.project_slug || row.project_name), (row) => row.project_name || row.project_slug),
-    by_page: countBy(rows, (row) => row.page_path),
-    by_button: countBy(rows, (row) => row.source),
-    by_device: countBy(rows, (row) => row.device),
-    by_campaign: countBy(rows.filter((row) => row.utm_campaign), (row) => row.utm_campaign),
-    recent: rows.slice(0, 30).map((row) => ({
-      created_at: row.created_at,
-      code: row.tracking_id,
-      page_path: row.page_path,
-      project: row.project_name || row.project_slug,
-      button: row.button_label || row.source,
-      traffic_source: row.traffic_source,
-      device: row.device,
-    })),
-  };
-}
-
 async function pendingSummary() {
   const rows = await readAll<{ id: number; entity: string; action: string; target_id: string | null; project_id: string | null; created_by: string }>(
     "admin_change_requests", "id,entity,action,target_id,project_id,created_by", "id", (q) => q.eq("status", "pending"));
@@ -1385,7 +1315,6 @@ Deno.serve(async (req: Request) => {
       case "project_research_faq": return reply(await projectResearchFaq(body));
       case "project_research_faq_save": return reply(await saveProjectResearchFaq(user, body));
       case "agent_usage": return reply(await agentUsage(user, body));
-      case "whatsapp_clicks": return reply(await whatsappClicks(user, body));
       default: return reply({ error: "unknown_action" }, 400);
     }
   } catch (error) {
