@@ -117,6 +117,9 @@ exports.handler = async function handler() {
     }
     // One developer URL per company (name variants share the canonical developer page).
     const developerSlugs = new Map(developerGroups(projects).map((group) => [group.key, group.slug]));
+    // Area and developer pages only list projects that have available units, so a project
+    // published through its written guide alone must not add a developer/area URL that 404s.
+    const projectIdsWithUnits = new Set(units.map((unit) => unit.project_id).filter(Boolean));
     for (const project of projects) {
       const projectSlug = String(project.slug || "").trim();
       if (!publishedSlugs.has(projectSlug)) continue;
@@ -130,6 +133,7 @@ exports.handler = async function handler() {
         images.set(`${SITE_URL}/projects/${projectSlug}`, imageList);
         images.set(`${SITE_URL}/en/projects/${projectSlug}`, imageList);
       }
+      if (!projectIdsWithUnits.has(project.id)) continue;
       for (const lang of ["ar", "en"]) {
         if (area.indexable) urls.set(`${SITE_URL}/${lang}/areas/${area.slug}`, updated);
         urls.set(`${SITE_URL}/${lang}/developers/${developerSlugs.get(developerKey(project.developer)) || slugify(project.developer)}`, updated);
