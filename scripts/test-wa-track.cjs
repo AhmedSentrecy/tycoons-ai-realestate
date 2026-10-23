@@ -185,27 +185,40 @@ for (const pathname of ["/sales-war-room/lead/12", "/admin", "/media-admin/x"]) 
   assert.equal(events[0][2].project, "SODIC East");
 }
 
-// 10. The GA4 tag (SPA shell + server-rendered pages) loads on public pages only.
+// 10. GA4 (public/ga4.js) is loaded by the SPA shell and the server-rendered pages, runs on
+// public pages only, and the server pages' CSP allows it (inline scripts would be blocked).
 {
   const shell = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
-  const { GA4_TAG } = require("../netlify/functions/_seo-utils.cjs");
+  const { GA4_TAG, CACHE_HEADERS } = require("../netlify/functions/_seo-utils.cjs");
   assert.match(shell, /<script src="\/wa-track\.js" defer><\/script>/);
-  const shellTag = shell.match(/<script>(\(function\(\)\{[^<]*G-2DC6V5L3XM[^<]*)<\/script>/);
-  assert.ok(shellTag, "index.html must carry the GA4 tag");
-  for (const [name, code] of [["index.html", shellTag[1]], ["SSR", GA4_TAG.replace(/^<script>|<\/script>$/g, "")]]) {
-    for (const [pathname, expected] of [["/projects/sodic-east--sodic", true], ["/", true], ["/admin", false], ["/sales-war-room/lead/1", false], ["/media-admin", false]]) {
-      const appended = [];
-      const sandbox = {
-        location: { pathname },
-        window: {},
-        document: { createElement: () => ({}), head: { appendChild: (node) => appended.push(node) } },
-        Date,
-      };
-      sandbox.window.dataLayer = undefined;
-      vm.runInNewContext(code, sandbox);
-      assert.equal(typeof sandbox.window.gtag === "function", expected, `${name} ${pathname}`);
-      assert.equal(appended.length, expected ? 1 : 0, `${name} ${pathname}`);
-      if (expected) assert.equal(appended[0].src, "https://www.googletagmanager.com/gtag/js?id=G-2DC6V5L3XM");
+  assert.match(shell, /<script src="\/ga4\.js"><\/script>/, "index.html must load /ga4.js");
+  assert.equal(GA4_TAG, '<script src="/ga4.js"></script>', "SSR pages must load /ga4.js, not an inline script");
+  const ssr = require("../netlify/functions/seo-page.cjs");
+  assert.ok(ssr);
+
+  const csp = Object.fromEntries(CACHE_HEADERS["content-security-policy"].split(";").map((part) => part.trim().split(/\s+/)).map(([name, ...values]) => [name, values]));
+  assert.ok(csp["script-src"].includes("'self'"), "CSP must allow /ga4.js and /wa-track.js");
+  assert.ok(csp["script-src"].includes("https://www.googletagmanager.com"), "CSP must allow the gtag.js loader");
+  assert.ok(!csp["script-src"].includes("'unsafe-inline'"), "inline scripts stay blocked");
+  for (const host of ["https://*.google-analytics.com", "https://*.analytics.google.com", "https://coqnjymekrkoausiiytm.supabase.co"]) {
+    assert.ok(csp["connect-src"].includes(host), `CSP connect-src must allow ${host}`);
+  }
+
+  const code = fs.readFileSync(path.join(__dirname, "..", "public", "ga4.js"), "utf8");
+  for (const [pathname, expected] of [["/projects/sodic-east--sodic", true], ["/ar/areas/new-cairo", true], ["/", true], ["/admin", false], ["/sales-war-room/lead/1", false], ["/media-admin", false]]) {
+    const appended = [];
+    const sandbox = {
+      location: { pathname },
+      window: {},
+      document: { createElement: () => ({}), head: { appendChild: (node) => appended.push(node) } },
+      Date,
+    };
+    vm.runInNewContext(code, sandbox);
+    assert.equal(typeof sandbox.window.gtag === "function", expected, pathname);
+    assert.equal(appended.length, expected ? 1 : 0, pathname);
+    if (expected) {
+      assert.equal(appended[0].src, "https://www.googletagmanager.com/gtag/js?id=G-2DC6V5L3XM");
+      assert.deepEqual([...sandbox.window.dataLayer[1]], ["config", "G-2DC6V5L3XM"]);
     }
   }
 }
