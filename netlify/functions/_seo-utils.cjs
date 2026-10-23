@@ -18,8 +18,8 @@ const SUPABASE_KEY =
   process.env.SUPABASE_PUBLISHABLE_KEY ||
   "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 
-// Google Analytics 4 for tycoons-inv.com (same tag as index.html).
-const GA4_TAG = `<script>(function(){if(/^\\/(?:admin|sales-war-room|media-admin)(?:\\/|$)/i.test(location.pathname))return;window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments);};window.gtag('js',new Date());window.gtag('config','G-2DC6V5L3XM');var s=document.createElement('script');s.async=true;s.src='https://www.googletagmanager.com/gtag/js?id=G-2DC6V5L3XM';document.head.appendChild(s);})();</script>`;
+// Google Analytics 4 (public/ga4.js). A same-origin file, so the CSP below allows it.
+const GA4_TAG = '<script src="/ga4.js"></script>';
 
 const CACHE_HEADERS = {
   "cache-control": "public, max-age=0, s-maxage=900, stale-while-revalidate=86400",
@@ -29,7 +29,7 @@ const CACHE_HEADERS = {
   // A deploy (admin "rebuild") still purges it.
   "netlify-cdn-cache-control": "public, durable, s-maxage=900, stale-while-revalidate=604800",
   "content-security-policy":
-    "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co; frame-src https://www.google.com; frame-ancestors 'none'; base-uri 'self'",
+    "default-src 'self'; script-src 'self' https://www.googletagmanager.com; img-src 'self' https: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; frame-src https://www.google.com; frame-ancestors 'none'; base-uri 'self'",
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
 };
