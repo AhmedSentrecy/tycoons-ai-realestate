@@ -1,5 +1,5 @@
 import { tr } from "@/lib/homeLanguage";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { Mic, RefreshCw, Search, Sparkles, X } from "lucide-react";
@@ -79,6 +79,20 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
     window.addEventListener("tycoons:quick-search", onQuick);
     return () => window.removeEventListener("tycoons:quick-search", onQuick);
   }, [openResults]);
+
+  // The sitewide "search by voice" button (public/voice-cta.js) asks the search bar on the
+  // page to start the voice agent. Only one search bar takes it (first listener wins).
+  const handleMicRef = useRef(handleMic);
+  handleMicRef.current = handleMic;
+  useEffect(() => {
+    const onStartVoice = (event: Event) => {
+      if (event.defaultPrevented) return;
+      event.preventDefault();
+      void handleMicRef.current();
+    };
+    window.addEventListener("tycoons:start-voice", onStartVoice);
+    return () => window.removeEventListener("tycoons:start-voice", onStartVoice);
+  }, []);
 
   const voiceStatus = realtime.state === "connecting"
     ? tr("بنوصل المساعد الصوتي...")

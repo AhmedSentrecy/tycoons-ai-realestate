@@ -338,7 +338,8 @@ assert.match(
   /from = "\/en\/guides\/new-cairo-property-prices"\s+to = "\/\.netlify\/functions\/seo-page\?lang=en&type=guide&slug=new-cairo-property-prices"\s+status = 200/,
   "The slashless English canonical variant must rewrite directly; redirecting it to a slash loops on Netlify",
 );
-assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/);
+assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/ar\/"/, "The voice-search homepage points Google to /ar/, the main Arabic homepage");
+assert.match(index, /<script src="\/voice-cta\.js" defer><\/script>/, "Every page loads the sitewide voice button");
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>ابحث بصوتك/);
 const lead = homeSeo.match(/HOME_H1_LEAD = "([^"]+)"/)?.[1];
