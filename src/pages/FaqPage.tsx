@@ -86,7 +86,7 @@ export default function FaqPage() {
             المساعد وفريقنا جاهزين يردوا عليك في دقايق.
           </p>
           <a
-            href="https://wa.me/201200704344"
+            href="https://wa.me/201110100025"
             target="_blank"
             rel="noreferrer"
             className="mt-6 inline-flex items-center gap-2.5 rounded-full bg-[#1faa59] px-8 py-3.5 text-sm font-bold text-white transition-transform hover:scale-[1.04]"

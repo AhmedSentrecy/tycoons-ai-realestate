@@ -37,7 +37,7 @@ import PageStructuredData from "@/components/PageStructuredData";
 import { unitPath } from "@/lib/unitUrl";
 
 const SITE_URL = "https://tycoons-inv.com";
-const WHATSAPP_NUMBER = "201200704344";
+const WHATSAPP_NUMBER = "201110100025";
 
 function slugify(value: string) {
   return String(value || "")

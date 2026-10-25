@@ -10,7 +10,7 @@ const { developerRank } = require("./_developer-rank.cjs");
 const { devGroupKey, developerArabic, devInitials } = require("./_developer-names.cjs");
 
 const SITE_URL = "https://tycoons-inv.com";
-const WHATSAPP_NUMBER = "201200704344";
+const WHATSAPP_NUMBER = "201110100025";
 const SUPABASE_URL =
   process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY =
@@ -1944,7 +1944,7 @@ function renderStaticPage(type) {
     corrections: {
       title: "سياسة التصحيح والتحديث | Tycoons Investments",
       description: "طريقة الإبلاغ عن معلومة عقارية غير دقيقة وكيفية مراجعتها وتصحيحها.",
-      body: `<h1>سياسة التصحيح والتحديث</h1><div class="answer">لو اكتشفنا سعرًا أو مساحة أو خطة سداد غير دقيقة، نراجع المصدر الأصلي ونصححها ونحدّث تاريخ المراجعة. لا نخفي التصحيح عندما يؤثر على قرار المستخدم.</div><h2>الإبلاغ عن خطأ</h2><p>أرسل رابط الصفحة ووصف الخطأ والمصدر الأحدث على واتساب <a href="https://wa.me/${WHATSAPP_NUMBER}">+20 120 070 4344</a>.</p><h2>الأولوية</h2><p>الأخطاء المتعلقة بالسعر والتوفر والتسليم وخطة السداد تُراجع أولًا لأنها الأكثر تأثيرًا على القرار.</p>`,
+      body: `<h1>سياسة التصحيح والتحديث</h1><div class="answer">لو اكتشفنا سعرًا أو مساحة أو خطة سداد غير دقيقة، نراجع المصدر الأصلي ونصححها ونحدّث تاريخ المراجعة. لا نخفي التصحيح عندما يؤثر على قرار المستخدم.</div><h2>الإبلاغ عن خطأ</h2><p>أرسل رابط الصفحة ووصف الخطأ والمصدر الأحدث على واتساب <a href="https://wa.me/${WHATSAPP_NUMBER}">+20 111 010 0025</a>.</p><h2>الأولوية</h2><p>الأخطاء المتعلقة بالسعر والتوفر والتسليم وخطة السداد تُراجع أولًا لأنها الأكثر تأثيرًا على القرار.</p>`,
     },
     privacy: {
       title: "سياسة الخصوصية | Tycoons Investments",
@@ -1961,7 +1961,7 @@ function renderStaticPage(type) {
     contact: {
       title: "تواصل مع Tycoons Investments",
       description: "تواصل مع فريق Tycoons Investments للاستفسار عن أحدث الأسعار والتوفر وخطط السداد.",
-      body: `<h1>تواصل مع Tycoons Investments</h1><div class="answer">لأحدث Availability وخطط السداد، تواصل مباشرة على واتساب. نخدم العملاء بالعربي والإنجليزي داخل مصر.</div><p><a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}">واتساب +20 120 070 4344</a></p><h2>بيانات النشر</h2><p>الاسم المستخدم على الموقع والسوشيال: Tycoons Investments / تايكونز للاستثمار العقاري.</p><p>العنوان وساعات العمل سيتم إضافتهما بعد اعتماد البيانات الرسمية، لذلك لا ننشر بيانات غير مؤكدة.</p>`,
+      body: `<h1>تواصل مع Tycoons Investments</h1><div class="answer">لأحدث Availability وخطط السداد، تواصل مباشرة على واتساب. نخدم العملاء بالعربي والإنجليزي داخل مصر.</div><p><a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}">واتساب +20 111 010 0025</a></p><h2>بيانات النشر</h2><p>الاسم المستخدم على الموقع والسوشيال: Tycoons Investments / تايكونز للاستثمار العقاري.</p><p>العنوان وساعات العمل سيتم إضافتهما بعد اعتماد البيانات الرسمية، لذلك لا ننشر بيانات غير مؤكدة.</p>`,
     },
   };
   const page = pages[type];

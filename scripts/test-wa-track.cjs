@@ -79,7 +79,7 @@ function browser({ pathname = "/projects/sodic-east--sodic", search = "", referr
 // 1. A plain WhatsApp link on a project page: code added to the message, click recorded.
 {
   const page = browser({ search: "?utm_source=facebook&utm_campaign=sodic_east", referrer: "https://l.facebook.com/" });
-  const link = page.click(element({ href: "https://wa.me/201200704344", text: " كلمنا واتساب ", parent: page.body }));
+  const link = page.click(element({ href: "https://wa.me/201110100025", text: " كلمنا واتساب ", parent: page.body }));
   const url = new URL(link.href);
   assert.match(url.searchParams.get("text"), /^كود الطلب: T-[A-Z2-9]{5}$/);
   assert.equal(page.requests.length, 1);
@@ -103,7 +103,7 @@ function browser({ pathname = "/projects/sodic-east--sodic", search = "", referr
 {
   const page = browser({ referrer: "https://www.google.com/" });
   const message = "Hello\nTracking ID: wa_abc123_xyz";
-  const href = `https://wa.me/201200704344?text=${encodeURIComponent(message)}`;
+  const href = `https://wa.me/201110100025?text=${encodeURIComponent(message)}`;
   const link = page.click(element({ href, text: "اطلب آخر الأسعار", parent: page.body }));
   assert.equal(link.href, href, "an existing code must not be duplicated");
   assert.equal(page.requests[0].row.tracking_id, "wa_abc123_xyz");
@@ -114,13 +114,13 @@ function browser({ pathname = "/projects/sodic-east--sodic", search = "", referr
 {
   const page = browser();
   const header = element({ tag: "header", parent: page.body });
-  page.click(element({ href: "https://wa.me/201200704344", text: "واتساب", parent: header }));
+  page.click(element({ href: "https://wa.me/201110100025", text: "واتساب", parent: header }));
   const footer = element({ tag: "footer", parent: page.body });
-  page.click(element({ href: "https://wa.me/201200704344?text=a", text: "تواصل معنا", parent: footer }));
+  page.click(element({ href: "https://wa.me/201110100025?text=a", text: "تواصل معنا", parent: footer }));
   const floating = element({ tag: "div", parent: page.body, fixed: true });
-  page.click(element({ href: "https://wa.me/201200704344?text=b", parent: floating }));
+  page.click(element({ href: "https://wa.me/201110100025?text=b", parent: floating }));
   const tagged = element({ tag: "div", parent: page.body, attrs: { "data-wa-source": "unit_card" } });
-  page.click(element({ href: "https://wa.me/201200704344?text=c", parent: tagged }));
+  page.click(element({ href: "https://wa.me/201110100025?text=c", parent: tagged }));
   assert.deepEqual(page.requests.map((request) => request.row.source), ["header", "footer", "floating", "unit_card"]);
 }
 
@@ -145,7 +145,7 @@ for (const pathname of ["/sales-war-room/lead/12", "/admin", "/media-admin/x"]) 
 {
   const page = browser({ pathname: "/en/projects/eastvale--sodic", lang: "en", h1: "Eastvale" });
   page.document.activeElement = element({ tag: "button", text: "Ask about payment plan", parent: page.body });
-  page.window.open("https://wa.me/201200704344?text=Hi", "_blank", "noopener,noreferrer");
+  page.window.open("https://wa.me/201110100025?text=Hi", "_blank", "noopener,noreferrer");
   assert.equal(page.opened.length, 1);
   assert.match(new URL(page.opened[0]).searchParams.get("text"), /^Hi\n\nRef: T-[A-Z2-9]{5}$/);
   assert.equal(page.requests[0].row.button_label, "Ask about payment plan");
@@ -157,7 +157,7 @@ for (const pathname of ["/sales-war-room/lead/12", "/admin", "/media-admin/x"]) 
 // 7. A double click on the same link is recorded once.
 {
   const page = browser();
-  const link = element({ href: "https://wa.me/201200704344", parent: page.body });
+  const link = element({ href: "https://wa.me/201110100025", parent: page.body });
   page.click(link);
   page.click(link);
   assert.equal(page.requests.length, 1);
@@ -166,7 +166,7 @@ for (const pathname of ["/sales-war-room/lead/12", "/admin", "/media-admin/x"]) 
 // 8. Every value respects the database size limits.
 {
   const page = browser({ h1: "x".repeat(500) });
-  page.click(element({ href: `https://wa.me/201200704344?text=${"y".repeat(3000)}`, text: "z".repeat(400), parent: page.body }));
+  page.click(element({ href: `https://wa.me/201110100025?text=${"y".repeat(3000)}`, text: "z".repeat(400), parent: page.body }));
   const row = page.requests[0].row;
   assert.ok(row.button_label.length <= 120 && row.project_name.length <= 160 && row.whatsapp_url.length <= 1500);
 }
@@ -176,7 +176,7 @@ for (const pathname of ["/sales-war-room/lead/12", "/admin", "/media-admin/x"]) 
   const page = browser();
   const events = [];
   page.window.gtag = (...args) => events.push(args);
-  page.click(element({ href: "https://wa.me/201200704344", parent: page.body }));
+  page.click(element({ href: "https://wa.me/201110100025", parent: page.body }));
   assert.equal(events.length, 1);
   assert.equal(events[0][0], "event");
   assert.equal(events[0][1], "generate_lead");

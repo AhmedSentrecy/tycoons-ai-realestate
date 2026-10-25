@@ -9,7 +9,7 @@ import { searchInventory } from "../../src/lib/propertySearch.ts";
 import { agentResultCount, recordAgentToolCall } from "../../src/lib/agentUsage.ts";
 
 const SITE_URL = "https://tycoons-inv.com";
-const WHATSAPP_NUMBER = "201200704344";
+const WHATSAPP_NUMBER = "201110100025";
 const SERVER_NAME = "tycoons-property-search";
 const SERVER_VERSION = "1.1.0";
 const LATEST_PROTOCOL_VERSION = "2025-11-25";

@@ -1,6 +1,6 @@
 import { MessageCircle, Phone } from "lucide-react";
 
-const WHATSAPP_NUMBER = "201200704344";
+const WHATSAPP_NUMBER = "201110100025";
 
 /**
  * Contact that follows the visitor while scrolling: a bottom bar (WhatsApp + call)

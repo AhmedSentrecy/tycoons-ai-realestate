@@ -160,7 +160,7 @@ async function run() {
     },
   });
   const whatsappData = structured(whatsapp.body.result);
-  assert.match(whatsappData.url, /^https:\/\/wa\.me\/201200704344\?text=/);
+  assert.match(whatsappData.url, /^https:\/\/wa\.me\/201110100025\?text=/);
   assert.equal(whatsappData.sent, false);
   assert.match(whatsappData.tracking_id, /^wa_mcp_[a-f0-9]{10}$/);
 

@@ -26,7 +26,7 @@ type ModelContext = {
   provideContext?: (context: { tools: ToolDefinition[] }) => Promise<void> | void;
 };
 
-const WHATSAPP_NUMBER = "201200704344";
+const WHATSAPP_NUMBER = "201110100025";
 let registrationStarted = false;
 
 function text(value: unknown, maxLength = 300): string {

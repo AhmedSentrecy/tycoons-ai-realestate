@@ -1,7 +1,7 @@
 import type { InventoryUnit } from "@/lib/inventory";
 import type { Project } from "@/data/projects";
 
-const WHATSAPP_NUMBER = "201200704344";
+const WHATSAPP_NUMBER = "201110100025";
 
 function clean(value: string, fallback = "Not specified"): string {
   return value?.trim() || fallback;

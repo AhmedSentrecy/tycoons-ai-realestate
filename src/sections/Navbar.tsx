@@ -124,7 +124,7 @@ const links = [
             </a>
           </div>
           <a
-            href="https://wa.me/201200704344"
+            href="https://wa.me/201110100025"
             target="_blank"
             rel="noreferrer"
             aria-label={tr("تواصل معنا على واتساب")}

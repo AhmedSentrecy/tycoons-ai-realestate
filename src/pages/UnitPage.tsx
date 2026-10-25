@@ -32,7 +32,7 @@ const UNIT_INTRO_BANK: Array<(vars: Record<string, string>) => string> = [
 ];
 
 const SITE_URL = "https://tycoons-inv.com";
-const WHATSAPP_NUMBER = "201200704344";
+const WHATSAPP_NUMBER = "201110100025";
 
 function slugify(value: string) {
   return value

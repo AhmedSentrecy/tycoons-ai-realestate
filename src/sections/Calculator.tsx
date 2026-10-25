@@ -20,7 +20,7 @@ export default function Calculator({
   initialPrice = 8_400_000,
   initialDown = 10,
   initialYears = 8,
-  whatsappHref = "https://wa.me/201200704344",
+  whatsappHref = "https://wa.me/201110100025",
 }: CalculatorProps) {
   const [price, setPrice] = useState(initialPrice);
   const [down, setDown] = useState(initialDown);

@@ -158,7 +158,7 @@ export default function RegionPage() {
                 {region.priceNote}
               </p>
               <a
-                href="https://wa.me/201200704344"
+                href="https://wa.me/201110100025"
                 target="_blank"
                 rel="noreferrer"
                 className="mt-6 flex items-center justify-center gap-2 rounded-full bg-[#1faa59] px-5 py-3 text-sm font-bold text-white transition-transform hover:scale-[1.03]"

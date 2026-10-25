@@ -4,7 +4,7 @@ const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | und
 const SUPABASE_URL = viteEnv.VITE_SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = viteEnv.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 
-export const WHATSAPP_NUMBER = "201200704344";
+export const WHATSAPP_NUMBER = "201110100025";
 
 export interface GuideFaq { question: string; answer: string }
 export interface GuideSourceRef { type: string; id: string; label: string; url: string }
