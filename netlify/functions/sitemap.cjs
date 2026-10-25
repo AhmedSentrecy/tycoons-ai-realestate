@@ -68,7 +68,6 @@ exports.handler = async function handler() {
     const publishedSlugs = publishedProjectSlugs(projects, units);
     const indexableIds = indexableUnitIds(units);
     const urls = new Map([
-      [`${SITE_URL}/`, null],
       [`${SITE_URL}/about`, null],
       [`${SITE_URL}/faq`, null],
       [`${SITE_URL}/methodology`, "2026-07-26"],
