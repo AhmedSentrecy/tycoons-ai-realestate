@@ -202,13 +202,13 @@ function ProjectGallery({
               controls
               playsInline
               preload="metadata"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           ) : (
             <img
               src={current.src}
               alt={`${name} — صورة ${index + 1}`}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
               fetchPriority={index === 0 ? "high" : "auto"}
             />
           )}
