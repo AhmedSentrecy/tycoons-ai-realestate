@@ -273,6 +273,53 @@ function staticUnitCard(unit, projectSlug = "") {
   return `<details class="overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white p-6"><summary class="cursor-pointer list-none"><h3 class="text-xl font-extrabold">${escapeHtml(arabicField(unit.unit_type))} ${escapeHtml(arabicField(unit.bedrooms_text))}${isNewUnit(unit) ? NEW_TAG : ""}</h3>${arDate(unit.created_at) ? `<p class="mt-1 text-xs text-[#5c6a62]">اتضافت ${escapeHtml(arDate(unit.created_at))}</p>` : ""}<p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه${Number(unit.starting_price) > 0 && Number(unit.area_sqm) >= 20 ? ` · سعر المتر ${new Intl.NumberFormat("en-EG").format(Math.round(Number(unit.starting_price) / Number(unit.area_sqm)))} جنيه` : ""}</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary>${plan ? `<p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml(plan)}</p>` : ""}${unit.id ? `<a href="${escapeHtml(unitPath({ ...unit, project_slug: projectSlug }))}" class="mt-4 inline-block font-bold text-[#8a6630]">كل تفاصيل الوحدة</a>` : ""}</details>`;
 }
 
+// Turn other projects' names inside already-escaped text into links to their pages
+// (first mention of each, whole names only, never the page's own project).
+function linkProjectNames(html, projectLinks, currentSlug) {
+  const targets = (projectLinks || [])
+    .filter((item) => item.slug !== currentSlug && item.name.length >= 3)
+    .sort((a, b) => b.name.length - a.name.length);
+  let out = html;
+  const used = new Set();
+  for (const item of targets) {
+    if (used.has(item.slug)) continue;
+    const escaped = escapeHtml(item.name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // not inside a tag or an existing link, and not part of a longer Latin word
+    const pattern = new RegExp(`(^|[^A-Za-z0-9>])(${escaped})(?![A-Za-z0-9])(?![^<]*</a>)`);
+    if (!pattern.test(out)) continue;
+    out = out.replace(pattern, (_, before, name) => `${before}<a href="/projects/${escapeHtml(item.slug)}" class="font-bold text-[#8a6630] underline">${name}</a>`);
+    used.add(item.slug);
+  }
+  return out;
+}
+
+// Up to 6 projects in the same area, closest in starting price first.
+function nearbyProjects(project, projectLinks, startPrice) {
+  const area = areaSlug(project.location);
+  const base = Number(startPrice) > 0 ? Number(startPrice) : 0;
+  const distance = (item) => (base && item.minPrice ? Math.abs(Math.log(item.minPrice / base)) : Infinity);
+  const sameArea = (projectLinks || [])
+    .filter((item) => item.slug !== project.slug && areaSlug(item.location) === area)
+    .sort((a, b) => distance(a) - distance(b) || a.name.localeCompare(b.name));
+  // Similar budget first (within about 3x of this project's starting price); others only to fill.
+  const similar = sameArea.filter((item) => distance(item) <= Math.log(3));
+  return (similar.length >= 3 ? similar : sameArea).slice(0, 6);
+}
+
+function nearbyProjectsHtml(project, items) {
+  if (!items.length) return "";
+  const areaName = areaInfo(project.location).ar;
+  return `<section class="mt-12"><h2 class="text-2xl font-extrabold">مشاريع قريبة من ${escapeHtml(project.name)} في ${escapeHtml(areaName)}</h2><p class="mt-3 text-[#5c6a62]">مشاريع تانية في نفس المنطقة وقريبة في السعر، عشان تقارن قبل ما تقرر.</p><div class="mt-6 grid gap-4 sm:grid-cols-2">${items.map((item) => `<a href="/projects/${escapeHtml(item.slug)}" class="block rounded-2xl border border-[#e7ddc8] bg-white p-5 hover:border-[#8a6630]"><span class="block text-lg font-extrabold">${escapeHtml(item.name)}</span><span class="mt-1 block text-sm text-[#5c6a62]">${escapeHtml(item.developer)}</span>${item.minPrice ? `<span class="mt-3 block font-bold text-[#8a6630]">يبدأ من ${formatPrice(item.minPrice)} جنيه</span>` : ""}</a>`).join("")}</div></section>`;
+}
+
+// Photo gallery: the project's own photos (the first one is already the hero image).
+function galleryHtml(project, imageList) {
+  const photos = imageList.slice(1, 13);
+  if (!photos.length) return "";
+  const where = areaInfo(project.location).ar;
+  return `<section class="mt-12"><h2 class="text-2xl font-extrabold">صور ${escapeHtml(project.name)}</h2><div class="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3">${photos.map((src, index) => `<img src="${escapeHtml(src)}" alt="${escapeHtml(`${project.name} في ${where} — صورة ${index + 2} من ${photos.length + 1}`)}" width="640" height="420" loading="lazy" decoding="async" class="aspect-[16/11] w-full rounded-2xl object-cover">`).join("")}</div></section>`;
+}
+
 function renderProjectStatic(shell, project, projectUnits, guides = [], faqContext = {}) {
   const units = uniqueUnits(projectUnits);
   // No units but a full written guide: render the normal page (indexable) instead of the thin notice.
@@ -354,7 +401,9 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   ${imageList[0] ? `<section class="bg-[#0d1f18] px-5 pb-12"><img src="${escapeHtml(imageList[0])}" alt="${escapeHtml(project.name)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-contain"></section>` : ""}
   <section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]"><article>
   ${article.length ? article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#5c6a62]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join("") : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
-  ${visibleFaq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(project.name)}</h2>${visibleFaq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#5c6a62]">${escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea))}</p></details>`).join("")}</section>` : ""}
+  ${visibleFaq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(project.name)}</h2>${visibleFaq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#5c6a62]">${linkProjectNames(escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea)), faqContext.projectLinks, project.slug)}</p></details>`).join("")}</section>` : ""}
+  ${galleryHtml(project, imageList)}
+  ${nearbyProjectsHtml(project, nearbyProjects(project, faqContext.projectLinks, minPrice))}
   ${ownGuide ? "" : embeddedArticleHtml(guides[0])}
   ${ownGuide ? developerLinkHtml(project) : developerAboutHtml(project)}
   ${buyerQuestionsHtml({ ...project, name: schemaProjectName }, ownGuide ? guides : guides.slice(1))}
