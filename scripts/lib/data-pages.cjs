@@ -3,6 +3,7 @@
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("../../netlify/functions/_localized-project-content.cjs");
 // Buyer FAQ computed from the live units (shared with the React project page; needs `node --import tsx`).
 const { buildProjectFaq, isCuratedFaq, cleanPublicFaq } = require("../../src/lib/projectFaq.ts");
+const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, countAr } = require("../../netlify/functions/_display-text.cjs");
 
 const { pageShell } = require("./page-shell.cjs");
 const { buildProjectSchemas } = require("../../netlify/functions/_project-schema.cjs");
@@ -42,39 +43,53 @@ function formatPrice(value) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(numberValue(value));
 }
 
+// One delivery line for the project sidebar that agrees with the units and the FAQ:
+// several delivery years across the units -> "الاستلام من 2028 لـ 2030 حسب الوحدة".
+function deliverySummary(units, projectDelivery) {
+  const texts = (units || []).map((unit) => text(unit.delivery_text)).filter(Boolean);
+  if (texts.some((value) => /ready|immediate|فوري|جاهز/i.test(value)) && texts.every((value) => /ready|immediate|فوري|جاهز/i.test(value))) return "استلام فوري";
+  const years = [...new Set(texts.map((value) => (value.match(/20\d\d/) || [])[0]).filter(Boolean))].sort();
+  if (years.length > 1) return `الاستلام من ${years[0]} لـ ${years[years.length - 1]} حسب الوحدة`;
+  const projectLine = arabicField(projectDelivery);
+  if (projectLine) return /استلام/.test(projectLine) ? projectLine : `الاستلام: ${projectLine}`;
+  return years.length ? `الاستلام ${years[0]}` : "";
+}
+
 function replaceTokens(value, minPrice, minArea, maxArea) {
-  return text(value)
+  // Arabic project pages: stray English words in stored copy ("Availability") read in Arabic.
+  return arabicProse(text(value))
     .replaceAll("{{min_price}}", formatPrice(minPrice))
     .replaceAll("{{min_area}}", String(minArea))
     .replaceAll("{{max_area}}", String(maxArea));
 }
 
 function arabicField(value, fallback = "") {
-  const source = text(value).replace(/\s+/g, " ");
+  // Internal data-entry notes ("shown in source PDF" …) never reach the page.
+  const source = stripInternalNotes(text(value).replace(/\s+/g, " "));
   if (!source) return fallback;
   const exact = {
     apartment: "شقة", studio: "ستوديو", duplex: "دوبلكس", penthouse: "بنتهاوس",
-    chalet: "شاليه", "standalone villa": "فيلا مستقلة", "twin house": "توين هاوس",
+    chalet: "شاليه", villa: "فيلا", "standalone villa": "فيلا مستقلة", "twin house": "توين هاوس",
+    twinhouse: "توين هاوس", "twin villa": "توين فيلا",
     townhouse: "تاون هاوس", "town house": "تاون هاوس", office: "مكتب إداري",
     clinic: "عيادة", "commercial unit": "وحدة تجارية", retail: "محل تجاري",
     "core & shell": "نصف تشطيب", "core and shell": "نصف تشطيب",
-    "fully finished": "تشطيب كامل", finished: "متشطب",
+    "fully finished": "تشطيب كامل", finished: "متشطب", "semi finished": "نصف تشطيب",
     "immediate delivery": "استلام فوري", "ready to move": "جاهز للاستلام",
   }[source.toLowerCase()];
   if (exact) return exact;
-  return source
-    .replace(/delivery\s+in\s+(\d+)\s+years?/gi, "الاستلام خلال $1 سنوات")
-    .replace(/(\d+)\s+years?/gi, "$1 سنوات")
-    .replace(/(\d+)\s+bedrooms?/gi, "$1 غرف نوم")
+  return arabicDisplay(source
+    .replace(/(\d+)\s+bedrooms?/gi, (_, n) => (Number(n) === 1 ? "غرفة نوم واحدة" : Number(n) === 2 ? "غرفتين نوم" : Number(n) <= 10 ? `${n} غرف نوم` : `${n} غرفة نوم`))
     .replace(/\bstandalone villa\b/gi, "فيلا مستقلة")
-    .replace(/\btwin house\b/gi, "توين هاوس")
+    .replace(/\btwin\s*house\b/gi, "توين هاوس")
     .replace(/\btown\s*house\b/gi, "تاون هاوس")
     .replace(/\bapartment\b/gi, "شقة")
     .replace(/\bpenthouse\b/gi, "بنتهاوس")
     .replace(/\bduplex\b/gi, "دوبلكس")
     .replace(/\bchalet\b/gi, "شاليه")
+    .replace(/\bvilla\b/gi, "فيلا")
     .replace(/\bcore\s*(?:&|and)\s*shell\b/gi, "نصف تشطيب")
-    .replace(/\bfully finished\b/gi, "تشطيب كامل");
+    .replace(/\bfully finished\b/gi, "تشطيب كامل"));
 }
 
 function slugify(value) {
@@ -343,8 +358,8 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   ${ownGuide ? "" : embeddedArticleHtml(guides[0])}
   ${ownGuide ? developerLinkHtml(project) : developerAboutHtml(project)}
   ${buyerQuestionsHtml({ ...project, name: schemaProjectName }, ownGuide ? guides : guides.slice(1))}
-  </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white">${minPrice ? `<p class="text-sm text-white/55">الأسعار تبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(minPrice)} جنيه</p>` : `<p class="text-sm text-white/55">السعر حسب آخر طرح</p><p class="mt-2 text-xl font-extrabold text-[#ecd9ae]">اسأل عن أحدث الأسعار</p>`}${text(project.down_payment_text) ? `<p class="mt-3 text-sm text-white/70">${escapeHtml(arabicField(project.down_payment_text))}</p>` : ""}${text(project.installments_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.installments_text))}</p>` : ""}${text(project.delivery_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.delivery_text))}</p>` : ""}<a href="https://wa.me/201110100025" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a></aside></div></section>
-  ${totalOptionCount ? `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">اختار وحدتك واعرف خطة السداد</h2><p class="mt-3 text-[#5c6a62]">${totalOptionCount} اختيار متاح من البيانات الحالية للصفحة.</p>${priceRanges.length || villaUnits.length ? `<section class="mt-9 rounded-3xl bg-[#0d1f18] p-6 text-white"><h3 class="text-2xl font-extrabold">فلل وتاون هاوس</h3><div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">${priceRanges.map((range) => `<details class="overflow-hidden rounded-3xl bg-white p-6 text-[#1b2420]"><summary class="cursor-pointer list-none"><h4 class="text-xl font-extrabold">${escapeHtml(range.unit_type)}</h4><p class="mt-3">${range.area_sqm} م² · ${formatPrice(range.min_price)}–${formatPrice(range.max_price)} جنيه</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary><p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml([text(project.down_payment_text), text(project.installments_text)].filter(Boolean).map(arabicField).join(" · "))}</p></details>`).join("")}${villaUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}${otherUnits.length ? `<section class="mt-10"><h3 class="text-2xl font-extrabold">${villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : "الوحدات المتاحة"}</h3><div class="mt-6 grid gap-5 md:grid-cols-2">${otherUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}</div></section>` : ownGuide ? "" : `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات في ${escapeHtml(project.name)}</h2><p class="mt-5 max-w-3xl leading-loose text-[#5c6a62]">لا توجد وحدات منشورة بأسعار تفصيلية لهذا المشروع حالياً. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من المطور.</p><a href="https://wa.me/201110100025" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اطلب أحدث الأسعار</a></div></section>`}
+  </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white">${minPrice ? `<p class="text-sm text-white/55">الأسعار تبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(minPrice)} جنيه</p>` : `<p class="text-sm text-white/55">السعر حسب آخر طرح</p><p class="mt-2 text-xl font-extrabold text-[#ecd9ae]">اسأل عن أحدث الأسعار</p>`}${text(project.down_payment_text) ? `<p class="mt-3 text-sm text-white/70">${escapeHtml(arabicField(project.down_payment_text))}</p>` : ""}${text(project.installments_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.installments_text))}</p>` : ""}${deliverySummary(units, project.delivery_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(deliverySummary(units, project.delivery_text))}</p>` : ""}<a href="https://wa.me/201110100025" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a></aside></div></section>
+  ${totalOptionCount ? `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">اختار وحدتك واعرف خطة السداد</h2><p class="mt-3 text-[#5c6a62]">${totalOptionCount >= 3 && totalOptionCount <= 10 ? `${totalOptionCount} اختيارات متاحة` : countAr(totalOptionCount, "اختيار", "اختيارين متاحين", "اختيارات", "واحد متاح") + (totalOptionCount > 10 ? " متاح" : "")} من البيانات الحالية للصفحة.</p>${priceRanges.length || villaUnits.length ? `<section class="mt-9 rounded-3xl bg-[#0d1f18] p-6 text-white"><h3 class="text-2xl font-extrabold">فلل وتاون هاوس</h3><div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">${priceRanges.map((range) => `<details class="overflow-hidden rounded-3xl bg-white p-6 text-[#1b2420]"><summary class="cursor-pointer list-none"><h4 class="text-xl font-extrabold">${escapeHtml(range.unit_type)}</h4><p class="mt-3">${range.area_sqm} م² · ${formatPrice(range.min_price)}–${formatPrice(range.max_price)} جنيه</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary><p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml([text(project.down_payment_text), text(project.installments_text)].filter(Boolean).map(arabicField).join(" · "))}</p></details>`).join("")}${villaUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}${otherUnits.length ? `<section class="mt-10"><h3 class="text-2xl font-extrabold">${villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : "الوحدات المتاحة"}</h3><div class="mt-6 grid gap-5 md:grid-cols-2">${otherUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}</div></section>` : ownGuide ? "" : `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات في ${escapeHtml(project.name)}</h2><p class="mt-5 max-w-3xl leading-loose text-[#5c6a62]">لا توجد وحدات منشورة بأسعار تفصيلية لهذا المشروع حالياً. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من المطور.</p><a href="https://wa.me/201110100025" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اطلب أحدث الأسعار</a></div></section>`}
   </main>`;
 
   const schemas = [
@@ -404,7 +419,7 @@ function renderUnitFaq(vars, seed) {
   if (vars.siblingCount > 0) {
     items.push({
       q: `هل فيه وحدات تانية بديلة في ${vars.projectName}؟`,
-      a: `نعم، فيه ${vars.siblingCount} وحدة تانية متاحة حاليًا في نفس المشروع بمساحات وأسعار مختلفة — تقدر تشوفهم في قسم "بدائل قريبة" تحت.`,
+      a: `نعم، فيه ${unitsAr(vars.siblingCount)} تانية متاحة حاليًا في نفس المشروع بمساحات وأسعار مختلفة — تقدر تشوفهم في قسم "بدائل قريبة" تحت.`,
     });
   }
   return items;

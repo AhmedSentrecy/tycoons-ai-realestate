@@ -1,5 +1,6 @@
 "use strict";
 
+const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, isCommercialUnit } = require("./_display-text.cjs");
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("./_localized-project-content.cjs");
 const { developerContent } = require("./_developer-content.cjs");
 
@@ -368,7 +369,7 @@ const GUIDES = {
     sections: [
       ["قارن نفس نوع الوحدة", "لا تقارن شقة أرضي بحديقة ببنتهاوس أو وحدة كاملة التشطيب بأخرى Core & Shell على أساس سعر المتر فقط."],
       ["افصل السعر عن التمويل", "سعر التقسيط قد يتضمن تكلفة تمويل ضمنية. دوّن السعر الكلي وتوقيت كل دفعة قبل المقارنة."],
-      ["راجع تاريخ التحديث", "السوق سريع التغيير. أي سعر بدون تاريخ تحديث أو تأكيد Availability قد يكون غير صالح للقرار."],
+      ["راجع تاريخ التحديث", "السوق سريع التغيير. أي سعر بدون تاريخ تحديث أو تأكيد التوفر قد يكون غير صالح للقرار."],
     ],
   },
   "payment-plan-comparison": {
@@ -483,7 +484,15 @@ function numberValue(value) {
 }
 
 function clean(value, fallback = "—") {
-  return String(value || "").replace(/\s+/g, " ").trim() || fallback;
+  // Internal data-entry notes ("shown in source PDF" …) never reach a page.
+  return stripInternalNotes(String(value || "").replace(/\s+/g, " ").trim()) || fallback;
+}
+
+// Payment / delivery field shown in the page language.
+function payText(value, lang, fallback = "—") {
+  const cleaned = clean(value, "");
+  if (!cleaned) return fallback;
+  return lang === "ar" ? arabicDisplay(cleaned) || fallback : cleaned;
 }
 
 function formatPrice(value, lang) {
@@ -989,7 +998,7 @@ function developerTile(group, lang) {
   const logo = info?.logo_path
     ? `<img src="${escapeHtml(brandLogoUrl(info.logo_path))}" alt="${escapeHtml(`${info.name} logo`)}" loading="lazy">`
     : `<i aria-hidden="true">${escapeHtml(devInitials(group.name))}</i>`;
-  return `<a class="dev" href="/${lang}/developers/${escapeHtml(group.slug)}"><span class="lg${info?.logo_on_dark || !info?.logo_path ? " dark" : ""}">${logo}</span><b>${escapeHtml(label)}</b><span>${group.count} ${ar ? (group.count > 2 && group.count < 11 ? "مشاريع" : "مشروع") : (group.count === 1 ? "project" : "projects")}</span></a>`;
+  return `<a class="dev" href="/${lang}/developers/${escapeHtml(group.slug)}"><span class="lg${info?.logo_on_dark || !info?.logo_path ? " dark" : ""}">${logo}</span><b>${escapeHtml(label)}</b><span>${ar ? projectsAr(group.count) : `${group.count} ${group.count === 1 ? "project" : "projects"}`}</span></a>`;
 }
 
 // One project card (photo, delivery tag, developer logo, price, unit types, CTAs) shared by
@@ -1007,7 +1016,7 @@ function projectCardHtml(project, lang) {
 <div class="pimg"><a href="${href}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(projectImage(project))}" alt="" loading="lazy" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
 <div class="pbody"><h3><a href="${href}">${escapeHtml(project.name)}</a></h3><p class="ploc">${escapeHtml(area.indexable ? (ar ? area.ar : area.en) : projectLocation(project))} · ${escapeHtml(devDisplayName(project.developer, lang))}</p>
 <p class="pprice">${min ? `${ar ? "يبدأ من" : "From"} <b>${escapeHtml(new Intl.NumberFormat("en-EG").format(min))}</b> ${ar ? "ج.م" : "EGP"}` : (ar ? "السعر عند الطلب" : "Price on request")}</p>
-<div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${project.units.length} ${ar ? "وحدة متاحة" : "units available"}</span></div>
+<div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${ar ? `${unitsAr(project.units.length)} متاحة` : `${project.units.length} ${project.units.length === 1 ? "unit" : "units"} available`}</span></div>
 <div class="pcta"><a class="go" href="${href}">${ar ? "الوحدات والأسعار" : "Units & prices"}</a><a class="w" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" rel="noopener">${ar ? "واتساب" : "WhatsApp"}</a></div></div></article>`;
 }
 
@@ -1075,7 +1084,7 @@ function renderDirectory(allProjects, lang, articles = []) {
     const top = [...entry.projects].sort((a, b) => b.units.length - a.units.length).find((project) => clean(project.image_url, ""));
     return top ? projectImage(top) : projectImage(entry.projects[0]);
   };
-  const areaCards = areaList.map((entry) => `<a class="area" href="/${lang}/areas/${entry.area.slug}"><img src="${escapeHtml(areaImage(entry))}" alt="${escapeHtml(ar ? entry.area.ar : entry.area.en)}" loading="lazy" width="400" height="190"><div><h3>${escapeHtml(ar ? entry.area.ar : entry.area.en)}</h3><span>${entry.projects.length} ${ar ? (entry.projects.length > 10 || entry.projects.length < 3 ? "مشروع" : "مشاريع") : "projects"}${entry.min ? ` · ${ar ? "من" : "from"} ${escapeHtml(formatPrice(entry.min, lang))}` : ""}</span></div></a>`).join("");
+  const areaCards = areaList.map((entry) => `<a class="area" href="/${lang}/areas/${entry.area.slug}"><img src="${escapeHtml(areaImage(entry))}" alt="${escapeHtml(ar ? entry.area.ar : entry.area.en)}" loading="lazy" width="400" height="190"><div><h3>${escapeHtml(ar ? entry.area.ar : entry.area.en)}</h3><span>${ar ? projectsAr(entry.projects.length) : `${entry.projects.length} projects`}${entry.min ? ` · ${ar ? "من" : "from"} ${escapeHtml(formatPrice(entry.min, lang))}` : ""}</span></div></a>`).join("");
   const otherAreaChips = [...new Set(otherAreas.values())].filter(Boolean).slice(0, 10);
 
   // Developers: every company once (name variants merged), best-known first, logo or initials.
@@ -1205,13 +1214,13 @@ function renderProject(projects, slug, lang, article = null) {
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
   <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.medianSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Median price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.medianSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
-  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث Availability" : "Request current availability"}</a></section>${extraSections}
+  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث الأسعار والتوفر" : "Request current availability"}</a></section>${extraSections}
   ${ownGuide && article && article.slug ? `<p><a href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></p>` : ""}${!ownGuide && article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar))}</section>` : ""}
   ${(() => { const info = developerInfo(project.developer); const about = info && (ar ? info.about_ar : info.about_en); if (ownGuide) return info ? `<p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? `كل مشاريع ${escapeHtml(info.name_ar || info.name)}` : `All projects by ${escapeHtml(info.name)}`}</a></p>` : ""; return about ? `<section><h2>${ar ? `عن المطور: ${escapeHtml(info.name_ar || info.name)}` : `About the developer: ${escapeHtml(info.name)}`}</h2><p>${escapeHtml(about)}</p><p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? "كل مشاريع المطور" : "All projects by this developer"}</a></p></section>` : ""; })()}
   ${!hasUnits && ownGuide ? "" : `<h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2>`}${
     hasUnits
       ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "سعر المتر" : "Per m²"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
-  ${units.map((unit) => `<tr><td>${escapeHtml(clean(unit.unit_type))}</td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(pricePerSqm(unit))) : "—"}</td><td>${escapeHtml(clean(unit.down_payment_text))}</td><td>${escapeHtml(clean(unit.installments_text))}</td><td>${escapeHtml(clean(unit.delivery_text))}</td></tr>`).join("")}
+  ${units.map((unit) => `<tr><td>${escapeHtml(clean(unit.unit_type))}</td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(pricePerSqm(unit))) : "—"}</td><td>${escapeHtml(payText(unit.down_payment_text, lang))}</td><td>${escapeHtml(payText(unit.installments_text, lang))}</td><td>${escapeHtml(payText(unit.delivery_text, lang))}</td></tr>`).join("")}
   </tbody></table></div>`
       : ownGuide ? "" : `<p class="note">${ar ? `لا توجد وحدات منشورة بأسعار تفصيلية لـ${project.name} حاليًا. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من ${project.developer}.` : `No units with detailed pricing are published for ${project.name} right now. Message us on WhatsApp and we'll send the latest price list and payment plans from ${project.developer}.`}</p>`
   }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p>
@@ -1330,9 +1339,9 @@ function renderUnitFaq(unit, project, stats, area, unitTypeAr, priceFmt, updated
     ],
     [
       "إيه خطة السداد المتاحة؟",
-      `${clean(unit.down_payment_text, "المقدم يُحدَّد حسب المشروع.")} ${clean(unit.installments_text, "الأقساط تُحدَّد حسب المشروع وموعد الاستلام.")}`,
+      `${payText(unit.down_payment_text, "ar", "المقدم يُحدَّد حسب المشروع.")} ${payText(unit.installments_text, "ar", "الأقساط تُحدَّد حسب المشروع وموعد الاستلام.")}`,
     ],
-    ["امتى الاستلام؟", clean(unit.delivery_text, "موعد الاستلام يتأكد مع المطور وقت الطلب.")],
+    ["امتى الاستلام؟", payText(unit.delivery_text, "ar", "موعد الاستلام يتأكد مع المطور وقت الطلب.")],
     [
       `هل ${area.ar} مكان مناسب للسكن أو الاستثمار؟`,
       pick(UNIT_FAQ_AREA_BANK, seed, "area")({ buyerNote: area.buyerNote, areaAr: area.ar }),
@@ -1341,7 +1350,7 @@ function renderUnitFaq(unit, project, stats, area, unitTypeAr, priceFmt, updated
   if (stats.siblingCount > 0) {
     faq.push([
       `فيه بدائل تانية في ${project.name}؟`,
-      `أيوه، عندنا ${stats.siblingCount} وحدة تانية متاحة حاليًا في نفس المشروع بمساحات وأسعار مختلفة — شوف الجدول أسفل أو صفحة المشروع الكاملة.`,
+      `أيوه، عندنا ${unitsAr(stats.siblingCount)} تانية متاحة حاليًا في نفس المشروع بمساحات وأسعار مختلفة — شوف الجدول أسفل أو صفحة المشروع الكاملة.`,
     ]);
   }
   return faq;
@@ -1378,8 +1387,8 @@ function renderUnit(projects, unitId, lang = "ar") {
     areaAr: area.ar,
     rank: rankClause(stats),
     price: priceFmt,
-    delivery: clean(unit.delivery_text, "يتأكد مع المطور"),
-    installments: clean(unit.installments_text, "تُحدَّد حسب المشروع"),
+    delivery: payText(unit.delivery_text, "ar", "يتأكد مع المطور"),
+    installments: payText(unit.installments_text, "ar", "تُحدَّد حسب المشروع"),
   };
   const intro = pick(UNIT_INTRO_BANK, seed, "intro")(introVars);
 
@@ -1478,16 +1487,36 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
     : rawAreaFacts;
   const devInfo = kind === "developer" ? developerInfo(slug) || developerInfo(matches[0].developer) : null;
   const label = kind === "area" ? (ar ? area.ar : area.en) : (ar ? devInfo?.name_ar || devInfo?.name : devInfo?.name) || matches[0].developer;
-  const plural = matches.length === 1 ? (ar ? "مشروع واحد" : "1 project") : ar ? `${matches.length} مشروع` : `${matches.length} projects`;
+  const plural = ar ? projectsAr(matches.length) : matches.length === 1 ? "1 project" : `${matches.length} projects`;
   const path = `/${lang}/${kind === "area" ? "areas" : "developers"}/${slug}`;
   const alternatePath = `/${ar ? "en" : "ar"}/${kind === "area" ? "areas" : "developers"}/${slug}`;
-  const numericPrices = matches.flatMap((project) =>
-    project.units.map((unit) => numberValue(unit.starting_price)).filter(Boolean));
+  // Price range of homes: whole buildings, offices and shops are left out of the range when
+  // the page also has homes, so "أعلى سعر" never reads as a 5,000 m² building.
+  const allUnits = matches.flatMap((project) => project.units);
+  const homeUnits = allUnits.filter((unit) => !isCommercialUnit(unit));
+  const numericPrices = (homeUnits.length ? homeUnits : allUnits).map((unit) => numberValue(unit.starting_price)).filter(Boolean);
   const min = numericPrices.length ? Math.min(...numericPrices) : 0;
   const max = numericPrices.length ? Math.max(...numericPrices) : 0;
   const minFmt = formatPrice(min, lang);
   const searchContent = kind === "area" ? AREA_SEARCH_CONTENT[area.slug]?.[lang] : null;
   const editorial = kind === "developer" ? developerContent(slug, lang) : null;
+  // The written developer article already has its own "عن …" and FAQ sections: keep one of each.
+  const editorialSections = Array.isArray(editorial?.sections) ? editorial.sections : [];
+  const isFaqHeading = (heading) => /أسئلة شائعة|frequently asked|\bfaq\b/i.test(String(heading || ""));
+  const editorialHasAbout = editorialSections.some((section) => /^(?:عن|about)\s/i.test(String(section.heading || "").trim()));
+  const blockText = (block) => (Array.isArray(block?.content) ? block.content.map((part) => part?.text || "").join("") : String(block?.text || "")).trim();
+  const editorialFaq = editorialSections.filter((section) => isFaqHeading(section.heading)).flatMap((section) => {
+    const pairs = [];
+    for (const block of section.blocks || []) {
+      if (block.type === "subheading" && block.text) pairs.push([String(block.text).trim(), ""]);
+      else if (block.type === "paragraph" && pairs.length) {
+        const last = pairs[pairs.length - 1];
+        last[1] = `${last[1]} ${blockText(block)}`.trim();
+      }
+    }
+    return pairs.filter(([question, answer]) => question && answer);
+  });
+  const editorialBodySections = editorialFaq.length ? editorialSections.filter((section) => !isFaqHeading(section.heading)) : editorialSections;
   const devAreas = kind === "developer"
     ? [...new Set(matches.map((project) => { const a = areaFor(projectLocation(project)); return a.indexable ? (ar ? a.ar : a.en) : ""; }).filter(Boolean))].slice(0, 4)
     : [];
@@ -1513,10 +1542,10 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const contextSection =
     kind === "area"
       ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${searchContent?.map ? `<section><h2>${escapeHtml(searchContent.map.heading)}</h2><iframe title="${escapeHtml(searchContent.map.heading)}" src="https://www.google.com/maps?q=${encodeURIComponent(searchContent.map.query)}&amp;output=embed" width="100%" height="360" style="border:0;border-radius:16px" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p><a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(searchContent.map.query)}" target="_blank" rel="noopener">${ar ? "افتح الخريطة على Google Maps" : "Open in Google Maps"}</a></p></section>` : ""}${(searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}`
-      : devInfo && (ar ? devInfo.about_ar : devInfo.about_en)
+      : devInfo && !editorialHasAbout && (ar ? devInfo.about_ar : devInfo.about_en)
         ? `<h2>${ar ? `عن ${escapeHtml(devInfo.name_ar || devInfo.name)}` : `About ${escapeHtml(devInfo.name)}`}</h2><p>${escapeHtml(ar ? devInfo.about_ar : devInfo.about_en)}</p>`
         : "";
-  const editorialSection = editorial?.sections?.length ? renderLocalizedSections(editorial.sections, { escapeHtml, replaceTokens: (value) => value }) : "";
+  const editorialSection = editorialBodySections.length ? renderLocalizedSections(editorialBodySections, { escapeHtml, replaceTokens: (value) => value }) : "";
   // Buyer-question guides about this area's projects (or the area itself), linked under the FAQ.
   const matchIds = new Set(matches.map((project) => String(project.id || "")).filter(Boolean));
   const areaGuides = (Array.isArray(guides) ? guides : []).filter((guide) => guide && guide.slug && guide.title
@@ -1545,9 +1574,9 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
     ? `<div class="sh" id="developers"><div><h2>${escapeHtml(branchHeading)}</h2></div></div><div class="dchips">${branches.map((branch) => {
         const info = developerInfo(branch.label);
         const logo = info?.logo_path ? `<img class="${info.logo_on_dark ? "dk" : ""}" src="${escapeHtml(brandLogoUrl(info.logo_path))}" alt="" loading="lazy">` : "";
-        return `<a class="dchip" href="/${lang}/developers/${branch.slug}">${logo}${escapeHtml(devDisplayName(branch.label, lang))} <span>${branch.projects.length} ${ar ? (branch.projects.length > 2 && branch.projects.length < 11 ? "مشاريع" : "مشروع") : (branch.projects.length === 1 ? "project" : "projects")}</span></a>`;
+        return `<a class="dchip" href="/${lang}/developers/${branch.slug}">${logo}${escapeHtml(devDisplayName(branch.label, lang))} <span>${ar ? projectsAr(branch.projects.length) : `${branch.projects.length} ${branch.projects.length === 1 ? "project" : "projects"}`}</span></a>`;
       }).join("")}</div>`
-    : `<div class="sh" id="projects"><div><h2>${escapeHtml(branchHeading)}</h2><p>${ar ? "اضغط على أي مشروع تشوف كل وحداته وأسعارها وأنظمة السداد" : "Open any project to see all its units, prices and payment plans"}</p></div></div>${branches.map((branch) => `<section class="dgroup"><h3><a href="/${lang}/areas/${branch.slug}">${escapeHtml(branch.label)}</a> <span>· ${branch.projects.length} ${ar ? (branch.projects.length > 2 && branch.projects.length < 11 ? "مشاريع" : "مشروع") : (branch.projects.length === 1 ? "project" : "projects")}</span></h3><div class="pgrid">${branch.projects.map((project) => projectCardHtml(project, lang)).join("")}</div></section>`).join("")}`;
+    : `<div class="sh" id="projects"><div><h2>${escapeHtml(branchHeading)}</h2><p>${ar ? "اضغط على أي مشروع تشوف كل وحداته وأسعارها وأنظمة السداد" : "Open any project to see all its units, prices and payment plans"}</p></div></div>${branches.map((branch) => `<section class="dgroup"><h3><a href="/${lang}/areas/${branch.slug}">${escapeHtml(branch.label)}</a> <span>· ${ar ? projectsAr(branch.projects.length) : `${branch.projects.length} ${branch.projects.length === 1 ? "project" : "projects"}`}</span></h3><div class="pgrid">${branch.projects.map((project) => projectCardHtml(project, lang)).join("")}</div></section>`).join("")}`;
   const faq =
     kind === "area"
       ? [
@@ -1591,6 +1620,10 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
             ],
           ]
         : [];
+  if (editorialFaq.length) {
+    const asked = new Set(editorialFaq.map(([question]) => question));
+    faq.splice(0, faq.length, ...editorialFaq, ...faq.filter(([question]) => !asked.has(question)));
+  }
   const heroLogo = devInfo?.logo_path ? logoBadge({ src: brandLogoUrl(devInfo.logo_path), dark: Boolean(devInfo.logo_on_dark), alt: `${devInfo.name} logo` }, 40) : "";
   const placeholder = kind === "area"
     ? (ar ? `مثال: شقة في ${label} تحت 10 مليون ومقدم 5%` : `e.g. apartment in ${label} under 10M`)
@@ -1603,15 +1636,16 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
 <section class="dhero"><div class="dwrap"><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" ‹ ")}</p>${heroLogo}<span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span>
 <h1>${escapeHtml(editorial?.h1 || label)}</h1><p class="lead">${escapeHtml(description)}</p>
 ${searchMount(lang, placeholder)}
-<div class="stats">${stat(plural, ar ? "متاحة دلوقتي" : "available now")}${stat(new Intl.NumberFormat("en-EG").format(projectUnitCount), ar ? "وحدة متاحة" : "available units")}${min ? stat(minFmt, ar ? "أقل سعر ظاهر" : "lowest listed") : ""}${max ? stat(formatPrice(max, lang), ar ? "أعلى سعر ظاهر" : "highest listed") : ""}</div></div></section>
+<div class="stats">${stat(plural, ar ? "متاحة دلوقتي" : "available now")}${stat(new Intl.NumberFormat("en-EG").format(projectUnitCount), ar ? (projectUnitCount >= 3 && projectUnitCount <= 10 ? "وحدات متاحة" : "وحدة متاحة") : "available units")}${min ? stat(minFmt, ar ? "أقل سعر ظاهر" : "lowest listed") : ""}${max ? stat(formatPrice(max, lang), ar ? "أعلى سعر ظاهر" : "highest listed") : ""}</div></div></section>
 <main class="dmain">
+  ${kind === "area" && contextSection ? `<div class="prose">${contextSection}</div>` : ""}
   ${areaProjects}
   ${branchHtml}
   ${areaGuidesHtml}
   <div class="prose">
-  ${contextSection}
+  ${kind === "area" ? "" : contextSection}
   ${editorialSection}
-  ${faq.length ? `<h2>${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}` : ""}
+  ${faq.length ? `<h2>${ar ? `أسئلة شائعة عن ${escapeHtml(label)}` : `Frequently asked questions about ${escapeHtml(label)}`}</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}` : ""}
   <p class="note">${ar ? "النطاق مبني على الوحدات الظاهرة وليس تقييمًا للسوق بالكامل." : "The range is based on listed units and is not a valuation of the whole market."}</p></div></main>
 <div class="band"><div class="dwrap"><div><h2>${ar ? `محتار بين مشاريع ${escapeHtml(label)}؟` : `Not sure which ${escapeHtml(label)} project fits?`}</h2><p>${ar ? "ابعتلنا الميزانية ونرشحلك أنسب 3 مشاريع." : "Send us your budget and we'll shortlist the best 3 projects."}</p></div><a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>${ar ? "كلمنا على واتساب" : "Chat on WhatsApp"}</span></a></div></div>`;
   return renderPage({
@@ -1939,7 +1973,7 @@ function renderStaticPage(type) {
     methodology: {
       title: "منهجية بيانات Tycoons Investments",
       description: "كيف نجمع ونراجع ونعرض الأسعار والوحدات وخطط السداد وحسابات المقارنة.",
-      body: `<h1>منهجية البيانات والحسابات</h1><div class="answer">نعرض الوحدات المتاحة فقط من قاعدة بيانات Tycoons، ونستخدم أقل سعر داخل كل مجموعة مقارنة. كل سعر أو Availability يحتاج إعادة تأكيد وقت الطلب.</div><h2>مصادر البيانات</h2><p>ملفات Availability وقوائم الأسعار والبروشورات ورسائل فرق المطورين، مع حفظ مرجع المصدر وتاريخ آخر تحديث داخل قاعدة البيانات عند توفرهما.</p><h2>المقارنات</h2><p>السكني يُقارن حسب المشروع ونوع الوحدة وعدد الغرف. الإداري والتجاري يُقارن حسب نوع الوحدة ونطاق المساحة. لا نخلط بين تشطيب أو تسليم مختلفين في استنتاج واحد بدون تنبيه.</p><h2>العائد</h2><p>أي ROI أو عائد إيجاري تقديري يعتمد على افتراضات معلنة: سعر الشراء الكامل، الإيجار، الإشغال، الصيانة، والتكاليف. النتائج ليست ضمانًا.</p><h2>التحديث</h2><p>تاريخ آخر تحديث يظهر على صفحات المشاريع. البيانات القديمة أو غير المؤكدة لا تُعامل كعرض نهائي.</p>`,
+      body: `<h1>منهجية البيانات والحسابات</h1><div class="answer">نعرض الوحدات المتاحة فقط من قاعدة بيانات Tycoons، ونستخدم أقل سعر داخل كل مجموعة مقارنة. كل سعر أو توفر يحتاج إعادة تأكيد وقت الطلب.</div><h2>مصادر البيانات</h2><p>ملفات التوفر (Availability) وقوائم الأسعار والبروشورات ورسائل فرق المطورين، مع حفظ مرجع المصدر وتاريخ آخر تحديث داخل قاعدة البيانات عند توفرهما.</p><h2>المقارنات</h2><p>السكني يُقارن حسب المشروع ونوع الوحدة وعدد الغرف. الإداري والتجاري يُقارن حسب نوع الوحدة ونطاق المساحة. لا نخلط بين تشطيب أو تسليم مختلفين في استنتاج واحد بدون تنبيه.</p><h2>العائد</h2><p>أي ROI أو عائد إيجاري تقديري يعتمد على افتراضات معلنة: سعر الشراء الكامل، الإيجار، الإشغال، الصيانة، والتكاليف. النتائج ليست ضمانًا.</p><h2>التحديث</h2><p>تاريخ آخر تحديث يظهر على صفحات المشاريع. البيانات القديمة أو غير المؤكدة لا تُعامل كعرض نهائي.</p>`,
     },
     corrections: {
       title: "سياسة التصحيح والتحديث | Tycoons Investments",
@@ -1961,7 +1995,7 @@ function renderStaticPage(type) {
     contact: {
       title: "تواصل مع Tycoons Investments",
       description: "تواصل مع فريق Tycoons Investments للاستفسار عن أحدث الأسعار والتوفر وخطط السداد.",
-      body: `<h1>تواصل مع Tycoons Investments</h1><div class="answer">لأحدث Availability وخطط السداد، تواصل مباشرة على واتساب. نخدم العملاء بالعربي والإنجليزي داخل مصر.</div><p><a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}">واتساب +20 111 010 0025</a></p><h2>بيانات النشر</h2><p>الاسم المستخدم على الموقع والسوشيال: Tycoons Investments / تايكونز للاستثمار العقاري.</p><p>العنوان وساعات العمل سيتم إضافتهما بعد اعتماد البيانات الرسمية، لذلك لا ننشر بيانات غير مؤكدة.</p>`,
+      body: `<h1>تواصل مع Tycoons Investments</h1><div class="answer">لأحدث الأسعار والتوفر وخطط السداد، تواصل مباشرة على واتساب. نخدم العملاء بالعربي والإنجليزي داخل مصر.</div><p><a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}">واتساب +20 111 010 0025</a></p><h2>بيانات النشر</h2><p>الاسم المستخدم على الموقع والسوشيال: Tycoons Investments / تايكونز للاستثمار العقاري.</p><p>العنوان وساعات العمل سيتم إضافتهما بعد اعتماد البيانات الرسمية، لذلك لا ننشر بيانات غير مؤكدة.</p>`,
     },
   };
   const page = pages[type];
