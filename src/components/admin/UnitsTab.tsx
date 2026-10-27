@@ -44,6 +44,9 @@ export default function UnitsTab({
   const [busy, setBusy] = useState(false);
   const [dialog, setDialog] = useState<"add" | "edit" | "import" | "media" | null>(null);
   const [current, setCurrent] = useState<AdminUnit | null>(null);
+  // Units ticked for bulk delete (cleared whenever the project or the unit list changes).
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [bulkProgress, setBulkProgress] = useState("");
   const project = projects.find((item) => item.id === selectedId) || null;
 
   const projectId = project?.id ?? "";
@@ -53,10 +56,12 @@ export default function UnitsTab({
       .units(token, projectId)
       .then((data) => {
         setUnits(data.units);
+        setChecked(new Set());
         setPendingIds(new Set(data.pending.flatMap((request) => request.ops.map((op) => String(op.id ?? "")).filter(Boolean))));
       })
       .catch((requestError) => {
         setUnits([]);
+        setChecked(new Set());
         handleError(requestError);
       })
       .finally(() => setLoadedId(projectId));
@@ -67,6 +72,59 @@ export default function UnitsTab({
   }, [load]);
 
   const unitsLoading = loadedId !== projectId;
+
+  const allIds = units?.map((unit) => unit.id) ?? [];
+  const allChecked = allIds.length > 0 && allIds.every((id) => checked.has(id));
+  const someChecked = checked.size > 0 && !allChecked;
+
+  function toggle(id: string) {
+    setChecked((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    setChecked(allChecked ? new Set() : new Set(allIds));
+  }
+
+  /** Deletes the ticked units one by one (each delete is logged like a single delete). */
+  async function removeChecked() {
+    const targets = (units ?? []).filter((unit) => checked.has(unit.id));
+    if (!targets.length) return;
+    if (!window.confirm(`حذف ${targets.length} وحدة نهائيًا؟\nلو عايز تخفيهم من الموقع بس، استخدم «اتباعت» لكل وحدة.`)) return;
+    setBusy(true);
+    let applied = 0;
+    let pending = 0;
+    let failed = 0;
+    try {
+      for (const [index, unit] of targets.entries()) {
+        setBulkProgress(`جاري الحذف ${index + 1} من ${targets.length}…`);
+        try {
+          const result = await adminApi.unitDelete(token, unit.id);
+          if (result.applied) applied += 1;
+          else if (!result.unchanged) pending += 1;
+        } catch (requestError) {
+          failed += 1;
+          if (failed === 1) handleError(requestError);
+        }
+      }
+    } finally {
+      setBulkProgress("");
+      setBusy(false);
+    }
+    const parts = [
+      applied ? `اتمسح ${applied}` : "",
+      pending ? `${pending} اتبعتوا للمالك للموافقة` : "",
+      failed ? `${failed} محصلش فيهم حذف` : "",
+    ].filter(Boolean);
+    notify(parts.join(" · ") || "مفيش حاجة اتمسحت", failed ? "error" : undefined);
+    if (pending) refreshPending();
+    setChecked(new Set());
+    void load();
+  }
 
   /** Every write goes through here so the owner/editor difference is explained once. */
   async function submit(run: () => Promise<SubmitResult>, appliedText: string) {
@@ -135,6 +193,28 @@ export default function UnitsTab({
               </button>
             </div>
 
+            {checked.size > 0 && !unitsLoading && (
+              <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] bg-[#fffaf1] px-4 py-3">
+                <span className="me-auto text-sm font-black">
+                  {bulkProgress || `${checked.size} وحدة متحددة`}
+                </span>
+                <button
+                  onClick={() => setChecked(new Set())}
+                  disabled={busy}
+                  className="rounded-full border border-[#d8c9ab] px-4 py-2 text-sm font-black text-[#5c6a62] disabled:opacity-50"
+                >
+                  إلغاء التحديد
+                </button>
+                <button
+                  onClick={() => void removeChecked()}
+                  disabled={busy}
+                  className="rounded-full bg-red-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50"
+                >
+                  حذف المحدد ({checked.size})
+                </button>
+              </div>
+            )}
+
             <div className="overflow-x-auto p-4">
               {unitsLoading && <p className="p-6 text-center text-sm font-bold">جاري التحميل…</p>}
               {!unitsLoading && units && !units.length && <p className="p-6 text-center text-sm font-bold">مفيش وحدات للمشروع ده لسه</p>}
@@ -142,6 +222,20 @@ export default function UnitsTab({
                 <table className="w-full min-w-[880px] text-right text-sm">
                   <thead className="text-xs font-black text-[#5c6a62]">
                     <tr className="border-b border-[#efe7d8]">
+                      <th className="w-8 p-2">
+                        <input
+                          type="checkbox"
+                          aria-label="تحديد كل الوحدات"
+                          title="تحديد الكل"
+                          checked={allChecked}
+                          ref={(element) => {
+                            if (element) element.indeterminate = someChecked;
+                          }}
+                          onChange={toggleAll}
+                          disabled={busy}
+                          className="h-4 w-4 cursor-pointer accent-[#0d1f18]"
+                        />
+                      </th>
                       <th className="p-2">النوع</th>
                       <th className="p-2">المساحة</th>
                       <th className="p-2">السعر</th>
@@ -156,7 +250,17 @@ export default function UnitsTab({
                     {units.map((unit) => {
                       const own = mediaImages(unit).length;
                       return (
-                        <tr key={unit.id} className="border-b border-[#f4eee2] align-top">
+                        <tr key={unit.id} className={`border-b border-[#f4eee2] align-top ${checked.has(unit.id) ? "bg-[#fffaf1]" : ""}`}>
+                          <td className="p-2">
+                            <input
+                              type="checkbox"
+                              aria-label={`تحديد ${unit.unit_type || "الوحدة"}`}
+                              checked={checked.has(unit.id)}
+                              onChange={() => toggle(unit.id)}
+                              disabled={busy}
+                              className="mt-1 h-4 w-4 cursor-pointer accent-[#0d1f18]"
+                            />
+                          </td>
                           <td className="p-2">
                             <span className="font-black">{unit.unit_type || "—"}</span>
                             <span className="block text-xs text-[#5c6a62]">{unit.bedrooms_text || ""}</span>
