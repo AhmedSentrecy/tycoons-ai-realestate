@@ -1,6 +1,6 @@
 "use strict";
 
-const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, isCommercialUnit } = require("./_display-text.cjs");
+const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, isCommercialUnit, fitTitle, priceShortAr } = require("./_display-text.cjs");
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("./_localized-project-content.cjs");
 const { developerContent } = require("./_developer-content.cjs");
 
@@ -848,6 +848,7 @@ function renderPage({
   robots = "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1",
   canonicalPath = "",
 }) {
+  title = fitTitle(title); // Google shows about 60 characters of a title
   const ar = lang === "ar";
   const canonical = `${SITE_URL}${canonicalPath || path}`;
   const alternate = alternatePath ? `${SITE_URL}${alternatePath}` : "";
@@ -1392,7 +1393,7 @@ function renderUnit(projects, unitId, lang = "ar") {
   };
   const intro = pick(UNIT_INTRO_BANK, seed, "intro")(introVars);
 
-  const title = `${unitTypeAr} ${clean(unit.area_sqm, "")} م² في ${project.name} | Tycoons`;
+  const title = `${unitTypeAr} ${clean(unit.area_sqm, "")} م² في ${project.name}${priceShortAr(unit.starting_price) ? ` بـ ${priceShortAr(unit.starting_price)}` : ""} | Tycoons`;
   const description = `${unitTypeAr} في ${project.name} بسعر يبدأ من ${priceFmt}. اعرف المساحة وخطة السداد والتشطيب والبدائل القريبة.`;
 
   const crumbs = [

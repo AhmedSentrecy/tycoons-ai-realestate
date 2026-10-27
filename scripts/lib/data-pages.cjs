@@ -3,7 +3,7 @@
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("../../netlify/functions/_localized-project-content.cjs");
 // Buyer FAQ computed from the live units (shared with the React project page; needs `node --import tsx`).
 const { buildProjectFaq, isCuratedFaq, cleanPublicFaq } = require("../../src/lib/projectFaq.ts");
-const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, countAr } = require("../../netlify/functions/_display-text.cjs");
+const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, countAr, priceShortAr } = require("../../netlify/functions/_display-text.cjs");
 
 const { pageShell } = require("./page-shell.cjs");
 const { buildProjectSchemas } = require("../../netlify/functions/_project-schema.cjs");
@@ -436,11 +436,13 @@ function bedroomsLabel(raw) {
   return count <= 10 ? `${count} غرف نوم` : `${count} غرفة نوم`;
 }
 
-function unitTitle(unitType, bedroomsRaw, areaSqm, projectName) {
+function unitTitle(unitType, bedroomsRaw, areaSqm, projectName, price) {
   // Skip when the type already says it ("1 Bedroom", "4BD", "CLEO 3B") or is a studio.
   const beds = /ستوديو|studio|غرف|غرفة|\d\s*(?:b|bd|br|bed|bedrooms?)\b/i.test(unitType) ? "" : bedroomsLabel(bedroomsRaw);
   const area = Number(areaSqm) > 0 ? ` ${Number(areaSqm)} م²` : "";
-  return `${unitType}${beds ? ` ${beds}` : ""}${area} في ${projectName} | Tycoons`;
+  // The price tells apart units of the same type and size (and earns the click).
+  const priceLabel = priceShortAr(price);
+  return `${unitType}${beds ? ` ${beds}` : ""}${area} في ${projectName}${priceLabel ? ` بـ ${priceLabel}` : ""} | Tycoons`;
 }
 
 function renderUnitStatic(shell, unit, project, siblings = [], { indexable = true } = {}) {
@@ -448,7 +450,7 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
   const projectUrl = `${SITE_URL}/projects/${project.slug}`;
   const unitType = arabicField(unit.unit_type);
   const bedrooms = arabicField(unit.bedrooms_text);
-  const title = unitTitle(unitType, unit.bedrooms_text, unit.area_sqm, text(unit.project_name));
+  const title = unitTitle(unitType, unit.bedrooms_text, unit.area_sqm, text(unit.project_name), unit.starting_price);
   const area = areaInfo(unit.location || project.location);
   const areaPath = `/ar/areas/${area.slug}`;
   const developerPath = `/ar/developers/${slugify(project.developer)}`;
