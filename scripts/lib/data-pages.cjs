@@ -2,7 +2,7 @@
 
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("../../netlify/functions/_localized-project-content.cjs");
 // Buyer FAQ computed from the live units (shared with the React project page; needs `node --import tsx`).
-const { buildProjectFaq, isCuratedFaq } = require("../../src/lib/projectFaq.ts");
+const { buildProjectFaq, isCuratedFaq, cleanPublicFaq } = require("../../src/lib/projectFaq.ts");
 
 const { pageShell } = require("./page-shell.cjs");
 const { buildProjectSchemas } = require("../../netlify/functions/_project-schema.cjs");
@@ -310,12 +310,12 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
       answer: `الوحدات الظاهرة حاليًا تشمل ${[...new Set(units.map((unit) => text(unit.unit_type)).filter(Boolean))].join("، ")}.`,
     }] : []),
   ];
-  const faq = isIcityOctober
+  const faq = cleanPublicFaq(isIcityOctober
     ? [...baseFaq, {
         question: `فين ألاقي master plan ${project.name}؟`,
         answer: `استخدم النسخة الرسمية من ${project.developer} لتأكيد المراحل والمداخل. الصفحة تعرض الوحدات والأسعار للمقارنة ولا تستبدل المخطط المساحي الرسمي.`,
       }]
-    : baseFaq;
+    : baseFaq);
   const storedArticle = arrayValue(project.article_sections);
   let article = isIcityOctober
     ? [...storedArticle, {

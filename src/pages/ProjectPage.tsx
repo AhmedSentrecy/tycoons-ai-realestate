@@ -23,7 +23,7 @@ import { guidePath, loadProjectArticleBySlug, loadProjectGuidesBySlug, publicMar
 import GuideBody from "@/components/GuideBody";
 import { useDeveloper } from "@/lib/developers";
 import { fallbackImageFor, useInventory, type InventoryUnit } from "@/lib/inventory";
-import { buildProjectFaq, isCuratedFaq, projectsFromUnits, researchFaqItems } from "@/lib/projectFaq";
+import { buildProjectFaq, cleanPublicFaq, isCuratedFaq, projectsFromUnits, researchFaqItems } from "@/lib/projectFaq";
 import {
   loadProjectPage,
   type ProjectPageContent,
@@ -497,7 +497,7 @@ export default function ProjectPage() {
         { otherProjects: faqProjects, research: researchFaqItems(content?.targeting?.research_faq) },
       );
   const baseFaq = computedFaq.length ? computedFaq : storedFaq;
-  const faq = isIcityOctober
+  const faq = cleanPublicFaq(isIcityOctober
     ? [
         ...baseFaq,
         {
@@ -505,7 +505,7 @@ export default function ProjectPage() {
           answer: `استخدم النسخة الرسمية من ${project.developer} لتأكيد المراحل والمداخل. الصفحة تعرض الوحدات والأسعار للمقارنة ولا تستبدل المخطط المساحي الرسمي.`,
         },
       ]
-    : baseFaq;
+    : baseFaq);
   const visibleFaq = localizedArabic?.article_sections.length ? [] : faq;
   const structuredData = {
     "@context": "https://schema.org",
