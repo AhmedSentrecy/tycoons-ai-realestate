@@ -42,6 +42,33 @@ const TEMPLATE_QUESTION = /^(ما نظام سداد|كيف أتأكد من أح�
 
 const hostOf = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return ""; } };
 
+// Top site rule: no other website may appear anywhere on tycoons-inv.com.
+// Removes "المصدر: x.com، y.com" / "Source: ..." clauses and any bare URL or domain name
+// (tycoons-inv.com itself is kept) from public FAQ text.
+const SITE_HOST = /^(?:www\.)?tycoons-inv\.com$/i;
+const DOMAIN_RE = /(?:https?:\/\/)?(?:www\.)?(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+(?:com|net|org|eg|io|co|ae|sa|info|me|app|ai|dev|site|online|realestate|properties|homes|uk|us)(?:\.[a-z]{2})?(?:\/[^\s،,)]*)?/gi;
+export function stripExternalSources(value: string): string {
+  return String(value || "")
+    // "المصدر: a.com، b.com." / "المصادر: ..." / "Source(s): ..." up to the end of that sentence
+    .replace(/\s*\(?\s*(?:المصدر|المصادر|مصدر المعلومة|Sources?)\s*[:：](?:[^.؟!\n]|\.(?=\S))*[.؟!]?\s*\)?/gi, " ")
+    .replace(DOMAIN_RE, (match) => (SITE_HOST.test(match.replace(/^https?:\/\//i, "").split("/")[0]) ? match : ""))
+    // tidy what the removals leave behind
+    .replace(/\(\s*[،,]?\s*\)/g, "")
+    .replace(/\s*[،,]\s*(?=[،,.؟!]|$)/g, "")
+    .replace(/(?:^|\s)(?:و|أو|or|and)\s*(?=[.؟!]|$)/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([.،,؟!])/g, "$1")
+    .replace(/([.؟!])\1+/g, "$1")
+    .trim();
+}
+
+/** Final pass for every public FAQ (computed, researched or stored by hand). */
+export function cleanPublicFaq<T extends { question: string; answer: string }>(items: T[] | null | undefined): T[] {
+  return (items || [])
+    .map((item) => ({ ...item, question: stripExternalSources(item.question), answer: stripExternalSources(item.answer) }))
+    .filter((item) => item.question && item.answer);
+}
+
 /** Saved research questions, bounded and https-only (the stored JSON is treated as untrusted). */
 export function researchFaqItems(value: unknown): ResearchFaq[] {
   if (!Array.isArray(value)) return [];
@@ -388,12 +415,13 @@ export function buildProjectFaq(project: FaqProject, units: FaqUnit[], context: 
     }
   }
 
-  // Researched questions (reviewed by the owner), each citing its websites.
+  // Researched questions (reviewed by the owner).
   // Same question as a computed one (e.g. the location): the researched answer replaces it,
   // keeping the computed "nearby projects" line.
   for (const item of researchFaqItems(context.research)) {
-    const hosts = [...new Set((item.sources || []).map((source) => hostOf(source.url)).filter(Boolean))].slice(0, 2);
-    const answer = `${item.answer}${hosts.length ? ` المصدر: ${hosts.join("، ")}.` : ""}`;
+    // Sources stay in the admin for review only; the public answer never names another website.
+    const answer = stripExternalSources(item.answer);
+    if (!answer) continue;
     // The location question is matched by meaning ("... فين بالظبط؟"), not exact wording.
     const existing = faq.find((entry) => entry.question === item.question)
       || (/فين/.test(item.question) ? faq.find((entry) => entry.question === `${n} فين بالظبط؟`) : undefined);
@@ -410,5 +438,5 @@ export function buildProjectFaq(project: FaqProject, units: FaqUnit[], context: 
     answer: `مطور ${n} هو ${project.developer}.${sameDeveloper ? ` وله مشاريع تانية معروضة على Tycoons منها ${sameDeveloper}.` : ""}`,
   });
 
-  return faq;
+  return cleanPublicFaq(faq);
 }

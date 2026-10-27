@@ -1,7 +1,7 @@
 // Offline: researched buyer FAQ (request, validation) and how it joins the page FAQ.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-import { buildProjectFaq, researchFaqItems } from "../src/lib/projectFaq.ts";
+import { buildProjectFaq, cleanPublicFaq, researchFaqItems, stripExternalSources } from "../src/lib/projectFaq.ts";
 
 const require = createRequire(import.meta.url);
 const gen = require("../netlify/functions/_article-generation.cjs");
@@ -43,7 +43,13 @@ const plain = buildProjectFaq(project, units);
 const withResearch = buildProjectFaq(project, units, { research: [{ question: good.question + "؟", answer: good.answer, sources: good.sources }] });
 check(withResearch.length === plain.length, "a researched question with the same wording replaces the computed one");
 const replaced = withResearch.find((item) => item.question === "Bleu Vert فين بالظبط؟");
-check(replaced && replaced.answer.includes("R7") && replaced.answer.includes("المصدر: sed.com.eg."), "researched answer cites its website");
+check(replaced && replaced.answer.includes("R7") && !/المصدر|sed\.com/i.test(replaced.answer), "researched answer never names another website");
+check(stripExternalSources("الشاطئ 1.2 كيلومتر. المصدر: sodic.com، sodicdevelopmentsegypt.com.") === "الشاطئ 1.2 كيلومتر.", "source clause with domains is removed");
+check(stripExternalSources("المكونات على صفحة sodic.com الخاصة بالمشروع.") === "المكونات على صفحة الخاصة بالمشروع.", "bare domain inside a sentence is removed");
+check(stripExternalSources("شوف https://www.example.co.uk/page و tycoons-inv.com للتفاصيل.").includes("tycoons-inv.com") && !/example/.test(stripExternalSources("شوف https://www.example.co.uk/page و tycoons-inv.com للتفاصيل.")), "own domain kept, others removed");
+check(stripExternalSources("Mountain View 1.1 جاهز. سعر المتر 82,898 جنيه.") === "Mountain View 1.1 جاهز. سعر المتر 82,898 جنيه.", "numbers and project names untouched");
+check(cleanPublicFaq([{ question: "q؟", answer: "المصدر: a.com." }]).length === 0, "an answer that was only a source line is dropped");
+check(cleanPublicFaq([{ question: "q؟", answer: "نص. Source: dlrgroup.com" }])[0].answer === "نص.", "English source line removed");
 const other = { question: "مساحة Bleu Vert قد إيه؟", answer: "يقام Bleu Vert على مساحة 50 فدان في العاصمة الإدارية الجديدة حسب موقع المطور.", sources: good.sources };
 check(buildProjectFaq(project, units, { research: [other] }).length === plain.length + 1, "a new researched question is added");
 const reworded = buildProjectFaq(project, units, { research: [{ ...other, question: "موقع Bleu Vert فين؟" }] });
