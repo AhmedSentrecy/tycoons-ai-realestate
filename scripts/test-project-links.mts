@@ -28,4 +28,18 @@ check(!/caesar--sodic" class="block/.test(html), "nearby is the same area only")
 check(!/5a--waterway" class="block/.test(html), "nearby prefers a similar budget");
 check((html.match(/loading="lazy" decoding="async"/g) || []).length === 2, "gallery shows the photos after the hero");
 check(/alt="Hydepark New Cairo في [^"]+ — صورة 2 من 3"/.test(html), "gallery photos have descriptive alt text");
+// Article text links other projects once, never inside a heading.
+const withArticle = { ...project, article_sections: [
+  { heading: "Hydepark New Cairo و Cattleya", paragraphs: ["قارن مع Cattleya قبل ما تقرر.", "Cattleya تاني مرة."] },
+] };
+const articleHtml: string = renderProjectStatic(shell, withArticle, units, [], { otherProjects, projectLinks: links });
+const articlePart = articleHtml.split("مشاريع قريبة")[0].split("أسئلة شائعة")[0];
+check(/مع <a href="\/projects\/cattleya--arabco-developments"[^>]*>Cattleya<\/a> قبل/.test(articlePart), "article text links a mentioned project");
+check((articlePart.match(/href="\/projects\/cattleya--arabco-developments"/g) || []).length === 1, "only the first mention in the article is linked");
+check(!/<h2[^>]*>[^<]*<a /.test(articlePart), "headings are never linked");
+
+// Merged listings redirect to the main page.
+const { projectAliases } = require("./lib/project-aliases.cjs");
+const aliases = projectAliases([{ id: "a", slug: "hydepark-new-cairo--hydepark-developments", name: "Hyde Park New Cairo", developer: "Hyde Park Developments" }], new Map());
+check(aliases.get("hyde-park-new-cairo-new-launch") === "hydepark-new-cairo--hydepark-developments", "the New Launch page points to the main Hyde Park New Cairo page");
 console.log(`Project link and gallery tests passed (${checks} checks).`);

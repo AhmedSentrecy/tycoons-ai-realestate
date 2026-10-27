@@ -15,6 +15,9 @@ function projectAliases(projects, unitsByProject) {
     ["creekview--mountain-view", "mountain-view-creek-view--mountain-view"],
     ["mountain-view-creekview--mountain-view", "mountain-view-creek-view--mountain-view"],
     ["regent-s-square--al-dawlia-boutique-developments", "regent-s-square--al-dawlia-developments"],
+    // Oct 2026: the "New Launch" listing was merged into the main Hyde Park New Cairo page.
+    ["hyde-park-new-cairo-new-launch", "hydepark-new-cairo--hydepark-developments"],
+    ["hyde-park-new-cairo-new-launch--hyde-park-developments", "hydepark-new-cairo--hydepark-developments"],
   ]);
   for (const project of projects) {
     const generated = `${slugify(project.name)}--${slugify(project.developer)}`;

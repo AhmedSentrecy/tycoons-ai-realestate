@@ -147,6 +147,7 @@ async function main() {
       .flatMap(([oldSlug, canonicalSlug]) => [
         `/projects/${oldSlug} /projects/${canonicalSlug} 301!`,
         `/ar/projects/${oldSlug} /projects/${canonicalSlug} 301!`,
+        `/en/projects/${oldSlug} /en/projects/${canonicalSlug} 301!`,
       ]),
   ];
   await fs.writeFile(path.join(dist, "_redirects"), `${redirects.join("\n")}\n`, "utf8");
