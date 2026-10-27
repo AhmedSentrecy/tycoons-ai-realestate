@@ -35,6 +35,7 @@ import { areaFor } from "@/lib/unitContent";
 import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
 import PageStructuredData from "@/components/PageStructuredData";
 import { unitPath } from "@/lib/unitUrl";
+import { fitTitle } from "@/lib/fitTitle";
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201110100025";
@@ -332,7 +333,7 @@ export default function ProjectPage() {
   useEffect(() => {
     if (loading || contentLoading || project || !content) return;
     const title = (ownGuide && localizedArabic?.seo_title) || content.seo_title || `${content.name} | Tycoons Investments`;
-    document.title = title;
+    document.title = fitTitle(title);
     setMeta('meta[name="description"]', "content", (ownGuide && localizedArabic?.seo_description) || content.seo_description || `تفاصيل مشروع ${content.name} من ${content.developer}. تواصل معنا لتأكيد آخر الوحدات المتاحة.`);
     setMeta('link[rel="canonical"]', "href", `${SITE_URL}/projects/${slug}`);
     setMeta('meta[name="robots"]', "content", ownGuide ? "index,follow" : "noindex,follow");
@@ -352,7 +353,7 @@ export default function ProjectPage() {
         `اعرف أسعار ومساحات ${project.project_name} وخطط السداد والوحدات المتاحة.`;
     const localizedTitle = localizedArabic?.seo_title || title;
     const localizedDescription = localizedArabic?.seo_description || description;
-    document.title = localizedTitle;
+    document.title = fitTitle(localizedTitle);
     setMeta('meta[name="description"]', "content", localizedDescription);
     setMeta('link[rel="canonical"]', "href", pageUrl);
     setMeta('meta[property="og:title"]', "content", localizedTitle);

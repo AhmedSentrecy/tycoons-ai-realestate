@@ -14,6 +14,7 @@ import {
 
 import GuideBody from "@/components/GuideBody";
 import { unitPath } from "@/lib/unitUrl";
+import { fitTitle } from "@/lib/fitTitle";
 
 const SITE_URL = "https://tycoons-inv.com";
 const formatPrice = (value: number) => new Intl.NumberFormat("en-US").format(value);
@@ -88,7 +89,7 @@ export default function GuidePage() {
   useEffect(() => {
     if (!guide) return;
     const title = guide.meta_title || `${guide.title} | Tycoons Investments`;
-    document.title = title;
+    document.title = fitTitle(title);
     setMeta('meta[name="description"]', "content", guide.meta_description || guide.excerpt);
     const canonicalPath = embeddedInProject && project?.slug ? `${language === "en" ? "/en" : ""}/projects/${project.slug}` : path;
     setMeta('link[rel="canonical"]', "href", `${SITE_URL}${canonicalPath}`);

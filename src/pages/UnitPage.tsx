@@ -21,6 +21,7 @@ import { loadUnitPage, loadUnitSiblings, type SiblingUnitRow, type UnitPageData 
 import { arabicField } from "@/lib/arabicFields";
 import { areaFor, areaFacts, computeUnitStats, rankClause, pick } from "@/lib/unitContent";
 import { unitTitle } from "../lib/unitTitle";
+import { fitTitle } from "@/lib/fitTitle";
 
 const UNIT_INTRO_BANK: Array<(vars: Record<string, string>) => string> = [
   (v) => `${v.unitType} بمساحة ${v.area} م² جوه ${v.projectName} من ${v.developer}، في ${v.areaAr}. ${v.rank}. السعر يبدأ من ${v.price}، والاستلام ${v.delivery}.`,
@@ -101,7 +102,7 @@ export default function UnitPage() {
     // Legacy UUID links and outdated words: show the one readable URL in the address bar.
     if (window.location.pathname.replace(/\/+$/, "") !== canonicalPath) window.history.replaceState(window.history.state, "", canonicalPath + window.location.search + window.location.hash);
     const unitType = arabicField(unit.unit_type);
-    const title = unitTitle(unitType, unit.bedrooms_text, unit.area_sqm, unit.project_name);
+    const title = fitTitle(unitTitle(unitType, unit.bedrooms_text, unit.area_sqm, unit.project_name, unit.starting_price));
     const description = `${unitType} في ${unit.project_name} بسعر يبدأ من ${formatPrice(unit.starting_price)} جنيه. اعرف المساحة وخطة السداد والتشطيب.`;
     document.title = title;
     setMeta('meta[name="description"]', "content", description);

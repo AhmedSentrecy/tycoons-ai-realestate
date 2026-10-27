@@ -1,11 +1,14 @@
 "use strict";
 const { escapeHtml } = require("../../netlify/functions/_article-render.cjs");
+const { fitTitle } = require("../../netlify/functions/_display-text.cjs");
 
 function removeTag(html, expression) {
   return html.replace(expression, "");
 }
 
-function pageShell(shell, { title, description, canonical, image, keywords, schemas, body, robots = "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1", alternates = [], lang = "ar" }) {
+function pageShell(shell, { title: rawTitle, description, canonical, image, keywords, schemas, body, robots = "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1", alternates = [], lang = "ar" }) {
+  // Google shows about 60 characters of a title; fit it without cutting a word.
+  const title = fitTitle(rawTitle);
   const language = lang === "en" ? "en" : "ar";
   let html = shell.replace(/<html\b[^>]*>/i, `<html lang="${language}" dir="${language === "en" ? "ltr" : "rtl"}">`);
   const defaultUrl = alternates.find((item) => item.hreflang === "ar-EG")?.href || canonical;
