@@ -99,7 +99,24 @@ async function main() {
   }
 
   // Other public projects (with units) for the "nearby" and "same developer" answers.
-  const faqContext = { otherProjects: projectsFromUnits(units.filter((unit) => projectById.has(unit.project_id))) };
+  const faqContext = {
+    otherProjects: projectsFromUnits(units.filter((unit) => projectById.has(unit.project_id))),
+    // Every public project with units, so a page can link the projects it mentions and
+    // show "projects near …" (internal links between project pages).
+    projectLinks: normalizedProjects
+      .filter((item) => (unitsByProject.get(item.id) || []).length)
+      .map((item) => {
+        const list = unitsByProject.get(item.id) || [];
+        const prices = list.map((unit) => Number(unit.starting_price)).filter((value) => value > 0);
+        return {
+          id: item.id, name: String(item.name || "").trim(), slug: item.slug, developer: String(item.developer || "").trim(),
+          location: String(item.location || list[0]?.location || "").trim(),
+          minPrice: prices.length ? Math.min(...prices) : 0,
+          image: String(item.image_url || "").split(",")[0].trim(),
+        };
+      })
+      .filter((item) => item.name && item.slug),
+  };
   let projectCount = 0;
   let unitCount = 0;
   for (const project of normalizedProjects) {
