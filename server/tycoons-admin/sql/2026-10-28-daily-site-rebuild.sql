@@ -11,6 +11,7 @@
 --     rebuild_gate_secret     -> the <secret> part of the gate URL
 --     rebuild_pending_since   -> set by the gate when an edit asked for an automatic rebuild
 --     last_site_deploy_at     -> last deploy started by the gate (manual button) or by this job
+--     daily_rebuild_paused_until -> optional: no daily deploy before this time
 --   Manual "حدّث الموقع" presses go through the gate straight to Netlify.
 --   Everything else waits for this job: once a day at 02:00 UTC (04:00 Cairo in winter,
 --   05:00 in summer time) it deploys if anything changed since the last deploy.
@@ -32,8 +33,16 @@ as $$
 declare
   hook text;
   last_deploy timestamptz;
+  paused_until timestamptz;
   changed boolean;
 begin
+  -- while Netlify credits are used up a deploy is only skipped, so wait (changes stay pending).
+  -- Set 28 Oct 2026 to 2026-11-11T00:00:00Z (credits reset); delete the key to resume earlier.
+  select nullif(value, '')::timestamptz into paused_until from public.media_admin_settings where key = 'daily_rebuild_paused_until';
+  if paused_until is not null and now() < paused_until then
+    return 'paused_until_' || paused_until::text;
+  end if;
+
   select value into hook from public.media_admin_settings where key = 'netlify_build_hook_real';
   if coalesce(hook, '') !~ '^https://api\.netlify\.com/build_hooks/[a-zA-Z0-9]{10,}$' then
     return 'no_build_hook';
