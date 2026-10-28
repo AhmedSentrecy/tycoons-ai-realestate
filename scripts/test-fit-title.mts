@@ -23,7 +23,7 @@ for (const sample of samples) {
   checks += 3;
 }
 assert.equal(fitTitle("Caesar | الأسعار وخطط السداد 2026"), "Caesar | الأسعار وخطط السداد 2026", "short titles untouched"); checks += 1;
-assert.equal(priceShortAr(50263000), "50.3 مليون"); assert.equal(priceShortAr(980000), "980 ألف"); assert.equal(priceShortAr(0), ""); checks += 3;
+assert.equal(priceShortAr(50263000), "50.26 مليون"); assert.notEqual(priceShortAr(11869155), priceShortAr(11920155)); assert.equal(priceShortAr(9400000), "9.4 مليون"); assert.equal(priceShortAr(980000), "980 ألف"); assert.equal(priceShortAr(0), ""); checks += 5;
 
 // Same type and size, different price: different titles, identical in app and static page.
 const a = unitTitle("فيلا", "3 bedrooms", 221, "Caesar", 50263000);

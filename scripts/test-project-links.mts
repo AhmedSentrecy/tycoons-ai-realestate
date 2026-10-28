@@ -42,4 +42,7 @@ check(!/<h2[^>]*>[^<]*<a /.test(articlePart), "headings are never linked");
 const { projectAliases } = require("./lib/project-aliases.cjs");
 const aliases = projectAliases([{ id: "a", slug: "hydepark-new-cairo--hydepark-developments", name: "Hyde Park New Cairo", developer: "Hyde Park Developments" }], new Map());
 check(aliases.get("hyde-park-new-cairo-new-launch") === "hydepark-new-cairo--hydepark-developments", "the New Launch page points to the main Hyde Park New Cairo page");
+const devAliases = projectAliases([{ id: "g", slug: "new-garden-city--city-edge", name: "New Garden City", developer: "City Edge" }, { id: "m", slug: "mazarine-chalet-extension--city-edge-developments", name: "Mazarine Chalet Extension", developer: "City Edge Developments" }], new Map());
+check(devAliases.get("new-garden-city--city-edge-developments") === "new-garden-city--city-edge", "a '-developments' spelling of the developer redirects to the stored page");
+check(devAliases.get("mazarine-chalet-extension--city-edge") === "mazarine-chalet-extension--city-edge-developments", "and the short spelling does too");
 console.log(`Project link and gallery tests passed (${checks} checks).`);

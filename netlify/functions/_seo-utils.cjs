@@ -1056,6 +1056,24 @@ function directoryStyles() {
 @media(max-width:620px){.areas{grid-template-columns:1fr 1fr;gap:10px}.area{height:150px}.area h3{font-size:16px}.devs{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.dev{padding:10px 6px}.dev .lg{height:44px}.dev .lg img{max-height:34px}.dev b{font-size:12px}.dev span{font-size:11px}.devs.lim .dev:nth-child(n+13){display:none}.pgrid,.guides3{grid-template-columns:1fr}.dsearch{flex-direction:column}.dsearch button{padding:12px}.stats b{font-size:24px}.sh{flex-direction:column;align-items:flex-start}}`;
 }
 
+// Written guidance on how to read the directory: gives the page its own text instead of
+// only project cards (Moz flagged /en/directory/ as near-duplicate of the New Cairo area page).
+function directoryAbout(ar, projectCount, unitCount, developerCount) {
+  const units = new Intl.NumberFormat("en-EG").format(unitCount);
+  const paragraphs = ar
+    ? [
+        `الدليل ده بيجمع ${projectCount} مشروع و${units} وحدة متاحة من ${developerCount} مطور في مكان واحد. كل سعر ظاهر هنا جاي من مخزون المطور نفسه، وبيتحدث أول بأول، وجنبه تاريخ آخر تحديث عشان تعرف السعر ده جديد ولا قديم.`,
+        "ابدأ بالمنطقة اللي تناسبك، وبعدها قارن المشاريع بسعر البداية ونظام السداد وميعاد الاستلام، مش بالسعر لوحده. مشروع أرخص في السعر ممكن يكون أغلى في الحقيقة لو مقدمه أعلى أو استلامه أبعد أو محتاج تشطيب كامل.",
+        "لو محتار بين مشروعين، افتح صفحة كل مشروع وقارن الوحدات المتاحة بالمساحة وسعر المتر، أو ابعتلنا الميزانية والمنطقة على واتساب ونرشحلك أنسب الاختيارات.",
+      ]
+    : [
+        `This directory brings together ${projectCount} projects and ${units} available units from ${developerCount} developers in Egypt. Every price comes from the developer's own inventory and carries the date it was last updated, so you can tell a fresh price from an old one.`,
+        "Start with the area that suits you, then compare projects by starting price, payment plan and delivery date rather than price alone. A cheaper project can cost more in practice if it needs a larger down payment, delivers later or comes without finishing.",
+        "Torn between two projects? Open each project page and compare the available units by size and price per square metre, or send us your budget and preferred area on WhatsApp for a shortlist.",
+      ];
+  return `<section class="prose" style="margin-top:48px"><h2>${ar ? "إزاي تستخدم دليل المشاريع" : "How to use this project directory"}</h2>${paragraphs.map((text) => `<p>${escapeHtml(text)}</p>`).join("")}</section>`;
+}
+
 function renderDirectory(allProjects, lang, articles = []) {
   const ar = lang === "ar";
   const path = ar ? "/ar/" : "/en/directory/";
@@ -1137,6 +1155,7 @@ ${devList.length > 14 ? `<div class="showall"><label class="more" for="all-devs"
 <section class="dproj" aria-labelledby="projects-h"><div class="sh"><div><h2 id="projects-h">${ar ? "المشاريع المتاحة" : "Available projects"}</h2><p>${ar ? "اختار فلتر عشان تضيّق النتايج" : "Pick a filter to narrow the list"}</p></div></div>
 ${filterBar}<input type="checkbox" id="show-all" hidden><div class="pgrid lim">${projectCards}</div>
 <div class="showall"><label class="more" for="show-all">${ar ? `اعرض كل المشاريع (${listedProjects.length})` : `Show all projects (${listedProjects.length})`}</label></div></section>
+${directoryAbout(ar, listedProjects.length, unitCount, devList.length)}
 <div class="sh"><div><h2>${ar ? "أدلة تساعدك تقرر" : "Guides to help you decide"}</h2></div><a class="more" href="${ar ? "/guides/" : "/en/guides/"}">${ar ? "كل الأدلة ←" : "All guides →"}</a></div>
 <div class="guides3">${guideCards}</div>
 </main>

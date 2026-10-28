@@ -25,6 +25,7 @@ export function fitTitle(value: string, max = 60): string {
 export function priceShortAr(value: number | string | null | undefined): string {
   const price = Number(value);
   if (!Number.isFinite(price) || price <= 0) return "";
-  if (price >= 1_000_000) return `${(Math.round(price / 100_000) / 10).toString()} مليون`;
+  // two decimals so near-identical units (11.87 vs 11.92 مليون) never share one title
+  if (price >= 1_000_000) return `${(Math.round(price / 10_000) / 100).toString()} مليون`;
   return `${Math.round(price / 1000)} ألف`;
 }
