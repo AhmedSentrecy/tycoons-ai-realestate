@@ -90,7 +90,7 @@ export default function ProjectFaqTab({ projects }: { projects: AdminProject[] }
       setProposals((current) => current.filter((item) => !result.items.some((kept) => kept.question === item.question)));
       notify(result.rebuilt
         ? "اتحفظت. الموقع بيتحدّث دلوقتي والأسئلة هتظهر في صفحة المشروع خلال دقايق."
-        : "اتحفظت. الموقع لسه متحدّث من شوية، فهتظهر في صفحة المشروع مع التحديث الجاي.");
+        : "اتحفظت. هتظهر في صفحة المشروع مع تحديث الموقع اليومي (الساعة 4 الفجر). لو مستعجل دوس \"حدّث الموقع\".");
     } catch (error) {
       handleError(error);
     } finally {
