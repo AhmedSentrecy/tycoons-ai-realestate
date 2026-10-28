@@ -20,8 +20,15 @@ function projectAliases(projects, unitsByProject) {
     ["hyde-park-new-cairo-new-launch--hyde-park-developments", "hydepark-new-cairo--hydepark-developments"],
   ]);
   for (const project of projects) {
-    const generated = `${slugify(project.name)}--${slugify(project.developer)}`;
-    if (generated !== project.slug && !slugs.has(generated)) aliases.set(generated, project.slug);
+    const name = slugify(project.name);
+    const developer = slugify(project.developer);
+    // The same developer is stored as "City Edge" on some rows and "City Edge Developments"
+    // on others, so both URL spellings must lead to the one stored page.
+    const developerVariants = [developer, developer.endsWith("-developments") ? developer.replace(/-developments$/, "") : `${developer}-developments`];
+    for (const variant of developerVariants) {
+      const generated = `${name}--${variant}`;
+      if (variant && generated !== project.slug && !slugs.has(generated) && !aliases.has(generated)) aliases.set(generated, project.slug);
+    }
   }
   for (const project of projects) {
     if ((unitsByProject.get(project.id) || []).length) continue;
