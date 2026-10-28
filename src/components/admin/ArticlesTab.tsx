@@ -418,9 +418,9 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       if (operation !== operationId.current) return;
       const normalized = withSeoDefaults(article);
       setLoadedArticle(normalized); setValues(normalized); setSavedFingerprint(articleFingerprint(normalized)); setReviewConfirmed(false); await refresh();
-      // Rebuild the site so the guide gets its full page and shows on the project page.
-      const rebuilt = await adminApi.rebuild(token).then(() => true, () => false);
-      notify(rebuilt ? "تم نشر المقال. الموقع بيتحدّث دلوقتي، والمقال هيظهر في صفحة المشروع خلال دقايق." : "تم نشر المقال. دوس \"حدّث الموقع\" علشان يظهر في صفحة المشروع.");
+      // No deploy per article (each Netlify deploy costs credits): the guide page itself is live
+      // now, and it shows on the project page after the daily site update.
+      notify("تم نشر المقال وصفحته شغالة دلوقتي. هيظهر في صفحة المشروع مع تحديث الموقع اليومي (الساعة 4 الفجر)، ولو مستعجل دوس \"حدّث الموقع\".");
     } catch (error) {
       if (operation !== operationId.current) return;
       if (error instanceof AdminApiError && error.code === "article_review_blocked") {
