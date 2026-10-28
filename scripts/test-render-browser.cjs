@@ -43,16 +43,16 @@ if (process.argv.includes("--serve")) {
       assert.match(home, /<html[^>]*lang="en"/);
       assert.match(home, /id="property-comparison-guides"/,'English React content must mount, not only its static fallback');
       results.push({page:'/en/', test:'React mounted and English buyer navigation visible', passed:true});
-      const projectFile = path.join(root, 'projects/hyde-park-new-cairo-new-launch.html');
+      const projectFile = path.join(root, 'projects/hydepark-new-cairo--hydepark-developments.html');
       if (fs.existsSync(projectFile)) {
-        const project = readPage('/projects/hyde-park-new-cairo-new-launch', 'project-mobile');
+        const project = readPage('/projects/hydepark-new-cairo--hydepark-developments', 'project-mobile');
         assert.match(project,/data-render-source="react"/,'project graph must have been updated by the actual React component');
         assert.equal((project.match(/id="tycoons-page-schema"/g)||[]).length,1);
         const matches=[...project.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)];
         const nodes=matches.flatMap((m)=>{const graph=JSON.parse(m[1]);return graph['@graph']||[graph];});
         assert.ok(nodes.some((n)=>n['@type']==='RealEstateListing'));
         assert.doesNotMatch(JSON.stringify(nodes), /"@type":"Product"/);
-        results.push({page:'/projects/hyde-park-new-cairo-new-launch',test:'one real React page graph, inventory facts preserved',passed:true});
+        results.push({page:'/projects/hydepark-new-cairo--hydepark-developments',test:'one real React page graph, inventory facts preserved',passed:true});
       } else throw new Error('Expected Hyde Park project was not built');
       const war = readPage('/sales-war-room/app', 'war-room-smoke', 1280);
       assert.match(war, /<input|<button/,'War Room should render its unauthenticated entry UI');
