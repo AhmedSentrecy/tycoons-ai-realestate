@@ -88,12 +88,12 @@ const AREAS = [
 
 const AREA_FACTS = {
   "mostakbal-city": {
-    contextEn: "Mostakbal City is a fast-growing residential city along the Cairo–Suez Road, next to Madinaty and New Cairo, and one of the areas where developers have launched the most new projects in recent years.",
-    buyerNoteEn: "Most projects here are still under construction with long payment plans, so check the developer's delivery record before reserving.",
+    contextEn: "Mostakbal City is a new city in East Cairo on the Cairo–Suez Road, covering about 5,200 feddans, with MIDAR as its master developer. It hosts more than 30 developers and 52 projects: some are delivered and lived in, others are still under construction with long payment plans.",
+    buyerNoteEn: "The city is large and its phases are very different: some areas already have residents and working services, others are still construction sites. Where a project sits inside the city and the developer's delivery record matter more than the starting price.",
     context:
-      "مستقبل سيتي منطقة سكنية ناشئة على امتداد طريق السويس، قريبة من مدينتي والقاهرة الجديدة، وبقت من أكتر المناطق اللي المطورين بيطلقوا فيها مشاريع جديدة في السنين الأخيرة.",
+      "مستقبل سيتي مدينة جديدة في شرق القاهرة على طريق القاهرة–السويس، مساحتها حوالي 5,200 فدان، والمطور الرئيسي ليها شركة مدار (MIDAR). جواها أكتر من 30 مطور و52 مشروع، منهم مشاريع اتسلمت وفيها سكان، ومشاريع لسه بتتبني بخطط سداد طويلة.",
     buyerNote:
-      "غالبية المشاريع هنا لسه تحت الإنشاء بخطط سداد طويلة، فمراجعة سجل تسليم المطور مهمة قبل الحجز.",
+      "المدينة كبيرة والمراحل فيها مختلفة جدًا: فيه مناطق سكانها عايشين وخدماتها شغالة، ومناطق لسه أرض بتتبني. موقع المشروع جوه المدينة وسجل تسليم المطور أهم من سعر البداية.",
   },
   "new-alamein": {
     contextEn: "New Alamein is a new government-backed coastal city on the western North Coast, with year-round residential projects rather than only seasonal ones.",
@@ -165,85 +165,294 @@ const GENERIC_AREA_FACTS = {
 const AREA_SEARCH_CONTENT = {
   "mostakbal-city": {
     ar: {
-      title: ({ minFmt, plural }) => `مشاريع مستقبل سيتي 2026 — الخريطة والأسعار (${plural}) من ${minFmt} | Tycoons`,
-      description: ({ minFmt, plural }) => `خريطة مستقبل سيتي ومكانها، والماستر بلان ومراحل المدينة، و${plural} متاحة حسب المطور بأسعار تبدأ من ${minFmt}. قارن المشاريع والوحدات وخطط السداد في دليل واحد محدث.`,
+      title: ({ minFmt, plural }) => `مشاريع مستقبل سيتي 2026 — الخريطة والأسعار و${plural}`,
+      description: ({ minFmt, plural }) => `دليل مستقبل سيتي 2026: الموقع والطرق والمراحل والخدمات، و${plural} متاحة بأسعار من ${minFmt} وأنظمة سداد من 1.5% مقدم لحد 12 سنة.`,
       map: { heading: "خريطة مستقبل سيتي", query: "Mostakbal City, New Cairo, Egypt", locality: "Mostakbal City, New Cairo" },
+      // Researched 29 Oct 2026 (master developer, press releases, Tycoons inventory). No external site names in the text.
       sections: [
         [
+          "مستقبل سيتي في سطور",
+          [
+            "مستقبل سيتي مدينة من مدن الجيل الرابع في شرق القاهرة، والمطور الرئيسي ليها (Master Developer) شركة مدار للاستثمار والتنمية العمرانية. مدار مسؤولة عن المخطط العام والطرق والمرافق والخدمات الكبيرة، وبتبيع أراضي لمطورين تانيين يبنوا عليها كمبوندات كاملة. علشان كده هتلاقي في نفس المدينة أسماء زي Hassan Allam وMountain View وTatweer Misr وMadinet Masr وSODIC وPalm Hills.",
+            "المساحة الكلية حوالي 5,200 فدان (حوالي 5,408 أكر)، وحسب مدار فيها أكتر من 30 شركة تطوير و52 مشروع. ده بيخليها من أكبر تجمعات المشاريع الجديدة في شرق القاهرة، وبيخلي المقارنة جواها مهمة: الفرق بين مشروع ومشروع في نفس المدينة ممكن يكون في الموقع والتسليم والسعر أكبر من الفرق بين مدينتين.",
+            "الصفحة دي بتجمع اللي محتاج تعرفه قبل ما تختار: الموقع والطرق، المراحل، الخدمات اللي اتعملت واللي بتتبني، المطورين والمشاريع، أسعار البداية عندنا في Tycoons وقت كتابة الصفحة (أكتوبر 2026)، أنظمة السداد مع مثال لحساب القسط، والتسليم، ومين تناسبه المدينة. وتحت الصفحة كل المشاريع المتاحة عندنا بأسعارها ووحداتها."
+          ]
+        ],
+        [
           "موقع مستقبل سيتي فين؟",
-          "مستقبل سيتي شرق القاهرة على طريق القاهرة–السويس، وبتتوصل بالطريق الدائري الإقليمي والدائري الأوسطي. جيرانها المباشرين مدينتي والشروق والعاصمة الإدارية الجديدة، وحسب شركة مدار (المطور الرئيسي للمدينة) فيه وصول مباشر لمحطة القطار السريع في العاصمة الإدارية.",
+          [
+            "مستقبل سيتي في شرق القاهرة على طريق القاهرة–السويس، تقريبًا بين الكيلو 46 والكيلو 51. جيرانها المباشرين مدينتي والشروق والعاصمة الإدارية الجديدة، وبتتحسب ضمن نطاق القاهرة الجديدة.",
+            "المدينة محاطة بأربع محاور رئيسية: طريق السويس، والطريق الدائري الأوسطي، والطريق الدائري الإقليمي، ومحور الأمل. وفيه وصول لمحور محمد بن زايد وطريق الروبيكي، وده بيربطها بالتجمع الخامس والعاصمة والعين السخنة.",
+            "المسافات التقريبية بالعربية في الأيام العادية: حوالي 10 دقايق للتجمع الخامس، وحوالي 15 دقيقة للعاصمة الإدارية، وحوالي 20 دقيقة لمطار القاهرة، وحوالي 45 دقيقة للعين السخنة. الأوقات دي بتختلف حسب مكان المشروع جوه المدينة، لأن المسافة من أول المدينة لآخرها مش صغيرة.",
+            "مفيش محطة مونوريل أو قطار خفيف جوه المدينة نفسها لحد دلوقتي. أقرب محطات المونوريل والقطار الكهربائي على ناحية العاصمة الإدارية، فالعربية لسه هي الوسيلة الأساسية للتنقل."
+          ]
         ],
         [
           "الماستر بلان ومراحل مستقبل سيتي",
-          "حسب مدار، مساحة مستقبل سيتي الكلية حوالي 5,200 فدان، ومتقسمة لمراحل. المرحلة الأولى حوالي 1,435 فدان قريبة من المدارس والجامعات، والمرحلة التالتة حوالي 1,548 فدان سكني وفيها مول مركاتو المفتوح، والمرحلة الرابعة حوالي 1,806 فدان سكني. موقع كل مشروع جوه المرحلة بيتأكد من الـ master plan الرسمي للمطور قبل الحجز.",
+          [
+            "المدينة متقسمة لمراحل كبيرة. حسب مدار، المرحلة الأولى حوالي 1,490 أكر (حوالي 1,435 فدان)، وهي النواة السكنية الأقدم وقريبة من المنشآت التعليمية. المرحلة التالتة حوالي 1,607 أكر (حوالي 1,548 فدان) مناطق سكنية، وفيها منطقة ميركاتو التجارية. المرحلة الرابعة حوالي 1,875 أكر (حوالي 1,806 فدان) مناطق سكنية جديدة.",
+            "عمليًا ده معناه إن المرحلة اللي المشروع فيها بتحدد حاجات كتير: هل فيه جيران وخدمات شغالة حواليك ولا لسه، والمسافة لطريق السويس والدائري الإقليمي، وسرعة ارتفاع الأسعار. المشاريع في المراحل الأقدم غالبًا أقرب للتسليم، والمشاريع في المراحل الجديدة أرخص في البداية وأطول في التقسيط.",
+            "قبل ما تحجز، اطلب مكان المشروع بالظبط على الماستر بلان الحالي، وأقرب مدخل ليه، والمسافة لأقرب خدمة شغالة فعلًا، مش المخطط لها."
+          ]
+        ],
+        [
+          "الخدمات في مستقبل سيتي: اللي اتعمل واللي بيتبني",
+          [
+            "منطقة ميركاتو في المرحلة التالتة مول مفتوح وخدمات على حوالي 22 فدان، وفيها نقطة شرطة. وفي المرحلة الأولى مشروع ڤايبز على حوالي 17.5 فدان، وفيه صالة بادل مغطاة ومكيفة على حوالي فدان.",
+            "في فبراير 2026 مدار بدأت تنفيذ 3 مشاريع خدمية كبيرة: مسجد كبير على حوالي 7 فدان يسع حوالي 5,000 مصلي، وحديقة أورانج بارك على حوالي 36 فدان فيها مسرح مفتوح لحوالي 2,000–2,500 شخص ومسارات مشي ومطاعم، ونادي اجتماعي رياضي على حوالي 42–45 فدان.",
+            "النادي بيتعمل بالشراكة مع شركة تابعة لنادي سبورتنج الإسكندرية، باستثمارات أكتر من 3 مليار جنيه، والمرحلة الأولى منه مخطط تفتح في النص الأول من 2027، والعضويات بتفتح نهاية 2026.",
+            "كمان فيه مدارس دولية جوه المدينة، وكمبوندات كبيرة فيها خدماتها الخاصة، زي المنطقة التجارية والإدارية في HAPTown بتاع Hassan Allam، والمنطقة التعليمية جوه Bloomfields بتاع Tatweer Misr. المستشفيات الكبيرة والجامعات الأقرب لسه برة المدينة في التجمع الخامس والشروق."
+          ]
         ],
         [
           "خريطة مشاريع مستقبل سيتي والمطورين",
-          "مدار بتقول إن المدينة فيها أكتر من 30 مطور. الدليل اللي تحت بيرتب المشاريع المتاحة عندنا حسب المطور، وبيربط كل مشروع بصفحته ووحداته المتاحة وأسعارها. ده دليل للمشاريع، مش خريطة مساحية؛ حدود ومراحل كل مشروع تتأكد من الـ master plan الرسمي للمطور.",
+          [
+            "من أكبر المشاريع في المدينة: Mountain View Aliva على حوالي 640 أكر، وBloomfields من Tatweer Misr على حوالي 415 أكر، وIl Bosco City من Misr Italia على حوالي 268 أكر، وHAPTown من Hassan Allam على حوالي 250 أكر، وThe Butterfly من Madinet Masr على حوالي 238 أكر.",
+            "Hassan Allam عنده في المدينة أكتر من مشروع، زي The Great Lawn وPark Central Terraces وThe Valleys، وTatweer Misr عنده SCENES كمان، وSODIC عنده Eastvale، وPalm Hills عنده Capital Gardens، وMadinet Masr عنده Sarai على طريق السويس. وفيه مطورين تانيين زي Al Ahly Sabbour وWadi Degla وCornerstone وThe Land Developers.",
+            "الدليل اللي تحت بيرتب المشاريع المتاحة عندنا حسب المطور، وكل مشروع ليه صفحة فيها الوحدات المتاحة وأسعارها ونظام السداد. ده دليل للمشاريع مش خريطة مساحية، فحدود كل مشروع ومرحلته بتتأكد من الماستر بلان الرسمي للمطور."
+          ]
         ],
+        [
+          "أسعار مشاريع مستقبل سيتي (أكتوبر 2026)",
+          [
+            "أسعار البداية للوحدات المتاحة عندنا وقت كتابة الصفحة: The Butterfly من حوالي 3 مليون (ستوديو صغير)، وcityzen من حوالي 3.7 مليون، وSarai من حوالي 4 مليون، وMonark Residence من حوالي 4.1 مليون، وBloomfields من حوالي 5.8 مليون، وThe Great Lawn وPark Central Terraces من حوالي 8.3 مليون، وEastvale من حوالي 9.4 مليون، وCapital Gardens وMountain View Aliva من حوالي 11.7 مليون، وThe Valleys من حوالي 26.4 مليون للتاون هاوس والفلل.",
+            "الشقق في أغلب المشاريع بتبدأ من أقل من 10 مليون، والتاون هاوس والتوين هاوس من حوالي 10 لـ 30 مليون، والفلل المستقلة ممكن توصل لأكتر من 40–60 مليون في المشاريع الكبيرة. الفرق بين مشروعين في نفس النوع والمساحة غالبًا بيرجع لاسم المطور، وقرب المشروع من الخدمات الشغالة، وميعاد التسليم، ومستوى التشطيب.",
+            "دي أسعار تقسيط، وبتتغير مع كل طرح جديد. أسعار كل الوحدات المتاحة دلوقتي ظاهرة في صفحة كل مشروع تحت، وبنأكد السعر النهائي مع المطور قبل أي دفع."
+          ]
+        ],
+        [
+          "أنظمة السداد في مستقبل سيتي ومثال للقسط",
+          [
+            "مستقبل سيتي من أكتر المناطق اللي فيها مقدمات قليلة وتقسيط طويل، علشان أغلب المشاريع لسه تحت الإنشاء. عندنا دلوقتي أنظمة بمقدم 1.5% وتقسيط لحد 12 سنة في مشاريع زي The Butterfly وSarai وCapital Gardens، وأنظمة بمقدم 3% وتقسيط 12 سنة في Mountain View Aliva، وأنظمة بمقدم 5% وتقسيط 10 سنين في مشاريع Hassan Allam وEastvale وBloomfields.",
+            "مثال: شقة بـ 8.3 مليون بمقدم 5%. المقدم حوالي 415 ألف جنيه، والباقي حوالي 7.9 مليون على 10 سنين، يعني حوالي 790 ألف في السنة، أو حوالي 197 ألف كل 3 شهور، أو حوالي 66 ألف في الشهر لو الأقساط متساوية. الجدول الحقيقي ممكن يكون فيه دفعة استلام أو دفعات سنوية أكبر.",
+            "قبل ما تقارن نظامين، اسأل: هل السعر ده سعر تقسيط ولا كاش؟ هل فيه دفعة عند الاستلام؟ وكام وديعة الصيانة؟ لأن المقدم القليل ساعات بيتعوض بسعر أعلى أو دفعات أكبر بعدين."
+          ]
+        ],
+        [
+          "التسليم في مستقبل سيتي",
+          [
+            "المدينة فيها مشاريع اتسلمت وسكانها عايشين، ومشاريع لسه بتتبني. مثلًا Hassan Allam قال في مايو 2026 إن HAPTown فيه حوالي 3,000 وحدة، أغلبها اتباع، وجزء كبير منها اتسلم لأصحابه. وفي مشاريع تانية التسليم مقسم على مراحل بين 2026 و2030.",
+            "لو محتاج تسكن قريب، دور على الوحدات الجاهزة أو اللي استلامها خلال سنة أو سنتين، وزور المرحلة المسكونة في نفس المشروع. ولو مش مستعجل، المراحل الجديدة بتديك سعر أقل وتقسيط أطول، بس بتستنى أكتر."
+          ]
+        ],
+        [
+          "مستقبل سيتي مناسبة لمين؟",
+          [
+            "للسكن: مناسبة للعائلات اللي عايزة كمبوند كبير بمساحات خضرا وسعر أقل من التجمع الخامس، ومش مانعين يستخدموا العربية يوميًا. مهم تختار مشروع قريب من الخدمات اللي اشتغلت فعلًا.",
+            "للاستثمار: المدينة لسه بتكبر، وكل ما الخدمات تشتغل والسكان يزيدوا، الأسعار بتتحرك. الشقق الصغيرة والمتوسطة عند المطورين المعروفين هي الأسهل في إعادة البيع. بس العائد مش مضمون، والإيجار في المراحل الجديدة لسه محدود لحد ما المنطقة تتملي.",
+            "العيوب اللي لازم تحسبها: مساحات كبيرة لسه بتتبني، والمواصلات العامة محدودة، ومستوى الخدمات بيختلف جدًا من مرحلة لمرحلة، وعدد المشاريع الكبير معناه منافسة كبيرة في إعادة البيع."
+          ]
+        ],
+        [
+          "أنواع الوحدات في مستقبل سيتي",
+          [
+            "المدينة فيها تقريبًا كل أنواع السكن: ستوديوهات وشقق صغيرة من حوالي 40 لـ 70 م² في مشاريع زي The Butterfly وSarai، وشقق غرفتين وتلاتة من حوالي 90 لـ 160 م²، ودوبلكس وبنتهاوس، وآي فيلا (شقق بجنينة أو روف في عمارة صغيرة)، وتاون هاوس وتوين هاوس من حوالي 150 لـ 280 م²، وفلل مستقلة بتوصل لأكتر من 300 م².",
+            "الشقق الصغيرة هي الأرخص كنقطة دخول والأسهل في التأجير لما المنطقة تتملي. التاون هاوس هو أقرب طريقة لبيت بجنينة من غير سعر الفيلا المستقلة. والآي فيلا اختيار وسط بين الشقة والتاون هاوس.",
+            "أغلب الوحدات بتتسلم نص تشطيب أو Core & Shell، وفيه مشاريع بتسلم متشطب بالكامل، زي مشاريع Hassan Allam اللي بيقول إنها Fully Finished. سعر التشطيب لازم يدخل في المقارنة."
+          ]
+        ],
+        [
+          "مستقبل سيتي ولا التجمع الخامس ولا العاصمة الإدارية؟",
+          [
+            "التجمع الخامس: أكمل منطقة في الخدمات والجامعات والمولات والمستشفيات، وأعلى طلب على الإيجار وإعادة البيع، بس سعر المتر فيه أعلى بوضوح، والمقدمات غالبًا أكبر.",
+            "مستقبل سيتي: في النص بين التجمع والعاصمة. سعرها أقل من التجمع، والمطورين فيها كبار ومعروفين، وأنظمة السداد فيها من أطول الأنظمة في السوق. محتاجة صبر لحد ما الخدمات كلها تشتغل.",
+            "العاصمة الإدارية: مشاريع كتير ومساحات واسعة، وقريبة من الحي الحكومي وحي المال والأعمال والمونوريل، بس السكن الفعلي فيها لسه بيبدأ. لو شغلك في العاصمة، مستقبل سيتي بتديك موقع قريب منها ومن التجمع في نفس الوقت."
+          ]
+        ],
+        [
+          "إزاي تختار مشروعك في مستقبل سيتي",
+          [
+            "1) حدد الميزانية الكاملة: المقدم والقسط وتكلفة التشطيب لو الوحدة مش متشطبة. 2) حدد هتسكن إمتى، لأن ده بيحدد المشروع والمرحلة. 3) اختار 3 مشاريع وقارن نفس نوع الوحدة ونفس المساحة تقريبًا بالسعر الكلي ونظام السداد وميعاد التسليم. 4) اسأل عن مكان المشروع في المدينة والمسافة لطريق السويس والخدمات الشغالة. 5) راجع سجل تسليم المطور في مشاريعه القديمة. 6) زور الموقع قبل ما تمضي.",
+            "فريق Tycoons بيساعدك تقارن مشاريع مستقبل سيتي ببعض ومع التجمع والعاصمة، ويأكدلك آخر سعر وتوفر من المطور، ويرتبلك المعاينة. ابعتلنا الميزانية ونوع الوحدة على واتساب ونرجعلك بأنسب الاختيارات."
+          ]
+        ]
       ],
       faq: [
         [
           "موقع مستقبل سيتي فين؟",
-          "مستقبل سيتي شرق القاهرة على طريق القاهرة–السويس، جنب مدينتي والشروق والعاصمة الإدارية، وبتتوصل بالدائري الإقليمي والدائري الأوسطي. افتح الخريطة في الصفحة وراجع موقع المشروع نفسه جوه المدينة لأن المراحل والمداخل بتختلف.",
+          "في شرق القاهرة على طريق القاهرة–السويس، بين مدينتي والشروق والعاصمة الإدارية، ومحاطة بطريق السويس والدائري الأوسطي والدائري الإقليمي ومحور الأمل. على حوالي 10 دقايق من التجمع الخامس و15 دقيقة من العاصمة الإدارية بالعربية."
         ],
         [
           "مساحة مستقبل سيتي كام؟",
-          "حسب شركة مدار، المطور الرئيسي للمدينة، المساحة الكلية حوالي 5,200 فدان، متقسمة لمراحل سكنية وتجارية.",
+          "حوالي 5,200 فدان (حوالي 5,408 أكر) حسب مدار، المطور الرئيسي للمدينة، ومتقسمة لمراحل سكنية وتجارية."
         ],
         [
-          "مين المطورين في مستقبل سيتي؟",
-          "فيه أكتر من 30 مطور في المدينة حسب مدار، منهم Hassan Allam و Mountain View و Tatweer Misr و Madinet Masr و Al Ahly Sabbour. القايمة في الصفحة فيها المطورين اللي عندهم وحدات متاحة دلوقتي عندنا.",
+          "مين المطور الرئيسي لمستقبل سيتي؟",
+          "شركة مدار للاستثمار والتنمية العمرانية هي الـ Master Developer، ومسؤولة عن المخطط والطرق والمرافق والخدمات الكبيرة. وجوه المدينة أكتر من 30 مطور تاني بيبنوا كمبوندات، منهم Hassan Allam وMountain View وTatweer Misr وMadinet Masr وSODIC وPalm Hills."
         ],
         [
-          "إزاي أشوف خريطة مشاريع مستقبل سيتي؟",
-          "الخريطة في الصفحة بتوريك مكان المدينة، ودليل المطورين بيوديك لكل مشروع. ولتحديد المرحلة والقطعة والمداخل بدقة، راجع الـ master plan الرسمي للمطور قبل الحجز.",
+          "أسعار مستقبل سيتي بتبدأ من كام في 2026؟",
+          "عندنا شقق بتبدأ من حوالي 3 لـ 4 مليون في مشاريع زي The Butterfly وSarai، وفي مشاريع المطورين الكبار زي Hassan Allam وSODIC وMountain View الشقق بتبدأ من حوالي 8 لـ 12 مليون، والتاون هاوس والفلل من حوالي 10 مليون لأكتر من 40 مليون. الأسعار بتتأكد وقت الطلب."
+        ],
+        [
+          "أقل مقدم في مستقبل سيتي كام؟",
+          "فيه مشاريع بمقدم 1.5% وتقسيط لحد 12 سنة، زي The Butterfly وSarai وCapital Gardens، وMountain View Aliva بمقدم 3% وتقسيط 12 سنة، وأغلب مشاريع Hassan Allam وSODIC بمقدم 5% وتقسيط 10 سنين."
+        ],
+        [
+          "فيه وحدات استلام فوري في مستقبل سيتي؟",
+          "أيوه، فيه مشاريع اتسلمت ومسكونة، زي أجزاء كبيرة من HAPTown، وبيتعرض فيها وحدات جاهزة أو إعادة بيع، بس غالبًا بمقدم أعلى من الوحدات تحت الإنشاء. ابعتلنا ونقولك المتاح دلوقتي."
+        ],
+        [
+          "إيه الخدمات الموجودة في مستقبل سيتي؟",
+          "فيه منطقة ميركاتو التجارية على حوالي 22 فدان، وصالة بادل مغطاة في ڤايبز، ومدارس دولية، وخدمات جوه الكمبوندات الكبيرة. وبيتبني مسجد كبير يسع حوالي 5,000 مصلي، وحديقة أورانج بارك على حوالي 36 فدان، ونادي رياضي اجتماعي مرحلته الأولى مخطط تفتح في 2027."
+        ],
+        [
+          "هل فيه مونوريل أو مترو في مستقبل سيتي؟",
+          "لحد دلوقتي مفيش محطة جوه المدينة نفسها. أقرب محطات المونوريل والقطار الكهربائي على ناحية العاصمة الإدارية، فالتنقل الأساسي بالعربية عن طريق السويس والدائري الأوسطي والإقليمي."
+        ],
+        [
+          "مستقبل سيتي ولا التجمع الخامس؟",
+          "التجمع الخامس أكمل في الخدمات والجامعات والإيجار، بس أغلى. مستقبل سيتي أرخص في سعر المتر، ومقدماتها أقل وتقسيطها أطول، بس محتاجة صبر لحد ما الخدمات تكمل. لو هتسكن قريب والميزانية تسمح، التجمع أسهل. ولو بتدور على سعر أقل ونظام سداد أطول، مستقبل سيتي أنسب."
         ],
         [
           "هل الاستثمار العقاري في مستقبل سيتي مناسب؟",
-          "ممكن يناسب اللي يقبل فترة تطوير وتسليم ويقارن على المدى المتوسط أو الطويل، لكن العائد مش مضمون. راجع سجل تسليم المطور والسيولة المتوقعة وتوقيت تشغيل الخدمات وخطة السداد قبل القرار.",
-        ],
+          "ممكن يناسب اللي يقبل فترة تطوير وتسليم ويستثمر على المدى المتوسط أو الطويل، بس العائد مش مضمون. اختار مطور معروف بسجل تسليم كويس، ومشروع قريب من الخدمات الشغالة، ونوع وحدة سهل في إعادة البيع زي الشقق المتوسطة."
+        ]
       ],
     },
     en: {
       title: ({ minFmt, plural }) => `Mostakbal City Map & Projects 2026 | Tycoons`,
-      description: ({ minFmt, plural }) => `Mostakbal City map and location, master plan and phases, and ${plural} by developer starting from ${minFmt}. Compare projects, units and payment plans in one updated guide.`,
+      description: ({ minFmt, plural }) => `Mostakbal City guide 2026: location, roads, phases and services, plus ${plural} from ${minFmt} with plans from 1.5% down over up to 12 years.`,
       map: { heading: "Mostakbal City map", query: "Mostakbal City, New Cairo, Egypt", locality: "Mostakbal City, New Cairo" },
       sections: [
         [
+          "Mostakbal City at a glance",
+          [
+            "Mostakbal City is a fourth-generation city in East Cairo. Its master developer, MIDAR for Investment and Urban Development, is responsible for the master plan, roads, utilities and the large public services, and sells land to other developers who build full compounds on it. That is why the same city includes names such as Hassan Allam, Mountain View, Tatweer Misr, Madinet Masr, SODIC and Palm Hills.",
+            "The city covers about 5,200 feddans (about 5,408 acres) and, according to MIDAR, more than 30 developers and 52 projects. This makes it one of the largest clusters of new projects in East Cairo, so comparing within the city matters: two projects in Mostakbal City can differ more in location, delivery and price than two different cities.",
+            "This page covers what you need before choosing: location and roads, phases, services that are open and those being built, developers and projects, our starting prices at Tycoons as of October 2026, payment plans with an installment example, delivery, and who the city suits. All projects available with us are listed below with their units and prices."
+          ]
+        ],
+        [
           "Where is Mostakbal City?",
-          "Mostakbal City is in East Cairo on the Cairo–Suez Road, connected to the Regional Ring Road and the Middle Ring Road. Its direct neighbours are Madinaty, El Shorouk and the New Administrative Capital, and according to MIDAR, the city's master developer, it has direct access to the New Capital's high-speed train station.",
+          [
+            "Mostakbal City is in East Cairo on the Cairo–Suez Road, roughly between kilometre 46 and 51. Its direct neighbours are Madinaty, El Shorouk and the New Administrative Capital, and it is counted as part of greater New Cairo.",
+            "The city is framed by four main roads: the Suez Road, the Middle Ring Road, the Regional Ring Road and the Al-Amal Axis, with access to the Mohamed Bin Zayed Axis and El Robiky Road towards the Fifth Settlement, the New Capital and Ain Sokhna.",
+            "Approximate driving times on a normal day: about 10 minutes to the Fifth Settlement, 15 minutes to the New Capital, 20 minutes to Cairo International Airport and 45 minutes to Ain Sokhna. Times vary with the project's position, because the city itself is large.",
+            "There is no monorail or LRT station inside the city yet. The nearest monorail and LRT stations are on the New Capital side, so a car remains the main way to get around."
+          ]
         ],
         [
           "Mostakbal City master plan and phases",
-          "According to MIDAR, Mostakbal City covers about 5,200 feddans (about 5,408 acres) and is divided into phases. Phase one covers about 1,490 acres near schools and universities, phase three about 1,607 acres of residential districts including the Mercato open-air mall, and phase four about 1,875 acres of residential districts. Confirm each project's exact phase on the developer's official master plan before reserving.",
+          [
+            "According to MIDAR, phase one covers about 1,490 acres and is the oldest residential core near the education facilities; phase three covers about 1,607 acres of residential districts and includes the Mercato commercial area; phase four covers about 1,875 acres of new residential districts.",
+            "In practice, the phase decides a lot: whether neighbours and services already exist around you, the distance to the Suez Road and the Regional Ring Road, and how fast prices move. Projects in older phases are usually closer to delivery; projects in newer phases start cheaper with longer plans.",
+            "Before reserving, ask for the project's exact position on the current master plan, its nearest entrance and the distance to the nearest service that is actually open, not only planned."
+          ]
+        ],
+        [
+          "Services in Mostakbal City: open and under construction",
+          [
+            "Mercato in phase three is an open-air mall and services area of about 22 acres, including a police station. In phase one, Vibes covers about 17.5 feddans and includes an indoor, air-conditioned padel hall.",
+            "In February 2026 MIDAR broke ground on three large projects: a grand mosque on about 7 feddans for about 5,000 worshippers; Orange Park on about 36 feddans with an open-air theatre for about 2,000–2,500 people, walking trails and restaurants; and a social and sports club on about 42–45 feddans.",
+            "The club is being developed with a company owned by Alexandria Sporting Club, with an investment of more than EGP 3 billion. Its first phase is planned to open in the first half of 2027, with memberships opening at the end of 2026.",
+            "The city also has international schools, and the large compounds bring their own services, such as the commercial and office district in Hassan Allam's HAPTown and the education zone inside Tatweer Misr's Bloomfields. The main hospitals and universities are still outside the city, in the Fifth Settlement and El Shorouk."
+          ]
         ],
         [
           "Mostakbal City projects and developers map",
-          "MIDAR lists more than 30 developers in the city. The directory below groups the projects we have available by developer and links each one to its units and prices. It is a project directory, not a surveyed plan; confirm boundaries, phases and entrances on the developer's official master plan.",
+          [
+            "Among the largest projects: Mountain View Aliva on about 640 acres, Bloomfields by Tatweer Misr on about 415 acres, Il Bosco City by Misr Italia on about 268 acres, HAPTown by Hassan Allam on about 250 acres and The Butterfly by Madinet Masr on about 238 acres.",
+            "Hassan Allam has several projects in the city, including The Great Lawn, Park Central Terraces and The Valleys; Tatweer Misr also has SCENES; SODIC has Eastvale; Palm Hills has Capital Gardens; and Madinet Masr has Sarai on the Suez Road. Other developers include Al Ahly Sabbour, Wadi Degla, Cornerstone and The Land Developers.",
+            "The directory below groups the projects available with us by developer; each project page lists its available units, prices and payment plans. It is a project directory, not a surveyed plan: confirm each project's boundaries and phase on the developer's official master plan."
+          ]
         ],
+        [
+          "Mostakbal City prices (October 2026)",
+          [
+            "Starting prices of units available with us at the time of writing: The Butterfly from about EGP 3 million (a small studio), cityzen from about 3.7 million, Sarai from about 4 million, Monark Residence from about 4.1 million, Bloomfields from about 5.8 million, The Great Lawn and Park Central Terraces from about 8.3 million, Eastvale from about 9.4 million, Capital Gardens and Mountain View Aliva from about 11.7 million, and The Valleys from about 26.4 million for townhouses and villas.",
+            "In most projects apartments start below EGP 10 million, townhouses and twin houses run from about 10 to 30 million, and standalone villas can exceed 40–60 million in the larger projects. Differences between similar units usually come from the developer, proximity to open services, the delivery date and the finishing.",
+            "These are installment prices and they change with every new launch. Current prices for every available unit are on each project page below, and we reconfirm the final price with the developer before any payment."
+          ]
+        ],
+        [
+          "Payment plans in Mostakbal City, with an example",
+          [
+            "Mostakbal City has some of the lowest down payments and longest plans in the market, because most projects are still under construction. We currently have plans from 1.5% down over up to 12 years (The Butterfly, Sarai, Capital Gardens), 3% down over 12 years (Mountain View Aliva) and 5% down over 10 years (Hassan Allam's projects, Eastvale, Bloomfields).",
+            "Example: an EGP 8.3 million apartment with 5% down. The down payment is about EGP 415,000 and the remaining 7.9 million over 10 years is about 790,000 a year, about 197,000 a quarter or about 66,000 a month with equal installments. The actual schedule may include a delivery payment or larger annual payments.",
+            "Before comparing two plans, ask whether the price is an installment or cash price, whether there is a payment on delivery, and how much the maintenance deposit is: a low down payment is sometimes balanced by a higher price or larger later payments."
+          ]
+        ],
+        [
+          "Delivery in Mostakbal City",
+          [
+            "The city has delivered, lived-in projects as well as projects under construction. In May 2026, for example, Hassan Allam said HAPTown has about 3,000 units, most of them sold and a large part already handed over. Other projects deliver in phases between 2026 and 2030.",
+            "If you need to move in soon, look for ready or near-delivery units and visit the inhabited phase of the same project. If you are not in a hurry, newer phases give a lower price and a longer plan, with a longer wait."
+          ]
+        ],
+        [
+          "Who is Mostakbal City for?",
+          [
+            "To live in: families who want a large compound with green space at a lower price than the Fifth Settlement and do not mind driving daily. Choose a project close to services that are already open.",
+            "To invest: the city is still growing, and prices tend to move as services open and residents arrive. Small and mid-size apartments from well-known developers are the easiest to resell. Returns are not guaranteed, and rental demand in new phases stays limited until the area fills up.",
+            "Drawbacks to weigh: large areas are still being built, public transport is limited, service levels differ a lot between phases, and the number of projects means strong competition on resale."
+          ]
+        ],
+        [
+          "Unit types in Mostakbal City",
+          [
+            "The city offers almost every home type: studios and small apartments of about 40–70 m² in projects such as The Butterfly and Sarai, two- and three-bedroom apartments of about 90–160 m², duplexes and penthouses, i-villas (garden or roof units in low-rise buildings), townhouses and twin houses of about 150–280 m², and standalone villas above 300 m².",
+            "Small apartments are the cheapest entry point and the easiest to rent once the area fills up; townhouses are the closest thing to a house with a garden without the price of a standalone villa; i-villas sit between an apartment and a townhouse.",
+            "Most units are delivered semi-finished or core and shell, while some projects deliver fully finished homes, such as Hassan Allam's. Finishing costs belong in any comparison."
+          ]
+        ],
+        [
+          "Mostakbal City, the Fifth Settlement or the New Capital?",
+          [
+            "The Fifth Settlement is the most complete area for services, universities, malls and hospitals, with the strongest rental and resale demand, but its price per square metre is clearly higher and down payments are usually larger.",
+            "Mostakbal City sits between the Fifth Settlement and the New Capital. It is cheaper than the Fifth Settlement, its developers are large and well known, and its payment plans are among the longest on the market; it needs patience until all services open.",
+            "The New Capital has many projects and wide spaces close to the government district, the business district and the monorail, but actual living there is only starting. If you work in the New Capital, Mostakbal City puts you close to both it and the Fifth Settlement."
+          ]
+        ],
+        [
+          "How to choose your Mostakbal City project",
+          [
+            "1) Set your full budget: down payment, installments and finishing costs if the unit is not finished. 2) Decide when you will move in, because that decides the project and phase. 3) Shortlist three projects and compare the same unit type and similar size by total price, payment plan and delivery date. 4) Ask where the project sits in the city, its distance to the Suez Road and the services that are open. 5) Check the developer's delivery record on past projects. 6) Visit the site before signing.",
+            "The Tycoons team helps you compare Mostakbal City projects with each other and with New Cairo and the New Capital, reconfirms the latest price and availability with the developer and arranges site visits. Send us your budget and unit type on WhatsApp and we will come back with the best options."
+          ]
+        ]
       ],
       faq: [
         [
           "Where is Mostakbal City located?",
-          "Mostakbal City is in East Cairo on the Cairo–Suez Road, next to Madinaty, El Shorouk and the New Administrative Capital, and connected to the Regional and Middle Ring Roads. Open the map on this page and confirm the project's exact phase and entrance, because locations vary within the city.",
+          "In East Cairo on the Cairo–Suez Road, between Madinaty, El Shorouk and the New Administrative Capital, framed by the Suez Road, the Middle Ring Road, the Regional Ring Road and the Al-Amal Axis. It is about 10 minutes from the Fifth Settlement and 15 minutes from the New Capital by car."
         ],
         [
           "How big is Mostakbal City?",
-          "According to MIDAR, the city's master developer, Mostakbal City covers about 5,200 feddans (about 5,408 acres), split into residential and commercial phases.",
+          "About 5,200 feddans (about 5,408 acres) according to MIDAR, the city's master developer, divided into residential and commercial phases."
         ],
         [
-          "Who are the developers in Mostakbal City?",
-          "MIDAR lists more than 30 developers in the city, including Hassan Allam, Mountain View, Tatweer Misr, Madinet Masr and Al Ahly Sabbour. The directory on this page shows the developers with units available in our inventory right now.",
+          "Who is the master developer of Mostakbal City?",
+          "MIDAR for Investment and Urban Development is the master developer, responsible for the plan, roads, utilities and the main services. More than 30 other developers build compounds inside the city, including Hassan Allam, Mountain View, Tatweer Misr, Madinet Masr, SODIC and Palm Hills."
         ],
         [
-          "How can I see a map of Mostakbal City projects?",
-          "The map on this page shows where the city is, and the developer directory links to every project. For exact phases, plots and entrances, check the developer's official master plan before reserving.",
+          "What are Mostakbal City prices in 2026?",
+          "With us, apartments start from about EGP 3–4 million in projects such as The Butterfly and Sarai; with the large developers such as Hassan Allam, SODIC and Mountain View, apartments start from about 8–12 million, and townhouses and villas from about 10 million to more than 40 million. Prices are reconfirmed at the time of request."
         ],
         [
-          "Is Mostakbal City suitable for property investment?",
-          "It may suit buyers who accept a development and delivery period and are comparing a medium- or long-term horizon, but returns are not guaranteed. Review the developer's delivery record, expected liquidity, service activation and payment plan first.",
+          "What is the lowest down payment in Mostakbal City?",
+          "Some projects start at 1.5% down with up to 12 years, such as The Butterfly, Sarai and Capital Gardens; Mountain View Aliva offers 3% down over 12 years, and most Hassan Allam and SODIC projects 5% down over 10 years."
         ],
+        [
+          "Are there ready-to-move units in Mostakbal City?",
+          "Yes. Some projects are delivered and lived in, such as large parts of HAPTown, where ready and resale units come up, usually with a higher down payment than off-plan units. Message us for what is available now."
+        ],
+        [
+          "What services are in Mostakbal City?",
+          "The Mercato commercial area of about 22 acres, an indoor padel hall at Vibes, international schools and services inside the large compounds. Under construction: a grand mosque for about 5,000 worshippers, Orange Park on about 36 feddans and a social and sports club whose first phase is planned for 2027."
+        ],
+        [
+          "Is there a monorail or metro in Mostakbal City?",
+          "Not inside the city yet. The nearest monorail and LRT stations are on the New Capital side, so getting around is mainly by car via the Suez Road and the Middle and Regional Ring Roads."
+        ],
+        [
+          "Mostakbal City or the Fifth Settlement?",
+          "The Fifth Settlement is more complete for services, universities and rentals, but more expensive. Mostakbal City is cheaper per square metre, with lower down payments and longer plans, but needs patience until services are complete. If you will move in soon and the budget allows, the Fifth Settlement is easier; for a lower price and a longer plan, Mostakbal City fits better."
+        ],
+        [
+          "Is Mostakbal City good for property investment?",
+          "It can suit buyers who accept a development and delivery period and invest over the medium or long term, but returns are not guaranteed. Choose a developer with a good delivery record, a project close to open services and a unit type that is easy to resell, such as a mid-size apartment."
+        ]
       ],
     },
   },
@@ -1074,6 +1283,26 @@ function directoryAbout(ar, projectCount, unitCount, developerCount) {
   return `<section class="prose" style="margin-top:48px"><h2>${ar ? "إزاي تستخدم دليل المشاريع" : "How to use this project directory"}</h2>${paragraphs.map((text) => `<p>${escapeHtml(text)}</p>`).join("")}</section>`;
 }
 
+// Area guides name projects in their text: link the first mention of each project that is
+// listed on the page (whole names only, never inside a heading or an existing link).
+function linkAreaProjects(html, projects, ar) {
+  let out = html;
+  const seen = new Set();
+  const targets = (projects || [])
+    .filter((project) => project?.slug && String(project.name || "").trim().length >= 4)
+    .sort((a, b) => String(b.name).length - String(a.name).length);
+  for (const project of targets) {
+    const name = escapeHtml(String(project.name).trim());
+    if (seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    const pattern = new RegExp(`(^|[^A-Za-z0-9>])(${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})(?![A-Za-z0-9])(?![^<]*</a>)(?![^<]*</h[1-6]>)`, "i");
+    if (!pattern.test(out)) continue;
+    const href = ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`;
+    out = out.replace(pattern, (_, before, label) => `${before}<a href="${escapeHtml(href)}">${label}</a>`);
+  }
+  return out;
+}
+
 function renderDirectory(allProjects, lang, articles = []) {
   const ar = lang === "ar";
   const path = ar ? "/ar/" : "/en/directory/";
@@ -1561,7 +1790,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   ];
   const contextSection =
     kind === "area"
-      ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${searchContent?.map ? `<section><h2>${escapeHtml(searchContent.map.heading)}</h2><iframe title="${escapeHtml(searchContent.map.heading)}" src="https://www.google.com/maps?q=${encodeURIComponent(searchContent.map.query)}&amp;output=embed" width="100%" height="360" style="border:0;border-radius:16px" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p><a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(searchContent.map.query)}" target="_blank" rel="noopener">${ar ? "افتح الخريطة على Google Maps" : "Open in Google Maps"}</a></p></section>` : ""}${(searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}`
+      ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${searchContent?.map ? `<section><h2>${escapeHtml(searchContent.map.heading)}</h2><iframe title="${escapeHtml(searchContent.map.heading)}" src="https://www.google.com/maps?q=${encodeURIComponent(searchContent.map.query)}&amp;output=embed" width="100%" height="360" style="border:0;border-radius:16px" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p><a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(searchContent.map.query)}" target="_blank" rel="noopener">${ar ? "افتح الخريطة على Google Maps" : "Open in Google Maps"}</a></p></section>` : ""}${linkAreaProjects((searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2>${(Array.isArray(text) ? text : [text]).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</section>`).join(""), matches, ar)}`
       : devInfo && !editorialHasAbout && (ar ? devInfo.about_ar : devInfo.about_en)
         ? `<h2>${ar ? `عن ${escapeHtml(devInfo.name_ar || devInfo.name)}` : `About ${escapeHtml(devInfo.name)}`}</h2><p>${escapeHtml(ar ? devInfo.about_ar : devInfo.about_en)}</p>`
         : "";

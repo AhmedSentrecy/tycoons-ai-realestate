@@ -156,7 +156,7 @@ assert.match(directory, /id="developers"/, "directory must expose the #developer
 assert.match(directory, /<header class="site">/, "every SSR page uses the shared site header");
 assert.match(area, /مستقبل سيتي/);
 assert.match(area, /"@type":"FAQPage"/, "area collection page must render FAQ schema with real area content");
-assert.match(area, /غالبية المشاريع هنا لسه تحت الإنشاء/, "area page must include the area-context/buyer-note copy, not just a generic template");
+assert.match(area, /وسجل تسليم المطور أهم من سعر البداية/, "area page must include the area-context/buyer-note copy, not just a generic template");
 assert.match(area, /<h1>مستقبل سيتي<\/h1>/);
 assert.match(area, /موقع مستقبل سيتي فين؟/, "Mostakbal City must answer the location query seen in Search Console");
 assert.match(area, /خريطة مشاريع مستقبل سيتي والمطورين/, "Mostakbal City must cover project-map intent without claiming a geographic map");
