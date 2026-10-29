@@ -284,7 +284,7 @@
     style.textContent =
       ".tyc-lead{position:fixed;inset:0;z-index:2147483646;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(13,31,24,.55)}" +
       ".tyc-lead form{position:relative;width:100%;max-width:380px;padding:24px 20px 20px;border-radius:20px;background:#fff;color:#1b2420;font-family:inherit;box-shadow:0 20px 60px rgba(0,0,0,.25)}" +
-      ".tyc-lead h2{margin:0 0 6px;font-size:20px;line-height:1.5;color:#14352a}" +
+      ".tyc-lead h2{margin:0 0 18px;font-size:20px;line-height:1.5;color:#14352a}" +
       ".tyc-lead p{margin:0 0 16px;font-size:14px;line-height:1.7;color:#5c6a62}" +
       ".tyc-lead label{display:block;margin:0 0 12px;font-size:14px;font-weight:700}" +
       ".tyc-lead input{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px 14px;border:1px solid #d8ccb4;border-radius:12px;font:inherit;font-size:16px;background:#fff;color:#1b2420}" +
@@ -305,20 +305,20 @@
     injectStyles();
     var ar = arabicPage();
     var t = ar
-      ? { title: "قبل ما نكمل على واتساب", lead: "اكتب اسمك ورقم موبايلك علشان المستشار يعرفك ويقدر يكلمك لو الرسالة اتأخرت.", name: "الاسم", phone: "رقم الموبايل", send: "كمل على واتساب", wait: "لحظة…", close: "إغلاق", errName: "اكتب اسمك", errPhone: "اكتب رقم موبايل صحيح، زي 01012345678", note: "رقمك بيوصل لفريق Tycoons بس، علشان نتواصل معاك بخصوص طلبك." }
-      : { title: "Before we continue on WhatsApp", lead: "Add your name and mobile number so our advisor knows who you are and can call you if the message is delayed.", name: "Name", phone: "Mobile number", send: "Continue to WhatsApp", wait: "One moment…", close: "Close", errName: "Please enter your name", errPhone: "Please enter a valid mobile number, e.g. 01012345678", note: "Your number only goes to the Tycoons team, to contact you about your request." };
+      ? { title: "كمل على الواتساب", name: "الاسم", phone: "رقم الموبايل", send: "كمل على واتساب", wait: "لحظة…", close: "إغلاق", errName: "اكتب اسمك", errPhone: "اكتب رقم موبايل صحيح، زي 01012345678" }
+      : { title: "Continue on WhatsApp", name: "Name", phone: "Mobile number", send: "Continue to WhatsApp", wait: "One moment…", close: "Close", errName: "Please enter your name", errPhone: "Please enter a valid mobile number, e.g. 01012345678" };
     var overlay = document.createElement("div");
     overlay.className = "tyc-lead";
     overlay.setAttribute("dir", ar ? "rtl" : "ltr");
     overlay.innerHTML =
       '<form novalidate role="dialog" aria-modal="true" aria-labelledby="tyc-lead-title">' +
       '<button type="button" class="tyc-x" aria-label="' + t.close + '">×</button>' +
-      '<h2 id="tyc-lead-title">' + t.title + '</h2><p>' + t.lead + '</p>' +
+      '<h2 id="tyc-lead-title">' + t.title + '</h2>' +
       '<label>' + t.name + '<input name="name" autocomplete="name" maxlength="80" required></label>' +
       '<label>' + t.phone + '<input name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" dir="ltr" required></label>' +
       '<input class="tyc-hp" name="company_website" tabindex="-1" autocomplete="off" aria-hidden="true">' +
       '<div class="tyc-err" role="alert"></div>' +
-      '<button type="submit">' + t.send + '</button><small>' + t.note + '</small></form>';
+      '<button type="submit">' + t.send + '</button></form>';
     document.body.appendChild(overlay);
     var form = overlay.querySelector("form");
     var nameInput = form.querySelector('input[name="name"]');
