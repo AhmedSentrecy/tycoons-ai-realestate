@@ -5,7 +5,6 @@ import Regions from "@/sections/Regions";
 import AboutSection from "@/sections/AboutSection";
 import Developers from "@/sections/Developers";
 import WhyUs from "@/sections/WhyUs";
-import Calculator from "@/sections/Calculator";
 import FaqSection from "@/sections/FaqSection";
 import Footer from "@/sections/Footer";
 import { useEffect } from "react";
@@ -26,7 +25,6 @@ export default function Home() {
       <AboutSection />
       <Developers />
       <WhyUs />
-      <Calculator />
       <FaqSection />
       <section aria-labelledby="property-comparison-guides" className="bg-[#f0e8d9] px-5 py-12 text-[#1b2420]">
         <div className="mx-auto max-w-6xl">

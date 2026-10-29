@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
-import Calculator from "@/sections/Calculator";
 import FloatingContact from "@/components/FloatingContact";
 import { guidePath, loadProjectArticleBySlug, loadProjectGuidesBySlug, publicMarkdown, type GuideLink, type PublishedGuide } from "@/lib/editorialGuides";
 import GuideBody from "@/components/GuideBody";
@@ -461,7 +460,6 @@ export default function ProjectPage() {
   const villaUnits = projectUnits.filter(isVillaLike);
   const otherUnits = projectUnits.filter((unit) => !isVillaLike(unit));
   const totalOptionCount = projectUnits.length + priceRanges.length;
-  const defaultPlan = parseConfirmedPaymentPlan(project.down_payment_text, project.installments_text);
   const pageUrl = `${SITE_URL}/projects/${slug}`;
   const message = encodeURIComponent(
     `Hello Tycoons Investments,\nI am interested in this project:\n\nProject: ${project.project_name}\nDeveloper: ${project.developer}\nLocation: ${project.location}\nStarting price: ${formatPrice(minPrice)} EGP\nStatus: Available\n\nURL: ${pageUrl}\n\nPlease send me available options and details.\n\nSource: project_page\nPage: ${pageUrl}`,
@@ -905,12 +903,6 @@ export default function ProjectPage() {
           </div>
       </section>
 
-      <Calculator
-        initialPrice={minPrice}
-        initialDown={defaultPlan?.downPercent || 10}
-        initialYears={defaultPlan?.years || 8}
-        whatsappHref={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`}
-      />
 
       <section className="mx-auto max-w-4xl px-5 py-16 text-center">
         <h2 className="text-3xl font-extrabold">عايز تقارن الوحدات وخطة السداد؟</h2>

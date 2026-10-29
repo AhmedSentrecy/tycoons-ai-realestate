@@ -16,13 +16,11 @@ import {
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
 import FloatingContact from "@/components/FloatingContact";
-import Calculator from "@/sections/Calculator";
 import { loadUnitPage, loadUnitSiblings, type SiblingUnitRow, type UnitPageData } from "@/lib/unitPages";
 import { arabicField } from "@/lib/arabicFields";
 import { areaFor, areaFacts, computeUnitStats, rankClause, pick } from "@/lib/unitContent";
 import { unitTitle } from "../lib/unitTitle";
 import { fitTitle } from "@/lib/fitTitle";
-import { unitPaymentFacts, unitPaymentRows, unitPriceComparison, UNIT_PAYMENT_NOTE } from "@/lib/unitPayment";
 
 const UNIT_INTRO_BANK: Array<(vars: Record<string, string>) => string> = [
   (v) => `${v.unitType} بمساحة ${v.area} م² جوه ${v.projectName} من ${v.developer}، في ${v.areaAr}. ${v.rank}. السعر يبدأ من ${v.price}، والاستلام ${v.delivery}.`,
@@ -126,10 +124,6 @@ export default function UnitPage() {
   const area = areaFor(unit.location);
   const facts = areaFacts(area.slug);
   const stats = computeUnitStats(unit.starting_price, unit.area_sqm, siblings);
-  const paymentFacts = unitPaymentFacts(unit, siblings);
-  const paymentRows = unitPaymentRows(paymentFacts, unit.project_name);
-  const paymentCompare = unitPriceComparison(paymentFacts, unit.project_name);
-  const paymentLabel = `${unitTypeAr}${unit.area_sqm ? ` ${unit.area_sqm} م²` : ""}`;
   const seed = unit.id;
   const introVars = {
     unitType: unitTypeAr,
@@ -228,17 +222,6 @@ export default function UnitPage() {
         <aside className="rounded-3xl bg-[#0d1f18] p-7 text-white lg:sticky lg:top-28 lg:self-start"><p className="text-sm text-white/55">السعر يبدأ من</p><p className="mt-2 text-3xl font-extrabold text-[#ecd9ae]">{formatPrice(unit.starting_price)} جنيه</p><p className="mt-5 text-sm text-white/70">{unit.down_payment_text}</p><Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#d9b87c]">شوف المشروع بالكامل <ArrowLeft className="h-4 w-4" /></Link></aside>
       </div></section>
 
-      {paymentRows.length > 0 && (
-        <section className="mx-auto max-w-6xl px-5 pb-12 lg:px-8">
-          <h2 className="text-2xl font-extrabold">حساب المقدم والقسط لـ {paymentLabel}</h2>
-          {paymentCompare && <p className="mt-4 leading-loose text-[#5c6a62]">{paymentCompare}</p>}
-          <div className="mt-5 overflow-x-auto"><table className="w-full min-w-[320px] border-collapse text-sm"><tbody>
-            {paymentRows.map(([label, value]) => <tr key={label} className="border-b border-[#eee5d6]"><th className="py-3 text-right font-bold">{label}</th><td className="py-3 text-left" dir="ltr">{value}</td></tr>)}
-          </tbody></table></div>
-          <p className="mt-3 text-xs text-[#5c6a62]">{UNIT_PAYMENT_NOTE}</p>
-        </section>
-      )}
-
       <section className="mx-auto max-w-6xl px-5 pb-12 lg:px-8">
         <h2 className="text-2xl font-extrabold">عن المنطقة — {area.ar}</h2>
         <p className="mt-4 font-light leading-loose text-[#5c6a62]">{facts.context}</p>
@@ -275,7 +258,6 @@ export default function UnitPage() {
         </div>
       </section>
 
-      <Calculator initialPrice={unit.starting_price} initialDown={5} initialYears={8} whatsappHref={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`} />
       <Footer />
       <FloatingContact message={decodeURIComponent(message)} />
       <script type="application/ld+json">{JSON.stringify(structuredData)}</script>

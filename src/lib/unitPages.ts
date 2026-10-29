@@ -74,7 +74,7 @@ export async function loadUnitSiblings(projectId: string, excludeId: string): Pr
     project_id: `eq.${projectId}`,
     id: `neq.${excludeId}`,
     availability_status: "eq.available",
-    limit: "500",
+    limit: "20",
   });
   try {
     const rows = await getRows("units", params);

@@ -17,8 +17,8 @@ const WHATSAPP_NUMBER = "201110100025";
 // and named as the Article author in structured data. Details as Ahmed gave them (29 Oct 2026).
 const GUIDE_AUTHOR = {
   id: `${SITE_URL}/about#ahmed-mahmoud`,
-  ar: { name: "أحمد محمود", role: "مستشار عقاري في Tycoons Investments", years: "خبرة 11 سنة في السوق العقاري المصري" },
-  en: { name: "Ahmed Mahmoud", role: "Property consultant at Tycoons Investments", years: "11 years in the Egyptian property market" },
+  ar: { name: "أحمد محمود", role: "مؤسس Tycoons Investments", years: "خبرة 11 سنة في السوق العقاري المصري" },
+  en: { name: "Ahmed Mahmoud", role: "Founder of Tycoons Investments", years: "11 years in the Egyptian property market" },
 };
 
 function guideAuthorSchema() {
@@ -27,7 +27,7 @@ function guideAuthorSchema() {
     "@id": GUIDE_AUTHOR.id,
     name: GUIDE_AUTHOR.en.name,
     alternateName: GUIDE_AUTHOR.ar.name,
-    jobTitle: "Real estate consultant",
+    jobTitle: "Founder",
     url: `${SITE_URL}/about`,
     worksFor: { "@id": `${SITE_URL}/#organization` },
     knowsAbout: ["New Cairo real estate", "North Coast real estate", "Sheikh Zayed real estate", "Off-plan property payment plans"],
@@ -2235,7 +2235,7 @@ function renderStaticPage(type) {
     about: {
       title: "من نحن | Tycoons Investments",
       description: "تعرف على Tycoons Investments ومنهجنا في مساعدة مشتري العقارات على المقارنة واتخاذ قرار مبني على بيانات واضحة.",
-      body: `<h1>من نحن</h1><div class="answer">Tycoons Investments منصة بحث ومقارنة عقارية مصرية تساعد المشتري يفهم البدائل والأسعار وخطط السداد قبل التواصل مع فريق المبيعات.</div><h2>مهمتنا</h2><p>نحوّل البحث عن عقار من قوائم مشتتة إلى قرار واضح: نفس الميزانية، نفس نوع الوحدة، ونفس توقيت التسليم، مع توضيح الافتراضات والمخاطر.</p><h2>طريقة شغلنا</h2><p>نجمع بيانات الوحدات المتاحة من ملفات وقوائم المطورين، نعرض تاريخ التحديث، ونطلب إعادة تأكيد السعر والتوفر وقت الاستفسار. لا نعتبر أي عائد متوقع ضمانًا.</p><h2>مناسبين لمين؟</h2><p>للمشتري اللي عايز يقارن قبل القرار، وللمستثمر اللي محتاج يفصل بين سعر الشراء وخطة التمويل والسيولة والعائد المحتمل.</p><h2 id="ahmed-mahmoud">مين بيكتب الأدلة؟</h2><p>الأدلة والمقارنات على الموقع بيكتبها ويراجعها أحمد محمود، مستشار عقاري في Tycoons Investments بخبرة 11 سنة في السوق العقاري المصري. كل دليل بيتراجع على بيانات الوحدات المسجلة عندنا قبل النشر، وأي سعر أو خطة سداد بتتأكد مع المطور وقت الطلب.</p><p>لو لقيت معلومة محتاجة تصحيح، ابعتها على <a href="https://wa.me/${WHATSAPP_NUMBER}">واتساب</a> وهنراجعها حسب <a href="/corrections">سياسة التصحيح</a>.</p><h2>إمتى منصتنا مش كفاية؟</h2><p>الموقع مش بديل عن مراجعة العقد مع محامٍ مستقل، ولا عن المعاينة وإعادة تأكيد العرض النهائي مع المطور.</p>`,
+      body: `<h1>من نحن</h1><div class="answer">Tycoons Investments منصة بحث ومقارنة عقارية مصرية تساعد المشتري يفهم البدائل والأسعار وخطط السداد قبل التواصل مع فريق المبيعات.</div><h2>مهمتنا</h2><p>نحوّل البحث عن عقار من قوائم مشتتة إلى قرار واضح: نفس الميزانية، نفس نوع الوحدة، ونفس توقيت التسليم، مع توضيح الافتراضات والمخاطر.</p><h2>طريقة شغلنا</h2><p>نجمع بيانات الوحدات المتاحة من ملفات وقوائم المطورين، نعرض تاريخ التحديث، ونطلب إعادة تأكيد السعر والتوفر وقت الاستفسار. لا نعتبر أي عائد متوقع ضمانًا.</p><h2>مناسبين لمين؟</h2><p>للمشتري اللي عايز يقارن قبل القرار، وللمستثمر اللي محتاج يفصل بين سعر الشراء وخطة التمويل والسيولة والعائد المحتمل.</p><h2 id="ahmed-mahmoud">مين بيكتب الأدلة؟</h2><p>الأدلة والمقارنات على الموقع بيكتبها ويراجعها أحمد محمود، مؤسس Tycoons Investments، بخبرة 11 سنة في السوق العقاري المصري. كل دليل بيتراجع على بيانات الوحدات المسجلة عندنا قبل النشر، وأي سعر أو خطة سداد بتتأكد مع المطور وقت الطلب.</p><p>لو لقيت معلومة محتاجة تصحيح، ابعتها على <a href="https://wa.me/${WHATSAPP_NUMBER}">واتساب</a> وهنراجعها حسب <a href="/corrections">سياسة التصحيح</a>.</p><h2>إمتى منصتنا مش كفاية؟</h2><p>الموقع مش بديل عن مراجعة العقد مع محامٍ مستقل، ولا عن المعاينة وإعادة تأكيد العرض النهائي مع المطور.</p>`,
       schemas: [{
         "@context": "https://schema.org",
         "@type": "AboutPage",
