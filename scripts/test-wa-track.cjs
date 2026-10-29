@@ -30,7 +30,7 @@ function element({ tag = "a", href = "", text = "", attrs = {}, parent = null, f
   return node;
 }
 
-function browser({ pathname = "/projects/sodic-east--sodic", search = "", referrer = "", lang = "ar", h1 = "SODIC East" } = {}) {
+function browser({ pathname = "/projects/sodic-east--sodic", search = "", referrer = "", lang = "ar", h1 = "SODIC East", lead = null } = {}) {
   const requests = [];
   const opened = [];
   const store = new Map();
@@ -52,6 +52,7 @@ function browser({ pathname = "/projects/sodic-east--sodic", search = "", referr
     },
     navigator: { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) Mobile" },
     sessionStorage: { getItem: (key) => store.get(key) ?? null, setItem: (key, value) => store.set(key, String(value)) },
+    localStorage: { getItem: (key) => (key === "tycoons_lead" && lead ? JSON.stringify(lead) : null), setItem: () => {} },
     getComputedStyle: (node) => ({ position: node.fixed ? "fixed" : "static" }),
     fetch: (url, options) => { requests.push({ url, options, row: JSON.parse(options.body) }); return Promise.resolve({ ok: true }); },
     URL,
@@ -223,4 +224,28 @@ for (const pathname of ["/sales-war-room/lead/12", "/admin", "/media-admin/x"]) 
   }
 }
 
-console.log("WhatsApp click tracking validation passed (10 scenarios).");
+// 11. A visitor who already left name + mobile: no form, the name goes into the WhatsApp message.
+{
+  const page = browser({ lead: { name: "Mona Adel", phone: "01012345678", at: Date.now() } });
+  const link = page.click(element({ href: "https://wa.me/201110100025?text=%D8%A3%D9%87%D9%84%D8%A7", text: "واتساب", parent: page.body }));
+  const text = new URL(link.href).searchParams.get("text");
+  assert.match(text, /^الاسم: Mona Adel\n/, "the saved name leads the WhatsApp message");
+  assert.match(text, /كود الطلب: T-[A-Z0-9]{5}$/, "the reference code is still added");
+  assert.equal(page.requests.filter((r) => /whatsapp_clicks/.test(r.url)).length, 1, "the click is still recorded");
+}
+
+// 12. An old saved lead (over 60 days) and a page without a DOM: WhatsApp still opens as before.
+{
+  const page = browser({ lead: { name: "Old", phone: "01012345678", at: Date.now() - 61 * 86400000 } });
+  const link = page.click(element({ href: "https://wa.me/201110100025", text: "واتساب", parent: page.body }));
+  assert.ok(!/الاسم:/.test(new URL(link.href).searchParams.get("text") || ""), "an expired lead adds no name");
+  assert.match(link.href, /T-[A-Z0-9]{5}/, "the click falls back to the normal tracked link");
+}
+
+// 13. The lead form posts to the website-lead edge function, never to 8X CRM directly from the browser.
+{
+  assert.match(source, /functions\/v1\/website-lead/);
+  assert.doesNotMatch(source, /8xcrm/i, "the CRM endpoint and token stay on the server");
+}
+
+console.log("WhatsApp click tracking validation passed (13 scenarios).");
