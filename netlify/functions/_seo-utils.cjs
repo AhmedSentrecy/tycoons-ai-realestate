@@ -482,57 +482,9 @@ const AREA_SEARCH_CONTENT = {
       ],
     },
   },
-  "new-cairo": {
-    ar: {
-      title: ({ minFmt, plural }) => `مشاريع القاهرة الجديدة 2026 — الأسعار والمطورين (${plural}) من ${minFmt} | Tycoons`,
-      description: ({ minFmt, plural }) => `${plural} في القاهرة الجديدة والتجمع بأسعار تبدأ من ${minFmt}. قارن المطورين والمشاريع والوحدات وخطط السداد والتسليم في دليل محدث.`,
-      sections: [
-        [
-          "إزاي تقارن أسعار مشاريع القاهرة الجديدة؟",
-          "قارن وحدات من نفس النوع والمساحة والتشطيب وموعد التسليم، ثم راجع إجمالي سعر التقسيط والمقدم والدفعات الإضافية. سعر البداية أو سعر المتر وحده مش كفاية للحكم على الصفقة.",
-        ],
-        [
-          "مشروعات القاهرة الجديدة حسب المطور",
-          "الدليل التالي بيرتب المطورين ومشاريعهم ويربط كل مشروع بالوحدات والأسعار الظاهرة حاليًا. الأسعار والتوفر بيتأكدوا مع المطور وقت الطلب لأن القوائم بتتغير.",
-        ],
-      ],
-      faq: [
-        [
-          "إزاي أقارن أسعار القاهرة الجديدة بشكل عادل؟",
-          "ثبّت نوع الوحدة والمساحة والتشطيب والتسليم، وبعدها قارن السعر الكلي والمقدم ومدة التقسيط والدفعات والصيانة. المقارنة بين وحدتين مختلفتين في التسليم أو التشطيب ممكن تكون مضللة.",
-        ],
-        [
-          "فين ألاقي مشروعات القاهرة الجديدة حسب المطور؟",
-          "الصفحة بتجمع المطورين ومشاريعهم في القاهرة الجديدة وتربط كل مشروع بوحداته المتاحة. استخدم القائمة لمقارنة البدائل ثم أكّد السعر والتوفر قبل الحجز.",
-        ],
-      ],
-    },
-    en: {
-      title: ({ minFmt, plural }) => `New Cairo Projects 2026 — Prices & ${plural}`,
-      description: ({ minFmt, plural }) => `${plural} in New Cairo starting from ${minFmt}. Compare developers, projects, units, payment plans and delivery in one updated guide.`,
-      sections: [
-        [
-          "How to compare New Cairo property prices",
-          "Compare units with the same type, size, finishing and delivery date, then review the total installment price, down payment and additional payments. A starting price or price per square metre alone does not describe the full deal.",
-        ],
-        [
-          "New Cairo projects by developer",
-          "The directory below groups developers and their New Cairo projects and links each project to its currently listed units and prices. Prices and availability are reconfirmed with the developer because inventory changes.",
-        ],
-      ],
-      faq: [
-        [
-          "How can I compare New Cairo property prices fairly?",
-          "Keep the unit type, size, finishing and delivery date consistent, then compare the total price, down payment, installment term, extra payments and maintenance. Comparing units with different delivery or finishing can be misleading.",
-        ],
-        [
-          "Where can I find New Cairo projects by developer?",
-          "This page groups New Cairo developers and projects and links each project to its available units. Use the list to compare alternatives, then reconfirm price and availability before reserving.",
-        ],
-      ],
-    },
-  },
 };
+// New Cairo, North Coast and Sheikh Zayed long-form guides live in their own file.
+Object.assign(AREA_SEARCH_CONTENT, require("./_area-guides.cjs").AREA_GUIDES);
 
 // Project-specific answers are only enabled where Search Console shows a
 // distinct intent that the live inventory can answer safely. Values such as
