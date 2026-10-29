@@ -170,7 +170,7 @@ assert.match(englishNewCairoGuide, /<html lang="en" dir="ltr">/);
 assert.match(englishNewCairoGuide, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/new-cairo-property-prices\//);
 assert.match(englishNewCairoGuide, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/guides\/new-cairo-property-prices\//);
 assert.match(englishNewCairoGuide, /Compare the same unit type/);
-assert.match(newCairoArea, /New Cairo projects 2026 — prices and developers/);
+assert.match(newCairoArea, /<title>New Cairo Projects 2026 — Prices &amp; /);
 assert.match(newCairoArea, /How to compare New Cairo property prices/);
 assert.match(newCairoArea, /New Cairo projects by developer/);
 assert.match(icity, /أسعار Mountain View iCity October/);

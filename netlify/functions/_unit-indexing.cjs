@@ -9,13 +9,15 @@ function numberValue(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// Same project, type, bedrooms and size = one indexable page. Units that differ only in price
+// (another floor or payment plan) read as near-duplicates to Google ("Duplicate, Google chose
+// different canonical", Oct 2026), so only the most recently updated one is indexed.
 function unitIndexKey(unit) {
   return [
     unit.project_id,
     unit.unit_type,
     unit.bedrooms_text,
-    unit.area_sqm,
-    unit.starting_price,
+    numberValue(unit.area_sqm),
   ]
     .map((value) => text(value).toLowerCase())
     .join("|");

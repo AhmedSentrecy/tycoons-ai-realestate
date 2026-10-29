@@ -12,6 +12,32 @@ const { devGroupKey, developerArabic, devInitials } = require("./_developer-name
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201110100025";
+
+// The person behind the guides (E-E-A-T): shown as a byline on every guide and on /about,
+// and named as the Article author in structured data. Details as Ahmed gave them (29 Oct 2026).
+const GUIDE_AUTHOR = {
+  id: `${SITE_URL}/about#ahmed-mahmoud`,
+  ar: { name: "أحمد محمود", role: "مستشار عقاري في Tycoons Investments", years: "خبرة 11 سنة في السوق العقاري المصري" },
+  en: { name: "Ahmed Mahmoud", role: "Property consultant at Tycoons Investments", years: "11 years in the Egyptian property market" },
+};
+
+function guideAuthorSchema() {
+  return {
+    "@type": "Person",
+    "@id": GUIDE_AUTHOR.id,
+    name: GUIDE_AUTHOR.en.name,
+    alternateName: GUIDE_AUTHOR.ar.name,
+    jobTitle: "Real estate consultant",
+    url: `${SITE_URL}/about`,
+    worksFor: { "@id": `${SITE_URL}/#organization` },
+    knowsAbout: ["New Cairo real estate", "North Coast real estate", "Sheikh Zayed real estate", "Off-plan property payment plans"],
+  };
+}
+
+function guideBylineHtml(ar) {
+  const a = ar ? GUIDE_AUTHOR.ar : GUIDE_AUTHOR.en;
+  return `<p class="updated byline">${ar ? "كتبه وراجعه" : "Written and reviewed by"}: <a href="/about#ahmed-mahmoud" rel="author">${a.name}</a> — ${a.role}${ar ? "، " : ", "}${a.years}</p>`;
+}
 const SUPABASE_URL =
   process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY =
@@ -482,7 +508,7 @@ const AREA_SEARCH_CONTENT = {
       ],
     },
     en: {
-      title: ({ minFmt, plural }) => `New Cairo projects 2026 — prices and developers from ${minFmt} (${plural}) | Tycoons`,
+      title: ({ minFmt, plural }) => `New Cairo Projects 2026 — Prices & ${plural}`,
       description: ({ minFmt, plural }) => `${plural} in New Cairo starting from ${minFmt}. Compare developers, projects, units, payment plans and delivery in one updated guide.`,
       sections: [
         [
@@ -1223,7 +1249,7 @@ function projectCardHtml(project, lang) {
   const ready = /استلام فوري|Ready/.test(tag);
   const message = encodeURIComponent(`${ar ? "أهلاً Tycoons، مهتم بمشروع" : "Hello Tycoons, I am interested in"} ${project.name}\n${SITE_URL}${href}`);
   return `<article class="pcard" data-area="${escapeHtml(area.slug)}" data-types="${cats.join(" ")}"${ready ? " data-ready" : ""}${min && min < 10000000 ? " data-u10" : ""}>
-<div class="pimg"><a href="${href}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(projectImage(project))}" alt="" loading="lazy" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
+<div class="pimg"><a href="${href}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(projectImage(project))}" alt="${escapeHtml(`${project.name} — ${ar ? area.ar : area.en}`)}" loading="lazy" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
 <div class="pbody"><h3><a href="${href}">${escapeHtml(project.name)}</a></h3><p class="ploc">${escapeHtml(area.indexable ? (ar ? area.ar : area.en) : projectLocation(project))} · ${escapeHtml(devDisplayName(project.developer, lang))}</p>
 <p class="pprice">${min ? `${ar ? "يبدأ من" : "From"} <b>${escapeHtml(new Intl.NumberFormat("en-EG").format(min))}</b> ${ar ? "ج.م" : "EGP"}` : (ar ? "السعر عند الطلب" : "Price on request")}</p>
 <div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${ar ? `${unitsAr(project.units.length)} متاحة` : `${project.units.length} ${project.units.length === 1 ? "unit" : "units"} available`}</span></div>
@@ -1366,7 +1392,7 @@ function renderDirectory(allProjects, lang, articles = []) {
     : `Egypt Property Projects 2026 — ${listedProjects.length} Projects with Prices | Tycoons`;
   const description = ar
     ? `قارن ${listedProjects.length} مشروع عقاري و${unitCount} وحدة متاحة في التجمع الخامس والساحل الشمالي والشيخ زايد ومستقبل سيتي: الأسعار والمساحات وأنظمة السداد والاستلام من المطورين مباشرة.`
-    : `Compare ${listedProjects.length} property projects and ${unitCount} available units in New Cairo, North Coast, Sheikh Zayed and Mostakbal City: prices, sizes, payment plans and delivery, direct from developers.`;
+    : `Compare ${listedProjects.length} projects and ${unitCount} units in New Cairo, North Coast, Sheikh Zayed and Mostakbal City: prices, payment plans and delivery.`;
   const body = `<style>${directoryStyles()}${filterCss}</style>
 <section class="dhero"><div class="dwrap"><p class="crumbs"><a href="${ar ? "/" : "/en/"}">${ar ? "الرئيسية" : "Home"}</a> ‹ ${ar ? "دليل المشاريع" : "Project directory"}</p>
 <h1>${ar ? "دليل المشاريع العقارية في مصر 2026" : "Egypt property project directory 2026"}</h1>
@@ -1822,7 +1848,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const branchHtml = kind === "area"
     ? `<div class="sh" id="developers"><div><h2>${escapeHtml(branchHeading)}</h2></div></div><div class="dchips">${branches.map((branch) => {
         const info = developerInfo(branch.label);
-        const logo = info?.logo_path ? `<img class="${info.logo_on_dark ? "dk" : ""}" src="${escapeHtml(brandLogoUrl(info.logo_path))}" alt="" loading="lazy">` : "";
+        const logo = info?.logo_path ? `<img class="${info.logo_on_dark ? "dk" : ""}" src="${escapeHtml(brandLogoUrl(info.logo_path))}" alt="${escapeHtml(`${ar ? "شعار" : "Logo of"} ${devDisplayName(branch.label, lang)}`)}" loading="lazy">` : "";
         return `<a class="dchip" href="/${lang}/developers/${branch.slug}">${logo}${escapeHtml(devDisplayName(branch.label, lang))} <span>${ar ? projectsAr(branch.projects.length) : `${branch.projects.length} ${branch.projects.length === 1 ? "project" : "projects"}`}</span></a>`;
       }).join("")}</div>`
     : `<div class="sh" id="projects"><div><h2>${escapeHtml(branchHeading)}</h2><p>${ar ? "اضغط على أي مشروع تشوف كل وحداته وأسعارها وأنظمة السداد" : "Open any project to see all its units, prices and payment plans"}</p></div></div>${branches.map((branch) => `<section class="dgroup"><h3><a href="/${lang}/areas/${branch.slug}">${escapeHtml(branch.label)}</a> <span>· ${ar ? projectsAr(branch.projects.length) : `${branch.projects.length} ${branch.projects.length === 1 ? "project" : "projects"}`}</span></h3><div class="pgrid">${branch.projects.map((project) => projectCardHtml(project, lang)).join("")}</div></section>`).join("")}`;
@@ -1976,7 +2002,7 @@ function renderGuide(slug, lang = "ar") {
   const guideIndex = ar ? "/guides/off-plan-buying-checklist" : "/en/guides/new-cairo-property-prices/";
   const modified = slug === "new-cairo-property-prices" ? "2026-08-26" : "2026-07-26";
   const body = `<main class="guide"><p class="crumbs"><a href="/">${ar ? "الرئيسية" : "Home"}</a> / <a href="${guideIndex}">${ar ? "الأدلة" : "Guides"}</a> / ${escapeHtml(guide.title)}</p>
-  <section class="hero"><span class="eyebrow">${ar ? "دليل قرار عقاري · راجعه فريق Tycoons" : "Property decision guide · reviewed by Tycoons"}</span><h1>${escapeHtml(guide.title)}</h1><p class="lead">${escapeHtml(guide.description)}</p><div class="answer">${escapeHtml(guide.summary)}</div><p class="updated">${ar ? `آخر مراجعة: ${modified === "2026-08-26" ? "26 أغسطس 2026" : "26 يوليو 2026"}` : `Last reviewed: ${modified}`}</p></section>
+  <section class="hero"><span class="eyebrow">${ar ? "دليل قرار عقاري · راجعه فريق Tycoons" : "Property decision guide · reviewed by Tycoons"}</span><h1>${escapeHtml(guide.title)}</h1><p class="lead">${escapeHtml(guide.description)}</p><div class="answer">${escapeHtml(guide.summary)}</div><p class="updated">${ar ? `آخر مراجعة: ${modified === "2026-08-26" ? "26 أغسطس 2026" : "26 يوليو 2026"}` : `Last reviewed: ${modified}`}</p>${guideBylineHtml(ar)}</section>
   ${guide.sections.map(([title, text]) => `<section><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}
   <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المحتوى تعليمي وليس استشارة قانونية أو مالية. الأسعار والتوفر والعوائد تتغير، ويفضل مراجعة العقد مع محامٍ مستقل وإعادة تأكيد البيانات وقت القرار." : "This content is educational, not legal or financial advice. Prices, availability and returns change; reconfirm the data and have an independent lawyer review the contract before deciding."}</p><p><a href="/methodology">${ar ? "اقرأ منهجية البيانات والحسابات" : "Read our data and calculation methodology"}</a></p></section></main>`;
   return renderPage({
@@ -2001,8 +2027,8 @@ function renderGuide(slug, lang = "ar") {
         dateModified: modified,
         inLanguage: ar ? "ar-EG" : "en",
         image: `${SITE_URL}/images/hero.webp`,
-        author: { "@type": "Organization", name: "Tycoons Investments", url: `${SITE_URL}/about` },
-        reviewedBy: { "@type": "Organization", name: "Tycoons Investments" },
+        author: guideAuthorSchema(),
+        reviewedBy: { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments" },
         publisher: {
           "@type": "Organization",
           "@id": `${SITE_URL}/#organization`,
@@ -2040,7 +2066,7 @@ function editorialGuidePath(article) {
 
 // /guides/ and /en/guides/: one hub linking every buyer guide and published article,
 // so guides are no longer orphans and crawlers have a single entry point.
-function renderGuidesIndex(lang = "ar", articles = []) {
+function renderGuidesIndex(lang = "ar", articles = [], projects = []) {
   const ar = lang !== "en";
   const path = ar ? "/guides/" : "/en/guides/";
   const alternatePath = ar ? "/en/guides/" : "/guides/";
@@ -2049,8 +2075,20 @@ function renderGuidesIndex(lang = "ar", articles = []) {
   }));
   const published = (Array.isArray(articles) ? articles : [])
     .filter((article) => article && article.slug && article.title && (ar ? article.language !== "en" : article.language === "en"))
-    .map((article) => ({ title: article.title, description: article.excerpt || "", href: editorialGuidePath(article) }));
+    .map((article) => ({ title: article.title, description: article.excerpt || "", href: editorialGuidePath(article), projectId: article.project_id || null }));
   const items = [...staticGuides, ...published];
+  // Project guides grouped by the project's area, so the page has real sections (H2s) and
+  // readers (and crawlers) see which guides belong to which market.
+  const projectLocation = new Map((Array.isArray(projects) ? projects : []).map((project) => [String(project.id), project.location]));
+  const groups = new Map();
+  for (const item of published) {
+    const location = item.projectId ? projectLocation.get(String(item.projectId)) : null;
+    const area = location ? areaFor(location) : null;
+    const key = area ? (ar ? `أدلة مشاريع ${area.ar}` : `${area.en} project guides`) : (ar ? "أدلة تانية" : "More guides");
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(item);
+  }
+  const sortedGroups = [...groups.entries()].sort((a, b) => b[1].length - a[1].length);
   const title = ar ? `أدلة شراء العقارات في مصر 2026 — ${items.length} دليل | Tycoons` : `Egypt Property Buying Guides 2026 — ${items.length} guides | Tycoons`;
   const description = ar
     ? "كل أدلة Tycoons لشراء عقار في مصر: الأسعار، خطط السداد، الشراء تحت الإنشاء، ودليل لكل مشروع عن موقعه ووحداته ولمين يناسب."
@@ -2059,8 +2097,13 @@ function renderGuidesIndex(lang = "ar", articles = []) {
     { name: ar ? "الرئيسية" : "Home", path: "/" },
     { name: ar ? "الأدلة" : "Guides", path },
   ];
-  const list = items.map((item) => `<li style="margin:0 0 14px"><a href="${escapeHtml(item.href)}"><strong>${escapeHtml(item.title)}</strong></a>${item.description ? `<br><span class="note">${escapeHtml(item.description)}</span>` : ""}</li>`).join("");
-  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">Tycoons Investments</span><h1>${ar ? "أدلة شراء العقارات في مصر" : "Egypt property buying guides"}</h1><p class="lead">${escapeHtml(description)}</p></section><ul style="list-style:none;padding:0;margin-top:24px">${list}</ul></main>`;
+  const listItems = (list) => list.map((item) => `<li style="margin:0 0 14px"><a href="${escapeHtml(item.href)}"><strong>${escapeHtml(item.title)}</strong></a>${item.description ? `<br><span class="note">${escapeHtml(item.description)}</span>` : ""}</li>`).join("");
+  const section = (heading, list) => list.length ? `<section><h2>${escapeHtml(heading)}</h2><ul style="list-style:none;padding:0;margin-top:16px">${listItems(list)}</ul></section>` : "";
+  const list = [
+    section(ar ? "أدلة عامة قبل الشراء" : "Before you buy", staticGuides),
+    ...sortedGroups.map(([heading, guides]) => section(heading, guides)),
+  ].join("");
+  const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p><section class="hero"><span class="eyebrow">Tycoons Investments</span><h1>${ar ? "أدلة شراء العقارات في مصر" : "Egypt property buying guides"}</h1><p class="lead">${escapeHtml(description)}</p></section>${list}</main>`;
   return renderPage({
     lang,
     title,
@@ -2134,7 +2177,7 @@ function editorialArticleView(article, translation = null, extras = {}) {
     : "";
   const floating = `<a href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" aria-label="${ar ? "تواصل على واتساب" : "WhatsApp"}" style="position:fixed;bottom:20px;left:20px;z-index:40;background:#1faa59;color:#fff;border-radius:999px;padding:14px 20px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.2)">${ar ? "واتساب" : "WhatsApp"}</a>`;
   const body = `<main class="guide"><p class="crumbs">${crumbs.slice(0, -1).map((item) => `<a href="${escapeHtml(item.path)}">${escapeHtml(item.name)}</a>`).join(" / ")} / ${escapeHtml(article.title)}</p>
-  <section class="hero"><span class="eyebrow">${ar ? "دليل مستقل تمت مراجعته قبل النشر" : "Independent guide reviewed before publication"}</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(article.excerpt)}</p>${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title)}" width="1200" height="630" loading="eager" style="width:100%;height:auto;border-radius:16px;margin-top:12px">` : ""}<p class="updated">${ar ? "تاريخ المراجعة" : "Reviewed"}: ${escapeHtml(reviewedDate)}</p></section>
+  <section class="hero"><span class="eyebrow">${ar ? "دليل مستقل تمت مراجعته قبل النشر" : "Independent guide reviewed before publication"}</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(article.excerpt)}</p>${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title)}" width="1200" height="630" loading="eager" style="width:100%;height:auto;border-radius:16px;margin-top:12px">` : ""}<p class="updated">${ar ? "تاريخ المراجعة" : "Reviewed"}: ${escapeHtml(reviewedDate)}</p>${guideBylineHtml(ar)}</section>
   ${projectCard}
   ${takeawaysHtml}
   <article>${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar))}</article>
@@ -2167,8 +2210,8 @@ function editorialArticleView(article, translation = null, extras = {}) {
         ...(image ? { image: [image] } : {}),
         ...(takeaways.length ? { abstract: takeaways.join(" ") } : {}),
         ...(webSources.length ? { citation: webSources.map((ref) => ({ "@type": "CreativeWork", name: String(ref.label).slice(0, 160) })) } : {}),
-        author: { "@type": "Organization", name: "Tycoons Investments", url: `${SITE_URL}/about` },
-        reviewedBy: { "@type": "Person", name: article.reviewed_by_name },
+        author: guideAuthorSchema(),
+        ...(article.reviewed_by_name ? { reviewedBy: { "@type": "Person", name: article.reviewed_by_name } } : {}),
         publisher: { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL },
       },
       ...(faq.length
@@ -2192,14 +2235,14 @@ function renderStaticPage(type) {
     about: {
       title: "من نحن | Tycoons Investments",
       description: "تعرف على Tycoons Investments ومنهجنا في مساعدة مشتري العقارات على المقارنة واتخاذ قرار مبني على بيانات واضحة.",
-      body: `<h1>من نحن</h1><div class="answer">Tycoons Investments منصة بحث ومقارنة عقارية مصرية تساعد المشتري يفهم البدائل والأسعار وخطط السداد قبل التواصل مع فريق المبيعات.</div><h2>مهمتنا</h2><p>نحوّل البحث عن عقار من قوائم مشتتة إلى قرار واضح: نفس الميزانية، نفس نوع الوحدة، ونفس توقيت التسليم، مع توضيح الافتراضات والمخاطر.</p><h2>طريقة شغلنا</h2><p>نجمع بيانات الوحدات المتاحة من ملفات وقوائم المطورين، نعرض تاريخ التحديث، ونطلب إعادة تأكيد السعر والتوفر وقت الاستفسار. لا نعتبر أي عائد متوقع ضمانًا.</p><h2>مناسبين لمين؟</h2><p>للمشتري اللي عايز يقارن قبل القرار، وللمستثمر اللي محتاج يفصل بين سعر الشراء وخطة التمويل والسيولة والعائد المحتمل.</p><h2>إمتى منصتنا مش كفاية؟</h2><p>الموقع مش بديل عن مراجعة العقد مع محامٍ مستقل، ولا عن المعاينة وإعادة تأكيد العرض النهائي مع المطور.</p>`,
+      body: `<h1>من نحن</h1><div class="answer">Tycoons Investments منصة بحث ومقارنة عقارية مصرية تساعد المشتري يفهم البدائل والأسعار وخطط السداد قبل التواصل مع فريق المبيعات.</div><h2>مهمتنا</h2><p>نحوّل البحث عن عقار من قوائم مشتتة إلى قرار واضح: نفس الميزانية، نفس نوع الوحدة، ونفس توقيت التسليم، مع توضيح الافتراضات والمخاطر.</p><h2>طريقة شغلنا</h2><p>نجمع بيانات الوحدات المتاحة من ملفات وقوائم المطورين، نعرض تاريخ التحديث، ونطلب إعادة تأكيد السعر والتوفر وقت الاستفسار. لا نعتبر أي عائد متوقع ضمانًا.</p><h2>مناسبين لمين؟</h2><p>للمشتري اللي عايز يقارن قبل القرار، وللمستثمر اللي محتاج يفصل بين سعر الشراء وخطة التمويل والسيولة والعائد المحتمل.</p><h2 id="ahmed-mahmoud">مين بيكتب الأدلة؟</h2><p>الأدلة والمقارنات على الموقع بيكتبها ويراجعها أحمد محمود، مستشار عقاري في Tycoons Investments بخبرة 11 سنة في السوق العقاري المصري. كل دليل بيتراجع على بيانات الوحدات المسجلة عندنا قبل النشر، وأي سعر أو خطة سداد بتتأكد مع المطور وقت الطلب.</p><p>لو لقيت معلومة محتاجة تصحيح، ابعتها على <a href="https://wa.me/${WHATSAPP_NUMBER}">واتساب</a> وهنراجعها حسب <a href="/corrections">سياسة التصحيح</a>.</p><h2>إمتى منصتنا مش كفاية؟</h2><p>الموقع مش بديل عن مراجعة العقد مع محامٍ مستقل، ولا عن المعاينة وإعادة تأكيد العرض النهائي مع المطور.</p>`,
       schemas: [{
         "@context": "https://schema.org",
         "@type": "AboutPage",
         name: "عن Tycoons Investments",
         url: `${SITE_URL}/about`,
-        mainEntity: { "@type": ["Organization", "RealEstateAgent"], name: "Tycoons Investments", url: SITE_URL },
-      }],
+        mainEntity: { "@type": ["Organization", "RealEstateAgent"], "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL, employee: { "@id": GUIDE_AUTHOR.id } },
+      }, { "@context": "https://schema.org", ...guideAuthorSchema() }],
     },
     faq: {
       title: "الأسئلة الشائعة عن شراء العقارات | Tycoons Investments",

@@ -139,8 +139,11 @@ exports.handler = async function handler(event) {
     }
     if (type === "static") html = renderStaticPage(slug);
     if (type === "guides") {
-      const articles = await fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at", order: "published_at.desc", limit: "300" });
-      html = renderGuidesIndex(lang, articles);
+      const [articles, projectsForGuides] = await Promise.all([
+        fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at,project_id", order: "published_at.desc", limit: "300" }),
+        fetchProjectsMeta().catch(() => []),
+      ]);
+      html = renderGuidesIndex(lang, articles, projectsForGuides);
     }
     if (!["guide", "guides", "static"].includes(type)) {
       const [units, projectsMeta] = await Promise.all([
