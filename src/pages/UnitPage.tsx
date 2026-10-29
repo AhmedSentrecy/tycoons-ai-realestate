@@ -16,7 +16,6 @@ import {
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
 import FloatingContact from "@/components/FloatingContact";
-import Calculator from "@/sections/Calculator";
 import { loadUnitPage, loadUnitSiblings, type SiblingUnitRow, type UnitPageData } from "@/lib/unitPages";
 import { arabicField } from "@/lib/arabicFields";
 import { areaFor, areaFacts, computeUnitStats, rankClause, pick } from "@/lib/unitContent";
@@ -259,7 +258,6 @@ export default function UnitPage() {
         </div>
       </section>
 
-      <Calculator initialPrice={unit.starting_price} initialDown={5} initialYears={8} whatsappHref={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`} />
       <Footer />
       <FloatingContact message={decodeURIComponent(message)} />
       <script type="application/ld+json">{JSON.stringify(structuredData)}</script>

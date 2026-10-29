@@ -81,7 +81,6 @@ export default function Footer() {
                 { label: tr("دليل المشاريع"), to: localeHref("/ar/"), external: true },
                 { label: tr("الأسئلة الشائعة"), to: "/faq" },
                 { label: tr("من نحن"), to: "/about" },
-                { label: tr("الحاسبة"), to: "/" },
               ].map((it) => (
                 <li key={it.label}>
                   {it.external ? (

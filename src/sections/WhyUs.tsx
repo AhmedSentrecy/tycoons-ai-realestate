@@ -13,7 +13,7 @@ const features = [
   {
     icon: Wallet,
     title: tr("أقساط تناسبك"),
-    desc: tr("خطط سداد لحد ١٠ سنين، وحاسبة قسط شفافة على كل مشروع."),
+    desc: tr("خطط سداد لحد ١٠ سنين، مكتوبة بوضوح على كل مشروع."),
   },
   {
     icon: MessageCircle,

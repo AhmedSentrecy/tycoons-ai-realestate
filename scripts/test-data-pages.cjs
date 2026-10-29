@@ -150,6 +150,11 @@ const weakUnit = { ...unit, id: "unit-3", area_sqm: null };
 const indexable = indexableUnitIds([unit, duplicateUnit, weakUnit]);
 assert.equal(indexable.size, 1);
 assert.ok(indexable.has("unit-1"));
+// Same type and size, only the price differs (another floor): still one indexable page.
+const pricierTwin = { ...unit, id: "unit-4", starting_price: Number(unit.starting_price) + 250000 };
+assert.equal(indexableUnitIds([unit, pricierTwin]).size, 1, "units that differ only in price are near-duplicates");
+const biggerUnit = { ...unit, id: "unit-5", area_sqm: Number(unit.area_sqm) + 20 };
+assert.equal(indexableUnitIds([unit, biggerUnit]).size, 2, "a different size is its own page");
 const weakHtml = renderUnitStatic(shell, weakUnit, project, [], { indexable: false });
 assert.match(weakHtml, /<meta name="robots" content="noindex,follow">/);
 
