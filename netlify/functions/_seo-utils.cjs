@@ -165,7 +165,7 @@ const GENERIC_AREA_FACTS = {
 const AREA_SEARCH_CONTENT = {
   "mostakbal-city": {
     ar: {
-      title: ({ minFmt, plural }) => `مشاريع مستقبل سيتي 2026 — الخريطة والأسعار (${plural}) من ${minFmt} | Tycoons`,
+      title: ({ minFmt, plural }) => `مشاريع مستقبل سيتي 2026 — الخريطة والأسعار و${plural}`,
       description: ({ minFmt, plural }) => `دليل مستقبل سيتي 2026: الموقع والطرق والمراحل والخدمات، و${plural} متاحة بأسعار من ${minFmt} وأنظمة سداد من 1.5% مقدم لحد 12 سنة.`,
       map: { heading: "خريطة مستقبل سيتي", query: "Mostakbal City, New Cairo, Egypt", locality: "Mostakbal City, New Cairo" },
       // Researched 29 Oct 2026 (master developer, press releases, Tycoons inventory). No external site names in the text.
