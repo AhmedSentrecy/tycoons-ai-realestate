@@ -101,6 +101,16 @@ const icityProjects = groupProjects(icityRows);
 const icity = renderProject(icityProjects, "mountain-view-icity-october--mountain-view", "ar");
 const methodology = renderStaticPage("methodology");
 const about = renderStaticPage("about");
+{
+  const aboutHtml = typeof about === "string" ? about : JSON.stringify(about);
+  assert.match(aboutHtml, /id="ahmed-mahmoud"/, "About keeps the author anchor used by every guide byline");
+  assert.match(aboutHtml, /طريقة شغلنا/);
+  assert.match(aboutHtml, /Hyde Park Business District/);
+  const faqHtml = JSON.stringify(renderStaticPage("faq"));
+  assert.ok((faqHtml.match(/Question\\?"/g) || []).length >= 12, "FAQ page answers at least 12 questions");
+  const investGuide = JSON.stringify(renderGuide("real-estate-investment-egypt"));
+  assert.match(investGuide, /href=\\"\/guides\/payment-plan-comparison\/\\"/, "Guides link the guides they mention");
+}
 const faq = renderStaticPage("faq");
 const missing = notFound("ar");
 const unit = renderUnit(projects, rows[0].id, "ar");

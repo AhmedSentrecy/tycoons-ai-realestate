@@ -355,7 +355,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
     ? `${project.name} — الأسعار والموقع والوحدات | Tycoons`
     : text(project.seo_title) || `${project.name} | الأسعار والوحدات المتاحة`;
   const legacyDescription = isIcityOctober && prices.length
-    ? `${project.name} من ${project.developer} في ${project.location}. الأسعار الظاهرة من ${formatPrice(minPrice)} إلى ${formatPrice(highPrice)} جنيه عبر ${totalOptionCount} خيار، مع طريقة التأكد من الموقع والـmaster plan الرسمي.`
+    ? `${project.name} من ${project.developer} في أكتوبر: أسعار من ${formatPrice(minPrice)} إلى ${formatPrice(highPrice)} جنيه في ${totalOptionCount} خيار، والموقع والـmaster plan.`
     : text(project.seo_description) || text(project.description) ||
       `اعرف أسعار ومساحات ${project.name} وخطط السداد والوحدات المتاحة.`;
   const title = localized?.seo_title || legacyTitle;

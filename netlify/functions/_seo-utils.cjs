@@ -522,6 +522,46 @@ const PROJECT_SEARCH_CONTENT = {
 
 // Fixed buyer guides (/guides/<slug>/ and /en/guides/<slug>/) live in their own file.
 const { GUIDES, ENGLISH_GUIDES } = require("./_buying-guides.cjs");
+const { ABOUT, FAQ } = require("./_trust-pages.cjs");
+
+// Phrases in guide and trust-page text that name another page: link the first mention of each
+// (never the page itself). Applied to escaped text, so phrases are plain words only.
+const TEXT_LINKS = {
+  ar: [
+    ["إزاي تقارن خطط سداد العقارات", "/guides/payment-plan-comparison/"],
+    ["مقارنة أنظمة السداد", "/guides/payment-plan-comparison/"],
+    ["شراء وحدة تحت الإنشاء", "/guides/off-plan-buying-checklist/"],
+    ["أساسيات الاستثمار العقاري في مصر", "/guides/real-estate-investment-egypt/"],
+    ["العاصمة الإدارية ولا القاهرة الجديدة", "/guides/new-capital-vs-new-cairo/"],
+    ["سياسة التصحيح", "/corrections"],
+    ["مستقبل سيتي", "/ar/areas/mostakbal-city"],
+    ["الشيخ زايد", "/ar/areas/sheikh-zayed"],
+    ["الساحل الشمالي", "/ar/areas/north-coast"],
+    ["القاهرة الجديدة", "/ar/areas/new-cairo"],
+  ],
+  en: [
+    ["Mostakbal City", "/en/areas/mostakbal-city"],
+    ["New Cairo", "/en/areas/new-cairo"],
+    ["Sheikh Zayed", "/en/areas/sheikh-zayed"],
+    ["North Coast", "/en/areas/north-coast"],
+  ],
+};
+
+function linkTextMentions(html, lang, selfPath = "") {
+  let out = String(html);
+  const used = new Set();
+  for (const [phrase, href] of TEXT_LINKS[lang === "en" ? "en" : "ar"]) {
+    if (href === selfPath || used.has(href)) continue;
+    const index = out.indexOf(phrase);
+    if (index < 0) continue;
+    // Skip a mention that already sits inside a tag or an existing link.
+    const before = out.slice(0, index);
+    if (before.lastIndexOf("<a ") > before.lastIndexOf("</a>") || before.lastIndexOf("<") > before.lastIndexOf(">")) continue;
+    out = `${before}<a href="${href}">${phrase}</a>${out.slice(index + phrase.length)}`;
+    used.add(href);
+  }
+  return out;
+}
 
 let cache = { units: null, fetchedAt: 0 };
 let projectsCache = { projects: null, fetchedAt: 0 };
@@ -1870,8 +1910,9 @@ function renderGuide(slug, lang = "ar") {
   const faq = Array.isArray(guide.faq) ? guide.faq : [];
   const body = `<main class="guide"><p class="crumbs"><a href="/">${ar ? "الرئيسية" : "Home"}</a> / <a href="${guideIndex}">${ar ? "الأدلة" : "Guides"}</a> / ${escapeHtml(guide.title)}</p>
   <section class="hero"><span class="eyebrow">${ar ? "دليل قرار عقاري · راجعه فريق Tycoons" : "Property decision guide · reviewed by Tycoons"}</span><h1>${escapeHtml(guide.title)}</h1><p class="lead">${escapeHtml(guide.description)}</p><div class="answer">${escapeHtml(guide.summary)}</div><p class="updated">${ar ? `آخر مراجعة: ${arabicDate(modified)}` : `Last reviewed: ${modified}`}</p>${guideBylineHtml(ar)}</section>
-  ${guide.sections.map(([title, text]) => `<section><h2>${escapeHtml(title)}</h2>${paragraphs(text)}</section>`).join("")}
+  ${linkTextMentions(guide.sections.map(([title, text]) => `<section><h2>${escapeHtml(title)}</h2>${paragraphs(text)}</section>`).join(""), lang, path)}
   ${faq.length ? `<section><h2>${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([q, a]) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`).join("")}</section>` : ""}
+  ${(() => { const others = Object.entries(ar ? GUIDES : ENGLISH_GUIDES).filter(([other]) => other !== slug); return others.length ? `<section><h2>${ar ? "أدلة تانية تفيدك" : "More buyer guides"}</h2><ul>${others.map(([other, item]) => `<li><a href="${ar ? "" : "/en"}/guides/${other}/">${escapeHtml(item.title)}</a></li>`).join("")}</ul></section>` : ""; })()}
   <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المحتوى تعليمي وليس استشارة قانونية أو مالية. الأسعار والتوفر والعوائد تتغير، ويفضل مراجعة العقد مع محامٍ مستقل وإعادة تأكيد البيانات وقت القرار." : "This content is educational, not legal or financial advice. Prices, availability and returns change; reconfirm the data and have an independent lawyer review the contract before deciding."}</p><p><a href="/methodology">${ar ? "اقرأ منهجية البيانات والحسابات" : "Read our data and calculation methodology"}</a></p></section></main>`;
   return renderPage({
     lang,
@@ -2106,29 +2147,25 @@ function renderEditorialArticle(article, translation = null, extras = {}) {
 function renderStaticPage(type) {
   const pages = {
     about: {
-      title: "من نحن | Tycoons Investments",
-      description: "تعرف على Tycoons Investments ومنهجنا في مساعدة مشتري العقارات على المقارنة واتخاذ قرار مبني على بيانات واضحة.",
-      body: `<h1>من نحن</h1><div class="answer">Tycoons Investments منصة بحث ومقارنة عقارية مصرية تساعد المشتري يفهم البدائل والأسعار وخطط السداد قبل التواصل مع فريق المبيعات.</div><h2>مهمتنا</h2><p>نحوّل البحث عن عقار من قوائم مشتتة إلى قرار واضح: نفس الميزانية، نفس نوع الوحدة، ونفس توقيت التسليم، مع توضيح الافتراضات والمخاطر.</p><h2>طريقة شغلنا</h2><p>نجمع بيانات الوحدات المتاحة من ملفات وقوائم المطورين، نعرض تاريخ التحديث، ونطلب إعادة تأكيد السعر والتوفر وقت الاستفسار. لا نعتبر أي عائد متوقع ضمانًا.</p><h2>مناسبين لمين؟</h2><p>للمشتري اللي عايز يقارن قبل القرار، وللمستثمر اللي محتاج يفصل بين سعر الشراء وخطة التمويل والسيولة والعائد المحتمل.</p><h2 id="ahmed-mahmoud">مين بيكتب الأدلة؟</h2><p>الأدلة والمقارنات على الموقع بيكتبها ويراجعها أحمد محمود، مؤسس Tycoons Investments، بخبرة 11 سنة في السوق العقاري المصري. كل دليل بيتراجع على بيانات الوحدات المسجلة عندنا قبل النشر، وأي سعر أو خطة سداد بتتأكد مع المطور وقت الطلب.</p><p>لو لقيت معلومة محتاجة تصحيح، ابعتها على <a href="https://wa.me/${WHATSAPP_NUMBER}">واتساب</a> وهنراجعها حسب <a href="/corrections">سياسة التصحيح</a>.</p><h2>إمتى منصتنا مش كفاية؟</h2><p>الموقع مش بديل عن مراجعة العقد مع محامٍ مستقل، ولا عن المعاينة وإعادة تأكيد العرض النهائي مع المطور.</p>`,
+      title: ABOUT.title,
+      description: ABOUT.description,
+      body: `<h1>من نحن</h1><div class="answer">${escapeHtml(ABOUT.lead)}</div>${linkTextMentions(ABOUT.sections.map(([heading, paragraphs]) => `<h2${heading === "مين بيكتب الأدلة؟" ? ' id="ahmed-mahmoud"' : ""}>${escapeHtml(heading)}</h2>${paragraphs.map((text) => `<p>${escapeHtml(text)}</p>`).join("")}`).join(""), "ar", "/about")}<p><a href="https://wa.me/${WHATSAPP_NUMBER}">ابعتلنا على واتساب</a> · <a href="/methodology">منهجية البيانات</a> · <a href="/faq">الأسئلة الشائعة</a></p>`,
       schemas: [{
         "@context": "https://schema.org",
         "@type": "AboutPage",
         name: "عن Tycoons Investments",
         url: `${SITE_URL}/about`,
-        mainEntity: { "@type": ["Organization", "RealEstateAgent"], "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL, employee: { "@id": GUIDE_AUTHOR.id } },
+        mainEntity: { "@type": ["Organization", "RealEstateAgent"], "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL, employee: { "@id": GUIDE_AUTHOR.id }, areaServed: ["New Cairo", "Mostakbal City", "New Administrative Capital", "Sheikh Zayed", "6th of October", "North Coast", "Ain Sokhna"] },
       }, { "@context": "https://schema.org", ...guideAuthorSchema() }],
     },
     faq: {
-      title: "الأسئلة الشائعة عن شراء العقارات | Tycoons Investments",
-      description: "إجابات واضحة عن الأسعار والتوفر والعمولة وخطط السداد والبحث والمقارنة مع Tycoons Investments.",
-      body: `<h1>الأسئلة الشائعة</h1><div class="answer">الأسعار والتوفر وخطط السداد تتغير، لذلك بنعرض أحدث بيانات مسجلة ونأكد العرض النهائي مع المطور وقت الطلب.</div><h2>هل الأسعار نهائية؟</h2><p>هي أحدث أسعار مسجلة عندنا، لكنها تحتاج تأكيد وقت الاستفسار لأن المطور قد يغيّر السعر أوالتوفر.</p><h2>هل Tycoons بتاخد عمولة من المشتري؟</h2><p>لا نضيف عمولة على سعر المطور للمشتري. الاتفاق النهائي والعقد يكونان وفق العرض المؤكد من المطور.</p><h2>إزاي أقارن خطط السداد؟</h2><p>قارن إجمالي السعر، المقدم والدفعات، مدة الأقساط، توقيت التسليم، والتشطيب. مدة تقسيط أطول لا تعني تلقائيًا تكلفة أقل.</p><h2>هل العائد مضمون؟</h2><p>لا. أي ROI أوإيجار متوقع تقدير مبني على افتراضات قابلة للتغير، وليس وعدًا أوضمانًا.</p><h2>إزاي أبلغ عن معلومة غير دقيقة؟</h2><p>ابعت رابط الصفحة والمعلومة الأحدث على <a href="https://wa.me/${WHATSAPP_NUMBER}">واتساب</a>، وهنراجع المصدر حسب <a href="/corrections">سياسة التصحيح</a>.</p>`,
+      title: FAQ.title,
+      description: FAQ.description,
+      body: `<h1>الأسئلة الشائعة</h1><div class="answer">${escapeHtml(FAQ.lead)}</div>${linkTextMentions(FAQ.groups.map(([group, items]) => `<h2>${escapeHtml(group)}</h2>${items.map(([q, a]) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`).join("")}`).join(""), "ar", "/faq")}<p><a href="https://wa.me/${WHATSAPP_NUMBER}">عندك سؤال تاني؟ ابعتلنا على واتساب</a></p>`,
       schemas: [{
         "@context": "https://schema.org",
         "@type": "FAQPage",
-        mainEntity: [
-          ["هل الأسعار نهائية؟", "هي أحدث أسعار مسجلة عندنا، لكنها تحتاج تأكيد وقت الاستفسار لأن المطور قد يغيّر السعر أو التوفر."],
-          ["هل Tycoons بتاخد عمولة من المشتري؟", "لا نضيف عمولة على سعر المطور للمشتري. الاتفاق النهائي والعقد يكونان وفق العرض المؤكد من المطور."],
-          ["هل العائد مضمون؟", "لا. أي عائد متوقع هو تقدير مبني على افتراضات قابلة للتغير وليس وعدًا أو ضمانًا."],
-        ].map(([name, text]) => ({
+        mainEntity: FAQ.groups.flatMap(([, items]) => items).map(([name, text]) => ({
           "@type": "Question",
           name,
           acceptedAnswer: { "@type": "Answer", text },
