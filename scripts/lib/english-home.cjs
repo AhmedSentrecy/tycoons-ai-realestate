@@ -1,7 +1,7 @@
 "use strict";
 
-const TITLE = "Tycoons Investments | Find your property in Egypt with AI";
-const DESCRIPTION = "Search developer-direct properties in Egypt with AI and voice. Compare locations, prices and payment plans, and find the home that fits.";
+const TITLE = "New Cairo, North Coast & New Capital Properties | Prices 2026";
+const DESCRIPTION = "Compare 240+ projects in New Cairo, Mostakbal City, the North Coast and Sheikh Zayed: prices per m², payment plans from 5% down and ready units.";
 const ENGLISH_CONTENT = `<div id="root"><main>
   <section aria-labelledby="home-title">
     <h1 id="home-title">Tell us what you have in mind. Find the property that fits.</h1>
