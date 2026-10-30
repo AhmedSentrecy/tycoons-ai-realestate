@@ -389,9 +389,35 @@
   status = 200
 
 # Retired guide slugs (renamed to their current canonical slug) still surfacing in GSC.
+# 30 Oct 2026: the short New Cairo price and North Coast chalet guides were merged into the
+# long-form area guides, so they (and their older names) 301 there.
+[[redirects]]
+  from = "/guides/new-cairo-property-prices"
+  to = "/ar/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/guides/new-cairo-property-prices/*"
+  to = "/ar/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/guides/north-coast-chalet-guide"
+  to = "/ar/areas/north-coast"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/guides/north-coast-chalet-guide/*"
+  to = "/ar/areas/north-coast"
+  status = 301
+  force = true
+
 [[redirects]]
   from = "/guides/new-cairo-prices-2026/*"
-  to = "/guides/new-cairo-property-prices/"
+  to = "/ar/areas/new-cairo"
   status = 301
   force = true
 
@@ -403,7 +429,7 @@
 
 [[redirects]]
   from = "/guides/north-coast-buying-guide/*"
-  to = "/guides/north-coast-chalet-guide/"
+  to = "/ar/areas/north-coast"
   status = 301
   force = true
 
@@ -597,27 +623,51 @@
   to = "/.netlify/functions/seo-page?lang=ar&type=unit&slug=:splat"
   status = 200
 
-# The high-impression New Cairo price guide now has a native English page.
+# The English New Cairo price guide (and its older name) merged into the English New Cairo
+# area guide on 30 Oct 2026.
 [[redirects]]
   from = "/en/guides/new-cairo-prices-2026"
-  to = "/en/guides/new-cairo-property-prices/"
+  to = "/en/areas/new-cairo"
   status = 301
   force = true
 
 [[redirects]]
   from = "/en/guides/new-cairo-prices-2026/*"
-  to = "/en/guides/new-cairo-property-prices/"
+  to = "/en/areas/new-cairo"
   status = 301
   force = true
 
 [[redirects]]
   from = "/en/guides/new-cairo-property-prices"
-  to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=new-cairo-property-prices"
+  to = "/en/areas/new-cairo"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/en/guides/new-cairo-property-prices/*"
+  to = "/en/areas/new-cairo"
+  status = 301
+  force = true
+
+# Native English buyer guides.
+[[redirects]]
+  from = "/en/guides/payment-plan-comparison"
+  to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=payment-plan-comparison"
   status = 200
 
 [[redirects]]
-  from = "/en/guides/new-cairo-property-prices/"
-  to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=new-cairo-property-prices"
+  from = "/en/guides/payment-plan-comparison/"
+  to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=payment-plan-comparison"
+  status = 200
+
+[[redirects]]
+  from = "/en/guides/off-plan-buying-checklist"
+  to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=off-plan-buying-checklist"
+  status = 200
+
+[[redirects]]
+  from = "/en/guides/off-plan-buying-checklist/"
+  to = "/.netlify/functions/seo-page?lang=en&type=guide&slug=off-plan-buying-checklist"
   status = 200
 
 # Retired English guide URLs: send to the closest live guide.

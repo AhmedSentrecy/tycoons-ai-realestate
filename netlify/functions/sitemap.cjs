@@ -87,11 +87,11 @@ exports.handler = async function handler() {
       .filter((value, index, list) => list.indexOf(value) === index)
       .slice(0, 5);
 
-    for (const guideSlug of Object.keys(GUIDES)) {
-      urls.set(`${SITE_URL}/guides/${guideSlug}/`, "2026-07-26");
+    for (const [guideSlug, guide] of Object.entries(GUIDES)) {
+      urls.set(`${SITE_URL}/guides/${guideSlug}/`, guide.modified || "2026-07-26");
     }
-    for (const guideSlug of Object.keys(ENGLISH_GUIDES)) {
-      urls.set(`${SITE_URL}/en/guides/${guideSlug}/`, "2026-08-26");
+    for (const [guideSlug, guide] of Object.entries(ENGLISH_GUIDES)) {
+      urls.set(`${SITE_URL}/en/guides/${guideSlug}/`, guide.modified || "2026-08-26");
     }
     // The newest guide about each project is shown in full on the project page (its
     // canonical), so only that project page is listed, not the guide URL.

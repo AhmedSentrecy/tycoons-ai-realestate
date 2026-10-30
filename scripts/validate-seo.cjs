@@ -61,7 +61,7 @@ const english = renderProject(projects, projects[0].slug, "en");
 const directory = renderDirectory(projects, "ar");
 const area = renderCollection(projects, "area", "mostakbal-city", "ar");
 const guide = renderGuide("off-plan-buying-checklist");
-const englishNewCairoGuide = renderGuide("new-cairo-property-prices", "en");
+const englishPaymentGuide = renderGuide("payment-plan-comparison", "en");
 const newCairoProjects = groupProjects(rows.map((row) => ({ ...row, location: "New Cairo" })));
 const newCairoArea = renderCollection(newCairoProjects, "area", "new-cairo", "en");
 const developerFixtures = [
@@ -165,11 +165,14 @@ assert.match(area, /الماستر بلان ومراحل مستقبل سيتي/,
 assert.match(area, /google\.com\/maps\?q=Mostakbal%20City/, "Mostakbal City must embed a real map for the map intent");
 assert.match(area, /"@type":"Place"/, "Mostakbal City must describe the city as a Place");
 assert.match(area, /مشاريع مستقبل سيتي 2026 — الخريطة والأسعار/, "Mostakbal title must reflect the strongest Search Console intents");
-assert.match(guide, /آخر مراجعة: 26 يوليو 2026/);
-assert.match(englishNewCairoGuide, /<html lang="en" dir="ltr">/);
-assert.match(englishNewCairoGuide, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/new-cairo-property-prices\//);
-assert.match(englishNewCairoGuide, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/guides\/new-cairo-property-prices\//);
-assert.match(englishNewCairoGuide, /Compare the same unit type/);
+assert.match(guide, /آخر مراجعة: 30 أكتوبر 2026/);
+assert.match(guide, /"@type":"FAQPage"/, "Buyer guides carry their FAQ as FAQPage");
+assert.equal(renderGuide("new-cairo-property-prices"), null, "The merged New Cairo price guide must not render");
+assert.equal(renderGuide("north-coast-chalet-guide"), null, "The merged chalet guide must not render");
+assert.match(englishPaymentGuide, /<html lang="en" dir="ltr">/);
+assert.match(englishPaymentGuide, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/payment-plan-comparison\//);
+assert.match(englishPaymentGuide, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/guides\/payment-plan-comparison\//);
+assert.match(englishPaymentGuide, /Cash needed in the first two years/);
 assert.match(newCairoArea, /<title>New Cairo Projects 2026 — Prices &amp; /);
 assert.match(newCairoArea, /How to compare New Cairo property prices/);
 assert.match(newCairoArea, /New Cairo projects by developer/);
@@ -340,16 +343,16 @@ assert.match(netlify, /from = "\/regions\/sahel"\s+to = "\/ar\/areas\/north-coas
 assert.match(netlify, /from = "\/regions\/capital"\s+to = "\/ar\/areas\/new-capital"\s+status = 301/);
 assert.match(
   netlify,
-  /from = "\/en\/guides\/new-cairo-prices-2026"\s+to = "\/en\/guides\/new-cairo-property-prices\/"\s+status = 301/,
-  "The retired English New Cairo guide must redirect to the native English canonical",
+  /from = "\/en\/guides\/new-cairo-property-prices"\s+to = "\/en\/areas\/new-cairo"\s+status = 301/,
+  "The merged English New Cairo guide must 301 to the English New Cairo area guide",
 );
 assert.ok(
-  netlify.indexOf('from = "/en/guides/new-cairo-property-prices/"') < netlify.indexOf('from = "/en/guides/*"'),
-  "The native English guide rewrite must appear before the generic English guide redirect",
+  netlify.indexOf('from = "/en/guides/new-cairo-property-prices/*"') < netlify.indexOf('from = "/en/guides/*"') && netlify.indexOf('from = "/guides/north-coast-chalet-guide/*"') < netlify.indexOf('from = "/guides/*"'),
+  "Merged-guide redirects must appear before the generic guide rewrites",
 );
 assert.match(
   netlify,
-  /from = "\/en\/guides\/new-cairo-property-prices"\s+to = "\/\.netlify\/functions\/seo-page\?lang=en&type=guide&slug=new-cairo-property-prices"\s+status = 200/,
+  /from = "\/en\/guides\/payment-plan-comparison"\s+to = "\/\.netlify\/functions\/seo-page\?lang=en&type=guide&slug=payment-plan-comparison"\s+status = 200/,
   "The slashless English canonical variant must rewrite directly; redirecting it to a slash loops on Netlify",
 );
 assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/ar\/"/, "The voice-search homepage points Google to /ar/, the main Arabic homepage");
@@ -422,8 +425,8 @@ async function validateRouteRecovery() {
       queryStringParameters: { lang: "ar" },
     });
     const englishGuideResponse = await handler({
-      path: "/en/guides/new-cairo-property-prices/",
-      rawUrl: "https://tycoons-inv.com/en/guides/new-cairo-property-prices/",
+      path: "/en/guides/payment-plan-comparison/",
+      rawUrl: "https://tycoons-inv.com/en/guides/payment-plan-comparison/",
       queryStringParameters: { lang: "en" },
     });
     const legacyUnitResponse = await handler({
@@ -465,10 +468,10 @@ async function validateRouteRecovery() {
     });
     assert.match(projectResponse.body, /<title>Mountain View Aliva(: الأسعار وأنظمة السداد| Prices &amp; Payment Plans) 2026/);
     assert.match(projectResponse.body, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/projects\//);
-    assert.match(guideResponse.body, /دليل شراء عقار Off-plan في مصر/);
+    assert.match(guideResponse.body, /دليل شراء عقار تحت الإنشاء \(Off-plan\) في مصر/);
     assert.equal(englishGuideResponse.statusCode, 200);
-    assert.match(englishGuideResponse.body, /New Cairo Property Prices Guide 2026/);
-    assert.match(englishGuideResponse.body, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/new-cairo-property-prices\//);
+    assert.match(englishGuideResponse.body, /How to Compare Property Payment Plans in Egypt/);
+    assert.match(englishGuideResponse.body, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/payment-plan-comparison\//);
     assert.equal(unitResponse.statusCode, 200);
     assert.match(unitResponse.body, /Standalone Villa/);
     assert.equal(englishDirectoryResponse.statusCode, 200);
