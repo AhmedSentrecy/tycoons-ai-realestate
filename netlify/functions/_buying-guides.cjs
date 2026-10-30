@@ -251,7 +251,7 @@ const ENGLISH_GUIDES = {
   "payment-plan-comparison": {
     title: "How to Compare Property Payment Plans in Egypt",
     seo_title: "Compare Egypt Property Payment Plans 2026 — 3% or 10% Down?",
-    description: "A practical 2026 guide to comparing Egyptian property payment plans: the real down payment, installments, cash needed in the first two years and short-term discounts, with worked numbers.",
+    description: "Compare Egyptian property payment plans in 2026: real down payment, installments, cash needed in the first two years and short-plan discounts, with numbers.",
     summary: "Turn every payment plan into a cash schedule: down payment and follow-up payments, yearly and monthly installments, cash needed in the first two years, and the total price. The lowest down payment is not always the cheapest, and shorter plans often carry large discounts.",
     modified: "2026-10-30",
     sections: [
@@ -289,7 +289,7 @@ const ENGLISH_GUIDES = {
   "off-plan-buying-checklist": {
     title: "Buying Off-Plan Property in Egypt: The Full Checklist",
     seo_title: "Buying Off-Plan Property in Egypt 2026 — Full Checklist",
-    description: "A complete 2026 checklist before buying off-plan property in Egypt: developer track record, land and permits, contract terms, gross vs net area, finishing, delivery, payments and running costs.",
+    description: "Checklist before buying off-plan property in Egypt in 2026: developer record, land and permits, contract, gross vs net area, finishing, delivery and costs.",
     summary: "Before paying a reservation deposit on an off-plan unit, check eight things: the developer's delivery record, land ownership and permits, contract terms, how the area is measured, finishing specifications, delivery date and delay compensation, the full payment schedule, and post-delivery costs.",
     modified: "2026-10-30",
     sections: [
