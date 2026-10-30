@@ -520,101 +520,8 @@ const PROJECT_SEARCH_CONTENT = {
   },
 };
 
-const GUIDES = {
-  "off-plan-buying-checklist": {
-    title: "دليل شراء عقار Off-plan في مصر",
-    description:
-      "قائمة عملية لمراجعة المطور والعقد والسعر وخطة السداد والاستلام قبل شراء وحدة تحت الإنشاء.",
-    summary:
-      "قبل شراء وحدة تحت الإنشاء، راجع سجل المطور في التسليم، ملكية الأرض والتراخيص، جدول الأقساط، تعريف التأخير في العقد، مصاريف الصيانة، والمواصفات المكتوبة. قارن السعر النقدي بالقيمة الحالية للأقساط، ولا تعتبر أي عائد مستقبلي ضمانًا.",
-    sections: [
-      ["١. راجع المطور والمشروع", "اطلب سجل المشروعات المسلّمة، الموقف القانوني للأرض، التراخيص المتاحة، ونموذج العقد قبل دفع جدية الحجز."],
-      ["٢. افهم التكلفة الكاملة", "اجمع المقدم والأقساط والدفعات السنوية والصيانة والجراج والكلوب هاوس وأي رسوم تسجيل. السعر الإعلاني وحده لا يكفي للمقارنة."],
-      ["٣. ثبّت المواصفات", "المساحة ونسبة التحميل والتشطيب وموعد التسليم وفترة السماح لازم تكون مكتوبة بوضوح في العقد أو الملاحق."],
-      ["٤. اختبر قدرتك على السداد", "احسب القسط تحت سيناريو دخل محافظ، واحتفظ بسيولة للطوارئ بدل الاعتماد على إعادة البيع أو الإيجار كأنه مؤكد."],
-    ],
-  },
-  "new-capital-vs-new-cairo": {
-    title: "العاصمة الإدارية أم القاهرة الجديدة؟",
-    description:
-      "مقارنة عملية بين العاصمة الإدارية والقاهرة الجديدة حسب السكن والسيولة وخطة السداد وأفق الاستثمار.",
-    summary:
-      "القاهرة الجديدة أنسب عادةً لمن يريد خدمات قائمة وطلب إيجاري أوضح وسيولة إعادة بيع أعلى نسبيًا. العاصمة قد تناسب من يقبل أفقًا أطول مقابل أسعار دخول وخطط سداد مختلفة. القرار الصحيح يعتمد على الاستخدام، توقيت التسليم، والمطور—not اسم المنطقة وحده.",
-    sections: [
-      ["للسكن", "قارن زمن الانتقال اليومي، المدارس والخدمات الموجودة فعلًا، وتاريخ الاستلام. لا تبنِ القرار على المخطط المستقبلي وحده."],
-      ["للاستثمار", "قارن سعر الدخول بوحدة مشابهة، حجم المعروض عند الاستلام، الطلب الإيجاري المتوقع، ورسوم الصيانة والتشغيل."],
-      ["لخطة السداد", "الخطة الأطول ليست دائمًا الأرخص. قارن إجمالي السعر والقيمة الحالية للدفعات وأي خصم كاش."],
-      ["الخلاصة", "اختيار المطور والوحدة الدقيقة قد يكون أهم من اختيار المنطقة. استخدم نفس الميزانية ونفس توقيت التسليم في المقارنة."],
-    ],
-  },
-  "new-cairo-property-prices": {
-    title: "دليل أسعار عقارات القاهرة الجديدة",
-    description:
-      "طريقة قراءة أسعار القاهرة الجديدة ومقارنة الوحدات بدون الوقوع في مقارنة أرقام غير متكافئة.",
-    summary:
-      "سعر البداية وحده لا يصف الصفقة. للمقارنة العادلة ثبّت نوع الوحدة، المساحة، نسبة التحميل، التشطيب، التسليم، والمقدم ومدة التقسيط. بيانات Tycoons تعرض أحدث الوحدات المتاحة، لكن السعر النهائي والتوفر يُعاد تأكيدهما وقت الطلب.",
-    sections: [
-      ["قارن نفس نوع الوحدة", "لا تقارن شقة أرضي بحديقة ببنتهاوس أو وحدة كاملة التشطيب بأخرى Core & Shell على أساس سعر المتر فقط."],
-      ["افصل السعر عن التمويل", "سعر التقسيط قد يتضمن تكلفة تمويل ضمنية. دوّن السعر الكلي وتوقيت كل دفعة قبل المقارنة."],
-      ["راجع تاريخ التحديث", "السوق سريع التغيير. أي سعر بدون تاريخ تحديث أو تأكيد التوفر قد يكون غير صالح للقرار."],
-    ],
-  },
-  "payment-plan-comparison": {
-    title: "إزاي تقارن خطط سداد العقارات؟",
-    description:
-      "منهج بسيط لمقارنة المقدم والأقساط والدفعات والتسليم والخصم النقدي.",
-    summary:
-      "حوّل كل خطة إلى جدول تدفقات نقدية: المقدم، الدفعات بعد التعاقد، الأقساط الدورية، الصيانة، وتاريخ التسليم. بعد كده قارن إجمالي السعر والضغط الشهري والسيولة المطلوبة قبل الاستلام. مدة أطول لا تعني تلقائيًا صفقة أفضل.",
-    sections: [
-      ["المقدم الحقيقي", "اجمع جدية الحجز والمقدم والدفعات المكملة قبل أول قسط."],
-      ["ضغط السيولة", "احسب المتوسط الشهري، لكن راقب أيضًا الدفعات الكبيرة الموسمية أو عند الاستلام."],
-      ["السعر الكلي", "قارن إجمالي سعر التقسيط بسعر الكاش وببدائل لها نفس التسليم والتشطيب."],
-      ["المخاطر", "اختبر الخطة لو الدخل اتأخر أو إعادة البيع استغرقت وقتًا أطول من المتوقع."],
-    ],
-  },
-  "real-estate-investment-egypt": {
-    title: "أساسيات الاستثمار العقاري في مصر",
-    description:
-      "إطار قرار يقارن العائد والسيولة والمخاطر بدل الاعتماد على توقع ارتفاع الأسعار فقط.",
-    summary:
-      "قيّم الاستثمار من أربع زوايا: تكلفة الشراء الكاملة، دخل الإيجار الصافي، سهولة إعادة البيع، ومخاطر التنفيذ والتشغيل. افصل بين زيادة السعر الاسمية والعائد الحقيقي، واكتب افتراضاتك بوضوح قبل المقارنة.",
-    sections: [
-      ["العائد الصافي", "اطرح الصيانة وفترات الفراغ والتجهيز والعمولات والضرائب ذات الصلة من الإيجار المتوقع."],
-      ["السيولة", "الوحدة التي تبدو أعلى عائدًا قد تستغرق وقتًا أطول في البيع. حجم الطلب ونوع الوحدة مهمان."],
-      ["مخاطر التنفيذ", "في الوحدات تحت الإنشاء، سجل المطور وتوقيت التسليم وشروط العقد عناصر أساسية في العائد."],
-      ["السيناريوهات", "اعمل سيناريو محافظ وأساسي ومتفائل، ولا تستخدم نتيجة واحدة كأنها ضمان."],
-    ],
-  },
-  "north-coast-chalet-guide": {
-    title: "دليل شراء شاليه في الساحل الشمالي",
-    description:
-      "مقارنة الموقع والإدارة والتشغيل والتأجير والتسليم قبل اختيار شاليه في الساحل.",
-    summary:
-      "اختيار الشاليه يبدأ من الاستخدام: شخصي، إيجار موسمي، أو حفظ قيمة. راجع المسافة من القاهرة، جودة الشاطئ والإدارة، تشغيل الخدمات، رسوم الصيانة، قواعد التأجير، وتوقيت التسليم. المشروع الأشهر ليس دائمًا الأنسب لميزانيتك.",
-    sections: [
-      ["الاستخدام أولًا", "عدد مرات الاستخدام ونوع العائلة يحدد المساحة والموقع داخل المشروع أكثر من اسم المشروع."],
-      ["الإدارة والتشغيل", "اسأل عن الجهة المشغلة، الخدمات العاملة فعليًا، الصيانة، وقواعد التأجير وإدخال الضيوف."],
-      ["الموقع داخل القرية", "المسافة للشاطئ والإطلالة والخصوصية قد تصنع فرقًا أكبر من فرق بسيط في المساحة."],
-      ["العائد الموسمي", "استخدم إشغالًا محافظًا وتكاليف صيانة وتجهيز واقعية. الإيجار المتوقع ليس دخلًا مضمونًا."],
-    ],
-  },
-};
-
-const ENGLISH_GUIDES = {
-  "new-cairo-property-prices": {
-    title: "New Cairo Property Prices Guide 2026",
-    description:
-      "A practical guide to comparing New Cairo property prices, payment plans, finishing and delivery without relying on a misleading starting price.",
-    summary:
-      "A starting price does not describe the full deal. Compare the same unit type, size, finishing and delivery date, then review the total installment price, down payment, payment schedule and maintenance. Tycoons listings show current inventory, but final price and availability are reconfirmed when you enquire.",
-    sections: [
-      ["Compare the same unit type", "Do not compare a ground-floor apartment with a garden to a penthouse, or a fully finished unit to a core-and-shell unit, using price per square metre alone."],
-      ["Separate price from financing", "A longer payment plan can include an implicit financing cost. Record the total price and timing of every payment before comparing alternatives."],
-      ["Check finishing and delivery", "Finishing, delivery timing, maintenance and additional payments can materially change the effective cost even when two advertised starting prices look similar."],
-      ["Verify the update date", "New Cairo inventory changes quickly. Treat any price without a recent update and availability confirmation as unsuitable for a final decision."],
-    ],
-  },
-};
+// Fixed buyer guides (/guides/<slug>/ and /en/guides/<slug>/) live in their own file.
+const { GUIDES, ENGLISH_GUIDES } = require("./_buying-guides.cjs");
 
 let cache = { units: null, fetchedAt: 0 };
 let projectsCache = { projects: null, fetchedAt: 0 };
@@ -1943,6 +1850,12 @@ ${searchMount(lang, placeholder)}
   });
 }
 
+const AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+function arabicDate(iso) {
+  const [y, m, d] = String(iso).split("-").map(Number);
+  return y && m && d ? `${d} ${AR_MONTHS[m - 1]} ${y}` : String(iso);
+}
+
 function renderGuide(slug, lang = "ar") {
   const ar = lang !== "en";
   const guide = ar ? GUIDES[slug] : ENGLISH_GUIDES[slug];
@@ -1951,15 +1864,18 @@ function renderGuide(slug, lang = "ar") {
   const alternatePath = ar && ENGLISH_GUIDES[slug]
     ? `/en/guides/${slug}/`
     : (!ar && GUIDES[slug] ? `/guides/${slug}/` : undefined);
-  const guideIndex = ar ? "/guides/off-plan-buying-checklist" : "/en/guides/new-cairo-property-prices/";
-  const modified = slug === "new-cairo-property-prices" ? "2026-08-26" : "2026-07-26";
+  const guideIndex = ar ? "/guides/" : "/en/guides/";
+  const modified = guide.modified || "2026-07-26";
+  const paragraphs = (text) => (Array.isArray(text) ? text : [text]).map((item) => `<p>${escapeHtml(item)}</p>`).join("");
+  const faq = Array.isArray(guide.faq) ? guide.faq : [];
   const body = `<main class="guide"><p class="crumbs"><a href="/">${ar ? "الرئيسية" : "Home"}</a> / <a href="${guideIndex}">${ar ? "الأدلة" : "Guides"}</a> / ${escapeHtml(guide.title)}</p>
-  <section class="hero"><span class="eyebrow">${ar ? "دليل قرار عقاري · راجعه فريق Tycoons" : "Property decision guide · reviewed by Tycoons"}</span><h1>${escapeHtml(guide.title)}</h1><p class="lead">${escapeHtml(guide.description)}</p><div class="answer">${escapeHtml(guide.summary)}</div><p class="updated">${ar ? `آخر مراجعة: ${modified === "2026-08-26" ? "26 أغسطس 2026" : "26 يوليو 2026"}` : `Last reviewed: ${modified}`}</p>${guideBylineHtml(ar)}</section>
-  ${guide.sections.map(([title, text]) => `<section><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p></section>`).join("")}
+  <section class="hero"><span class="eyebrow">${ar ? "دليل قرار عقاري · راجعه فريق Tycoons" : "Property decision guide · reviewed by Tycoons"}</span><h1>${escapeHtml(guide.title)}</h1><p class="lead">${escapeHtml(guide.description)}</p><div class="answer">${escapeHtml(guide.summary)}</div><p class="updated">${ar ? `آخر مراجعة: ${arabicDate(modified)}` : `Last reviewed: ${modified}`}</p>${guideBylineHtml(ar)}</section>
+  ${guide.sections.map(([title, text]) => `<section><h2>${escapeHtml(title)}</h2>${paragraphs(text)}</section>`).join("")}
+  ${faq.length ? `<section><h2>${ar ? "أسئلة شائعة" : "Frequently asked questions"}</h2>${faq.map(([q, a]) => `<h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p>`).join("")}</section>` : ""}
   <section><h2>${ar ? "ملاحظة مهمة" : "Important note"}</h2><p>${ar ? "المحتوى تعليمي وليس استشارة قانونية أو مالية. الأسعار والتوفر والعوائد تتغير، ويفضل مراجعة العقد مع محامٍ مستقل وإعادة تأكيد البيانات وقت القرار." : "This content is educational, not legal or financial advice. Prices, availability and returns change; reconfirm the data and have an independent lawyer review the contract before deciding."}</p><p><a href="/methodology">${ar ? "اقرأ منهجية البيانات والحسابات" : "Read our data and calculation methodology"}</a></p></section></main>`;
   return renderPage({
     lang,
-    title: `${guide.title} | Tycoons Investments`,
+    title: guide.seo_title || `${guide.title} | Tycoons Investments`,
     description: guide.description,
     path,
     alternatePath,
@@ -1975,7 +1891,7 @@ function renderGuide(slug, lang = "ar") {
         "@type": "Article",
         headline: guide.title,
         description: guide.description,
-        datePublished: ar ? "2026-07-26" : modified,
+        datePublished: ar ? "2026-07-26" : "2026-10-30",
         dateModified: modified,
         inLanguage: ar ? "ar-EG" : "en",
         image: `${SITE_URL}/images/hero.webp`,
@@ -1990,6 +1906,11 @@ function renderGuide(slug, lang = "ar") {
         },
         mainEntityOfPage: `${SITE_URL}${path}`,
       },
+      ...(faq.length ? [{
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faq.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
+      }] : []),
     ],
   });
 }

@@ -12,7 +12,7 @@ assert.equal((html.match(/<h1\b/g) || []).length, 1);
 assert.match(html, /\/en\/areas\/mostakbal-city/);
 assert.match(html, /\/en\/areas\/new-cairo/);
 assert.match(html, /\/en\/developers\/mountain-view/);
-assert.match(html, /\/en\/guides\/new-cairo-property-prices\//);
+assert.match(html, /\/en\/guides\/payment-plan-comparison\//);
 assert.match(html, /\/methodology/);
 assert.match(html, /prices and availability can change/i);
 assert.doesNotMatch(html, /Arabic home|Arabic description|"@type":"FAQPage"/);

@@ -31,7 +31,7 @@ const ENGLISH_CONTENT = `<div id="root"><main>
     </nav>
     <h2>Compare the real cost, not just the headline price</h2>
     <p>When comparing two properties, look at total price, down payment, instalment schedule, unit area, finishing condition and delivery timing together. A lower entry payment does not necessarily mean a lower overall purchase cost. Ask whether maintenance fees, club fees and other charges are included in the quoted figures.</p>
-    <p><a href="/en/guides/new-cairo-property-prices/">New Cairo property price guide</a> and our <a href="/en/guides/">buying guides</a> explain how to compare similar units fairly. You can also review our <a href="/methodology">data and calculation methodology</a>.</p>
+    <p>Our <a href="/en/areas/new-cairo">New Cairo guide</a>, <a href="/en/guides/payment-plan-comparison/">payment plan comparison</a> and <a href="/en/guides/off-plan-buying-checklist/">off-plan checklist</a> explain how to compare similar units fairly. You can also review our <a href="/methodology">data and calculation methodology</a>.</p>
     <h2>How we handle prices and availability</h2>
     <p>Published prices and availability can change. Before making a decision, request confirmation of the specific unit, its current price, payment schedule, delivery conditions and contractual details. Any rental yield or resale scenario is an estimate, never a guaranteed return.</p>
     <p>Read <a href="/about">about Tycoons</a>, our <a href="/corrections">corrections policy</a>, or <a href="/contact">contact our team</a>. <a href="/" lang="ar" hreflang="ar-EG">تصفح الموقع بالعربية</a>.</p>
