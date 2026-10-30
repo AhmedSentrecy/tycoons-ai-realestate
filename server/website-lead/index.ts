@@ -53,18 +53,22 @@ function normalisePhone(raw: unknown) {
   return null;
 }
 
+// 8X CRM rejects a description longer than 191 characters (HTTP 422), so keep it short:
+// the project or page, where the visitor came from, and the tracking ref.
+const CRM_DESCRIPTION_MAX = 190;
+
 function describe(lead: Json) {
+  const where = lead.project_name
+    ? String(lead.project_name).slice(0, 80)
+    : String(lead.unit_path || lead.page_path || "/").slice(0, 80);
   const parts = [
-    "Lead from tycoons-inv.com (WhatsApp form)",
-    lead.project_name ? `Project: ${lead.project_name}` : null,
-    lead.unit_path ? `Unit page: https://tycoons-inv.com${lead.unit_path}` : null,
-    lead.page_path ? `Page: https://tycoons-inv.com${lead.page_path}` : null,
-    lead.button_label ? `Button: ${lead.button_label}` : null,
+    `Website lead: ${where}`,
+    lead.traffic_source ? `Src: ${lead.traffic_source}${lead.utm_campaign ? `/${String(lead.utm_campaign).slice(0, 30)}` : ""}` : null,
     lead.tracking_id ? `Ref: ${lead.tracking_id}` : null,
-    lead.traffic_source ? `Came from: ${lead.traffic_source}${lead.utm_campaign ? ` / ${lead.utm_campaign}` : ""}` : null,
-    lead.device ? `Device: ${lead.device}` : null,
+    lead.device ? String(lead.device) : null,
   ];
-  return parts.filter(Boolean).join("\n").slice(0, 1500);
+  const text = parts.filter(Boolean).join(" | ");
+  return text.length > CRM_DESCRIPTION_MAX ? `${text.slice(0, CRM_DESCRIPTION_MAX - 1)}…` : text;
 }
 
 async function pushToCrm(lead: Lead) {
