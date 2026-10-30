@@ -252,7 +252,8 @@
       page_url: clip(location.origin + location.pathname, 500),
       page_path: clip(location.pathname, 300),
       project_slug: projectSlug(),
-      project_name: projectName() || clip(document.querySelector("h1") && document.querySelector("h1").textContent, 160),
+      // Only project and unit pages name a project; elsewhere the H1 is a page headline.
+      project_name: projectName() || (/^\/(?:en\/)?units\//i.test(location.pathname) ? clip(document.querySelector("h1") && document.querySelector("h1").textContent, 160) : null),
       lang: clip(document.documentElement.lang, 10),
       device: device(),
       traffic_source: clip(origin.source, 40),
