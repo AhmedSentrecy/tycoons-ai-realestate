@@ -17,4 +17,16 @@ assert.match(html, /\/methodology/);
 assert.match(html, /prices and availability can change/i);
 assert.doesNotMatch(html, /Arabic home|Arabic description|"@type":"FAQPage"/);
 assert.ok((html.match(/<a href="/g) || []).length >= 12, "English crawlable homepage must have area/developer/guide links");
+// One source for the crawlable HTML and the React page, so the sections survive JavaScript (SEO-01).
+const fs = require("node:fs");
+const sections = require("../src/content/english-home-sections.json").html;
+for (const marker of ["Price per square metre by area", "Project guides in English", "Payment plans you will see", "Ahmed Mahmoud"]) {
+  assert.ok(sections.includes(marker), `shared sections missing: ${marker}`);
+}
+assert.ok(html.includes(sections), "the /en/ HTML must embed the shared sections verbatim");
+assert.equal((sections.match(/href="\/en\/projects\//g) || []).length, 13, "13 English project guide links");
+assert.doesNotMatch(sections, /<h1\b/, "shared sections must not add a second H1");
+const homeTsx = fs.readFileSync(require("node:path").join(__dirname, "../src/pages/Home.tsx"), "utf8");
+assert.match(homeTsx, /english-home-sections\.json/, "Home.tsx must render the same shared sections");
+assert.match(homeTsx, /englishHomeSections\.html/);
 console.log("English homepage HTML, metadata, intent and internal link validation passed.");

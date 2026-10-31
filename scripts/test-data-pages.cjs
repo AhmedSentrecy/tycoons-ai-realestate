@@ -199,4 +199,26 @@ assert.deepEqual(
   "a fixed alias must not suppress inventory when its canonical target is absent",
 );
 
+// A project published through its own written guide but with no units (Park Sight in the Oct 30
+// 2026 audit) must not link its developer page when that developer has no project with units:
+// the developer page is not published, so the link would be a 404 (audit SEO-05).
+const guideWords = Array.from({ length: 560 }, (_, index) => `كلمة${index}`).join(" ");
+const guideOnlyProject = {
+  ...project,
+  id: "guide-only",
+  slug: "park-sight--il-cazar-developments",
+  name: "Park Sight",
+  developer: "IL Cazar Developments",
+  targeting: { localized_content: { ar: {
+    h1: "Park Sight", seo_title: "Park Sight", seo_description: "Park Sight guide",
+    article_sections: [{ key: "overview", heading: "عن المشروع", blocks: [{ type: "paragraph", content: [{ text: guideWords }] }] }],
+    faq: [1, 2, 3, 4].map((n) => ({ question: `سؤال ${n}؟`, answer: `إجابة ${n}.` })),
+  } } },
+};
+const noDeveloperPage = renderProjectStatic(shell, guideOnlyProject, [], [], { projectLinks: [] });
+assert.doesNotMatch(noDeveloperPage, /\/ar\/developers\/il-cazar-developments/, "no link to an unpublished developer page");
+assert.match(noDeveloperPage, /IL Cazar Developments/, "the developer name still shows as text");
+const withDeveloperPage = renderProjectStatic(shell, guideOnlyProject, [], [], { projectLinks: [{ id: "x", name: "Other", slug: "other--il-cazar-developments", developer: "IL Cazar Developments", location: "New Cairo", minPrice: 1, image: "" }] });
+assert.match(withDeveloperPage, /href="\/ar\/developers\/il-cazar-developments"/, "link kept when another project of the developer has units");
+
 console.log("Data-driven page isolation and canonical validation passed.");

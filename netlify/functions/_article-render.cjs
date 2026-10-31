@@ -8,7 +8,9 @@ function inlineMarkdown(value) {
   const escaped = escapeHtml(value);
   return escaped
     // Same-site editorial destinations only; no raw HTML, schemes or encoded paths.
-    .replace(/\[([^\]]{1,160})\]\((\/(?:(?:(?:ar|en)\/)?(?:projects|guides|units)|(?:ar|en)\/(?:areas|developers))\/[a-z0-9-]+\/?|\/(?:about|contact|methodology|corrections)\/?)\)/g, (_, label, href) => `<a href="${href}">${label}</a>`)
+    // Editors sometimes leave a space inside the brackets: "[label]( /projects/x )" (73 links in
+    // 27 guides in the Oct 30 2026 audit); those must still become real links, not raw text.
+    .replace(/\[([^\]]{1,160})\]\(\s*(\/(?:(?:(?:ar|en)\/)?(?:projects|guides|units)|(?:ar|en)\/(?:areas|developers))\/[a-z0-9-]+\/?|\/(?:about|contact|methodology|corrections)\/?)\s*\)/g, (_, label, href) => `<a href="${href}">${label}</a>`)
     .replace(/\*\*([^*]{1,200})\*\*/g, "<strong>$1</strong>");
 }
 
@@ -37,8 +39,18 @@ function tableCells(line) {
   return cells;
 }
 
-function renderSafeMarkdown(markdown) {
-  const lines = String(markdown || "").replace(/\r/g, "").split("\n");
+// Units get sold or removed every day, but old guides keep linking them by id. When the caller
+// passes the ids of the units that still have a page, a link to any other unit becomes plain
+// text instead of a 404 (audit SEO-05, Oct 2026: 33 such links in 7 published guides).
+function unlinkMissingUnits(markdown, liveUnitIds) {
+  if (!liveUnitIds) return markdown;
+  const live = liveUnitIds instanceof Set ? liveUnitIds : new Set(Array.from(liveUnitIds || [], String));
+  return markdown.replace(/\[([^\]]{1,160})\]\(\s*\/units\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?\s*\)/gi,
+    (link, label, id) => (live.has(id) || live.has(id.toLowerCase()) ? link : label));
+}
+
+function renderSafeMarkdown(markdown, options = {}) {
+  const lines = unlinkMissingUnits(String(markdown || ""), options && options.liveUnitIds).replace(/\r/g, "").split("\n");
   const out = [];
   let list = [];
   const flushList = () => {

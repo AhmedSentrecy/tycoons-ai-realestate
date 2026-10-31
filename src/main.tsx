@@ -2,6 +2,8 @@ import { StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, useLocation } from 'react-router'
 import './index.css'
+// Read the server's canonical before any page changes <head> (see the file).
+import './lib/ssrSnapshot.ts'
 import App from './App.tsx'
 import { registerWebMcpTools } from './lib/webmcp.ts'
 import { VoiceSessionProvider } from './contexts/VoiceSessionContext.tsx'

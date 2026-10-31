@@ -15,6 +15,7 @@ import {
 import GuideBody from "@/components/GuideBody";
 import { unitPath } from "@/lib/unitUrl";
 import { fitTitle } from "@/lib/fitTitle";
+import { serverCanonicalFor } from "@/lib/ssrSnapshot";
 
 const SITE_URL = "https://tycoons-inv.com";
 const formatPrice = (value: number) => new Intl.NumberFormat("en-US").format(value);
@@ -52,7 +53,9 @@ export default function GuidePage() {
   const [loaded, setLoaded] = useState<{ key: string; status: "ready" | "missing" }>({ key: "", status: "missing" });
   const key = `${language}:${slug}`;
   const state = loaded.key === key ? loaded.status : "loading";
-  const { units } = useInventory();
+  const { units, loading: inventoryLoading } = useInventory();
+  // Ids of units that still have a page (null while loading, so no guide link is dropped early).
+  const liveUnitIds = useMemo(() => (inventoryLoading || !units.length ? null : new Set(units.map((unit) => unit.id))), [inventoryLoading, units]);
 
   useEffect(() => {
     let active = true;
@@ -92,7 +95,9 @@ export default function GuidePage() {
     document.title = fitTitle(title);
     setMeta('meta[name="description"]', "content", guide.meta_description || guide.excerpt);
     const canonicalPath = embeddedInProject && project?.slug ? `${language === "en" ? "/en" : ""}/projects/${project.slug}` : path;
-    setMeta('link[rel="canonical"]', "href", `${SITE_URL}${canonicalPath}`);
+    // On a page opened directly, keep the server's canonical: it knows whether the project has
+    // its own guide, which this page doesn't load, so recomputing could point somewhere else.
+    setMeta('link[rel="canonical"]', "href", serverCanonicalFor(window.location.pathname) || `${SITE_URL}${canonicalPath}`);
     setMeta('meta[property="og:title"]', "content", title);
     setMeta('meta[property="og:description"]', "content", guide.meta_description || guide.excerpt);
     setMeta('meta[property="og:url"]', "content", `${SITE_URL}${path}`);
@@ -178,7 +183,7 @@ export default function GuidePage() {
           </section>
         )}
 
-        <GuideBody markdown={publicMarkdown(guide.body_markdown, ar)} />
+        <GuideBody markdown={publicMarkdown(guide.body_markdown, ar)} liveUnitIds={liveUnitIds} />
 
         {projectUnits.length > 0 && project && (
           <section className="mt-14" aria-labelledby="guide-units">

@@ -133,8 +133,13 @@ exports.handler = async function handler(event) {
       html = renderGuide(slug, lang);
       if (!html) {
         const article = await fetchEditorialArticle(slug, lang);
-        const [translation, extras] = article ? await Promise.all([fetchEditorialTranslation(article), fetchEditorialExtras(article)]) : [null, {}];
-        html = renderEditorialArticle(article, translation, extras);
+        const [translation, extras, liveUnits] = article
+          ? await Promise.all([fetchEditorialTranslation(article), fetchEditorialExtras(article), fetchUnits().catch(() => null)])
+          : [null, {}, null];
+        // Links to units that no longer have a page render as plain text (SEO-05); if the units
+        // can't be loaded, keep the links rather than strip them all.
+        const liveUnitIds = Array.isArray(liveUnits) && liveUnits.length ? new Set(liveUnits.map((unit) => String(unit.id))) : null;
+        html = renderEditorialArticle(article, translation, { ...extras, liveUnitIds });
       }
     }
     if (type === "static") html = renderStaticPage(slug);

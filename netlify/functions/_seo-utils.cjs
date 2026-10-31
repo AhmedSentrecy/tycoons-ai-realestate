@@ -712,6 +712,11 @@ async function fetchUnits() {
 // Canonical developer brands (Supabase `developers`): Arabic name, aliases, logo,
 // website and a short verified intro. Cached like projects; pages work without it.
 let developersCache = { rows: null, fetchedAt: 0 };
+// Public URL slug when it differs from the Supabase key. "People & Places" is stored as
+// `people-places`, but its pages, links and sitemap use `people-and-places` (the name's slug), and
+// netlify.toml 301s the short form there. Without this the final page pointed its canonical back
+// at the URL that redirects to it (audit SEO-04, Oct 2026).
+const DEVELOPER_PUBLIC_SLUGS = { "people-places": "people-and-places" };
 async function fetchDevelopers() {
   if (developersCache.rows && Date.now() - developersCache.fetchedAt < 15 * 60 * 1000) return developersCache.rows;
   const controller = new AbortController();
@@ -729,8 +734,9 @@ async function fetchDevelopers() {
     if (!response.ok) throw new Error(`developers ${response.status}`);
     const rows = await response.json();
     if (!Array.isArray(rows)) throw new Error("developers invalid");
-    developersCache = { rows, fetchedAt: Date.now() };
-    return rows;
+    const publicRows = rows.map((row) => (DEVELOPER_PUBLIC_SLUGS[row.slug] ? { ...row, slug: DEVELOPER_PUBLIC_SLUGS[row.slug] } : row));
+    developersCache = { rows: publicRows, fetchedAt: Date.now() };
+    return publicRows;
   } catch {
     return developersCache.rows || [];
   } finally {
@@ -1328,6 +1334,13 @@ ${directoryAbout(ar, listedProjects.length, unitCount, devList.length)}
   });
 }
 
+// Ids of the units that still have a page; null when none loaded, so a failed units fetch never
+// strips every unit link from a guide (see unlinkMissingUnits in _article-render.cjs).
+function liveUnitIdsOf(projects) {
+  const ids = new Set(projects.flatMap((item) => (item.units || []).map((unit) => String(unit.id))));
+  return ids.size ? ids : null;
+}
+
 function renderProject(projects, slug, lang, article = null) {
   const project = projects.find((item) => item.slug === slug);
   if (!project) return null;
@@ -1365,10 +1378,13 @@ function renderProject(projects, slug, lang, article = null) {
   const description = localizedContent?.seo_description || searchContent?.description?.(contentVars) || (ar
     ? `${project.name} من ${project.developer} في ${location}. قارن الوحدات المتاحة والأسعار وخطط السداد والاستلام.`
     : `${project.name} by ${project.developer} in ${location}. Compare available units, prices, payment plans and delivery.`);
+  // The developer page is only published when one of its projects has units; a project shown
+  // through its written guide alone must not link a developer page that 404s (audit SEO-05).
+  const developerHasPage = hasUnits || projects.some((item) => developerKey(item.developer) === developerKey(project.developer) && (item.units || []).length > 0);
   const crumbs = [
     { name: ar ? "الرئيسية" : "Home", path: "/" },
     { name: ar ? area.ar : area.en, path: `/${lang}/areas/${area.slug}` },
-    { name: project.developer, path: `/${lang}/developers/${slugify(project.developer)}` },
+    ...(developerHasPage ? [{ name: project.developer, path: `/${lang}/developers/${slugify(project.developer)}` }] : []),
     { name: project.name, path },
   ];
   const message = encodeURIComponent(
@@ -1389,8 +1405,8 @@ function renderProject(projects, slug, lang, article = null) {
   <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.medianSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Median price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.medianSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
   <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث الأسعار والتوفر" : "Request current availability"}</a></section>${extraSections}
-  ${ownGuide && article && article.slug ? `<p><a href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></p>` : ""}${!ownGuide && article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar))}</section>` : ""}
-  ${(() => { const info = developerInfo(project.developer); const about = info && (ar ? info.about_ar : info.about_en); if (ownGuide) return info ? `<p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? `كل مشاريع ${escapeHtml(info.name_ar || info.name)}` : `All projects by ${escapeHtml(info.name)}`}</a></p>` : ""; return about ? `<section><h2>${ar ? `عن المطور: ${escapeHtml(info.name_ar || info.name)}` : `About the developer: ${escapeHtml(info.name)}`}</h2><p>${escapeHtml(about)}</p><p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? "كل مشاريع المطور" : "All projects by this developer"}</a></p></section>` : ""; })()}
+  ${ownGuide && article && article.slug ? `<p><a href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></p>` : ""}${!ownGuide && article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: liveUnitIdsOf(projects) })}</section>` : ""}
+  ${(() => { const info = developerHasPage ? developerInfo(project.developer) : null; const about = info && (ar ? info.about_ar : info.about_en); if (ownGuide) return info ? `<p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? `كل مشاريع ${escapeHtml(info.name_ar || info.name)}` : `All projects by ${escapeHtml(info.name)}`}</a></p>` : ""; return about ? `<section><h2>${ar ? `عن المطور: ${escapeHtml(info.name_ar || info.name)}` : `About the developer: ${escapeHtml(info.name)}`}</h2><p>${escapeHtml(about)}</p><p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? "كل مشاريع المطور" : "All projects by this developer"}</a></p></section>` : ""; })()}
   ${!hasUnits && ownGuide ? "" : `<h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2>`}${
     hasUnits
       ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "سعر المتر" : "Per m²"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
@@ -2094,7 +2110,7 @@ function editorialArticleView(article, translation = null, extras = {}) {
   <section class="hero"><span class="eyebrow">${ar ? "دليل مستقل تمت مراجعته قبل النشر" : "Independent guide reviewed before publication"}</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(article.excerpt)}</p>${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title)}" width="1200" height="630" loading="eager" style="width:100%;height:auto;border-radius:16px;margin-top:12px">` : ""}<p class="updated">${ar ? "تاريخ المراجعة" : "Reviewed"}: ${escapeHtml(reviewedDate)}</p>${guideBylineHtml(ar)}</section>
   ${projectCard}
   ${takeawaysHtml}
-  <article>${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar))}</article>
+  <article>${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: extras.liveUnitIds })}</article>
   ${faqHtml}
   ${relatedHtml}
   ${webSourcesHtml}

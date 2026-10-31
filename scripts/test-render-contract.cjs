@@ -54,7 +54,7 @@ assert.match(projectReact, /buildProjectSchemas\(/);
 assert.match(projectReact, /<PageStructuredData value={structuredData}/);
 assert.doesNotMatch(projectReact, /"@type": "Product"/);
 const guideReact = fs.readFileSync('src/components/GuideBody.tsx','utf8');
-assert.match(guideReact, /renderSafeMarkdown\(markdown\)/);
+assert.match(guideReact, /renderSafeMarkdown\(markdown, \{ liveUnitIds \}\)/);
 const guide = { status:'published', language:'en', title:'Buyer guide', slug:'buyer-guide', published_at:'2026-10-01T00:00:00Z', reviewed_at:'2026-10-01T00:00:00Z', reviewed_by_name:'Tycoons', source_refs:[{type:'web',label:'Developer brochure',url:'https://source.example/official'}], body_markdown:'A | B\n--- | ---\nx | y' };
 const guideHtml = renderEditorialArticle(guide);
 assert.match(guideHtml, /<table>/);

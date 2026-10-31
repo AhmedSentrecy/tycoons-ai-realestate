@@ -79,6 +79,8 @@ async function main() {
     guidesByProject.set(guide.project_id, list);
   }
   for (const list of guidesByProject.values()) list.sort((a, b) => String(b.published_at).localeCompare(String(a.published_at)));
+  // Units that still have a page (sold or removed units drop out of `units`).
+  const liveUnitIds = units.length ? new Set(units.map((unit) => String(unit.id))) : null;
   let guideCount = 0;
   for (const guide of guides) {
     if (!/^[a-z0-9-]+$/.test(String(guide.slug || ""))) continue;
@@ -86,7 +88,7 @@ async function main() {
     const related = (guidesByProject.get(guide.project_id) || []).filter((item) => item.language === guide.language);
     const translation = guide.translation_key ? guides.find((item) =>
       item.slug && item.translation_key === guide.translation_key && item.language !== guide.language && item.published_at && item.reviewed_at) : null;
-    const view = editorialArticleView({ status: "published", ...guide }, translation ? { ...translation, status: "published" } : null, { project, related });
+    const view = editorialArticleView({ status: "published", ...guide }, translation ? { ...translation, status: "published" } : null, { project, related, liveUnitIds });
     if (!view) continue;
     const canonical = `https://tycoons-inv.com${view.canonicalPath || view.path}`;
     const html = pageShell(shell, {
@@ -100,6 +102,8 @@ async function main() {
 
   // Other public projects (with units) for the "nearby" and "same developer" answers.
   const faqContext = {
+    // Units that still have a page: guide links to any other unit render as plain text (SEO-05).
+    liveUnitIds,
     otherProjects: projectsFromUnits(units.filter((unit) => projectById.has(unit.project_id))),
     // Every public project with units, so a page can link the projects it mentions and
     // show "projects near …" (internal links between project pages).
