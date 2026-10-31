@@ -13,9 +13,11 @@ import {
 } from "@/lib/editorialGuides";
 
 import GuideBody from "@/components/GuideBody";
+import PriceDateNote from "@/components/PriceDateNote";
 import { unitPath } from "@/lib/unitUrl";
 import { fitTitle } from "@/lib/fitTitle";
 import { serverCanonicalFor } from "@/lib/ssrSnapshot";
+import ServerHtmlOr from "@/components/ServerHtmlOr";
 
 const SITE_URL = "https://tycoons-inv.com";
 const formatPrice = (value: number) => new Intl.NumberFormat("en-US").format(value);
@@ -106,7 +108,7 @@ export default function GuidePage() {
   }, [guide, path, language, embeddedInProject, project]);
 
   if (state === "loading") {
-    return <main className="grid min-h-screen place-items-center bg-[#f7f2ea]"><p className="font-bold text-[#1b2420]">{t('جاري تحميل المقال…', 'Loading article…')}</p></main>;
+    return <ServerHtmlOr><main className="grid min-h-screen place-items-center bg-[#f7f2ea]"><p className="font-bold text-[#1b2420]">{t('جاري تحميل المقال…', 'Loading article…')}</p></main></ServerHtmlOr>;
   }
   if (state === "missing" || !guide) {
     return (
@@ -183,6 +185,7 @@ export default function GuidePage() {
           </section>
         )}
 
+        <PriceDateNote markdown={guide.body_markdown} reviewedAt={guide.reviewed_at} ar={ar} unitsHref={project?.slug ? `${language === "en" ? "/en" : ""}/projects/${project.slug}#units` : ""} />
         <GuideBody markdown={publicMarkdown(guide.body_markdown, ar)} liveUnitIds={liveUnitIds} />
 
         {projectUnits.length > 0 && project && (

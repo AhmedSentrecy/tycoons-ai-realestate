@@ -4,6 +4,8 @@
 declare module "*netlify/functions/_article-render.cjs" {
   export function escapeHtml(value: unknown): string;
   export function renderSafeMarkdown(markdown: unknown, options?: { liveUnitIds?: Iterable<string> | Set<string> | null }): string;
+  export function hasPrices(markdown: unknown): boolean;
+  export function priceDateNoteHtml(options: { markdown: unknown; reviewedAt?: string | null; ar?: boolean; unitsHref?: string }): string;
 }
 
 declare module "*netlify/functions/_project-schema.cjs" {

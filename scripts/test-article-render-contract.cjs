@@ -1,6 +1,6 @@
 "use strict";
 const assert = require("node:assert/strict");
-const { renderSafeMarkdown: render } = require("../netlify/functions/_article-render.cjs");
+const { renderSafeMarkdown: render, priceDateNoteHtml } = require("../netlify/functions/_article-render.cjs");
 let assertions = 0;
 for (const route of ["/en/projects/example-project", "/en/guides/price-guide/", "/projects/example-project", "/guides/example/", "/units/123-ab", "/en/areas/new-cairo", "/ar/developers/sodic", "/methodology", "/contact"]) {
   assert.match(render(`[Read](${route})`), /<a href="[^\"]+">Read<\/a>/);
@@ -45,4 +45,13 @@ assert.match(withUnits, /اتباعت/);
 assert.match(withUnits, /<a href="\/projects\/a-b">مشروع<\/a>/);
 assert.match(render(`[x](/units/${goneId})`), new RegExp(`<a href="/units/${goneId}">`), "no live list: links kept");
 assertions += 5;
+// Guides that quote prices say when they were checked and link the live units (SEO-09).
+const priced = priceDateNoteHtml({ markdown: "آي فيلا بـ 27,091,192 جنيه", reviewedAt: "2026-10-19T11:09:48Z", ar: true, unitsHref: "#units" });
+assert.match(priced, /data-price-note/);
+assert.match(priced, /2026/);
+assert.match(priced, /<a href="#units">/);
+assert.equal(priceDateNoteHtml({ markdown: "مفيش أرقام هنا", reviewedAt: "2026-10-19", ar: true }), "", "no note without prices");
+assert.doesNotMatch(priceDateNoteHtml({ markdown: "from EGP 5 million", ar: false, unitsHref: "" }), /<a /, "no link without a unit list");
+assert.match(priceDateNoteHtml({ markdown: "x", ar: false }) + priceDateNoteHtml({ markdown: "Prices from 12 million", ar: false, unitsHref: "/en/projects/a#units" }), /href="\/en\/projects\/a#units"/);
+assertions += 6;
 console.log(`Article render contract: ${assertions} checks passed.`);

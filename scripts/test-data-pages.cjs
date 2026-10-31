@@ -221,4 +221,12 @@ assert.match(noDeveloperPage, /IL Cazar Developments/, "the developer name still
 const withDeveloperPage = renderProjectStatic(shell, guideOnlyProject, [], [], { projectLinks: [{ id: "x", name: "Other", slug: "other--il-cazar-developments", developer: "IL Cazar Developments", location: "New Cairo", minPrice: 1, image: "" }] });
 assert.match(withDeveloperPage, /href="\/ar\/developers\/il-cazar-developments"/, "link kept when another project of the developer has units");
 
+// Top projects get an Arabic H1 (Arabic name + area, English name kept) and the URL stays (SEO-07).
+const arabicH1Html = renderProjectStatic(shell, { ...project, slug: "soto-residence--dolmen", name: "SOTO RESIDENCE", seo_title: "SOTO RESIDENCE | الأسعار وخطط السداد 2026" }, [unit]);
+assert.match(arabicH1Html, /<h1[^>]*>سوتو ريزيدنس القاهرة الجديدة — SOTO Residence<\/h1>/);
+assert.match(arabicH1Html, /<title>سوتو ريزيدنس/);
+assert.match(arabicH1Html, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/projects\/soto-residence--dolmen">/);
+assert.match(arabicH1Html, /<section id="units"/);
+assert.equal((arabicH1Html.match(/<h1\b/g) || []).length, 1);
+
 console.log("Data-driven page isolation and canonical validation passed.");

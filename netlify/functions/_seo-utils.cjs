@@ -2,9 +2,11 @@
 
 const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, isCommercialUnit, fitTitle, priceShortAr } = require("./_display-text.cjs");
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("./_localized-project-content.cjs");
+// Arabic H1/title for the top projects (audit SEO-07); shared with the static and React pages.
+const PROJECT_NAMES_AR = require("../../src/content/project-names-ar.json").projects;
 const { developerContent } = require("./_developer-content.cjs");
 
-const { renderSafeMarkdown } = require("./_article-render.cjs");
+const { renderSafeMarkdown, priceDateNoteHtml } = require("./_article-render.cjs");
 const { buildProjectSchemas } = require("./_project-schema.cjs");
 const { unitPath, findUnitByParam } = require("./_unit-url.cjs");
 const { developerRank } = require("./_developer-rank.cjs");
@@ -46,7 +48,8 @@ const SUPABASE_KEY =
   "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 
 // Google Analytics 4 (public/ga4.js). A same-origin file, so the CSP below allows it.
-const GA4_TAG = '<script src="/ga4.js"></script>';
+// `defer`: analytics must not block the first paint (PageSpeed: 640 ms render-blocking, Nov 2026).
+const GA4_TAG = '<script src="/ga4.js" defer></script>';
 
 const CACHE_HEADERS = {
   "cache-control": "public, max-age=0, s-maxage=900, stale-while-revalidate=86400",
@@ -944,7 +947,7 @@ function styles() {
   @media(max-width:980px){.nav{display:none}.menu{display:block}}@media(max-width:430px){.wa span{display:none}.wa{padding:10px}.logo small{display:none}}
   main{width:min(1120px,calc(100% - 32px));margin:auto;padding:34px 0 70px}.hero,.panel,.card,.table,.answer{background:#fff;border:1px solid var(--line);border-radius:24px}
   .hero{padding:clamp(24px,5vw,52px)}h1{margin:8px 0 18px;font-size:clamp(32px,5vw,54px);line-height:1.2;color:var(--green)}h2{margin:40px 0 16px;color:var(--green)}.lead{font-size:18px;color:var(--muted)}.eyebrow{color:#8a6630;font-weight:800}
-  .answer{padding:22px 24px;margin:24px 0;background:#fffaf1}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{padding:18px;text-decoration:none}.card img{width:100%;height:180px;object-fit:cover;border-radius:16px}.card p{color:var(--muted)}.brand-logo{display:inline-flex;align-items:center;height:44px;padding:6px 12px;margin:12px 0 2px;border:1px solid var(--line);border-radius:12px;background:#fff}.brand-logo.on-dark{background:#0d1f18;border-color:#0d1f18}.brand-logo img,.card .brand-logo img{width:auto;height:28px;max-width:160px;object-fit:contain;border-radius:0}.hero .brand-logo{height:56px}.hero .brand-logo img{height:40px;max-width:220px}
+  .price-date-note{padding:14px 16px;margin:18px 0;border:1px solid var(--line);border-radius:14px;background:#fffaf1;color:var(--muted)}.answer{padding:22px 24px;margin:24px 0;background:#fffaf1}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.card{padding:18px;text-decoration:none}.card img{width:100%;height:180px;object-fit:cover;border-radius:16px}.card p{color:var(--muted)}.brand-logo{display:inline-flex;align-items:center;height:44px;padding:6px 12px;margin:12px 0 2px;border:1px solid var(--line);border-radius:12px;background:#fff}.brand-logo.on-dark{background:#0d1f18;border-color:#0d1f18}.brand-logo img,.card .brand-logo img{width:auto;height:28px;max-width:160px;object-fit:contain;border-radius:0}.hero .brand-logo{height:56px}.hero .brand-logo img{height:40px;max-width:220px}
   .facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:24px}.fact{padding:14px;border:1px solid var(--line);border-radius:15px}.fact small{display:block;color:var(--muted)}.cta{display:inline-block;margin-top:18px;padding:11px 18px;border-radius:999px;background:#1faa59;color:#fff;text-decoration:none;font-weight:800}
   .table{overflow:auto}.table table{width:100%;min-width:760px;border-collapse:collapse}.table th,.table td{padding:13px 15px;text-align:start;border-bottom:1px solid var(--line)}.table th{background:#efe7d8}.updated,.note,.crumbs{font-size:13px;color:var(--muted)}
   .guide section{padding:22px 0;border-bottom:1px solid var(--line)}footer{padding:36px max(20px,calc((100% - 1180px)/2));background:var(--green);color:#fff}footer a{margin-inline-end:14px}
@@ -1398,16 +1401,16 @@ function renderProject(projects, slug, lang, article = null) {
   const projectFaq = localizedContent?.faq?.length?localizedContent.faq.map((item)=>[item.question,item.answer]):(searchContent?.faq?.(contentVars) || []);
   const visibleProjectFaq = localizedContent?.article_sections?.length ? [] : projectFaq;
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
-  <section class="hero">${logoBadge(projectLogo(project), 40)}<span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(localizedContent?.h1 || project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
+  <section class="hero">${logoBadge(projectLogo(project), 40)}<span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(localizedContent?.h1 || (ar && PROJECT_NAMES_AR[project.slug]?.h1) || project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
   ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:contain;background:#0d1f18;border-radius:20px" fetchpriority="high">` : ""}
   <div class="facts">${hasUnits ? `<div class="fact"><small>${ar ? "يبدأ من" : "Starting from"}</small><strong>${escapeHtml(formatPrice(minPrice, lang))}</strong></div>
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
   <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.medianSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Median price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.medianSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
   <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث الأسعار والتوفر" : "Request current availability"}</a></section>${extraSections}
-  ${ownGuide && article && article.slug ? `<p><a href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></p>` : ""}${!ownGuide && article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: liveUnitIdsOf(projects) })}</section>` : ""}
+  ${ownGuide && article && article.slug ? `<p><a href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></p>` : ""}${!ownGuide && article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${priceDateNoteHtml({ markdown: article.body_markdown, reviewedAt: article.reviewed_at, ar, unitsHref: hasUnits ? "#units" : "" })}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: liveUnitIdsOf(projects) })}</section>` : ""}
   ${(() => { const info = developerHasPage ? developerInfo(project.developer) : null; const about = info && (ar ? info.about_ar : info.about_en); if (ownGuide) return info ? `<p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? `كل مشاريع ${escapeHtml(info.name_ar || info.name)}` : `All projects by ${escapeHtml(info.name)}`}</a></p>` : ""; return about ? `<section><h2>${ar ? `عن المطور: ${escapeHtml(info.name_ar || info.name)}` : `About the developer: ${escapeHtml(info.name)}`}</h2><p>${escapeHtml(about)}</p><p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? "كل مشاريع المطور" : "All projects by this developer"}</a></p></section>` : ""; })()}
-  ${!hasUnits && ownGuide ? "" : `<h2>${ar ? "الوحدات المتاحة" : "Available units"}</h2>`}${
+  ${!hasUnits && ownGuide ? "" : `<h2 id="units">${ar ? "الوحدات المتاحة" : "Available units"}</h2>`}${
     hasUnits
       ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "سعر المتر" : "Per m²"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
   ${units.map((unit) => `<tr><td>${escapeHtml(clean(unit.unit_type))}</td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(pricePerSqm(unit))) : "—"}</td><td>${escapeHtml(payText(unit.down_payment_text, lang))}</td><td>${escapeHtml(payText(unit.installments_text, lang))}</td><td>${escapeHtml(payText(unit.delivery_text, lang))}</td></tr>`).join("")}
@@ -1421,7 +1424,7 @@ function renderProject(projects, slug, lang, article = null) {
 
   return renderPage({
     lang,
-    title: localizedContent?.seo_title || searchContent?.title?.(contentVars) || defaultTitle,
+    title: localizedContent?.seo_title || (ar && PROJECT_NAMES_AR[project.slug]?.title) || searchContent?.title?.(contentVars) || defaultTitle,
     description,
     path,
     alternatePath,
@@ -1433,7 +1436,7 @@ function renderProject(projects, slug, lang, article = null) {
     schemas: [
       breadcrumbSchema(crumbs),
       ...buildProjectSchemas({ url: `${SITE_URL}${path}`, name: project.name, projectSlug: project.slug, location, description,
-        title: localizedContent?.seo_title || searchContent?.title?.(contentVars) || defaultTitle,
+        title: localizedContent?.seo_title || (ar && PROJECT_NAMES_AR[project.slug]?.title) || searchContent?.title?.(contentVars) || defaultTitle,
         language: lang, images: image ? [image] : [], modified: updated, units,
         articleSections: localizedContent?.article_sections?.length ? localizedContent.article_sections :
           (searchContent?.sections?.(contentVars) || []).map(([heading, paragraph]) => ({ heading, paragraphs: [paragraph] })),
@@ -2110,6 +2113,7 @@ function editorialArticleView(article, translation = null, extras = {}) {
   <section class="hero"><span class="eyebrow">${ar ? "دليل مستقل تمت مراجعته قبل النشر" : "Independent guide reviewed before publication"}</span><h1>${escapeHtml(article.title)}</h1><p class="lead">${escapeHtml(article.excerpt)}</p>${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(article.title)}" width="1200" height="630" loading="eager" style="width:100%;height:auto;border-radius:16px;margin-top:12px">` : ""}<p class="updated">${ar ? "تاريخ المراجعة" : "Reviewed"}: ${escapeHtml(reviewedDate)}</p>${guideBylineHtml(ar)}</section>
   ${projectCard}
   ${takeawaysHtml}
+  ${priceDateNoteHtml({ markdown: article.body_markdown, reviewedAt: article.reviewed_at, ar, unitsHref: project ? `${projectPath}#units` : "" })}
   <article>${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: extras.liveUnitIds })}</article>
   ${faqHtml}
   ${relatedHtml}
