@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Routes, Route } from 'react-router'
 import { Capacitor } from '@capacitor/core'
 import Home from './pages/Home'
+import ServerHtmlOr from "./components/ServerHtmlOr";
 
 const RegionPage = lazy(() => import('./pages/RegionPage'))
 const ProjectPage = lazy(() => import('./pages/ProjectPage'))
@@ -26,9 +27,12 @@ export default function App() {
   return (
     <Suspense
       fallback={
-        <main className="grid min-h-screen place-items-center bg-[#f7f2ea] text-[#1b2420]">
-          <p className="font-bold">جاري تحميل الصفحة…</p>
-        </main>
+        // Keep the server-rendered page on screen while the page code loads (see ServerHtmlOr).
+        <ServerHtmlOr>
+          <main className="grid min-h-screen place-items-center bg-[#f7f2ea] text-[#1b2420]">
+            <p className="font-bold">جاري تحميل الصفحة…</p>
+          </main>
+        </ServerHtmlOr>
       }
     >
       <Routes>

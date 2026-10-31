@@ -21,6 +21,7 @@ import { arabicField } from "@/lib/arabicFields";
 import { areaFor, areaFacts, computeUnitStats, rankClause, pick } from "@/lib/unitContent";
 import { unitTitle } from "../lib/unitTitle";
 import { fitTitle } from "@/lib/fitTitle";
+import ServerHtmlOr from "@/components/ServerHtmlOr";
 
 const UNIT_INTRO_BANK: Array<(vars: Record<string, string>) => string> = [
   (v) => `${v.unitType} بمساحة ${v.area} م² جوه ${v.projectName} من ${v.developer}، في ${v.areaAr}. ${v.rank}. السعر يبدأ من ${v.price}، والاستلام ${v.delivery}.`,
@@ -112,7 +113,7 @@ export default function UnitPage() {
     window.scrollTo(0, 0);
   }, [unit]);
 
-  if (loading) return <main className="grid min-h-screen place-items-center bg-[#f7f2ea]"><p className="font-bold">جاري تحميل الوحدة…</p></main>;
+  if (loading) return <ServerHtmlOr><main className="grid min-h-screen place-items-center bg-[#f7f2ea]"><p className="font-bold">جاري تحميل الوحدة…</p></main></ServerHtmlOr>;
   if (!unit) return <main className="grid min-h-screen place-items-center bg-[#f7f2ea] px-5 text-center"><div><p className="text-xl font-bold">الوحدة غير متاحة</p><Link to="/" className="mt-4 inline-block text-[#a3854e] underline">ارجع للرئيسية</Link></div></main>;
 
   const pageUrl = `${SITE_URL}${unitPath(unit)}`;

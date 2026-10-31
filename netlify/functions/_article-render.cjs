@@ -87,4 +87,26 @@ function renderSafeMarkdown(markdown, options = {}) {
   return out.join("\n");
 }
 
-module.exports = { escapeHtml, renderSafeMarkdown };
+// Guides keep the prices they were written with. When a guide quotes prices, say when they were
+// checked and send the reader to the live unit list, so an old figure is never read as today's
+// offer (audit SEO-09, Nov 2026: Mountain View 1.1 guide vs. the current unit cards).
+const PRICE_PATTERN = /\d[\d,.]*\s*(?:جنيه|ج\.م|مليون|EGP|million|M\b)|(?:EGP|جنيه)\s*\d/i;
+function hasPrices(markdown) {
+  return PRICE_PATTERN.test(String(markdown || ""));
+}
+function priceDateNoteHtml({ markdown, reviewedAt, ar = true, unitsHref = "#units" }) {
+  if (!hasPrices(markdown)) return "";
+  const date = reviewedAt && !Number.isNaN(new Date(reviewedAt).getTime())
+    ? new Intl.DateTimeFormat(ar ? "ar-EG-u-nu-latn" : "en-GB", { year: "numeric", month: "long", day: "numeric" }).format(new Date(reviewedAt))
+    : "";
+  const when = ar
+    ? `الأسعار المذكورة في الدليل ده${date ? ` من وقت مراجعته (${escapeHtml(date)})` : " من وقت كتابته"}، وممكن تكون اتغيرت.`
+    : `Prices in this guide are as of ${date ? `its review (${escapeHtml(date)})` : "writing"} and may have changed.`;
+  // No unit list to point at (project without listed units): ask the reader to confirm instead.
+  const next = unitsHref
+    ? `<a href="${escapeHtml(unitsHref)}">${ar ? "شوف الأسعار والوحدات المتاحة دلوقتي" : "See current prices and available units"}</a>.`
+    : (ar ? "أكد السعر الحالي معانا قبل أي قرار." : "Confirm the current price with us before deciding.");
+  return `<p class="price-date-note" data-price-note>${when} ${next}</p>`;
+}
+
+module.exports = { escapeHtml, renderSafeMarkdown, hasPrices, priceDateNoteHtml };

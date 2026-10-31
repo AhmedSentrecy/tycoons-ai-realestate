@@ -20,6 +20,7 @@ import Footer from "@/sections/Footer";
 import FloatingContact from "@/components/FloatingContact";
 import { guidePath, loadProjectArticleBySlug, loadProjectGuidesBySlug, publicMarkdown, type GuideLink, type PublishedGuide } from "@/lib/editorialGuides";
 import GuideBody from "@/components/GuideBody";
+import PriceDateNote from "@/components/PriceDateNote";
 import { useDeveloper } from "@/lib/developers";
 import { fallbackImageFor, useInventory, type InventoryUnit } from "@/lib/inventory";
 import { buildProjectFaq, cleanPublicFaq, isCuratedFaq, projectsFromUnits, researchFaqItems } from "@/lib/projectFaq";
@@ -35,6 +36,11 @@ import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs
 import PageStructuredData from "@/components/PageStructuredData";
 import { unitPath } from "@/lib/unitUrl";
 import { fitTitle } from "@/lib/fitTitle";
+import projectNamesAr from "@/content/project-names-ar.json";
+import ServerHtmlOr from "@/components/ServerHtmlOr";
+
+// Arabic H1/title for the top projects (audit SEO-07); same file as the static and server pages.
+const PROJECT_NAMES_AR: Record<string, { h1: string; title?: string }> = projectNamesAr.projects;
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201110100025";
@@ -355,7 +361,7 @@ export default function ProjectPage() {
       ? `${project.project_name} من ${project.developer} في ${project.location}. الأسعار الظاهرة من ${formatPrice(Math.min(...prices))} إلى ${formatPrice(Math.max(...prices))} جنيه عبر ${projectUnits.length} خيار، مع طريقة التأكد من الموقع والـmaster plan الرسمي.`
       : content?.seo_description || project.description ||
         `اعرف أسعار ومساحات ${project.project_name} وخطط السداد والوحدات المتاحة.`;
-    const localizedTitle = localizedArabic?.seo_title || title;
+    const localizedTitle = localizedArabic?.seo_title || PROJECT_NAMES_AR[slug]?.title || title;
     const localizedDescription = localizedArabic?.seo_description || description;
     document.title = fitTitle(localizedTitle);
     setMeta('meta[name="description"]', "content", localizedDescription);
@@ -369,9 +375,11 @@ export default function ProjectPage() {
 
   if (loading || contentLoading) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f7f2ea]">
-        <p className="font-bold text-[#1b2420]">جاري تحميل تفاصيل المشروع…</p>
-      </main>
+      <ServerHtmlOr>
+        <main className="grid min-h-screen place-items-center bg-[#f7f2ea]">
+          <p className="font-bold text-[#1b2420]">جاري تحميل تفاصيل المشروع…</p>
+        </main>
+      </ServerHtmlOr>
     );
   }
 
@@ -581,7 +589,7 @@ export default function ProjectPage() {
                 </span>
               )}
               <h1 className="mt-4 max-w-3xl text-3xl font-extrabold leading-tight sm:text-4xl">
-                {localizedArabic?.h1 || project.project_name}
+                {localizedArabic?.h1 || PROJECT_NAMES_AR[slug]?.h1 || project.project_name}
               </h1>
               <p className="mt-5 text-lg font-light text-white/70">
                 {content?.hero_text || project.description}
@@ -647,6 +655,7 @@ export default function ProjectPage() {
                     </ul>
                   </div>
                 )}
+                <PriceDateNote markdown={projectArticle.body_markdown} reviewedAt={projectArticle.reviewed_at} unitsHref={projectUnits.length ? "#units" : ""} />
                 <div className="text-[#3f4b44]">
                   <GuideBody markdown={publicMarkdown(projectArticle.body_markdown, true)} liveUnitIds={liveUnitIds} />
                 </div>
@@ -744,7 +753,7 @@ export default function ProjectPage() {
         </div>
       </section>
 
-      <section className="border-y border-[#e7ddc8] bg-[#efe7d8] py-16" aria-labelledby="project-unit-options">
+      <section id="units" className="border-y border-[#e7ddc8] bg-[#efe7d8] py-16" aria-labelledby="project-unit-options">
         <div className="mx-auto max-w-6xl px-5 lg:px-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>

@@ -1,0 +1,73 @@
+{
+  "note": "Arabic H1 (Arabic name + area, English name kept after the dash) for the top project pages, and an Arabic title where the stored one is English. Used by the static page, the server page and the React page so the H1 stays the same after JavaScript (audit SEO-07, Nov 2026). URLs are not changed. A localized h1 written in the admin (targeting.localized_content.ar.h1) still wins.",
+  "projects": {
+    "97-hills--palm-hills-developments": {
+      "h1": "97 هيلز بالم هيلز التجمع الخامس — 97 Hills"
+    },
+    "badya--palm-hills-developments": {
+      "h1": "بادية بالم هيلز أكتوبر — Badya"
+    },
+    "bloomfields--tatweer-misr": {
+      "h1": "بلوم فيلدز تطوير مصر مستقبل سيتي — Bloomfields"
+    },
+    "crescent-walk--marakez": {
+      "h1": "كريسنت ووك مراكز التجمع السادس — Crescent Walk"
+    },
+    "fouka-bay--tatweer-misr": {
+      "h1": "فوكا باي تطوير مصر رأس الحكمة — Fouka Bay"
+    },
+    "hacienda-ras-el-hekma--palm-hills": {
+      "h1": "هاسيندا رأس الحكمة بالم هيلز الساحل الشمالي — Hacienda Ras El Hekma"
+    },
+    "hacienda-waters--palm-hills-developments": {
+      "h1": "هاسيندا ووترز بالم هيلز الساحل الشمالي — Hacienda Waters"
+    },
+    "jirian--palm-hills-developments": {
+      "h1": "جريان بالم هيلز الشيخ زايد الجديدة — Jirian"
+    },
+    "kayan-city-evora-greens--stm": {
+      "h1": "كيان سيتي إيفورا جرينز القاهرة الجديدة — Kayan City Evora Greens",
+      "title": "كيان سيتي إيفورا جرينز 2026 — الأسعار وخطط السداد"
+    },
+    "marbay--marasem": {
+      "h1": "مار باي مراسم رأس الحكمة — MarBay"
+    },
+    "mountain-view-1-1--mountain-view": {
+      "h1": "ماونتن فيو 1.1 التجمع الخامس — Mountain View 1.1"
+    },
+    "mountain-view-aliva--mountain-view": {
+      "h1": "ماونتن فيو أليفا مستقبل سيتي — Mountain View Aliva"
+    },
+    "notion--town-writers": {
+      "h1": "نوشن تاون رايترز القاهرة الجديدة — Notion"
+    },
+    "ogami--sodic": {
+      "h1": "أوجامي سوديك رأس الحكمة — Ogami"
+    },
+    "one-hyde-park--hyde-park": {
+      "h1": "وان هايد بارك التجمع الخامس — One Hyde Park"
+    },
+    "p-x--palm-hills-developments": {
+      "h1": "بي إكس بالم هيلز الشيخ زايد — P/X"
+    },
+    "palm-hills-new-cairo--palm-hills-developments": {
+      "h1": "بالم هيلز القاهرة الجديدة التجمع الخامس — Palm Hills New Cairo"
+    },
+    "rituals-village-zoya--lmd": {
+      "h1": "ريتشوالز فيلدج زويا غزالة باي الساحل الشمالي — Rituals Village Zoya"
+    },
+    "solay--living-yards-developments": {
+      "h1": "سولاي التجمع الخامس — Solay"
+    },
+    "soto-residence--dolmen": {
+      "h1": "سوتو ريزيدنس القاهرة الجديدة — SOTO Residence",
+      "title": "سوتو ريزيدنس القاهرة الجديدة 2026 — الأسعار وخطط السداد"
+    },
+    "village-west--dorra": {
+      "h1": "فيلدج ويست دره الشيخ زايد — Village West"
+    },
+    "villette--sodic": {
+      "h1": "فيليت سوديك التجمع الخامس — Villette"
+    }
+  }
+}

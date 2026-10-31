@@ -192,8 +192,8 @@ for (const pathname of ["/sales-war-room/lead/12", "/admin", "/media-admin/x"]) 
   const shell = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   const { GA4_TAG, CACHE_HEADERS } = require("../netlify/functions/_seo-utils.cjs");
   assert.match(shell, /<script src="\/wa-track\.js" defer><\/script>/);
-  assert.match(shell, /<script src="\/ga4\.js"><\/script>/, "index.html must load /ga4.js");
-  assert.equal(GA4_TAG, '<script src="/ga4.js"></script>', "SSR pages must load /ga4.js, not an inline script");
+  assert.match(shell, /<script src="\/ga4\.js" defer><\/script>/, "index.html must load /ga4.js without blocking the first paint");
+  assert.equal(GA4_TAG, '<script src="/ga4.js" defer></script>', "SSR pages must load /ga4.js (deferred), not an inline script");
   const ssr = require("../netlify/functions/seo-page.cjs");
   assert.ok(ssr);
 
