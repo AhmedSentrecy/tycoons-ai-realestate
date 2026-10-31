@@ -20,12 +20,17 @@ export interface DeveloperBrand {
 
 let cache: Promise<DeveloperBrand[]> | null = null;
 
+// Public URL slug when it differs from the Supabase key (same map as netlify/functions/_seo-utils.cjs):
+// "People & Places" is stored as `people-places` but its page lives at /developers/people-and-places.
+const DEVELOPER_PUBLIC_SLUGS: Record<string, string> = { "people-places": "people-and-places" };
+
 export function loadDevelopers(): Promise<DeveloperBrand[]> {
   if (!cache) {
     const params = new URLSearchParams({ select: "slug,name,name_ar,aliases,logo_path,logo_on_dark,about_ar,about_en", limit: "500" });
     cache = fetch(`${SUPABASE_URL}/rest/v1/developers?${params}`, { headers: { apikey: SUPABASE_KEY, Accept: "application/json" } })
       .then((response) => (response.ok ? response.json() : []))
       .then((rows) => (Array.isArray(rows) ? (rows as DeveloperBrand[]) : []))
+      .then((rows) => rows.map((row) => (DEVELOPER_PUBLIC_SLUGS[row.slug] ? { ...row, slug: DEVELOPER_PUBLIC_SLUGS[row.slug] } : row)))
       .catch(() => []);
   }
   return cache;

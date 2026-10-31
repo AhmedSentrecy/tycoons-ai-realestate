@@ -3,7 +3,7 @@
 // Keep these exact module contracts in sync with the shared CommonJS implementations.
 declare module "*netlify/functions/_article-render.cjs" {
   export function escapeHtml(value: unknown): string;
-  export function renderSafeMarkdown(markdown: unknown): string;
+  export function renderSafeMarkdown(markdown: unknown, options?: { liveUnitIds?: Iterable<string> | Set<string> | null }): string;
 }
 
 declare module "*netlify/functions/_project-schema.cjs" {

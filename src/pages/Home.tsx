@@ -9,6 +9,7 @@ import FaqSection from "@/sections/FaqSection";
 import Footer from "@/sections/Footer";
 import { useEffect } from "react";
 import { isEnglish } from "@/lib/homeLanguage";
+import englishHomeSections from "@/content/english-home-sections.json";
 
 export default function Home() {
   const english = isEnglish();
@@ -26,6 +27,19 @@ export default function Home() {
       <Developers />
       <WhyUs />
       <FaqSection />
+      {english && (
+        // Same buyer sections as the crawlable /en/ HTML (prices per m², 13 project guides,
+        // payment plans, who writes the guides), so they stay after JavaScript loads (audit SEO-01).
+        <section
+          aria-label="Buyer guide"
+          className="bg-[#f7f2ea] px-5 py-12 text-[#1b2420]"
+        >
+          <div
+            className="mx-auto max-w-6xl leading-relaxed text-[#536056] [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-[#1b2420] first:[&_h2]:mt-0 md:[&_h2]:text-3xl [&_p]:mt-4 [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:ps-6 [&_li]:mt-2 [&_nav]:mt-4 [&_nav]:leading-loose [&_a]:font-semibold [&_a]:text-[#8a6630] [&_a]:underline [&_a]:underline-offset-4"
+            dangerouslySetInnerHTML={{ __html: englishHomeSections.html }}
+          />
+        </section>
+      )}
       <section aria-labelledby="property-comparison-guides" className="bg-[#f0e8d9] px-5 py-12 text-[#1b2420]">
         <div className="mx-auto max-w-6xl">
           <p className="text-sm font-semibold uppercase tracking-wider text-[#8a6630]">

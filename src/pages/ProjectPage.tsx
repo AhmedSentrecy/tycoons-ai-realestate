@@ -290,6 +290,11 @@ export default function ProjectPage() {
   );
   const project = projectUnits[0];
   const developerBrand = useDeveloper(project?.developer ?? "");
+  // Ids of units that still have a page (null while loading, so no guide link is dropped early).
+  const liveUnitIds = useMemo(() => (loading || !units.length ? null : new Set(units.map((unit) => unit.id))), [loading, units]);
+  // The developer page exists only when one of its projects has listed units; a project shown
+  // through its written guide alone links no 404 developer page (audit SEO-05, Park Sight).
+  const developerHasPage = loading || units.some((unit) => slugify(unit.developer) === slugify(project?.developer ?? ""));
   // Other public projects with units, for the "nearby" and "same developer" FAQ answers.
   const faqProjects = useMemo(() => projectsFromUnits(units.filter((unit) => unit.project_slug)), [units]);
 
@@ -521,8 +526,8 @@ export default function ProjectPage() {
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "الرئيسية", item: SITE_URL },
           { "@type": "ListItem", position: 2, name: project.location, item: `${SITE_URL}/ar/areas/${areaFor(project.location).slug}` },
-          { "@type": "ListItem", position: 3, name: project.developer, item: `${SITE_URL}/ar/developers/${slugify(project.developer)}` },
-          { "@type": "ListItem", position: 4, name: project.project_name, item: pageUrl },
+          ...(developerHasPage ? [{ "@type": "ListItem", position: 3, name: project.developer, item: `${SITE_URL}/ar/developers/${slugify(project.developer)}` }] : []),
+          { "@type": "ListItem", position: developerHasPage ? 4 : 3, name: project.project_name, item: pageUrl },
         ],
       },
       ...(faq.length
@@ -554,10 +559,17 @@ export default function ProjectPage() {
           <div className="mt-8 grid items-end gap-8 lg:grid-cols-[1fr_auto]">
             <div>
               <div className="flex flex-wrap items-center gap-3 text-sm text-[#d9b87c]">
-                <a href={`/ar/developers/${slugify(project.developer)}`} className="inline-flex items-center gap-1.5 hover:text-white">
-                  <Building2 className="h-4 w-4" />
-                  {project.developer}
-                </a>
+                {developerHasPage ? (
+                  <a href={`/ar/developers/${slugify(project.developer)}`} className="inline-flex items-center gap-1.5 hover:text-white">
+                    <Building2 className="h-4 w-4" />
+                    {project.developer}
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4" />
+                    {project.developer}
+                  </span>
+                )}
                 <a href={`/ar/areas/${areaFor(project.location).slug}`} className="inline-flex items-center gap-1.5 hover:text-white">
                   <MapPin className="h-4 w-4" />
                   {project.location}
@@ -636,7 +648,7 @@ export default function ProjectPage() {
                   </div>
                 )}
                 <div className="text-[#3f4b44]">
-                  <GuideBody markdown={publicMarkdown(projectArticle.body_markdown, true)} />
+                  <GuideBody markdown={publicMarkdown(projectArticle.body_markdown, true)} liveUnitIds={liveUnitIds} />
                 </div>
                 {projectArticle.reviewed_at && (
                   <p className="mt-6 text-sm text-[#5c6a62]">
@@ -651,7 +663,7 @@ export default function ProjectPage() {
               <section className="mt-14" aria-labelledby="project-developer">
                 <h2 id="project-developer" className="text-2xl font-extrabold">عن المطور: {developerBrand.name_ar || developerBrand.name}</h2>
                 <p className="mt-4 font-light leading-loose text-[#5c6a62]">{developerBrand.about_ar}</p>
-                <a href={`/ar/developers/${developerBrand.slug}`} className="mt-3 inline-block font-bold text-[#a3854e] underline">كل مشاريع {developerBrand.name_ar || developerBrand.name}</a>
+                {developerHasPage && <a href={`/ar/developers/${developerBrand.slug}`} className="mt-3 inline-block font-bold text-[#a3854e] underline">كل مشاريع {developerBrand.name_ar || developerBrand.name}</a>}
               </section>
             )}
 
