@@ -48,6 +48,9 @@ function check(value, message) { assert.ok(value, message); checks += 1; }
     check(blocker(assess({ [field]: "5A costs 26760000 EGP" }), "unsupported_numeric_claim", field), `numeric ${field} requires bound evidence`);
     check(blocker(assess({ [field]: "5A {{min_area}}" }), "unresolved_placeholder", field), `placeholder ${field} blocks`);
   }
+  // Place names with digits are names, not numbers; real quantities next to them stay blocked.
+  for (const value of ["5A is near Al Rehab, AUC and North 90th Street.", "5A is in the 5th Settlement.", "5A sits off South 90th, close to the 26th of July Axis.", "5A في مدينة 6 أكتوبر قريب من محور 26 يوليو."]) check(!blocker(assess({ body_markdown: value }), "unsupported_numeric_claim"), `place name allowed: ${value}`);
+  for (const value of ["5A on North 90th Street costs 123 EGP", "5A in the 5th Settlement has 185 m²", "5A is 190th Street away"]) check(blocker(assess({ body_markdown: value }), "unsupported_numeric_claim"), `quantity still blocked: ${value}`);
   for (const value of ["5A costs ٢٦٧٦٠٠٠٠ EGP", "5A costs ۲۶۷۶۰۰۰۰ EGP", "5A costs １２３ EGP", "5A costs १२३ EGP", "5A has 185 m²", "5A delivery is 2030-12-31"]) check(blocker(assess({ body_markdown: value }), "unsupported_numeric_claim"), value);
   const price = "- Price: 26760000 EGP — [Townhouse](/units/unit-1) — source updated: 2026-02-10 — must be verified before publication.";
   const sample = "- [Townhouse](/units/unit-1): 185 m² — source status: available — source updated: 2026-02-10.";

@@ -66,6 +66,28 @@ function canonicalLines(unit, language) {
   return lines;
 }
 
+// Place names that carry digits are names, not quantities: "North 90th Street", "the 5th
+// Settlement", "6th of October", "26th of July Axis". Without this the publish check flagged
+// them as unverified numbers and the auto-fix deleted whole location sentences (Mountain View
+// 1.1 English guide, Nov 2026). Prices, sizes, years and percentages stay blocked.
+const PLACE_NAMES_WITH_DIGITS = new RegExp([
+  String.raw`(?:(?:North|South|N\.|S\.)\s+)?90(?:th)?\s+(?:Street|St\.?|Road)`,
+  String.raw`(?:North|South)\s+90(?:th)?(?![\p{N}])`,
+  String.raw`Road\s+90(?![\p{N}])`,
+  String.raw`(?:شارع|طريق)\s+(?:ال)?90(?![\p{N}])`,
+  String.raw`(?:1st|3rd|5th|6th)\s+Settlement`,
+  String.raw`6th\s+of\s+October`,
+  String.raw`(?:مدينة\s+)6\s*(?:أكتوبر|اكتوبر)`,
+  String.raw`26th\s+of\s+July`,
+  String.raw`(?:محور|كوبري)\s+26\s*يوليو`,
+  String.raw`10th\s+of\s+Ramadan`,
+  String.raw`15th\s+of\s+May`,
+].join("|"), "giu");
+
+export function stripPlaceNames(value) {
+  return String(value ?? "").replace(PLACE_NAMES_WITH_DIGITS, " place ");
+}
+
 function stripKnownNames(value, projects) {
   let result = value;
   for (const project of projects) {
@@ -176,7 +198,7 @@ export function assessArticleReview(article, sources = {}) {
         const path = token.replace(/[.,،؛:!?؟]+$/, "");
         return checkReference(path) ? `${conjunction}source reference` : `${conjunction}${token}`;
       });
-      numericText = stripKnownNames(numericText, groundedProjects).replace(/^\s*\d+[.)]\s+/, "");
+      numericText = stripPlaceNames(stripKnownNames(numericText, groundedProjects)).replace(/^\s*\d+[.)]\s+/, "");
       // Unicode numbers include fullwidth, Arabic/Persian, and other numeral
       // scripts. An alternate glyph must not bypass numeric fact validation.
       const numeric = /\p{N}/u.exec(numericText);

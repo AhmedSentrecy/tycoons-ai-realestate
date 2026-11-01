@@ -66,9 +66,25 @@ export function cleanBody(body: string, allowedUrls: Set<string>): string {
   return String(body || "").split("\n").filter((line) => !TYPED_FACT_RE.test(line.trim())).map((line) => cleanText(line, allowedUrls)).join("\n");
 }
 
-/** Remove project names (and allowed link URLs) before looking for digits, like the server review. */
+// Same list as server/tycoons-admin/article-review.mjs (PLACE_NAMES_WITH_DIGITS): place names
+// that carry digits ("North 90th Street", "6th of October") are names, not unverified numbers.
+const PLACE_NAMES_WITH_DIGITS = new RegExp([
+  String.raw`(?:(?:North|South|N\.|S\.)\s+)?90(?:th)?\s+(?:Street|St\.?|Road)`,
+  String.raw`(?:North|South)\s+90(?:th)?(?![\p{N}])`,
+  String.raw`Road\s+90(?![\p{N}])`,
+  String.raw`(?:شارع|طريق)\s+(?:ال)?90(?![\p{N}])`,
+  String.raw`(?:1st|3rd|5th|6th)\s+Settlement`,
+  String.raw`6th\s+of\s+October`,
+  String.raw`(?:مدينة\s+)6\s*(?:أكتوبر|اكتوبر)`,
+  String.raw`26th\s+of\s+July`,
+  String.raw`(?:محور|كوبري)\s+26\s*يوليو`,
+  String.raw`10th\s+of\s+Ramadan`,
+  String.raw`15th\s+of\s+May`,
+].join("|"), "giu");
+
+/** Remove project names, place names with digits and allowed link URLs before looking for digits, like the server review. */
 export function hasUnverifiedNumber(line: string, projectNames: string[]): boolean {
-  let text = String(line || "").replace(/\]\([^)]*\)/g, "]");
+  let text = String(line || "").replace(/\]\([^)]*\)/g, "]").replace(PLACE_NAMES_WITH_DIGITS, " place ");
   for (const name of projectNames.filter(Boolean).sort((a, b) => b.length - a.length)) {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     text = text.replace(new RegExp(escaped, "giu"), " ");

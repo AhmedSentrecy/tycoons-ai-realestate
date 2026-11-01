@@ -72,4 +72,7 @@ check(!gen.isBrokerSource({ url: "https://www.reportage-properties.com/", title:
 const topicOut = gen.parseOpenAiOutput({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ topics: [1, 2, 3, 4].map((n) => ({ title: `سؤال ${n} عن Mountain View 1.1 في Fifth Settlement, New Cairo`, rationale: "سبب", angle: "زاوية New Cairo", project_ids: ["good"] })) }) }] }] }, "topics", { input: { action: "topics", language: "ar" }, projects: [good] });
 check(topicOut.topics.every((t: any) => !/New Cairo|Fifth Settlement/.test(t.title + t.angle)), "suggested Arabic topics carry no English place names");
 
+// The auto-fix keeps location sentences whose only digits are place names (MV 1.1 EN guide, Nov 2026).
+check(stripNumbers("Al Rehab, AUC and North 90th Street are nearby.", [good.name]) === "Al Rehab, AUC and North 90th Street are nearby.", "street names with digits are kept");
+check(stripNumbers("It is on North 90th Street. Prices start at 16 million.", [good.name]) === "It is on North 90th Street.", "the price sentence still goes, the street stays");
 console.log(`Article auto-fix tests passed (${checks} checks; offline only).`);
