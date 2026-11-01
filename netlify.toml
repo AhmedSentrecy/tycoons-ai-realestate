@@ -553,6 +553,12 @@
     Vary = "Accept"
 
 [[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
   for = "/.well-known/api-catalog"
   [headers.values]
     Content-Type = 'application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"'

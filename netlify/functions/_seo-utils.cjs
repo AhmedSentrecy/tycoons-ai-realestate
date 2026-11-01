@@ -59,7 +59,7 @@ const CACHE_HEADERS = {
   // A deploy (admin "rebuild") still purges it.
   "netlify-cdn-cache-control": "public, durable, s-maxage=900, stale-while-revalidate=604800",
   "content-security-policy":
-    "default-src 'self'; script-src 'self' https://www.googletagmanager.com; img-src 'self' https: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; frame-src https://www.google.com; frame-ancestors 'none'; base-uri 'self'",
+    "default-src 'self'; script-src 'self' https://www.googletagmanager.com; img-src 'self' https: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; frame-src https://www.google.com; frame-ancestors 'none'; base-uri 'self'",
   "referrer-policy": "strict-origin-when-cross-origin",
   "x-content-type-options": "nosniff",
 };
@@ -1014,8 +1014,8 @@ ${image ? `<meta property="og:image" content="${escapeHtml(image)}">` : ""}
 ${[organizationSchema(), ...schemas]
   .map((schema) => `<script type="application/ld+json">${JSON.stringify({ "@context": "https://schema.org", ...schema }).replace(/</g, "\\u003c")}</script>`)
   .join("")}
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;600;700;800&display=swap">
+${String(body).includes('class="dhero"') ? '<link rel="preload" as="image" href="/images/hero-bg.webp" fetchpriority="high">' : ""}<link rel="preload" href="/fonts/alexandria-arabic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:'Alexandria';font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/alexandria-arabic-wght-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}@font-face{font-family:'Alexandria';font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/alexandria-latin-wght-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:'Alexandria';font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/alexandria-latin-ext-wght-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}</style>
 <style>${styles()}</style></head><body>
 ${siteHeader(lang, path, ar ? canonical : alternate, ar ? alternate : canonical)}${body}
 <footer><strong>Tycoons Investments</strong><p>${ar ? "بيانات الأسعار والتوفر استرشادية ويتم تأكيدها وقت الطلب. العوائد تقديرية وليست ضمانًا." : "Prices and availability are indicative and reconfirmed on request. Returns are estimates, not guarantees."}</p>
@@ -1180,7 +1180,7 @@ function voiceBox() {
 }
 
 function directoryStyles() {
-  return `.dhero{background:linear-gradient(rgba(20,53,42,.86),rgba(20,53,42,.94)),url(/images/hero.webp) center/cover;color:#fff;padding:52px 0 58px}.dwrap{width:min(1180px,calc(100% - 32px));margin:auto}.dhero .crumbs,.dhero .crumbs a{color:#d8c9a8}.dhero h1{color:#fff;font-size:clamp(30px,4.6vw,46px);margin:10px 0 8px;font-weight:800}.dhero .lead{color:#dfe6e1;max-width:760px}
+  return `.dhero{background:linear-gradient(rgba(20,53,42,.86),rgba(20,53,42,.94)),url(/images/hero-bg.webp) center/cover;color:#fff;padding:52px 0 58px}.dwrap{width:min(1180px,calc(100% - 32px));margin:auto}.dhero .crumbs,.dhero .crumbs a{color:#d8c9a8}.dhero h1{color:#fff;font-size:clamp(30px,4.6vw,46px);margin:10px 0 8px;font-weight:800}.dhero .lead{color:#dfe6e1;max-width:760px}
 .dsearch{display:flex;gap:8px;margin-top:24px;max-width:860px;padding:8px;border-radius:18px;background:#fff;box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}.dsearch input{flex:1;min-width:0;border:0;outline:0;padding:12px 14px;font:inherit;font-size:15px;color:var(--ink);background:transparent}.dsearch button{border:0;border-radius:12px;padding:0 26px;background:var(--gold);color:#fff;font:inherit;font-weight:700;cursor:pointer}
 .stats{display:flex;flex-wrap:wrap;gap:16px 44px;margin-top:28px}.stats b{display:block;font-size:30px;font-weight:800;color:var(--gold);line-height:1.3}.stats span{font-size:13px;color:#cfd8d2}
 .dmain{width:min(1180px,calc(100% - 32px));margin:auto;padding:12px 0 40px}.sh{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:46px 0 18px}.sh h2{margin:0;font-size:28px}.sh p{margin:4px 0 0;color:var(--muted);font-size:14px}.more{flex:none;padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#14352a;font-weight:700;font-size:14px;text-decoration:none}

@@ -352,13 +352,16 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   const minArea = areas.length ? Math.min(...areas) : 0;
   const maxArea = areas.length ? Math.max(...areas) : 0;
   const imageList = urls(project.image_url, project.gallery_urls, ...units.map((unit) => unit.image_url));
+  // The iCity October template only fills gaps: a written seo_title / article from the admin wins.
   const isIcityOctober = project.slug === "mountain-view-icity-october--mountain-view";
+  const hasWrittenTitle = Boolean(text(project.seo_title));
+  const hasWrittenArticle = arrayValue(project.article_sections).length > 0;
   const localized = localizedProjectContent(project, "ar");
   const arabicName = PROJECT_NAMES_AR[project.slug] || null;
-  const legacyTitle = isIcityOctober
+  const legacyTitle = isIcityOctober && !hasWrittenTitle
     ? `${project.name} — الأسعار والموقع والوحدات | Tycoons`
     : text(project.seo_title) || `${project.name} | الأسعار والوحدات المتاحة`;
-  const legacyDescription = isIcityOctober && prices.length
+  const legacyDescription = isIcityOctober && !hasWrittenTitle && prices.length
     ? `${project.name} من ${project.developer} في أكتوبر: أسعار من ${formatPrice(minPrice)} إلى ${formatPrice(highPrice)} جنيه في ${totalOptionCount} خيار، والموقع والـmaster plan.`
     : text(project.seo_description) || text(project.description) ||
       `اعرف أسعار ومساحات ${project.name} وخطط السداد والوحدات المتاحة.`;
@@ -384,7 +387,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
       }]
     : baseFaq);
   const storedArticle = arrayValue(project.article_sections);
-  let article = isIcityOctober
+  let article = isIcityOctober && !hasWrittenArticle
     ? [...storedArticle, {
         heading: `موقع ${project.name} والـmaster plan`,
         paragraphs: [`سجل Tycoons بيصنّف المشروع في ${project.location}. لتحديد المرحلة والقطعة وأقرب مدخل بدقة، راجع الـmaster plan الرسمي الصادر من ${project.developer} قبل الحجز؛ الصفحة دي للمقارنة بين الوحدات وليست خريطة مساحية.`],
