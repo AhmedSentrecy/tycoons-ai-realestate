@@ -194,7 +194,7 @@ const GENERIC_AREA_FACTS = {
 const AREA_SEARCH_CONTENT = {
   "mostakbal-city": {
     ar: {
-      title: ({ minFmt, plural }) => `مشاريع مستقبل سيتي 2026 — الخريطة والأسعار و${plural}`,
+      title: ({ minFmt, plural }) => `مشاريع المستقبل سيتي 2026 — الخريطة والأسعار و${plural}`,
       description: ({ minFmt, plural }) => `دليل مستقبل سيتي 2026: الموقع والطرق والمراحل والخدمات، و${plural} متاحة بأسعار من ${minFmt} وأنظمة سداد من 1.5% مقدم لحد 12 سنة.`,
       map: { heading: "خريطة مستقبل سيتي", query: "Mostakbal City, New Cairo, Egypt", locality: "Mostakbal City, New Cairo" },
       // Researched 29 Oct 2026 (master developer, press releases, Tycoons inventory). No external site names in the text.
@@ -202,7 +202,7 @@ const AREA_SEARCH_CONTENT = {
         [
           "مستقبل سيتي في سطور",
           [
-            "مستقبل سيتي مدينة من مدن الجيل الرابع في شرق القاهرة، والمطور الرئيسي ليها (Master Developer) شركة مدار للاستثمار والتنمية العمرانية. مدار مسؤولة عن المخطط العام والطرق والمرافق والخدمات الكبيرة، وبتبيع أراضي لمطورين تانيين يبنوا عليها كمبوندات كاملة. علشان كده هتلاقي في نفس المدينة أسماء زي Hassan Allam وMountain View وTatweer Misr وMadinet Masr وSODIC وPalm Hills.",
+            "مستقبل سيتي (وناس كتير بتكتبها المستقبل سيتي أو مدينة المستقبل) مدينة من مدن الجيل الرابع في شرق القاهرة، والمطور الرئيسي ليها (Master Developer) شركة مدار للاستثمار والتنمية العمرانية. مدار مسؤولة عن المخطط العام والطرق والمرافق والخدمات الكبيرة، وبتبيع أراضي لمطورين تانيين يبنوا عليها كمبوندات كاملة. علشان كده هتلاقي في نفس المدينة أسماء زي Hassan Allam وMountain View وTatweer Misr وMadinet Masr وSODIC وPalm Hills.",
             "المساحة الكلية حوالي 5,200 فدان (حوالي 5,408 أكر)، وحسب مدار فيها أكتر من 30 شركة تطوير و52 مشروع. ده بيخليها من أكبر تجمعات المشاريع الجديدة في شرق القاهرة، وبيخلي المقارنة جواها مهمة: الفرق بين مشروع ومشروع في نفس المدينة ممكن يكون في الموقع والتسليم والسعر أكبر من الفرق بين مدينتين.",
             "الصفحة دي بتجمع اللي محتاج تعرفه قبل ما تختار: الموقع والطرق، المراحل، الخدمات اللي اتعملت واللي بتتبني، المطورين والمشاريع، أسعار البداية عندنا في Tycoons وقت كتابة الصفحة (أكتوبر 2026)، أنظمة السداد مع مثال لحساب القسط، والتسليم، ومين تناسبه المدينة. وتحت الصفحة كل المشاريع المتاحة عندنا بأسعارها ووحداتها."
           ]
@@ -234,11 +234,34 @@ const AREA_SEARCH_CONTENT = {
           ]
         ],
         [
-          "خريطة مشاريع مستقبل سيتي والمطورين",
+          "خريطة مشاريع المستقبل سيتي والمطورين",
           [
             "من أكبر المشاريع في المدينة: Mountain View Aliva على حوالي 640 أكر، وBloomfields من Tatweer Misr على حوالي 415 أكر، وIl Bosco City من Misr Italia على حوالي 268 أكر، وHAPTown من Hassan Allam على حوالي 250 أكر، وThe Butterfly من Madinet Masr على حوالي 238 أكر.",
             "Hassan Allam عنده في المدينة أكتر من مشروع، زي The Great Lawn وPark Central Terraces وThe Valleys، وTatweer Misr عنده SCENES كمان، وSODIC عنده Eastvale، وPalm Hills عنده Capital Gardens، وMadinet Masr عنده Sarai على طريق السويس. وفيه مطورين تانيين زي Al Ahly Sabbour وWadi Degla وCornerstone وThe Land Developers.",
-            "الدليل اللي تحت بيرتب المشاريع المتاحة عندنا حسب المطور، وكل مشروع ليه صفحة فيها الوحدات المتاحة وأسعارها ونظام السداد. ده دليل للمشاريع مش خريطة مساحية، فحدود كل مشروع ومرحلته بتتأكد من الماستر بلان الرسمي للمطور."
+            "الدليل اللي تحت بيرتب المشاريع المتاحة عندنا حسب المطور، وكل مشروع ليه صفحة فيها الوحدات المتاحة وأسعارها ونظام السداد. ده دليل للمشاريع مش خريطة مساحية، فحدود كل مشروع ومرحلته بتتأكد من الماستر بلان الرسمي للمطور.",
+            "لو بتدور على خريطة المستقبل سيتي بالمشاريع PDF أو الماستر بلان بمكان كل كمبوند، ابعتلنا اسم المشروع اللي بتفكر فيه على واتساب، ونبعتلك مكانه على الماستر بلان وأقرب مدخل ليه والمسافة لطريق السويس."
+          ]
+        ],
+        [
+          "كمبوندات ومولات المستقبل سيتي بأساميها",
+          [
+            "ناس كتير بتدور على المشروع باسمه العربي، فدي أشهر الكمبوندات والمولات في المستقبل سيتي ومين المطور بتاع كل واحد. المعلومات دي حسب المطورين وقت كتابة الصفحة، وأي مشروع موجود عندنا ليه صفحة فيها الوحدات المتاحة وأسعارها.",
+            "كمبوند مونارك ريزيدنس (Monark Residence) من رويال للتطوير العقاري، على حوالي 40 أكر (حوالي 38 فدان)، وأغلب مساحته خضرا ومسطحات مياه، والعماير أرضي و6 أدوار. قريب من فيلات مدينتي ومن كمبوند أوديسيا. كمبوند سراي (Sarai) وذا باترفلاي (The Butterfly) من مدينة مصر، وبلوم فيلدز (Bloomfields) وسينز (SCENES) من تطوير مصر، وماونتن فيو أليفا (Aliva) من ماونتن فيو، وإيست فيل (Eastvale) من سوديك، وكابيتال جاردنز (Capital Gardens) من بالم هيلز.",
+            "حسن علام عنده هاب تاون (HAPTown) وذا جريت لون (The Great Lawn) وبارك سنترال تيراسيز (Park Central Terraces) وذا فاليز (The Valleys). وفيه كمان سيتيزن (cityzen) من القمزي، ونيوم مستقبل سيتي (Nyoum) من المطورون العرب القابضة، وروزيل (Rosail) من خالد صبري القابضة، وزيزينيا المستقبل (Zizinia) من أرديك، وإل بوسكو سيتي (Il Bosco City) من مصر إيطاليا، وأوديسيا (Odyssia) من الأهلي صبور، ولا ميرادا (La Mirada) من جراند بلازا، وميفيدا جاردنز (Mivida Gardens) من إعمار مصر.",
+            "كمبوند كوكون المستقبل سيتي (KUKŪN) من ذا لاند ديفلوبرز (The Land Developers)، على حوالي 6 كيلو من طريق السويس، وقريب من بلوم فيلدز وتالدا. فيه شقق وتاون هاوس، والتسليم المعلن حوالي 2030.",
+            "المولات والمشاريع التجارية: مونت نابليوني (Montenapoleone / Via Montenapoleone) من ريبورتاج، فيه مول تجاري وإداري وطبي ووحدات سكنية على المحور الرئيسي للمدينة. ومول كوفلو (Coflow)، وناس كتير بتكتبه كوفولو، من تطوير مصر جوه بلوم فيلدز، وفيه مكاتب مخدومة وعيادات ومحلات. ومول ميوز (Muse) من المطورون العرب القابضة، وبالس مول (Pulse) من ميلي للتطوير، والتسليم المعلن 2027. وده غير ميركاتو التجاري بتاع مدار في المرحلة التالتة.",
+            "لو المشروع اللي بتدور عليه مش ظاهر في القايمة تحت، ده معناه إن مفيش عندنا وحدات متاحة مؤكدة فيه دلوقتي. ابعتلنا اسمه على واتساب ونشوفلك آخر المتاح فيه أو في مشروع شبهه في نفس المرحلة."
+          ]
+        ],
+        [
+          "أهم الأماكن القريبة من مستقبل سيتي",
+          [
+            "مستقبل سيتي في نص شرق القاهرة، فقريبة من أماكن كتير الناس بتسأل عنها. الأوقات دي بالعربية في الأيام العادية وتقريبية، وبتختلف حسب مكان المشروع جوه المدينة.",
+            "مدينتي: جنب المدينة على طول، وفيه مشاريع في مستقبل سيتي بتطل على فيلات مدينتي. فندق فور سيزونز مدينتي حوالي 10 دقايق. الرحاب والشروق: دقايق بالعربية، ونادي هليوبوليس في الشروق حوالي 20 دقيقة.",
+            "التجمع الخامس والجامعة الأمريكية (AUC): التجمع حوالي 10 دقايق، والجامعة الأمريكية حوالي 10 لـ 15 دقيقة من المرحلة الأولى. كايرو فستيفال سيتي والتسعين الشمالي والجنوبي حوالي 20 لـ 30 دقيقة.",
+            "العاصمة الإدارية الجديدة: حوالي 10 لـ 15 دقيقة لحي المال والأعمال ومحور محمد بن زايد، ومسجد الفتاح العليم ومطار العاصمة حوالي 15 دقيقة.",
+            "المطارات والطرق: مطار القاهرة الدولي حوالي 20 دقيقة. مدينة بدر حوالي 25 لـ 30 دقيقة، والعين السخنة حوالي 45 لـ 60 دقيقة عن طريق السويس أو الجلالة.",
+            "التعليم والصحة: فيه مدارس دولية جوه المدينة، والجامعات والمستشفيات الكبيرة الأقرب في التجمع الخامس والشروق ومدينتي. لو عندك أطفال، اسأل عن أقرب مدرسة شغالة فعلًا للمشروع اللي بتفكر فيه."
           ]
         ],
         [
@@ -336,6 +359,26 @@ const AREA_SEARCH_CONTENT = {
         [
           "هل الاستثمار العقاري في مستقبل سيتي مناسب؟",
           "ممكن يناسب اللي يقبل فترة تطوير وتسليم ويستثمر على المدى المتوسط أو الطويل، بس العائد مش مضمون. اختار مطور معروف بسجل تسليم كويس، ومشروع قريب من الخدمات الشغالة، ونوع وحدة سهل في إعادة البيع زي الشقق المتوسطة."
+        ],
+        [
+          "كمبوند كوكون المستقبل سيتي تبع مين؟",
+          "كوكون (KUKŪN) من شركة ذا لاند ديفلوبرز (The Land Developers)، على حوالي 6 كيلو من طريق السويس وقريب من بلوم فيلدز وتالدا، وفيه شقق وتاون هاوس."
+        ],
+        [
+          "مول كوفلو (كوفولو) في المستقبل سيتي فين؟",
+          "مول كوفلو (Coflow) من تطوير مصر جوه مشروع بلوم فيلدز في المستقبل سيتي، وفيه مكاتب مخدومة وعيادات ومحلات."
+        ],
+        [
+          "كمبوند مونارك ريزيدنس المستقبل سيتي تبع مين؟",
+          "مونارك ريزيدنس من رويال للتطوير العقاري، على حوالي 40 أكر (حوالي 38 فدان) في المستقبل سيتي، قريب من فيلات مدينتي وكمبوند أوديسيا. الوحدات المتاحة عندنا وأسعارها في صفحة المشروع."
+        ],
+        [
+          "إيه أقرب الأماكن لمستقبل سيتي؟",
+          "مدينتي جنبها على طول، والرحاب والشروق دقايق، والتجمع الخامس حوالي 10 دقايق، والجامعة الأمريكية حوالي 10 لـ 15 دقيقة، والعاصمة الإدارية حوالي 15 دقيقة، ومطار القاهرة حوالي 20 دقيقة."
+        ],
+        [
+          "فين ألاقي خريطة المستقبل سيتي بالمشاريع PDF؟",
+          "الخريطة اللي في الصفحة دي بتوريك مكان المدينة، والمشاريع المتاحة مترتبة تحت حسب المطور. لو عايز مكان مشروع معين على الماستر بلان، ابعتلنا اسمه على واتساب ونبعتلك مكانه وأقرب مدخل ليه."
         ]
       ],
     },
@@ -384,6 +427,28 @@ const AREA_SEARCH_CONTENT = {
             "Among the largest projects: Mountain View Aliva on about 640 acres, Bloomfields by Tatweer Misr on about 415 acres, Il Bosco City by Misr Italia on about 268 acres, HAPTown by Hassan Allam on about 250 acres and The Butterfly by Madinet Masr on about 238 acres.",
             "Hassan Allam has several projects in the city, including The Great Lawn, Park Central Terraces and The Valleys; Tatweer Misr also has SCENES; SODIC has Eastvale; Palm Hills has Capital Gardens; and Madinet Masr has Sarai on the Suez Road. Other developers include Al Ahly Sabbour, Wadi Degla, Cornerstone and The Land Developers.",
             "The directory below groups the projects available with us by developer; each project page lists its available units, prices and payment plans. It is a project directory, not a surveyed plan: confirm each project's boundaries and phase on the developer's official master plan."
+          ]
+        ],
+        [
+          "Mostakbal City compounds and malls by name",
+          [
+            "Many buyers search for a project by name, so here are the best-known compounds and malls in Mostakbal City and the developer behind each one. The details are as stated by the developers at the time of writing; every project available with us has its own page with live units and prices.",
+            "Monark Residence by Royal Development covers about 40 acres, most of it green space and water features, with ground-plus-six buildings, close to the Madinaty villas and Odyssia. Sarai and The Butterfly are by Madinet Masr, Bloomfields and SCENES by Tatweer Misr, Aliva by Mountain View, Eastvale by SODIC and Capital Gardens by Palm Hills.",
+            "Hassan Allam has HAPTown, The Great Lawn, Park Central Terraces and The Valleys. The city also has cityzen by Al Qamzi, Nyoum Mostakbal City by Arab Developers Holding, Rosail by Khaled Sabry Holding, Zizinia by ARDIC, Il Bosco City by Misr Italia, Odyssia by Al Ahly Sabbour, La Mirada by Grand Plaza and Mivida Gardens by Emaar Misr.",
+            "KUKŪN Mostakbal City is by The Land Developers, about 6 km from the Suez Road near Bloomfields and Talda, with apartments and townhouses and an announced delivery around 2030.",
+            "Malls and commercial projects: Montenapoleone (Via Montenapoleone) by Reportage combines a retail, office and medical mall with homes on the city's main axis; Coflow by Tatweer Misr sits inside Bloomfields with serviced offices, clinics and shops; Muse Mall is by Arab Developers Holding; and Pulse Mall by Melee Developments has an announced 2027 delivery. MIDAR's own Mercato is in phase three.",
+            "If the project you want is not in the list below, we have no confirmed available units in it right now. Send us its name on WhatsApp and we will check the latest availability there or in a similar project in the same phase."
+          ]
+        ],
+        [
+          "What is near Mostakbal City",
+          [
+            "Mostakbal City sits in the middle of East Cairo, close to many places buyers ask about. Driving times below are approximate on a normal day and depend on where the project sits inside the city.",
+            "Madinaty is right next door, and some Mostakbal City projects overlook the Madinaty villas; the Four Seasons Madinaty is about 10 minutes away. Rehab and El Shorouk are minutes away, and the Heliopolis Club in El Shorouk is about 20 minutes away.",
+            "The Fifth Settlement is about 10 minutes away and the American University in Cairo (AUC) about 10–15 minutes from phase one. Cairo Festival City and the North and South 90th Street are about 20–30 minutes away.",
+            "The New Administrative Capital's business district and the Mohamed Bin Zayed Axis are about 10–15 minutes away, and the Al-Fattah Al-Aleem Mosque and the Capital International Airport about 15 minutes.",
+            "Cairo International Airport is about 20 minutes away, Badr City about 25–30 minutes, and Ain Sokhna about 45–60 minutes via the Suez Road or the Galala road.",
+            "There are international schools inside the city, while the nearest large universities and hospitals are in the Fifth Settlement, El Shorouk and Madinaty. If you have children, ask for the nearest school that is actually open for the project you are considering."
           ]
         ],
         [
@@ -481,6 +546,22 @@ const AREA_SEARCH_CONTENT = {
         [
           "Is Mostakbal City good for property investment?",
           "It can suit buyers who accept a development and delivery period and invest over the medium or long term, but returns are not guaranteed. Choose a developer with a good delivery record, a project close to open services and a unit type that is easy to resell, such as a mid-size apartment."
+        ],
+        [
+          "Who is the developer of KUKŪN Mostakbal City?",
+          "KUKŪN is by The Land Developers, about 6 km from the Suez Road near Bloomfields and Talda, with apartments and townhouses."
+        ],
+        [
+          "Where is Coflow Mall in Mostakbal City?",
+          "Coflow is by Tatweer Misr inside the Bloomfields project in Mostakbal City, with serviced offices, clinics and shops."
+        ],
+        [
+          "What is near Mostakbal City?",
+          "Madinaty is next door, Rehab and El Shorouk are minutes away, the Fifth Settlement about 10 minutes, AUC about 10–15 minutes, the New Capital about 15 minutes and Cairo International Airport about 20 minutes."
+        ],
+        [
+          "Where can I get a Mostakbal City map with projects (PDF)?",
+          "The map on this page shows the city, and the available projects are listed below by developer. For a specific project's position on the master plan, send us its name on WhatsApp and we will send its location and nearest entrance."
         ]
       ],
     },
@@ -1201,6 +1282,37 @@ function directoryStyles() {
 
 // Written guidance on how to read the directory: gives the page its own text instead of
 // only project cards (Moz flagged /en/directory/ as near-duplicate of the New Cairo area page).
+// Text guide to the best-known developers on the directory: Arabic and English company names,
+// how many projects each has with us, the areas, and links to the developer and top projects.
+// Built from live inventory so the counts never go stale (Search Console shows /ar/ gets
+// developer-name searches, Nov 2026).
+function directoryDevelopersGuide(devList, lang) {
+  const ar = lang === "ar";
+  const top = devList.filter((group) => group.count >= 2).slice(0, 12);
+  if (top.length < 3) return "";
+  const items = top.map((group) => {
+    const arName = devDisplayName(group.name, "ar");
+    const enName = devDisplayName(group.name, "en");
+    const label = ar ? (arName && arName !== enName ? `${arName} (${enName})` : enName) : enName;
+    const areas = [...new Set(group.projects.map((project) => {
+      const area = areaFor(projectLocation(project));
+      return ar ? area.ar : area.en;
+    }).filter(Boolean))].slice(0, 4);
+    const best = [...group.projects].sort((a, b) => b.units.length - a.units.length).slice(0, 3);
+    const projectLinks = best.map((project) => {
+      const name = ar ? (PROJECT_NAMES_AR[project.slug]?.h1 || "").split(" — ")[0] || project.name : project.name;
+      return `<a href="${ar ? "" : "/en"}/projects/${escapeHtml(project.slug)}">${escapeHtml(name)}</a>`;
+    }).join(ar ? "، " : ", ");
+    const count = ar ? projectsAr(group.count) : `${group.count} projects`;
+    const where = areas.length ? (ar ? ` في ${areas.join(" و")}` : ` in ${areas.join(", ")}`) : "";
+    return `<li><a href="/${lang}/developers/${escapeHtml(group.slug)}"><b>${escapeHtml(label)}</b></a>: ${escapeHtml(count)}${escapeHtml(where)}${ar ? "، زي " : ", such as "}${projectLinks}.</li>`;
+  }).join("");
+  const intro = ar
+    ? "دي أشهر شركات التطوير العقاري اللي عندنا وحدات متاحة في مشاريعها دلوقتي، وعدد مشاريع كل شركة والمناطق اللي بتبني فيها. اضغط على اسم الشركة تشوف كل كمبوندات الشركة وأسعارها وأنظمة السداد."
+    : "These are the best-known developers with available units in their projects right now, with how many projects each has with us and where they build. Open a developer to see all its compounds, prices and payment plans.";
+  return `<section class="prose" style="margin-top:48px"><h2>${ar ? "أشهر شركات التطوير العقاري في مصر ومشاريعها" : "Egypt's leading real estate developers and their projects"}</h2><p>${escapeHtml(intro)}</p><ul>${items}</ul></section>`;
+}
+
 function directoryAbout(ar, projectCount, unitCount, developerCount) {
   const units = new Intl.NumberFormat("en-EG").format(unitCount);
   const paragraphs = ar
@@ -1296,14 +1408,14 @@ function renderDirectory(allProjects, lang, articles = []) {
     : Object.entries(ar ? GUIDES : ENGLISH_GUIDES).slice(0, 3).map(([slug, guide]) => `<a class="g3" href="${ar ? "" : "/en"}/guides/${slug}/"><small>${ar ? "دليل" : "Guide"}</small><h3>${escapeHtml(guide.title || guide.h1 || slug)}</h3></a>`).join("");
 
   const title = ar
-    ? `دليل المشاريع العقارية في مصر 2026 — ${listedProjects.length} مشروع بالأسعار | Tycoons`
+    ? `كمبوندات ومشاريع عقارية 2026 — ${projectsAr(listedProjects.length)} بالأسعار والتقسيط | Tycoons`
     : `Egypt Property Projects 2026 — ${listedProjects.length} Projects with Prices | Tycoons`;
   const description = ar
-    ? `قارن ${listedProjects.length} مشروع عقاري و${unitCount} وحدة متاحة في التجمع الخامس والساحل الشمالي والشيخ زايد ومستقبل سيتي: الأسعار والمساحات وأنظمة السداد والاستلام من المطورين مباشرة.`
+    ? `قارن ${listedProjects.length} كمبوند ومشروع و${unitCount} وحدة من ${developerGroups(listedProjects).length} شركة تطوير عقاري في التجمع الخامس والشيخ زايد والساحل الشمالي ومستقبل سيتي: الأسعار وأنظمة السداد والاستلام.`
     : `Compare ${listedProjects.length} projects and ${unitCount} units in New Cairo, North Coast, Sheikh Zayed and Mostakbal City: prices, payment plans and delivery.`;
   const body = `<style>${directoryStyles()}${filterCss}</style>
 <section class="dhero"><div class="dwrap"><p class="crumbs"><a href="${ar ? "/" : "/en/"}">${ar ? "الرئيسية" : "Home"}</a> ‹ ${ar ? "دليل المشاريع" : "Project directory"}</p>
-<h1>${ar ? "دليل المشاريع العقارية في مصر 2026" : "Egypt property project directory 2026"}</h1>
+<h1>${ar ? "دليل الكمبوندات والمشاريع العقارية في مصر 2026" : "Egypt property project directory 2026"}</h1>
 <p class="lead">${ar ? `قارن ${listedProjects.length} مشروع من أكبر المطورين بالأسعار المحدّثة والمساحات وأنظمة السداد ومواعيد الاستلام — من مخزون المطورين مباشرة.` : `Compare ${listedProjects.length} projects from Egypt's leading developers by updated price, size, payment plan and delivery — straight from developer inventory.`}</p>
 ${ar ? voiceBox() : ""}${searchMount(lang)}
 <div class="stats"><div><b>${listedProjects.length}</b><span>${ar ? "مشروع متاح" : "projects"}</span></div><div><b>${new Intl.NumberFormat("en-EG").format(unitCount)}</b><span>${ar ? "وحدة محدّثة" : "units"}</span></div><div><b>${devList.length}</b><span>${ar ? "مطور عقاري" : "developers"}</span></div>${lastUpdated ? `<div><b>${escapeHtml(formatDate(lastUpdated, lang))}</b><span>${ar ? "آخر تحديث للأسعار" : "last price update"}</span></div>` : ""}</div>
@@ -1318,6 +1430,7 @@ ${devList.length > 14 ? `<div class="showall"><label class="more" for="all-devs"
 <section class="dproj" aria-labelledby="projects-h"><div class="sh"><div><h2 id="projects-h">${ar ? "المشاريع المتاحة" : "Available projects"}</h2><p>${ar ? "اختار فلتر عشان تضيّق النتايج" : "Pick a filter to narrow the list"}</p></div></div>
 ${filterBar}<input type="checkbox" id="show-all" hidden><div class="pgrid lim">${projectCards}</div>
 <div class="showall"><label class="more" for="show-all">${ar ? `اعرض كل المشاريع (${listedProjects.length})` : `Show all projects (${listedProjects.length})`}</label></div></section>
+${directoryDevelopersGuide(devList, lang)}
 ${directoryAbout(ar, listedProjects.length, unitCount, devList.length)}
 <div class="sh"><div><h2>${ar ? "أدلة تساعدك تقرر" : "Guides to help you decide"}</h2></div><a class="more" href="${ar ? "/guides/" : "/en/guides/"}">${ar ? "كل الأدلة ←" : "All guides →"}</a></div>
 <div class="guides3">${guideCards}</div>

@@ -160,7 +160,7 @@ assert.match(project, new RegExp(`https://tycoons-inv\\.com/units/${rows[0].id.s
 assert.match(project, new RegExp(`href="/units/${rows[0].id.slice(0, 8)}-[a-z0-9-]+"`), "project unit card must point to the readable unit URL");
 assert.doesNotMatch(project, new RegExp(`/units/${rows[0].id}`), "no UUID unit links remain");
 assert.doesNotMatch(project, /aggregateRating|"review"|"@type":"Product"/);
-assert.match(directory, /دليل المشاريع العقارية في مصر 2026/);
+assert.match(directory, /دليل الكمبوندات والمشاريع العقارية في مصر 2026/);
 assert.match(directory, /id="areas"/, "directory must expose the #areas anchor used by the header");
 assert.match(directory, /id="developers"/, "directory must expose the #developers anchor used by the header");
 assert.match(directory, /<header class="site">/, "every SSR page uses the shared site header");
@@ -169,12 +169,12 @@ assert.match(area, /"@type":"FAQPage"/, "area collection page must render FAQ sc
 assert.match(area, /وسجل تسليم المطور أهم من سعر البداية/, "area page must include the area-context/buyer-note copy, not just a generic template");
 assert.match(area, /<h1>مستقبل سيتي<\/h1>/);
 assert.match(area, /موقع مستقبل سيتي فين؟/, "Mostakbal City must answer the location query seen in Search Console");
-assert.match(area, /خريطة مشاريع مستقبل سيتي والمطورين/, "Mostakbal City must cover project-map intent without claiming a geographic map");
+assert.match(area, /خريطة مشاريع المستقبل سيتي والمطورين/, "Mostakbal City must cover project-map intent without claiming a geographic map");
 assert.match(area, /هل الاستثمار العقاري في مستقبل سيتي مناسب؟/, "Mostakbal City must cover investment intent with a non-guaranteed answer");
 assert.match(area, /الماستر بلان ومراحل مستقبل سيتي/, "Mostakbal City must cover the master-plan intent seen in Search Console");
 assert.match(area, /google\.com\/maps\?q=Mostakbal%20City/, "Mostakbal City must embed a real map for the map intent");
 assert.match(area, /"@type":"Place"/, "Mostakbal City must describe the city as a Place");
-assert.match(area, /مشاريع مستقبل سيتي 2026 — الخريطة والأسعار/, "Mostakbal title must reflect the strongest Search Console intents");
+assert.match(area, /مشاريع المستقبل سيتي 2026 — الخريطة والأسعار/, "Mostakbal title must reflect the strongest Search Console intents");
 assert.match(guide, /آخر مراجعة: 30 أكتوبر 2026/);
 assert.match(guide, /"@type":"FAQPage"/, "Buyer guides carry their FAQ as FAQPage");
 assert.equal(renderGuide("new-cairo-property-prices"), null, "The merged New Cairo price guide must not render");

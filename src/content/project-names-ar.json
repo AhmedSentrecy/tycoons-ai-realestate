@@ -8,10 +8,23 @@
       "h1": "بادية بالم هيلز أكتوبر — Badya"
     },
     "bloomfields--tatweer-misr": {
-      "h1": "بلوم فيلدز تطوير مصر مستقبل سيتي — Bloomfields"
+      "h1": "بلوم فيلدز تطوير مصر مستقبل سيتي — Bloomfields",
+      "title": "كمبوند بلوم فيلدز المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
+    "capital-gardens--palm-hills": {
+      "h1": "كابيتال جاردنز بالم هيلز المستقبل سيتي — Capital Gardens",
+      "title": "كابيتال جاردنز المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
+    "cityzen--al-qamzi-developments": {
+      "h1": "سيتيزن القمزي المستقبل سيتي — cityzen",
+      "title": "كمبوند سيتيزن المستقبل سيتي 2026 — الأسعار والتقسيط"
     },
     "crescent-walk--marakez": {
       "h1": "كريسنت ووك مراكز التجمع السادس — Crescent Walk"
+    },
+    "eastvale--sodic": {
+      "h1": "إيست فيل سوديك المستقبل سيتي — Eastvale",
+      "title": "إيست فيل سوديك المستقبل سيتي 2026 — الأسعار والتقسيط"
     },
     "fouka-bay--tatweer-misr": {
       "h1": "فوكا باي تطوير مصر رأس الحكمة — Fouka Bay"
@@ -32,14 +45,27 @@
     "marbay--marasem": {
       "h1": "مار باي مراسم رأس الحكمة — MarBay"
     },
+    "monark-residence--royal-development": {
+      "h1": "مونارك ريزيدنس المستقبل سيتي — Monark Residence",
+      "title": "كمبوند مونارك ريزيدنس المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
+    "montenapoleone--reportage-properties": {
+      "h1": "مونت نابليوني ريبورتاج المستقبل سيتي — Montenapoleone",
+      "title": "مونت نابليوني المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
     "mountain-view-1-1--mountain-view": {
       "h1": "ماونتن فيو 1.1 التجمع الخامس — Mountain View 1.1"
     },
     "mountain-view-aliva--mountain-view": {
-      "h1": "ماونتن فيو أليفا مستقبل سيتي — Mountain View Aliva"
+      "h1": "ماونتن فيو أليفا مستقبل سيتي — Mountain View Aliva",
+      "title": "ماونتن فيو أليفا المستقبل سيتي 2026 — الأسعار والتقسيط"
     },
     "notion--town-writers": {
       "h1": "نوشن تاون رايترز القاهرة الجديدة — Notion"
+    },
+    "nyoum-mostaqbal-city--arab-developers-holding": {
+      "h1": "نيوم المستقبل سيتي — Nyoum Mostakbal City",
+      "title": "كمبوند نيوم المستقبل سيتي 2026 — الأسعار والتقسيط"
     },
     "ogami--sodic": {
       "h1": "أوجامي سوديك رأس الحكمة — Ogami"
@@ -53,8 +79,24 @@
     "palm-hills-new-cairo--palm-hills-developments": {
       "h1": "بالم هيلز القاهرة الجديدة التجمع الخامس — Palm Hills New Cairo"
     },
+    "park-central-terraces--hassan-allam": {
+      "h1": "بارك سنترال تيراسيز حسن علام المستقبل سيتي — Park Central Terraces",
+      "title": "بارك سنترال تيراسيز المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
     "rituals-village-zoya--lmd": {
       "h1": "ريتشوالز فيلدج زويا غزالة باي الساحل الشمالي — Rituals Village Zoya"
+    },
+    "rosail--khaled-sabry-holding": {
+      "h1": "روزيل خالد صبري المستقبل سيتي — Rosail",
+      "title": "كمبوند روزيل المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
+    "sarai--madinet-masr": {
+      "h1": "سراي مدينة مصر المستقبل سيتي — Sarai",
+      "title": "كمبوند سراي المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
+    "scenes--tatweer-misr": {
+      "h1": "سينز تطوير مصر المستقبل سيتي — SCENES",
+      "title": "سينز تطوير مصر المستقبل سيتي 2026 — الأسعار والتقسيط"
     },
     "solay--living-yards-developments": {
       "h1": "سولاي التجمع الخامس — Solay"
@@ -63,11 +105,27 @@
       "h1": "سوتو ريزيدنس القاهرة الجديدة — SOTO Residence",
       "title": "سوتو ريزيدنس القاهرة الجديدة 2026 — الأسعار وخطط السداد"
     },
+    "the-butterfly--madinet-masr": {
+      "h1": "ذا باترفلاي مدينة مصر المستقبل سيتي — The Butterfly",
+      "title": "كمبوند ذا باترفلاي المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
+    "the-great-lawn--hassan-allam": {
+      "h1": "ذا جريت لون حسن علام المستقبل سيتي — The Great Lawn",
+      "title": "ذا جريت لون حسن علام المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
+    "the-valleys--hassan-allam": {
+      "h1": "ذا فاليز حسن علام المستقبل سيتي — The Valleys",
+      "title": "كمبوند ذا فاليز المستقبل سيتي 2026 — الأسعار والتقسيط"
+    },
     "village-west--dorra": {
       "h1": "فيلدج ويست دره الشيخ زايد — Village West"
     },
     "villette--sodic": {
       "h1": "فيليت سوديك التجمع الخامس — Villette"
+    },
+    "zizina-mostakbal--ardic": {
+      "h1": "زيزينيا المستقبل أرديك — Zizinia Mostakbal",
+      "title": "كمبوند زيزينيا المستقبل سيتي 2026 — الأسعار والتقسيط"
     }
   }
 }
