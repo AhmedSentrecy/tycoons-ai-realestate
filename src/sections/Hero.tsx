@@ -30,8 +30,9 @@ function Counter({ target, suffix }: { target: number; suffix: string }) {
 
   return (
     <span ref={ref} className="tabular-nums">
-      {tr(value.toLocaleString("ar-EG"))}
-      {suffix}
+      {/* Before the inventory loads (and in the prerendered HTML) target is 0: show a dash, not "0 units". */}
+      {target > 0 ? tr(value.toLocaleString("ar-EG")) : "—"}
+      {target > 0 ? suffix : ""}
     </span>
   );
 }
