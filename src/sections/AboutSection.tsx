@@ -2,6 +2,7 @@ import { tr } from "@/lib/homeLanguage";
 import { motion } from "framer-motion";
 import { ArrowLeft, Mic, FileCheck, Handshake } from "lucide-react";
 import { Link } from "react-router";
+import { useInventory } from "@/lib/inventory";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -12,6 +13,9 @@ const points = [
 ];
 
 export default function AboutSection() {
+  // Live count from the same inventory as /ar/ (was a fixed "+٧٦٠" that no longer matched the site).
+  const { stats } = useInventory();
+  const unitsLabel = stats.units > 0 ? `+${stats.units.toLocaleString("en-US")}` : "+1,300";
   return (
     <section id="about" className="scroll-mt-20 overflow-hidden bg-[#f7f2ea] py-16 lg:py-20">
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 lg:grid-cols-2 lg:px-8">
@@ -82,7 +86,7 @@ export default function AboutSection() {
             <div className="mt-1 text-sm font-light text-[#6d7a72]">{tr("سنة التأسيس")}</div>
           </div>
           <div className="glass-light absolute -top-6 left-6 rounded-2xl px-7 py-5 shadow-xl sm:left-10">
-            <div className="text-3xl font-extrabold text-[#14352a]">{tr("+٧٦٠")}</div>
+            <div className="text-3xl font-extrabold text-[#14352a]">{unitsLabel}</div>
             <div className="mt-1 text-sm font-light text-[#6d7a72]">{tr("وحدة متاحة بآخر مراجعة")}</div>
           </div>
         </motion.div>

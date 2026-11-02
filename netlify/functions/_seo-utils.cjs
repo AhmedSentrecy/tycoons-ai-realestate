@@ -1,6 +1,6 @@
 "use strict";
 
-const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, isCommercialUnit, fitTitle, priceShortAr } = require("./_display-text.cjs");
+const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr } = require("./_display-text.cjs");
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("./_localized-project-content.cjs");
 // Arabic H1/title for the top projects (audit SEO-07); shared with the static and React pages.
 const PROJECT_NAMES_AR = require("../../src/content/project-names-ar.json").projects;
@@ -1349,6 +1349,128 @@ function linkAreaProjects(html, projects, ar) {
   return out;
 }
 
+// Buyer guide on /ar/ (GEO, Nov 2026): a quotable answer paragraph, key takeaways, the
+// questions AI engines fan a "buy from the developer" query out into (each H2 opens with
+// the answer), an area table built from live inventory, and a visible FAQ mirrored in
+// FAQPage schema. Every number comes from the listed units, so nothing goes stale. No
+// external website and no brand-name targeting (Ahmed's rules).
+function robustMin(values, minCount = 5) {
+  const counts = new Map();
+  for (const v of values) counts.set(v, (counts.get(v) || 0) + 1);
+  const ok = [...counts.entries()].filter(([, n]) => n >= minCount).map(([v]) => v).sort((a, b) => a - b);
+  return ok.length ? ok[0] : null;
+}
+function robustMax(values, minCount = 5) {
+  const counts = new Map();
+  for (const v of values) counts.set(v, (counts.get(v) || 0) + 1);
+  const ok = [...counts.entries()].filter(([, n]) => n >= minCount).map(([v]) => v).sort((a, b) => b - a);
+  return ok.length ? ok[0] : null;
+}
+function modeOf(values) {
+  const counts = new Map();
+  for (const v of values) counts.set(v, (counts.get(v) || 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? null;
+}
+function fmtNum(value) {
+  return new Intl.NumberFormat("en-EG").format(value);
+}
+function inventoryFacts(projects) {
+  const units = projects.flatMap((project) => project.units).filter((unit) => !isCommercialUnit(unit));
+  const downs = units.map((unit) => percentValue(unit.down_payment_text)).filter((v) => v !== null && v > 0 && v <= 100);
+  const years = units.map((unit) => yearsValue(unit.installments_text)).filter((v) => v && v <= 20);
+  const ready = projects.filter((project) => /استلام فوري/.test(deliveryTag(project, true)));
+  return {
+    minDown: robustMin(downs),
+    usualDown: modeOf(downs),
+    maxYears: robustMax(years),
+    usualYears: modeOf(years),
+    ready,
+  };
+}
+function areaRows(areaList) {
+  return areaList.map((entry) => {
+    const units = entry.projects.flatMap((project) => project.units).filter((unit) => !isCommercialUnit(unit));
+    const prices = units.map((unit) => numberValue(unit.starting_price)).filter((v) => v > 0).sort((a, b) => a - b);
+    const sqm = units.map(pricePerSqm).filter(Boolean).sort((a, b) => a - b);
+    const downs = units.map((unit) => percentValue(unit.down_payment_text)).filter((v) => v !== null && v > 0 && v <= 100);
+    const years = units.map((unit) => yearsValue(unit.installments_text)).filter((v) => v && v <= 20);
+    return {
+      area: entry.area,
+      projects: entry.projects.length,
+      units: units.length,
+      minPrice: prices[0] || 0,
+      medianSqm: sqm.length >= 10 ? sqm[Math.floor((sqm.length - 1) / 2)] : 0,
+      minDown: robustMin(downs, 3),
+      maxYears: robustMax(years, 3),
+    };
+  }).filter((row) => row.units >= 10);
+}
+function homeFaq(facts) {
+  const down = facts.minDown !== null ? `${facts.minDown}%` : "5%";
+  const years = facts.maxYears ? yearsAr(facts.maxYears) : "10 سنين";
+  return [
+    ["بتاخدوا عمولة من المشتري؟", "لا. إحنا مش بنضيف عمولة على سعر المطور، والعقد بيتمضي مع المطور مباشرة بالسعر المؤكد وقت الحجز."],
+    ["الأسعار اللي على الموقع نهائية؟", "دي أحدث أسعار مسجلة من قوايم المطورين، والموقع بيتحدث كل يوم وجنب كل سعر تاريخ آخر تحديث. السعر النهائي بيتأكد مع المطور وقت الاستفسار لأنه ممكن يتغير في أي وقت."],
+    ["أقل مقدم ممكن كام؟", `أقل مقدم في الوحدات المتاحة دلوقتي ${down}، والتقسيط بيوصل لـ ${years}. خد بالك من الدفعة التانية بعد المقدم ومن المبلغ اللي هتحتاجه أول سنتين، لأنهم ممكن يبقوا أكبر من المقدم نفسه.`],
+    ["الوحدات ريسيل ولا من المطور؟", "الوحدات المعروضة من قوايم المطورين مباشرة، ومنها مشاريع جديدة ومشاريع استلام فوري. نوع الاستلام ونظام السداد مكتوبين في صفحة كل مشروع."],
+    ["وديعة الصيانة كام وبتتدفع إمتى؟", "في أغلب المشاريع بين 8% و10% من سعر الوحدة، وبتتدفع قبل الاستلام أو معاه، وفي الساحل ممكن تبقى أعلى. اطلبها مكتوبة قبل التعاقد."],
+    ["أقدر أبيع الوحدة قبل الاستلام؟", "في أغلب المشاريع أيوه، بشرط تكون دافع نسبة معينة من الأقساط، وغالبًا فيه رسوم تنازل عند المطور. وعند البيع فيه ضريبة تصرفات عقارية 2.5%."],
+    ["العائد من الإيجار أو إعادة البيع مضمون؟", "لا. أي عائد متوقع تقدير مبني على افتراضات بتتغير، وسعر الإعلان مش دليل على سعر بيع فعلي."],
+  ];
+}
+function homeAnswer(projectCount, unitCount, developerCount, facts) {
+  const down = facts.minDown !== null ? `${facts.minDown}%` : "5%";
+  const years = facts.maxYears ? yearsAr(facts.maxYears) : "10 سنين";
+  return `تقدر تشتري شقة أو فيلا أو شاليه من المطور مباشرة في مصر بمقدم يبدأ من ${down} وتقسيط لحد ${years}. الدليل ده بيقارن ${projectCount} مشروع و${fmtNum(unitCount)} وحدة من ${developerCount} مطور في التجمع الخامس والشيخ زايد والساحل الشمالي ومستقبل سيتي، بالسعر وسعر المتر والمقدم وميعاد الاستلام، وكل الأسعار متحدثة من قوايم المطورين.`;
+}
+function homeTakeaways(projectCount, unitCount, facts, rows) {
+  const cheapest = [...rows].filter((row) => row.minPrice).sort((a, b) => a.minPrice - b.minPrice)[0];
+  const items = [
+    `${projectCount} مشروع و${fmtNum(unitCount)} وحدة متاحة بأسعارها، من قوايم المطورين مباشرة.`,
+    facts.minDown !== null && facts.maxYears ? `أقل مقدم ${facts.minDown}% وأطول تقسيط ${yearsAr(facts.maxYears)}، والأشهر مقدم ${facts.usualDown}% وتقسيط ${yearsAr(facts.usualYears)}.` : "",
+    cheapest ? `أرخص سعر بداية لوحدة سكني في ${cheapest.area.ar}: ${formatPrice(cheapest.minPrice, "ar")}.` : "",
+    facts.ready.length ? `${projectsAr(facts.ready.length)} فيها وحدات استلام فوري.` : "",
+    "السعر المعلن مش التكلفة كلها: وديعة الصيانة غالبًا من 8% لـ 10% من سعر الوحدة.",
+    "مفيش عمولة مضافة على المشتري، والعقد بيتمضي مع المطور مباشرة.",
+  ].filter(Boolean);
+  return `<section class="keys" aria-labelledby="keys-h"><h2 id="keys-h">أهم النقاط</h2><ul>${items.map((text) => `<li>${escapeHtml(text)}</li>`).join("")}</ul></section>`;
+}
+function homeBuyerGuide(facts, rows) {
+  const down = facts.minDown !== null ? `${facts.minDown}%` : "5%";
+  const years = facts.maxYears ? yearsAr(facts.maxYears) : "10 سنين";
+  const tableRows = rows.map((row) => `<tr><th scope="row"><a href="/ar/areas/${escapeHtml(row.area.slug)}">${escapeHtml(row.area.ar)}</a></th><td>${row.projects}</td><td>${row.minPrice ? escapeHtml(priceShortAr(row.minPrice)) : "—"}</td><td>${row.medianSqm ? `${fmtNum(row.medianSqm)} جنيه` : "—"}</td><td>${row.minDown !== null ? `${row.minDown}%` : "—"}</td><td>${row.maxYears ? escapeHtml(yearsAr(row.maxYears)) : "—"}</td></tr>`).join("");
+  const readyLinks = [...facts.ready].sort((a, b) => b.units.length - a.units.length).slice(0, 5)
+    .map((project) => `<a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(project.name)}</a>`).join("، ");
+  const block = (id, h2, answer, rest = "") => `<section class="qa" id="${id}"><h2>${h2}</h2><p class="ans">${answer}</p>${rest}</section>`;
+  return `<div class="bguide">
+${block("what", "يعني إيه تشتري من المطور مباشرة؟", "يعني تحجز الوحدة من الشركة اللي بتبني المشروع وبسعر قايمتها الرسمية، غالبًا وهي لسه تحت الإنشاء، وبخطة التقسيط بتاعة المطور. العقد بيبقى بينك وبين المطور، ودورنا إننا نقارنلك البدائل ونتأكد من السعر والتوفر قبل الحجز.")}
+${block("vs-resale", "أشتري من المطور ولا ريسيل؟", "من المطور لو عايز مقدم قليل وتقسيط طويل. ريسيل لو محتاج تستلم بسرعة في مشروع جاهز وعندك كاش أكتر.", `<div class="table"><table><thead><tr><th scope="col">المعيار</th><th scope="col">من المطور</th><th scope="col">ريسيل</th></tr></thead><tbody>
+<tr><th scope="row">المقدم</th><td>من ${escapeHtml(down)}، والأشهر ${facts.usualDown ?? 5}%</td><td>غالبًا أعلى، وجزء كبير منه كاش</td></tr>
+<tr><th scope="row">التقسيط</th><td>لحد ${escapeHtml(years)}</td><td>الباقي من أقساط المالك الأصلي، أو كاش</td></tr>
+<tr><th scope="row">الاستلام</th><td>من سنتين لـ 5 سنين، أو فوري في مشاريع جاهزة</td><td>غالبًا أقرب أو فوري</td></tr>
+<tr><th scope="row">السعر</th><td>سعر القايمة الرسمية</td><td>بالتفاوض، وممكن يزيد أو يقل عن السوق</td></tr>
+<tr><th scope="row">رسوم إضافية</th><td>وديعة صيانة</td><td>رسوم تنازل عند المطور + ضريبة تصرفات 2.5%</td></tr>
+<tr><th scope="row">أكبر خطر</th><td>تأخير التسليم</td><td>حالة الوحدة والمديونيات اللي عليها</td></tr>
+</tbody></table></div>`)}
+${rows.length ? block("by-area", "الأسعار بتبدأ من كام في كل منطقة؟", "أسعار البداية للوحدات السكني بتختلف حسب المنطقة. الجدول ده محسوب من الوحدات المتاحة دلوقتي، وسعر المتر هو الوسيط (السعر ÷ المساحة) مش المتوسط، علشان الوحدات الشاذة ما تأثرش عليه.", `<div class="table"><table><thead><tr><th scope="col">المنطقة</th><th scope="col">المشاريع</th><th scope="col">يبدأ من</th><th scope="col">وسيط سعر المتر</th><th scope="col">أقل مقدم</th><th scope="col">أطول تقسيط</th></tr></thead><tbody>${tableRows}</tbody></table></div>`) : ""}
+${block("down-payment", "أقل مقدم ممكن كام؟", `أقل مقدم في الوحدات المتاحة دلوقتي ${escapeHtml(down)}، وأطول تقسيط ${escapeHtml(years)}. الأشهر في السوق مقدم ${facts.usualDown ?? 5}% وتقسيط ${escapeHtml(yearsAr(facts.usualYears || 8))}، بس بص على الدفعة التانية والمبلغ اللي هتحتاجه أول سنتين قبل ما تقارن بالمقدم لوحده.`)}
+${block("hidden-costs", "إيه المصاريف اللي مش في السعر المعلن؟", "أهمها وديعة الصيانة، وغالبًا من 8% لـ 10% من سعر الوحدة وبتتدفع قبل الاستلام أو معاه. كمان اسأل عن الجراج والنادي ورسوم التنازل لو هتبيع قبل الاستلام، وعند البيع فيه ضريبة تصرفات عقارية 2.5%.")}
+${block("steps", "خطوات حجز وحدة من المطور إيه؟", "بتختار الوحدة، وبعدين تدفع جدية حجز (غالبًا بترجعلك لو ماكملتش)، وبعدين تدفع المقدم وتمضي العقد مع المطور.", "<ol><li>حدد الميزانية الكلية والمقدم المتاح.</li><li>قارن 3 لـ 5 وحدات بنفس النوع والمساحة والتشطيب وميعاد الاستلام.</li><li>اتأكد من السعر والتوفر مع المطور.</li><li>ادفع جدية الحجز.</li><li>اقرا العقد، ويُفضل مع محامي مستقل، قبل ما تدفع المقدم كامل.</li></ol>")}
+${block("delay", "لو المطور اتأخر في التسليم أعمل إيه؟", "ارجع للعقد: هتلاقي ميعاد الاستلام وفترة السماح (غالبًا من 6 شهور لسنة) والتعويض بعدها. لو بند التعويض مش مكتوب، اطلب إضافته قبل ما تمضي، وشوف سجل المطور في مشاريعه اللي اتسلمت قبل كده.")}
+${facts.ready.length ? block("ready", "فين ألاقي استلام فوري؟", `فيه ${escapeHtml(projectsAr(facts.ready.length))} فيها وحدات استلام فوري دلوقتي، زي ${readyLinks}. الجاهز غالبًا مقدمه أعلى وتقسيطه أقصر من الأوف بلان.`) : ""}
+</div>`;
+}
+function homeFaqHtml(faq) {
+  return `<section class="hfaq" aria-labelledby="hfaq-h"><h2 id="hfaq-h">أسئلة شائعة عن الشراء من المطور</h2>${faq.map(([q, a]) => `<div class="fq"><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></div>`).join("")}<p class="note"><a href="/faq">كل الأسئلة الشائعة ←</a></p></section>`;
+}
+function homeGuideStyles() {
+  return `.dhero .byline{margin:10px 0 0;color:#d8c9a8;font-size:13px}.dhero .byline a{color:#fff}
+.keys{margin-top:34px;padding:22px 24px;border:1px solid var(--line);border-inline-start:4px solid var(--gold);border-radius:16px;background:#fff}.keys h2{margin:0 0 10px;font-size:22px}.keys ul{margin:0;padding-inline-start:20px;display:grid;grid-template-columns:1fr 1fr;gap:6px 28px}.keys li{line-height:1.8}
+.bguide{margin-top:56px;max-width:900px}.qa{margin-top:34px}.qa h2{margin:0 0 8px;font-size:24px}.qa .ans{font-size:16.5px;color:#26332d;margin:0 0 12px}.qa ol{padding-inline-start:22px;line-height:2}.bguide .table table{min-width:560px;background:#fff;border:1px solid var(--line);border-radius:12px}.bguide th[scope=row]{font-weight:700;color:#14352a;background:#fbf7f0}
+.hfaq{margin-top:56px;max-width:900px}.hfaq h2{font-size:26px}.fq{padding:14px 0;border-bottom:1px solid var(--line)}.fq h3{margin:0 0 4px;font-size:17px;color:#14352a}.fq p{margin:0;color:#3d4a43}
+@media(max-width:620px){.keys ul{grid-template-columns:1fr}.qa h2{font-size:20px}.hfaq h2{font-size:22px}}`;
+}
+
 function renderDirectory(allProjects, lang, articles = []) {
   const ar = lang === "ar";
   const path = ar ? "/ar/" : "/en/directory/";
@@ -1385,6 +1507,11 @@ function renderDirectory(allProjects, lang, articles = []) {
   const devList = developerGroups(listedProjects);
   const devCards = devList.map((group) => developerTile(group, lang)).join("");
 
+  // Arabic buyer guide (answer paragraph, takeaways, Q&A sections, area table, FAQ).
+  const facts = ar ? inventoryFacts(listedProjects) : null;
+  const rows = ar ? areaRows(areaList) : [];
+  const faq = ar ? homeFaq(facts) : [];
+
   // Projects: every listed project is in the HTML (crawlable); CSS-only filters and "show all".
   const sorted = interleaveByDeveloper(listedProjects);
   const topAreas = areaList.slice(0, 3).map((entry) => entry.area);
@@ -1413,14 +1540,16 @@ function renderDirectory(allProjects, lang, articles = []) {
   const description = ar
     ? `قارن ${listedProjects.length} كمبوند ومشروع و${unitCount} وحدة من ${developerGroups(listedProjects).length} شركة تطوير عقاري في التجمع الخامس والشيخ زايد والساحل الشمالي ومستقبل سيتي: الأسعار وأنظمة السداد والاستلام.`
     : `Compare ${listedProjects.length} projects and ${unitCount} units in New Cairo, North Coast, Sheikh Zayed and Mostakbal City: prices, payment plans and delivery.`;
-  const body = `<style>${directoryStyles()}${filterCss}</style>
+  const body = `<style>${directoryStyles()}${ar ? homeGuideStyles() : ""}${filterCss}</style>
 <section class="dhero"><div class="dwrap"><p class="crumbs"><a href="${ar ? "/" : "/en/"}">${ar ? "الرئيسية" : "Home"}</a> ‹ ${ar ? "دليل المشاريع" : "Project directory"}</p>
 <h1>${ar ? "دليل الكمبوندات والمشاريع العقارية في مصر 2026" : "Egypt property project directory 2026"}</h1>
-<p class="lead">${ar ? `قارن ${listedProjects.length} مشروع من أكبر المطورين بالأسعار المحدّثة والمساحات وأنظمة السداد ومواعيد الاستلام — من مخزون المطورين مباشرة.` : `Compare ${listedProjects.length} projects from Egypt's leading developers by updated price, size, payment plan and delivery — straight from developer inventory.`}</p>
+<p class="lead">${ar ? escapeHtml(homeAnswer(listedProjects.length, unitCount, devList.length, facts)) : `Compare ${listedProjects.length} projects from Egypt's leading developers by updated price, size, payment plan and delivery — straight from developer inventory.`}</p>
+${ar ? `<p class="byline">كتبه وراجعه: <a href="/about#ahmed-mahmoud" rel="author">أحمد محمود</a> — خبرة 11 سنة في السوق العقاري المصري${lastUpdated ? ` · آخر تحديث: ${escapeHtml(formatDate(lastUpdated, "ar"))}` : ""}</p>` : ""}
 ${ar ? voiceBox() : ""}${searchMount(lang)}
 <div class="stats"><div><b>${listedProjects.length}</b><span>${ar ? "مشروع متاح" : "projects"}</span></div><div><b>${new Intl.NumberFormat("en-EG").format(unitCount)}</b><span>${ar ? "وحدة محدّثة" : "units"}</span></div><div><b>${devList.length}</b><span>${ar ? "مطور عقاري" : "developers"}</span></div>${lastUpdated ? `<div><b>${escapeHtml(formatDate(lastUpdated, lang))}</b><span>${ar ? "آخر تحديث للأسعار" : "last price update"}</span></div>` : ""}</div>
 </div></section>
 <main class="dmain">
+${ar ? homeTakeaways(listedProjects.length, unitCount, facts, rows) : ""}
 <div class="sh" id="areas"><div><h2>${ar ? "استكشف حسب المنطقة" : "Explore by area"}</h2><p>${ar ? "أسعار البداية من الوحدات المتاحة حاليًا" : "Starting prices from currently available units"}</p></div></div>
 <div class="areas">${areaCards}</div>
 ${otherAreaChips.length ? `<div class="chips"><span class="chip">${ar ? "مناطق تانية:" : "Other areas:"}</span>${[...otherAreas.entries()].filter(([, name]) => name).filter(([, name], i, list) => list.findIndex(([, n]) => n === name) === i).slice(0, 10).map(([slug, name]) => `<a class="chip" href="/${lang}/areas/${escapeHtml(slug)}">${escapeHtml(name)}</a>`).join("")}</div>` : ""}
@@ -1430,6 +1559,8 @@ ${devList.length > 14 ? `<div class="showall"><label class="more" for="all-devs"
 <section class="dproj" aria-labelledby="projects-h"><div class="sh"><div><h2 id="projects-h">${ar ? "المشاريع المتاحة" : "Available projects"}</h2><p>${ar ? "اختار فلتر عشان تضيّق النتايج" : "Pick a filter to narrow the list"}</p></div></div>
 ${filterBar}<input type="checkbox" id="show-all" hidden><div class="pgrid lim">${projectCards}</div>
 <div class="showall"><label class="more" for="show-all">${ar ? `اعرض كل المشاريع (${listedProjects.length})` : `Show all projects (${listedProjects.length})`}</label></div></section>
+${ar ? homeBuyerGuide(facts, rows) : ""}
+${ar ? homeFaqHtml(faq) : ""}
 ${directoryDevelopersGuide(devList, lang)}
 ${directoryAbout(ar, listedProjects.length, unitCount, devList.length)}
 <div class="sh"><div><h2>${ar ? "أدلة تساعدك تقرر" : "Guides to help you decide"}</h2></div><a class="more" href="${ar ? "/guides/" : "/en/guides/"}">${ar ? "كل الأدلة ←" : "All guides →"}</a></div>
@@ -1445,6 +1576,7 @@ ${directoryAbout(ar, listedProjects.length, unitCount, devList.length)}
     body,
     schemas: [
       { "@context": "https://schema.org", "@type": "CollectionPage", name: title, url: `${SITE_URL}${path}`, description, inLanguage: ar ? "ar-EG" : "en", ...(lastUpdated ? { dateModified: lastUpdated } : {}) },
+      ...(faq.length ? [{ "@context": "https://schema.org", "@type": "FAQPage", inLanguage: "ar-EG", mainEntity: faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }] : []),
       { "@context": "https://schema.org", "@type": "ItemList", name: ar ? "المشاريع المتاحة" : "Available projects", numberOfItems: sorted.length, itemListElement: sorted.slice(0, 50).map((project, index) => ({ "@type": "ListItem", position: index + 1, name: project.name, url: `${SITE_URL}${projectsPath(project)}` })) },
     ],
   });
