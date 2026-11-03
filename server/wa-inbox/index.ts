@@ -155,12 +155,10 @@ const words = (value: unknown) => new Set(text(value).toLowerCase().split(/[^a-z
  */
 function suggestProject(all: ProjectRow[], name: string, developer: string, areaGroup = ""): Suggestion | null {
   const key = aliasKey(name);
-  // Another main area is another project (Ivoire East is not Ivoire West).
-  const projects = areaGroup && areaGroup !== "Other" ? all.filter((project) => !project.area_group || project.area_group === areaGroup || project.area_group === "Other") : all;
   if (NO_NAME_KEYS.has(key) || key.length < 3) return null;
   const dev = norm(developer);
   const sameDev = (project: ProjectRow) => Boolean(dev && norm(project.developer) && (norm(project.developer).includes(dev) || dev.includes(norm(project.developer))));
-  const prefix = projects.filter((project) => { const pn = norm(project.name); return pn.length >= 4 && key.startsWith(pn); })
+  const prefix = all.filter((project) => { const pn = norm(project.name); return pn.length >= 4 && key.startsWith(pn); })
     .sort((a, b) => norm(b.name).length - norm(a.name).length || Number(sameDev(b)) - Number(sameDev(a)));
   if (prefix.length) {
     const best = prefix[0];
@@ -169,6 +167,8 @@ function suggestProject(all: ProjectRow[], name: string, developer: string, area
   }
   const mine = words(name);
   if (!mine.size) return null;
+  // A similar name in another main area is another project (Ivoire East is not Ivoire West).
+  const projects = areaGroup && areaGroup !== "Other" ? all.filter((project) => !project.area_group || project.area_group === areaGroup || project.area_group === "Other") : all;
   let best: ProjectRow | null = null;
   let bestScore = 0;
   for (const project of projects) {
