@@ -100,7 +100,7 @@ async function adminCall(token, action, payload = {}) {
   });
 }
 
-async function loadPublicFacts(input) {
+async function loadPublicFacts(input, token = "") {
   const select = "id,name,slug,developer,location,description,hero_text,highlights,faq";
   let url;
   if (input.targetType === "project") {
@@ -111,6 +111,16 @@ async function loadPublicFacts(input) {
     url = `${SUPABASE_URL}/rest/v1/projects?select=${select}&location=ilike.*${encodeURIComponent(input.areaName)}*&order=name&limit=12`;
   }
   const rows = await fetchJson(url, { headers: { apikey: SUPABASE_KEY, Accept: "application/json" } });
+  // A new project stays off the public site until its first article is published, so the public
+  // key cannot read it yet: the admin function hands over the same facts for the logged-in editor.
+  if (input.targetType === "project" && (!Array.isArray(rows) || !rows.length) && token) {
+    const hidden = await adminCall(token, "article_facts", { project_id: input.projectId });
+    if (Array.isArray(hidden?.projects) && hidden.projects.length) {
+      const projects = hidden.projects.map(safeProject);
+      const units = input.action === "draft" && Array.isArray(hidden.units) ? hidden.units.map(safeUnit) : [];
+      return { projects, units };
+    }
+  }
   if (!Array.isArray(rows) || !rows.length) throw Object.assign(new Error("public_facts_not_found"), { status: 404 });
   const projects = rows.map(safeProject);
   const projectIds = projects.map((project) => project.id).filter(Boolean).slice(0, 12);
@@ -121,8 +131,8 @@ async function loadPublicFacts(input) {
   return { projects, units };
 }
 
-async function research(input, safetyId) {
-  const { projects } = await loadPublicFacts(input);
+async function research(input, safetyId, token = "") {
+  const { projects } = await loadPublicFacts(input, token);
   const call = (modelOverride, timeoutMs) => fetchJson("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -144,8 +154,8 @@ async function research(input, safetyId) {
   return parseOpenAiOutput(response, "research", { input, projects });
 }
 
-async function projectFaq(input, safetyId) {
-  const { projects } = await loadPublicFacts(input);
+async function projectFaq(input, safetyId, token = "") {
+  const { projects } = await loadPublicFacts(input, token);
   const call = (modelOverride, timeoutMs) => fetchJson("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -165,8 +175,8 @@ async function projectFaq(input, safetyId) {
   return parseOpenAiOutput(response, "project_faq", { input, projects });
 }
 
-async function rewrite(input, safetyId) {
-  const { projects } = await loadPublicFacts(input);
+async function rewrite(input, safetyId, token = "") {
+  const { projects } = await loadPublicFacts(input, token);
   const response = await fetchJson("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -179,11 +189,11 @@ async function rewrite(input, safetyId) {
   return parseOpenAiOutput(response, "rewrite", { input, projects });
 }
 
-async function generate(input, safetyId) {
-  if (input.action === "research") return research(input, safetyId);
-  if (input.action === "rewrite") return rewrite(input, safetyId);
-  if (input.action === "project_faq") return projectFaq(input, safetyId);
-  const { projects, units } = await loadPublicFacts(input);
+async function generate(input, safetyId, token = "") {
+  if (input.action === "research") return research(input, safetyId, token);
+  if (input.action === "rewrite") return rewrite(input, safetyId, token);
+  if (input.action === "project_faq") return projectFaq(input, safetyId, token);
+  const { projects, units } = await loadPublicFacts(input, token);
   const groundedInput = groundInputForFacts(input, projects);
   // Do not buy a draft for a unit-area comparison when the source has no usable sample.
   if (input.action === "draft" && /مساح|متر|\barea|\bsize/i.test(input.topic)) {
@@ -232,7 +242,7 @@ exports.handler = async function handler(event) {
     if (claim.state !== "claimed" || !claim.lock_token) throw Object.assign(new Error("generation_claim_invalid"), { status: 502 });
     lockToken = String(claim.lock_token);
     const safetyId = crypto.createHash("sha256").update(`${token}:${key}`).digest("hex").slice(0, 24);
-    const data = await generate(input, safetyId);
+    const data = await generate(input, safetyId, token);
     await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, response: data });
     return jsonResponse(200, data);
   } catch (error) {

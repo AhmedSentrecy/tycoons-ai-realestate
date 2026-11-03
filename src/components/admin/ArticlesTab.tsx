@@ -5,6 +5,7 @@ import { Badge, EmptyState, Modal, inputClass } from "./ui";
 import EditorialWorkflowPanel from "./EditorialWorkflowPanel";
 import HeroImagePicker from "./HeroImagePicker";
 import { applyLines, articleProjects, canonicalProject, cleanBody, cleanText, issueInArabic, numericLines, repairSources, safeSlug, stripNumbers } from "../../lib/articleAutofix";
+import ArticleQueue from "./ArticleQueue";
 
 const emptyArticle = (): ArticleValues => ({
   language: "ar", title: "", slug: "", excerpt: "", body_markdown: "", meta_title: "", meta_description: "",
@@ -160,7 +161,7 @@ function SeoScorePanel({ checks }: { checks: SeoCheck[] }) {
   </div>;
 }
 
-export default function ArticlesTab({ projects }: { projects: AdminProject[] }) {
+export default function ArticlesTab({ projects, focusProjectId = null, onFocusHandled }: { projects: AdminProject[]; focusProjectId?: string | null; onFocusHandled?: () => void }) {
   const { token, handleError, notify } = useAdmin();
   const [articles, setArticles] = useState<AdminArticle[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -271,6 +272,23 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
       .catch(handleError)
       .finally(() => setLoading(false));
   }, [token, handleError]);
+
+  const editorRef = useRef<HTMLElement>(null);
+  /** "اكتب المقال" from the list (or from the projects tab): a new Arabic article on that project. */
+  function writeFor(project: AdminProject) {
+    if (busyRef.current) return;
+    patchValues({ language: "ar", target_type: "project", project_id: project.id, area_name: null }, true);
+    setTopic(`${project.name}${project.developer ? ` من ${project.developer}` : ""}`);
+    editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  useEffect(() => {
+    if (!focusProjectId || loading) return;
+    const project = projects.find((row) => row.id === focusProjectId);
+    if (project) writeFor(project);
+    onFocusHandled?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusProjectId, loading]);
 
   async function openArticle(id: string) {
     const operation = beginOperation("load");
@@ -434,7 +452,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
 
   const canGenerate = values.target_type === "project" ? Boolean(values.project_id) : Boolean(values.area_name);
   const translationValue = translationChoice ?? pairedId;
-  return <><EditorialWorkflowPanel projects={projects} /><div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+  return <><EditorialWorkflowPanel projects={projects} /><ArticleQueue projects={projects} articles={articles} busy={Boolean(busy)} activeProjectId={values.target_type === "project" ? values.project_id ?? null : null} onWrite={writeFor} onOpen={(id) => { void openArticle(id); editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} /><div className="grid gap-4 lg:grid-cols-[300px_1fr]">
     <aside className="rounded-3xl bg-white p-4 shadow-sm">
       <button disabled={Boolean(busy)} onClick={newArticle} className="w-full rounded-xl bg-[#0d1f18] px-4 py-3 font-black text-white disabled:opacity-50">مقال جديد</button>
       <div className="mt-3 space-y-2">
@@ -446,7 +464,7 @@ export default function ArticlesTab({ projects }: { projects: AdminProject[] }) 
           </button>)}
       </div>
     </aside>
-    <section className="min-w-0 rounded-3xl bg-white p-5 shadow-sm">
+    <section ref={editorRef} className="min-w-0 rounded-3xl bg-white p-5 shadow-sm">
       <div className="grid gap-3 md:grid-cols-3">
         <label className="text-sm font-bold">اللغة<select disabled={Boolean(busy)} className={inputClass} value={values.language} onChange={(event) => patchValues({ language: event.target.value as "ar" | "en" }, true)}><option value="ar">العربية</option><option value="en">English</option></select></label>
         <label className="text-sm font-bold">النطاق<select disabled={Boolean(busy)} className={inputClass} value={values.target_type} onChange={(event) => patchValues({ target_type: event.target.value as "project" | "area", project_id: null, area_name: null }, true)}><option value="project">مشروع</option><option value="area">منطقة</option></select></label>
