@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { adminApi, hideLegacyDuplicates, mediaImages, type AdminProject, type ProjectEditValues } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
-import { AreaFields, DeveloperSelect } from "./SearchSelect";
+import { AreaFields, DeveloperSelect, FinishingSelect } from "./SearchSelect";
 import { Badge, Modal, inputClass } from "./ui";
 
 type FieldKey = keyof ProjectEditValues;
@@ -14,6 +14,7 @@ const FIELDS: { key: FieldKey; label: string; long?: boolean; required?: boolean
   { key: "down_payment_text", label: "المقدم (مثال: 5%)" },
   { key: "installments_text", label: "التقسيط (مثال: 8 سنين)" },
   { key: "delivery_text", label: "الاستلام (مثال: 2028)" },
+  { key: "finishing", label: "التشطيب الافتراضي", hint: "أي وحدة من الواتساب من غير تشطيب بتاخده من هنا" },
   { key: "seo_title", label: "عنوان جوجل (اختياري)", hint: "سيبه فاضي ويتعمل تلقائي من الاسم والأسعار" },
   { key: "seo_description", label: "وصف جوجل (اختياري)", long: true, hint: "حوالي 150 حرف" },
 ];
@@ -152,6 +153,8 @@ function EditDialog({
                   setNewDeveloper(isNew);
                 }}
               />
+            ) : key === "finishing" ? (
+              <FinishingSelect value={values.finishing} onChange={(finishing) => setValues({ ...values, finishing })} />
             ) : long ? (
               <textarea value={values[key]} onChange={(event) => setValues({ ...values, [key]: event.target.value })} rows={key === "description" ? 6 : 2} className={inputClass} />
             ) : (

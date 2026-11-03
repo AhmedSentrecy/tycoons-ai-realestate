@@ -5,7 +5,9 @@ import {
   hideLegacyDuplicates,
   mediaImages,
   STATUS_LABELS,
+  FINISHING_LABELS,
   WA_FILL_LABELS,
+  WA_SUGGEST_LABELS,
   type AdminProject,
   type AdminUnit,
   type WaGroup,
@@ -13,10 +15,11 @@ import {
   type WaInboxStatus,
   type WaInboxValues,
   type WaFillSource,
+  type WaProjectSuggestion,
 } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import ProjectForm, { type NewProject } from "./ProjectForm";
-import { SearchSelect } from "./SearchSelect";
+import { FinishingSelect, SearchSelect } from "./SearchSelect";
 import { Badge, Chip, EmptyState, inputClass, Modal } from "./ui";
 
 /** Bucket for units whose project name did not match any project on the site. */
@@ -35,6 +38,9 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   const [duplicates, setDuplicates] = useState<Record<string, number[]>>({});
   const [autoFilled, setAutoFilled] = useState<Record<string, Record<string, WaFillSource>>>({});
   const [rejectedBefore, setRejectedBefore] = useState<Record<string, string>>({});
+  const [suggestions, setSuggestions] = useState<Record<string, WaProjectSuggestion>>({});
+  const [finishingSuggestions, setFinishingSuggestions] = useState<Record<string, string>>({});
+  const [finishingOpen, setFinishingOpen] = useState(false);
   const [counts, setCounts] = useState<Record<WaInboxStatus, number>>({ pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -67,6 +73,8 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
         setDuplicates(result.duplicates ?? {});
         setAutoFilled(result.auto_filled ?? {});
         setRejectedBefore(result.previously_rejected ?? {});
+        setSuggestions(result.suggestions ?? {});
+        setFinishingSuggestions(result.finishing_suggestions ?? {});
         setCounts(result.counts);
         setSelected(new Set());
       })
@@ -102,7 +110,11 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   // Keep a valid bucket selected (first one by default, as the units tab keeps a project open).
   const activeBucket = buckets.find((row) => row.id === bucket) ?? buckets[0] ?? null;
   const activeProject = activeBucket?.project ?? null;
-  const rows = activeBucket?.list ?? [];
+  // Unmatched units with a suggested project first (one click each).
+  const rows = useMemo(() => {
+    const list = activeBucket?.list ?? [];
+    return activeBucket?.project ? list : [...list].sort((a, b) => Number(Boolean(suggestions[String(b.id)])) - Number(Boolean(suggestions[String(a.id)])));
+  }, [activeBucket, suggestions]);
 
   // Units already on the site for the open project, to compare and to pick photos from.
   const activeProjectId = activeProject?.id ?? "";
@@ -133,6 +145,36 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
       setBusyId(null);
     }
   };
+
+  /** Confirms the suggested (or picked) project: every unit with the same WhatsApp name goes with it. */
+  const linkProject = async (item: WaInboxItem, projectId: string, projectName: string) => {
+    setBusyId(item.id);
+    try {
+      const result = await adminApi.waInboxLink(token, item.id, projectId);
+      notify(`اتربطت ${result.linked} وحدة بـ ${projectName}${result.remembered ? " — والاسم ده هيتربط لوحده بعد كده" : ""}`);
+      reload();
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  /** Default finishing of the open project (units without one take it). */
+  const saveFinishing = async (finishing: string) => {
+    if (!activeProject) return;
+    try {
+      const result = await adminApi.projectUpdate(token, activeProject.id, { finishing });
+      notify(result.applied ? `التشطيب الافتراضي لـ ${activeProject.name}: ${finishing || "مش محدد"}` : "مفيش تغيير");
+      setFinishingOpen(false);
+      onChanged();
+      reload();
+    } catch (error) {
+      handleError(error);
+    }
+  };
+
+  const nameKey = (value: string | null) => String(value || "").toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, "");
 
   const reject = async (ids: number[]) => {
     if (!ids.length) return;
@@ -250,6 +292,14 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                   </button>
                 )}
               </div>
+              {activeProject && pending && (
+                <FinishingBar
+                  current={activeProject.finishing || ""}
+                  suggested={finishingSuggestions[activeProject.id] || ""}
+                  onConfirm={(value) => void saveFinishing(value)}
+                  onEdit={() => setFinishingOpen(true)}
+                />
+              )}
 
               <div className="overflow-x-auto p-4">
                 <table className="w-full min-w-[900px] text-right text-sm">
@@ -300,6 +350,35 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                             <td className="p-2">
                               <span className="font-black">{item.project_name || "—"}</span>
                               <span className="block text-xs text-[#5c6a62]">{item.developer || ""}</span>
+                              {pending && (() => {
+                                const suggestion = suggestions[String(item.id)];
+                                const same = rows.filter((row) => row.id !== item.id && nameKey(row.project_name) === nameKey(item.project_name)).length;
+                                if (!suggestion)
+                                  return (
+                                    <button onClick={() => setEditing(item)} className="mt-1 rounded-lg border border-dashed border-[#d8c9ab] px-2 py-1 text-[11px] font-black text-[#8a6630]">
+                                      اختار المشروع أو اعمله جديد
+                                    </button>
+                                  );
+                                return (
+                                  <div className="mt-1 rounded-xl bg-[#fffaf1] p-2 ring-1 ring-[#ecdcbc]">
+                                    <span className="block text-[11px] text-[#5c6a62]">تقصد ({WA_SUGGEST_LABELS[suggestion.kind]}):</span>
+                                    <span className="block text-xs font-black" dir="ltr">{suggestion.name}؟</span>
+                                    <div className="mt-1 flex gap-1">
+                                      <button
+                                        onClick={() => void linkProject(item, suggestion.project_id, suggestion.name)}
+                                        disabled={busyId === item.id}
+                                        className="rounded-lg bg-[#0d1f18] px-2 py-1 text-[11px] font-black text-white disabled:opacity-40"
+                                      >
+                                        {busyId === item.id ? "…" : `تأكيد${same ? ` (+${same})` : ""}`}
+                                      </button>
+                                      <button onClick={() => setEditing(item)} className="rounded-lg bg-white px-2 py-1 text-[11px] font-black ring-1 ring-[#e0d3bb]">
+                                        غيّر
+                                      </button>
+                                    </div>
+                                    {same > 0 && <span className="mt-1 block text-[10px] text-[#5c6a62]">هيتربط معاها {same} وحدة بنفس الاسم</span>}
+                                  </div>
+                                );
+                              })()}
                             </td>
                           )}
                           <td className="p-2">
@@ -433,6 +512,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
       {editing && (
         <EditDialog
           item={editing}
+          suggestion={suggestions[String(editing.id)] ?? null}
           filled={autoFilled[String(editing.id)] ?? {}}
           rejectedAt={rejectedBefore[String(editing.id)] ?? ""}
           projects={projects}
@@ -447,7 +527,78 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
         />
       )}
       {groupsOpen && <GroupsDialog onClose={() => setGroupsOpen(false)} />}
+      {finishingOpen && activeProject && (
+        <FinishingDialog
+          project={activeProject}
+          suggested={finishingSuggestions[activeProject.id] || ""}
+          onClose={() => setFinishingOpen(false)}
+          onSave={saveFinishing}
+        />
+      )}
     </div>
+  );
+}
+
+const finishingText = (value: string) => (FINISHING_LABELS[value] ? `${value} (${FINISHING_LABELS[value]})` : value);
+
+/** The open project's default finishing: shown, suggested from its units, or missing. */
+function FinishingBar({ current, suggested, onConfirm, onEdit }: { current: string; suggested: string; onConfirm: (value: string) => void; onEdit: () => void }) {
+  if (current)
+    return (
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] bg-[#fbf8f2] px-4 py-2 text-xs">
+        <span className="font-bold text-[#5c6a62]">التشطيب الافتراضي للمرحلة:</span>
+        <b dir="ltr">{finishingText(current)}</b>
+        <span className="text-[#5c6a62]">— أي وحدة من غير تشطيب بتاخده</span>
+        <button onClick={onEdit} className="ms-auto rounded-full bg-white px-3 py-1 font-black ring-1 ring-[#e0d3bb]">تعديل</button>
+      </div>
+    );
+  if (suggested)
+    return (
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#ecdcbc] bg-[#fffaf1] px-4 py-2 text-xs">
+        <span className="font-bold">كل وحدات المرحلة دي على الموقع تشطيبها</span>
+        <b dir="ltr">{finishingText(suggested)}</b>
+        <span className="text-[#5c6a62]">— تخليه التشطيب الافتراضي؟</span>
+        <span className="ms-auto flex gap-1">
+          <button onClick={() => onConfirm(suggested)} className="rounded-full bg-[#0d1f18] px-3 py-1 font-black text-white">تأكيد</button>
+          <button onClick={onEdit} className="rounded-full bg-white px-3 py-1 font-black ring-1 ring-[#e0d3bb]">اختار غيره</button>
+        </span>
+      </div>
+    );
+  return (
+    <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] px-4 py-2 text-xs">
+      <span className="text-[#5c6a62]">المرحلة دي مالهاش تشطيب افتراضي، فالوحدات اللي من غير تشطيب بتفضل فاضية.</span>
+      <button onClick={onEdit} className="ms-auto rounded-full border border-[#d8c9ab] px-3 py-1 font-black text-[#8a6630]">حدّد التشطيب</button>
+    </div>
+  );
+}
+
+function FinishingDialog({ project, suggested, onClose, onSave }: { project: AdminProject; suggested: string; onClose: () => void; onSave: (value: string) => Promise<void> }) {
+  const [value, setValue] = useState(project.finishing || suggested);
+  const [busy, setBusy] = useState(false);
+  return (
+    <Modal title={`التشطيب الافتراضي — ${project.name}`} onClose={onClose}>
+      <p className="mb-3 text-sm text-[#5c6a62]">
+        أي وحدة جاية من الواتساب للمرحلة دي من غير تشطيب هتاخد التشطيب ده (وعليها علامة «تلقائي»). لو الرسالة ذكرت تشطيب تاني، اللي في الرسالة هو اللي بيتحط.
+      </p>
+      <div className="min-h-[330px]">
+        <FinishingSelect value={value} onChange={setValue} />
+      </div>
+      <div className="mt-4 flex justify-end gap-2">
+        <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-sm font-bold">إلغاء</button>
+        <button
+          type="button"
+          disabled={busy || value === (project.finishing || "")}
+          onClick={async () => {
+            setBusy(true);
+            await onSave(value);
+            setBusy(false);
+          }}
+          className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
+        >
+          {busy ? "بيحفظ…" : "احفظ"}
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -489,6 +640,7 @@ const TEXT_INPUTS: { key: keyof WaInboxValues; label: string; placeholder: strin
 /** Every field of the unit in one form, plus the project's photos to attach: edit once, then save or approve once. */
 function EditDialog({
   item,
+  suggestion,
   filled,
   rejectedAt,
   projects,
@@ -497,6 +649,7 @@ function EditDialog({
   onDone,
 }: {
   item: WaInboxItem;
+  suggestion: WaProjectSuggestion | null;
   filled: Record<string, WaFillSource>;
   rejectedAt: string;
   projects: AdminProject[];
@@ -633,6 +786,15 @@ function EditDialog({
               + مشروع جديد
             </button>
           </div>
+          {!projectId && suggestion && (
+            <button
+              type="button"
+              onClick={() => set("project_id", suggestion.project_id)}
+              className="mt-1 block rounded-lg bg-[#fffaf1] px-2 py-1 text-xs font-black text-[#8a6630] ring-1 ring-[#ecdcbc]"
+            >
+              اقتراح ({WA_SUGGEST_LABELS[suggestion.kind]}): <span dir="ltr">{suggestion.name}</span> — استخدمه
+            </button>
+          )}
           {!projectId && item.project_name && (
             <span className="mt-1 block text-xs text-red-600">
               «{item.project_name}» مش موجود على الموقع. اختاره من القايمة لو موجود باسم تاني، أو دوس «+ مشروع جديد».
@@ -643,12 +805,18 @@ function EditDialog({
         {TEXT_INPUTS.map(({ key, label, placeholder }) => (
           <label key={key} className="block text-sm">
             <span className="mb-1 block font-bold">{label}</span>
-            <input
-              value={String(values[key] ?? "")}
-              onChange={(event) => set(key, event.target.value)}
-              placeholder={placeholder}
-              className={`${inputClass} ${filled[key] && values[key] === item[key as keyof WaInboxItem] ? "border-sky-300 bg-sky-50" : ""}`}
-            />
+            {key === "finishing" ? (
+              <div className={filled[key] && values[key] === item[key as keyof WaInboxItem] ? "rounded-xl ring-2 ring-sky-300" : ""}>
+                <FinishingSelect value={String(values[key] ?? "")} onChange={(next) => set(key, next)} />
+              </div>
+            ) : (
+              <input
+                value={String(values[key] ?? "")}
+                onChange={(event) => set(key, event.target.value)}
+                placeholder={placeholder}
+                className={`${inputClass} ${filled[key] && values[key] === item[key as keyof WaInboxItem] ? "border-sky-300 bg-sky-50" : ""}`}
+              />
+            )}
             {filled[key] && (
               <span className="mt-1 block text-[11px] font-bold text-sky-700">الرسالة ماذكرتهاش — اتملت {WA_FILL_LABELS[filled[key]]}. راجعها.</span>
             )}

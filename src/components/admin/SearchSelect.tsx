@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { adminApi, AREA_GROUPS, subAreaOptions, type AdminDeveloper, type AdminProject } from "../../lib/adminApi";
+import { adminApi, AREA_GROUPS, FINISHING_LABELS, FINISHING_OPTIONS, subAreaOptions, type AdminDeveloper, type AdminProject } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import { inputClass } from "./ui";
 
@@ -212,5 +212,23 @@ export function AreaFields({
         )}
       </label>
     </>
+  );
+}
+
+/** Finishing of a project / phase: the usual types, or any other text (e.g. a developer's own code). */
+export function FinishingSelect({ value, onChange, placeholder = "مش محدد" }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
+  const options = [...FINISHING_OPTIONS, ...(value && !(FINISHING_OPTIONS as readonly string[]).includes(value) ? [value] : [])]
+    .map((item) => ({ value: item, label: FINISHING_LABELS[item] ? `${item} — ${FINISHING_LABELS[item]}` : item }));
+  return (
+    <SearchSelect
+      options={options}
+      value={value}
+      onChange={(next) => onChange(next)}
+      placeholder={placeholder}
+      emptyLabel="— مش محدد —"
+      allowNew
+      newLabel="تشطيب تاني"
+      dir="ltr"
+    />
   );
 }
