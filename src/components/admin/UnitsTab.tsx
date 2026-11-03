@@ -9,6 +9,7 @@ import {
   type AdminUnit,
   type SubmitResult,
   type UnitValues,
+  waDemandLabel,
 } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import ImportDialog from "./ImportDialog";
@@ -183,6 +184,9 @@ export default function UnitsTab({
                   {!unitsLoading && units
                   ? `${units.length} وحدة · ${units.filter((unit) => unit.availability_status === "available").length} متاحة`
                   : "…"}
+                </p>
+                <p className={`text-xs font-bold ${project.wa_requests ? "text-emerald-700" : "text-[#8a958f]"}`}>
+                  {waDemandLabel(project) ? `${waDemandLabel(project)} من ${projects.filter((row) => row.wa_rank).length} مشروع اتطلب` : "لسه مافيش طلبات واتساب للمشروع ده من الموقع"}
                 </p>
               </div>
               <button onClick={() => setDialog("import")} className="rounded-full border border-[#d8c9ab] px-4 py-2 text-sm font-black text-[#8a6630]">

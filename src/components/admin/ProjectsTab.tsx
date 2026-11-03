@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { adminApi, hideLegacyDuplicates, mediaImages, type AdminProject, type ProjectEditValues } from "../../lib/adminApi";
+import { adminApi, articleLanguages, hideLegacyDuplicates, mediaImages, waDemandLabel, type AdminProject, type ProjectEditValues } from "../../lib/adminApi";
+import { LanguageBadges } from "./ArticleQueue";
 import { useAdmin } from "./AdminContext";
 import { AreaFields, DeveloperSelect, FinishingSelect } from "./SearchSelect";
 import { Badge, Chip, Modal, inputClass } from "./ui";
@@ -27,33 +28,35 @@ export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { p
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<AdminProject | null>(null);
   const [deleting, setDeleting] = useState<AdminProject | null>(null);
-  const [articleFilter, setArticleFilter] = useState<"all" | "with" | "without">("all");
-  // Which projects have a published article (SEO / GEO), from the articles list.
-  const [articleState, setArticleState] = useState<{ published: Set<string> } | null>(null);
+  const [articleFilter, setArticleFilter] = useState<"all" | "both" | "partial" | "none">("all");
+  const [sortBy, setSortBy] = useState<"name" | "whatsapp">("name");
+  // Published article languages per project (SEO / GEO), from the articles list.
+  const [languages, setLanguages] = useState<Map<string, Set<string>> | null>(null);
   useEffect(() => {
     let active = true;
     adminApi
       .articles(token)
-      .then((data) => active && setArticleState({ published: new Set(data.articles.filter((article) => article.status === "published" && article.project_id).map((article) => String(article.project_id))) }))
-      .catch(() => active && setArticleState(null));
+      .then((data) => active && setLanguages(articleLanguages(data.articles)))
+      .catch(() => active && setLanguages(null));
     return () => {
       active = false;
     };
   }, [token]);
 
+  const coverage = (project: AdminProject) => {
+    const size = languages?.get(project.id)?.size ?? 0;
+    return size >= 2 ? "both" : size === 1 ? "partial" : "none";
+  };
+  const live = useMemo(() => hideLegacyDuplicates(projects), [projects]);
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return hideLegacyDuplicates(projects)
+    return live
       .filter((project) => !q || `${project.name} ${project.developer ?? ""} ${project.location ?? ""}`.toLowerCase().includes(q))
-      .filter((project) => {
-        if (articleFilter === "all" || !articleState) return true;
-        const has = articleState.published.has(project.id);
-        return Boolean(project.slug) && (articleFilter === "with" ? has : !has);
-      })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [projects, query, articleFilter, articleState]);
-  const withArticle = articleState ? hideLegacyDuplicates(projects).filter((project) => project.slug && articleState.published.has(project.id)).length : 0;
-  const withoutArticle = articleState ? hideLegacyDuplicates(projects).filter((project) => project.slug && !articleState.published.has(project.id)).length : 0;
+      .filter((project) => articleFilter === "all" || !languages || (Boolean(project.slug) && coverage(project) === articleFilter))
+      .sort((a, b) => (sortBy === "whatsapp" ? (b.wa_requests || 0) - (a.wa_requests || 0) : 0) || a.name.localeCompare(b.name));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, query, articleFilter, languages, sortBy]);
+  const countOf = (state: "both" | "partial" | "none") => (languages ? live.filter((project) => project.slug && coverage(project) === state).length : 0);
 
   return (
     <section className="rounded-3xl border border-[#e7ddc8] bg-white p-5">
@@ -64,13 +67,19 @@ export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { p
         </div>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث باسم المشروع أو المطور أو المنطقة" className={`${inputClass} max-w-sm`} />
       </div>
-      {articleState && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <Chip active={articleFilter === "all"} onClick={() => setArticleFilter("all")}>الكل</Chip>
-          <Chip active={articleFilter === "with"} onClick={() => setArticleFilter("with")}>ليها مقال ({withArticle})</Chip>
-          <Chip active={articleFilter === "without"} onClick={() => setArticleFilter("without")}>ملهاش مقال ({withoutArticle})</Chip>
-        </div>
-      )}
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {languages && (
+          <>
+            <Chip active={articleFilter === "all"} onClick={() => setArticleFilter("all")}>الكل</Chip>
+            <Chip active={articleFilter === "both"} onClick={() => setArticleFilter("both")}>مقال عربي وإنجليزي ({countOf("both")})</Chip>
+            <Chip active={articleFilter === "partial"} onClick={() => setArticleFilter("partial")}>ناقصها لغة ({countOf("partial")})</Chip>
+            <Chip active={articleFilter === "none"} onClick={() => setArticleFilter("none")}>من غير مقال ({countOf("none")})</Chip>
+          </>
+        )}
+        <span className="ms-auto text-xs font-bold text-[#5c6a62]">ترتيب:</span>
+        <Chip active={sortBy === "name"} onClick={() => setSortBy("name")}>بالاسم</Chip>
+        <Chip active={sortBy === "whatsapp"} onClick={() => setSortBy("whatsapp")}>طلبات الواتساب</Chip>
+      </div>
       <p className="mt-3 text-xs text-[#5c6a62]">{list.length} مشروع</p>
       <ul className="mt-2 grid gap-2">
         {list.map((project) => {
@@ -79,18 +88,19 @@ export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { p
             <li key={project.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#eee5d6] p-3">
               {cover ? <img src={cover} alt="" loading="lazy" className="h-12 w-16 rounded-lg object-cover" /> : <span className="h-12 w-16 rounded-lg bg-[#f1ebdc]" />}
               <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">{project.name} {!project.slug && <Badge tone="muted">ملوش صفحة</Badge>} {project.slug && articleState && (articleState.published.has(project.id) ? <Badge tone="ok">ليه مقال</Badge> : <Badge tone="error">ملوش مقال</Badge>)}</p>
+                <p className="truncate font-bold">{project.name} {!project.slug && <Badge tone="muted">ملوش صفحة</Badge>} {project.slug && languages && <LanguageBadges languages={languages.get(project.id)} />}</p>
                 <p className="truncate text-xs text-[#5c6a62]">
                   {project.developer} · {project.location} · {project.available_units} وحدة متاحة من {project.units_count}
                   {project.new_units_week ? ` · ${project.new_units_week} جديدة الأسبوع ده` : ""} · آخر تحديث {fmt(project.last_updated_at)}
                 </p>
+                {waDemandLabel(project) && <p className="text-xs font-bold text-emerald-700">{waDemandLabel(project)}</p>}
               </div>
               {project.slug && (
                 <a href={`/projects/${project.slug}`} target="_blank" rel="noopener" className="rounded-full border border-[#e0d3bb] px-3 py-1.5 text-xs font-bold">
                   افتح الصفحة
                 </a>
               )}
-              {project.slug && articleState && !articleState.published.has(project.id) && onWriteArticle && (
+              {project.slug && languages && coverage(project) !== "both" && onWriteArticle && (
                 <button type="button" onClick={() => onWriteArticle(project.id)} className="rounded-full bg-[#d9b87c] px-4 py-1.5 text-xs font-black text-[#0d1f18]">
                   اكتب المقال
                 </button>

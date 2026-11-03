@@ -233,13 +233,41 @@ async function pendingSummary() {
   return rows;
 }
 
+/**
+ * WhatsApp requests from the site per project (public.whatsapp_clicks): all-time and last 30 days,
+ * plus the project's rank by all-time requests (1 = most requested; ties share a rank).
+ * A click names the project by slug, or by name on older pages; names go to the row with a page.
+ */
+function whatsappDemand(projects: (Json & { id: string })[], clicks: { project_slug: string | null; project_name: string | null; created_at: string }[]) {
+  const key = (value: unknown) => text(value).toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, "");
+  const bySlug = new Map(projects.filter((project) => text(project.slug)).map((project) => [text(project.slug), project.id]));
+  const byName = new Map<string, string>();
+  for (const project of [...projects].sort((a, b) => Number(Boolean(text(a.slug))) - Number(Boolean(text(b.slug))))) byName.set(key(project.name), project.id);
+  const monthAgo = Date.now() - 30 * 86400000;
+  const counts = new Map<string, { total: number; month: number }>();
+  for (const click of clicks) {
+    const id = bySlug.get(text(click.project_slug)) ?? byName.get(key(click.project_name)) ?? byName.get(key(text(click.project_slug).split("--")[0].replace(/-/g, "")));
+    if (!id) continue;
+    const entry = counts.get(id) ?? { total: 0, month: 0 };
+    entry.total += 1;
+    if (new Date(click.created_at).getTime() >= monthAgo) entry.month += 1;
+    counts.set(id, entry);
+  }
+  const ranked = [...counts.entries()].sort((a, b) => b[1].total - a[1].total);
+  const rank = new Map<string, number>();
+  ranked.forEach(([id, entry], index) => rank.set(id, index && entry.total === ranked[index - 1][1].total ? rank.get(ranked[index - 1][0])! : index + 1));
+  return { counts, rank, ranked: ranked.length };
+}
+
 async function listProjects() {
-  const [projects, units, pending, usage] = await Promise.all([
+  const [projects, units, pending, usage, clicks] = await Promise.all([
     readAll<Json & { id: string }>("projects", PROJECT_COLUMNS, "name"),
     readAll<{ project_id: string; image_url: string | null; availability_status: string | null; created_at: string | null }>("units", "id,project_id,image_url,availability_status,created_at", "id"),
     pendingSummary(),
     db.rpc("media_admin_storage_usage"),
+    readAll<{ project_slug: string | null; project_name: string | null; created_at: string }>("whatsapp_clicks", "id,project_slug,project_name,created_at", "id"),
   ]);
+  const demand = whatsappDemand(projects, clicks);
   const stats = new Map<string, { units: number; available: number; with_media: number; new_week: number }>();
   const weekAgo = Date.now() - 7 * 86400000;
   for (const unit of units) {
@@ -260,7 +288,11 @@ async function listProjects() {
       units_with_own_media: stats.get(project.id)?.with_media ?? 0,
       new_units_week: stats.get(project.id)?.new_week ?? 0,
       pending_requests: pendingByProject.get(project.id) ?? 0,
+      wa_requests: demand.counts.get(project.id)?.total ?? 0,
+      wa_requests_30d: demand.counts.get(project.id)?.month ?? 0,
+      wa_rank: demand.rank.get(project.id) ?? null,
     })),
+    wa_ranked_projects: demand.ranked,
     pending_total: pending.length,
     storage: usage.data?.[0] ?? usage.data ?? null,
   };
