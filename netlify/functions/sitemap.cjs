@@ -9,7 +9,7 @@ const {
   slugify,
   escapeHtml,
 } = require("./_seo-utils.cjs");
-const { developerGroups, developerKey } = require("./_seo-utils.cjs");
+const { developerGroups, developerKey, isApartmentUnit, APARTMENT_PAGE_AREAS } = require("./_seo-utils.cjs");
 const { indexableUnitIds } = require("./_unit-indexing.cjs");
 const { publishedProjectSlugs } = require("./_project-indexing.cjs");
 const { hasIndexableContent } = require("./_localized-project-content.cjs");
@@ -142,6 +142,17 @@ exports.handler = async function handler() {
       if (!projectsById.has(unit.project_id)) continue;
       if (!indexableIds.has(String(unit.id))) continue;
       urls.set(`${SITE_URL}${unitPath({ ...unit, project_slug: projectsById.get(unit.project_id)?.slug })}`, unit.last_updated_at || null);
+    }
+
+    // /ar/areas/<area>/apartments-for-sale, listed when the area has apartments to show
+    // (the page itself needs at least 5; same rule here so the sitemap never lists a 404).
+    for (const areaSlug of APARTMENT_PAGE_AREAS) {
+      const apartments = units.filter((unit) => projectsById.has(unit.project_id)
+        && areaFor(projectsById.get(unit.project_id).location || unit.location).slug === areaSlug
+        && isApartmentUnit(unit) && Number(unit.starting_price) > 0);
+      if (apartments.length < 5) continue;
+      const newest = apartments.map((unit) => unit.last_updated_at).filter(Boolean).sort().pop() || null;
+      urls.set(`${SITE_URL}/ar/areas/${areaSlug}/apartments-for-sale`, newest);
     }
 
     const body = `<?xml version="1.0" encoding="UTF-8"?>

@@ -1,6 +1,6 @@
 "use strict";
 
-const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr } = require("./_display-text.cjs");
+const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, countAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr } = require("./_display-text.cjs");
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("./_localized-project-content.cjs");
 // Arabic H1/title for the top projects (audit SEO-07); shared with the static and React pages.
 const PROJECT_NAMES_AR = require("../../src/content/project-names-ar.json").projects;
@@ -1146,6 +1146,8 @@ function millions(value) {
   return m >= 1 ? (Math.round(m * 10) / 10).toString() : "";
 }
 
+// Areas that also have an /ar/areas/<slug>/apartments-for-sale page (see renderApartments).
+const APARTMENT_PAGE_AREAS = new Set(["new-cairo"]);
 const FOCUS_DEVELOPERS = ["mountain-view", "sodic", "palm-hills-developments", "la-vista-developments", "hyde-park-developments", "ora-developers", "madinet-masr"];
 const OTHER_AREA_AR = { "el-shorouk": "الشروق", "al-shorouk": "الشروق", alexandria: "الإسكندرية", "el-gouna": "الجونة", "downtown-cairo": "وسط القاهرة", "central-cairo": "وسط القاهرة", "suez-road": "طريق السويس" };
 
@@ -1261,7 +1263,7 @@ function voiceBox() {
 }
 
 function directoryStyles() {
-  return `.dhero{background:linear-gradient(rgba(20,53,42,.86),rgba(20,53,42,.94)),url(/images/hero-bg.webp) center/cover;color:#fff;padding:52px 0 58px}.dwrap{width:min(1180px,calc(100% - 32px));margin:auto}.dhero .crumbs,.dhero .crumbs a{color:#d8c9a8}.dhero h1{color:#fff;font-size:clamp(30px,4.6vw,46px);margin:10px 0 8px;font-weight:800}.dhero .lead{color:#dfe6e1;max-width:760px}
+  return `.dhero{background:linear-gradient(rgba(20,53,42,.86),rgba(20,53,42,.94)),url(/images/hero-bg.webp) center/cover;color:#fff;padding:52px 0 58px}.dwrap{width:min(1180px,calc(100% - 32px));margin:auto}.dhero .crumbs,.dhero .crumbs a{color:#d8c9a8}.dhero h1{color:#fff;font-size:clamp(30px,4.6vw,46px);margin:10px 0 8px;font-weight:800}.dhero .lead{color:#dfe6e1;max-width:760px}.dhero .updated{margin:6px 0 0;color:#d8c9a8;font-size:14px}.dhero .updated a{color:#fff;font-weight:700}
 .dsearch{display:flex;gap:8px;margin-top:24px;max-width:860px;padding:8px;border-radius:18px;background:#fff;box-shadow:0 20px 50px -20px rgba(0,0,0,.5)}.dsearch input{flex:1;min-width:0;border:0;outline:0;padding:12px 14px;font:inherit;font-size:15px;color:var(--ink);background:transparent}.dsearch button{border:0;border-radius:12px;padding:0 26px;background:var(--gold);color:#fff;font:inherit;font-weight:700;cursor:pointer}
 .stats{display:flex;flex-wrap:wrap;gap:16px 44px;margin-top:28px}.stats b{display:block;font-size:30px;font-weight:800;color:var(--gold);line-height:1.3}.stats span{font-size:13px;color:#cfd8d2}
 .dmain{width:min(1180px,calc(100% - 32px));margin:auto;padding:12px 0 40px}.sh{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin:46px 0 18px}.sh h2{margin:0;font-size:28px}.sh p{margin:4px 0 0;color:var(--muted);font-size:14px}.more{flex:none;padding:8px 16px;border:1px solid var(--line);border-radius:999px;background:#fff;color:#14352a;font-weight:700;font-size:14px;text-decoration:none}
@@ -2067,12 +2069,18 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
     ? (ar ? `مثال: شقة في ${label} تحت 10 مليون ومقدم 5%` : `e.g. apartment in ${label} under 10M`)
     : (ar ? `مثال: فيلا من ${label} في التجمع تحت 20 مليون` : `e.g. ${label} villa in New Cairo under 20M`);
   const stat = (value, labelText) => `<div><b>${escapeHtml(value)}</b><span>${escapeHtml(labelText)}</span></div>`;
+  // Newest unit price update among the listed projects, shown in the hero and as dateModified.
+  const lastUpdated = matches.map(projectLastUpdated).filter(Boolean).sort().pop() || "";
+  // Area pages that have a separate "apartments for sale" page link to it (Arabic only for now).
+  const apartmentsLink = kind === "area" && ar && APARTMENT_PAGE_AREAS.has(slug)
+    ? `<p class="updated"><a href="/ar/areas/${slug}/apartments-for-sale">${escapeHtml(`شوف الشقق المتاحة للبيع في ${slug === "new-cairo" ? "التجمع الخامس" : label} وسعر المتر لكل كمبوند ←`)}</a></p>`
+    : "";
   const areaProjects = kind === "area"
     ? `<div class="sh" id="projects"><div><h2>${ar ? `المشاريع المتاحة في ${escapeHtml(label)}` : `Available projects in ${escapeHtml(label)}`}</h2><p>${ar ? "اضغط على أي مشروع تشوف كل وحداته وأسعارها وأنظمة السداد" : "Open any project to see all its units, prices and payment plans"}</p></div></div><input type="checkbox" id="show-all" hidden><div class="pgrid lim">${matches.map((project) => projectCardHtml(project, lang)).join("")}</div>${matches.length > 12 ? `<div class="showall"><label class="more" for="show-all">${ar ? `اعرض كل المشاريع (${matches.length})` : `Show all projects (${matches.length})`}</label></div>` : ""}`
     : "";
   const body = `<style>${directoryStyles()}</style>
 <section class="dhero"><div class="dwrap"><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" ‹ ")}</p>${heroLogo}<span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span>
-<h1>${escapeHtml(editorial?.h1 || label)}</h1><p class="lead">${escapeHtml(description)}</p>
+<h1>${escapeHtml(editorial?.h1 || searchContent?.h1 || label)}</h1><p class="lead">${escapeHtml(description)}</p>${lastUpdated ? `<p class="updated">${ar ? "آخر تحديث للأسعار:" : "Prices last updated:"} <time datetime="${escapeHtml(lastUpdated.slice(0, 10))}">${escapeHtml(formatDate(lastUpdated, lang))}</time></p>` : ""}${apartmentsLink}
 ${searchMount(lang, placeholder)}
 <div class="stats">${stat(plural, ar ? "متاحة دلوقتي" : "available now")}${stat(new Intl.NumberFormat("en-EG").format(projectUnitCount), ar ? (projectUnitCount >= 3 && projectUnitCount <= 10 ? "وحدات متاحة" : "وحدة متاحة") : "available units")}${min ? stat(minFmt, ar ? "أقل سعر ظاهر" : "lowest listed") : ""}${max ? stat(formatPrice(max, lang), ar ? "أعلى سعر ظاهر" : "highest listed") : ""}</div></div></section>
 <main class="dmain">
@@ -2118,6 +2126,7 @@ ${searchMount(lang, placeholder)}
         "@type": "CollectionPage",
         name: title,
         url: `${SITE_URL}${path}`,
+        ...(lastUpdated ? { dateModified: lastUpdated } : {}),
         mainEntity: {
           "@type": "ItemList",
           numberOfItems: matches.length,
@@ -2150,6 +2159,220 @@ ${searchMount(lang, placeholder)}
             },
           ]
         : []),
+    ],
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// /ar/areas/<area>/apartments-for-sale (Nov 2026): one page per buyer search "شقق للبيع في …".
+// Same shape as the big listing portals (real units first, counts in the title, filter links,
+// internal links) plus what they lack: price per m² per project from our own inventory, a
+// written guide, FAQPage schema, the voice box and a visible "last updated" date. It lives next
+// to the area page (projects) without replacing it; each targets different searches.
+const APARTMENT_GUIDES = require("./_apartments-guide.cjs").APARTMENT_GUIDES;
+const NON_APARTMENT_TYPE = /villa|town|twin|duplex|chalet|family house|standalone|cabin|فيلا|تاون|توين|دوبلكس|شاليه/i;
+const APARTMENT_TYPE = /apartment|apt|millennial|loft|studio|typical|flat|penthouse|bed|\bbr\b|\d\s*b\b|garden|roof|شقة|شقه|استوديو|بنتهاوس|غرف/i;
+function isApartmentUnit(unit) {
+  const type = String(unit?.unit_type || "");
+  if (!type || isCommercialUnit(unit)) return false;
+  if (/penthouse|بنتهاوس/i.test(type)) return true;
+  if (NON_APARTMENT_TYPE.test(type)) return false;
+  return APARTMENT_TYPE.test(`${type} ${unit.bedrooms_text || ""}`);
+}
+function bedroomsOf(unit) {
+  const text = `${unit.bedrooms_text || ""} ${unit.unit_type || ""}`;
+  if (/studio|استوديو/i.test(text)) return 0;
+  const match = text.match(/(\d+)(?:\.0)?\s*(?:b\b|br\b|bed|غرف|غرفة)/i) || String(unit.bedrooms_text || "").match(/^\s*(\d)(?:\.0)?\s*$/);
+  const value = match ? Number(match[1]) : null;
+  return value !== null && value >= 0 && value <= 6 ? value : null;
+}
+function apartmentLabelAr(unit) {
+  const beds = bedroomsOf(unit);
+  const type = String(unit.unit_type || "");
+  const base = beds === 0 ? "استوديو" : /penthouse|بنتهاوس/i.test(type) ? "بنتهاوس" : /garden|جاردن/i.test(type) ? "شقة بجاردن" : /roof|روف/i.test(type) ? "شقة بروف" : "شقة";
+  const bedText = beds === 1 ? "غرفة نوم" : beds === 2 ? "غرفتين" : beds >= 3 ? `${beds} غرف` : "";
+  return [base, bedText].filter(Boolean).join(" ");
+}
+function unitDeliveryAr(unit) {
+  const text = String(unit.delivery_text || "");
+  if (/ready|immediate|فوري|جاهز/i.test(text)) return "استلام فوري";
+  const year = text.match(/20[2-4]\d/);
+  if (year) return `استلام ${year[0]}`;
+  const years = text.match(/(\d+(?:\.\d)?)\s*(?:years?|سن)/i);
+  if (years) return `استلام بعد ${Number(years[1]) === 1 ? "سنة" : `${years[1]} سنين`}`;
+  const months = text.match(/(\d+)\s*(?:months?|شهور|شهر)/i);
+  return months ? `استلام بعد ${months[1]} شهور` : "";
+}
+function median(values) {
+  const sorted = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
+  return sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : 0;
+}
+
+function renderApartments(projects, areaSlug, lang = "ar") {
+  const guide = APARTMENT_GUIDES[areaSlug];
+  if (lang !== "ar" || !guide) return null; // Arabic page only for now
+  const areaProjects = projects.filter((project) => hasAvailableUnits(project) && areaFor(projectLocation(project)).slug === areaSlug);
+  const rows = areaProjects.flatMap((project) => project.units
+    .filter((unit) => isApartmentUnit(unit) && numberValue(unit.starting_price) > 0)
+    .map((unit) => ({ unit, project, price: numberValue(unit.starting_price), area: numberValue(unit.area_sqm), sqm: pricePerSqm(unit) })));
+  if (rows.length < 5) return null;
+  const area = areaFor(projectLocation(rows[0].project));
+  const path = `/ar/areas/${areaSlug}/apartments-for-sale`;
+  const prices = rows.map((row) => row.price);
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const withArea = rows.filter((row) => row.area >= 20);
+  const downs = rows.map((row) => percentValue(row.unit.down_payment_text)).filter((value) => value !== null && value > 0 && value <= 50);
+  const years = rows.map((row) => yearsValue(row.unit.installments_text)).filter((value) => value && value <= 20);
+  const lastUpdated = rows.map((row) => row.unit.last_updated_at).filter((value) => value && !Number.isNaN(Date.parse(value))).sort().pop() || "";
+  const projectIds = new Set(rows.map((row) => row.project.slug));
+  const count = (test) => rows.filter(test).length;
+  const apartmentsAr = (value) => countAr(value, "شقة", "شقتين", "شقق");
+  const readyNumber = count((row) => unitDeliveryAr(row.unit) === "استلام فوري");
+  // Counted nouns ("167 شقة", "8 شقق", "شقتين") so the Arabic reads right for any number.
+  const s = {
+    count: apartmentsAr(rows.length),
+    projects: projectsAr(projectIds.size),
+    minFmt: formatPrice(min, "ar"),
+    maxFmt: formatPrice(max, "ar"),
+    minShort: priceShortAr(min),
+    medSqmFmt: fmtNum(Math.round(median(rows.map((row) => row.sqm).filter(Boolean)) / 100) * 100),
+    medArea: fmtNum(Math.round(median(withArea.map((row) => row.area)))),
+    medPriceFmt: `${priceShortAr(median(prices))} جنيه`,
+    readyCount: apartmentsAr(readyNumber),
+    under5: apartmentsAr(count((row) => row.price < 5e6)),
+    from5to10: apartmentsAr(count((row) => row.price >= 5e6 && row.price < 10e6)),
+    from10to15: apartmentsAr(count((row) => row.price >= 10e6 && row.price < 15e6)),
+    over15: apartmentsAr(count((row) => row.price >= 15e6)),
+    small: apartmentsAr(withArea.filter((row) => row.area < 100).length),
+    mid: apartmentsAr(withArea.filter((row) => row.area >= 100 && row.area <= 150).length),
+    large: apartmentsAr(withArea.filter((row) => row.area > 150).length),
+    minDown: downs.length ? `${Math.min(...downs)}%` : "5%",
+    maxYears: years.length ? yearsAr(Math.max(...years)) : "8 سنوات",
+    dateText: lastUpdated ? formatDate(lastUpdated, "ar") : "مع آخر تحديث للمخزون",
+  };
+  const title = guide.title(s);
+  const description = guide.description(s);
+  const crumbs = [
+    { name: "الرئيسية", path: "/" },
+    { name: area.ar, path: `/ar/areas/${areaSlug}` },
+    { name: "شقق للبيع", path },
+  ];
+
+  // Units: the cheapest apartment of each project first, then the next one, so the first
+  // screen shows many projects instead of 12 units from the same compound.
+  const byProject = new Map();
+  for (const row of [...rows].sort((a, b) => a.price - b.price)) {
+    const list = byProject.get(row.project.slug) || [];
+    list.push(row);
+    byProject.set(row.project.slug, list);
+  }
+  const ordered = [];
+  for (let round = 0; ordered.length < 36 && round < 4; round += 1) {
+    for (const list of byProject.values()) if (list[round] && ordered.length < 36) ordered.push(list[round]);
+  }
+  ordered.sort((a, b) => a.price - b.price);
+  const unitCard = ({ unit, project, area: sqmArea }) => {
+    const href = unitPath({ ...unit, project_slug: project.slug });
+    const label = `${apartmentLabelAr(unit)}${sqmArea ? ` ${fmtNum(sqmArea)} م²` : ""} في ${project.name}`;
+    const delivery = unitDeliveryAr(unit);
+    const down = percentValue(unit.down_payment_text);
+    const yrs = yearsValue(unit.installments_text);
+    const image = String(unit.image_url || "").split(",")[0].trim() || projectImage(project);
+    const message = encodeURIComponent(`أهلاً Tycoons، مهتم بـ ${label}\n${SITE_URL}${href}`);
+    return `<article class="pcard"${delivery === "استلام فوري" ? " data-ready" : ""}>
+<div class="pimg"><a href="${escapeHtml(href)}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(image)}" alt="${escapeHtml(`${label} — ${area.ar}`)}" loading="lazy" width="400" height="190"></a>${delivery ? `<span class="tag">${escapeHtml(delivery)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
+<div class="pbody"><h3><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></h3><p class="ploc">${escapeHtml(area.ar)} · ${escapeHtml(devDisplayName(project.developer, "ar"))}</p>
+<p class="pprice">يبدأ من <b>${escapeHtml(fmtNum(unit.starting_price))}</b> ج.م${pricePerSqm(unit) ? ` · ${escapeHtml(fmtNum(pricePerSqm(unit)))} ج.م/م²` : ""}</p>
+<div class="pmeta">${down !== null && down > 0 ? `<span>مقدم ${escapeHtml(String(down))}%</span>` : ""}${yrs ? `<span>تقسيط ${escapeHtml(yearsAr(yrs))}</span>` : ""}<span><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(project.name)}</a></span></div>
+<div class="pcta"><a class="go" href="${escapeHtml(href)}">التفاصيل والسعر</a><a class="w" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" rel="noopener">واتساب</a></div></div></article>`;
+  };
+
+  // Price per m² per project, from the listed apartments only.
+  const projectRows = [...byProject.entries()].map(([slugValue, list]) => {
+    const sqmValues = list.map((row) => row.sqm).filter(Boolean);
+    const projectDowns = list.map((row) => percentValue(row.unit.down_payment_text)).filter((value) => value !== null && value > 0);
+    return {
+      slug: slugValue, project: list[0].project, count: list.length, from: Math.min(...list.map((row) => row.price)),
+      sqm: median(sqmValues), down: projectDowns.length ? Math.min(...projectDowns) : null,
+      ready: list.some((row) => unitDeliveryAr(row.unit) === "استلام فوري"),
+    };
+  }).filter((row) => row.sqm).sort((a, b) => a.sqm - b.sqm);
+  const priceTable = `<div class="table"><table><thead><tr><th>المشروع</th><th>المطور</th><th>شقق متاحة</th><th>يبدأ من</th><th>متوسط سعر المتر</th><th>أقل مقدم</th></tr></thead><tbody>${projectRows.map((row) => `<tr><td><a href="/projects/${escapeHtml(row.slug)}">${escapeHtml(row.project.name)}</a>${row.ready ? " <small>(فيه استلام فوري)</small>" : ""}</td><td>${escapeHtml(devDisplayName(row.project.developer, "ar"))}</td><td>${escapeHtml(fmtNum(row.count))}</td><td>${escapeHtml(formatPrice(row.from, "ar"))}</td><td>${escapeHtml(fmtNum(Math.round(row.sqm / 100) * 100))} جنيه</td><td>${row.down !== null ? `${escapeHtml(String(row.down))}%` : "—"}</td></tr>`).join("")}</tbody></table></div><p class="note">سعر المتر = سعر البداية ÷ المساحة لكل شقة متاحة، والرقم في الجدول هو الوسيط لكل مشروع. أسعار بداية بالتقسيط وبتتأكد مع المطور وقت الطلب.</p>`;
+
+  // Filter links (crawlable, no JavaScript): developers with apartments here, and jumps inside the page.
+  const devCounts = new Map();
+  for (const row of rows) {
+    const key = developerKey(row.project.developer);
+    const entry = devCounts.get(key) || { name: row.project.developer, count: 0 };
+    entry.count += 1;
+    devCounts.set(key, entry);
+  }
+  const devGroups = new Map(developerGroups(areaProjects).map((group) => [group.key, group.slug]));
+  const devChips = [...devCounts.entries()].sort((a, b) => b[1].count - a[1].count).slice(0, 16)
+    .map(([key, entry]) => `<a class="dchip" href="/ar/developers/${escapeHtml(devGroups.get(key) || slugify(entry.name))}">${escapeHtml(devDisplayName(entry.name, "ar"))} <span>${escapeHtml(apartmentsAr(entry.count))}</span></a>`).join("");
+  const jumpChips = [
+    ["#units", `الشقق المتاحة (${fmtNum(rows.length)})`], ["#price-per-sqm", "سعر المتر لكل مشروع"], ["#budget", "حسب الميزانية"],
+    ["#ready", `استلام فوري (${fmtNum(readyNumber)})`], ["#installments", "التقسيط"], ["#faq", "أسئلة شائعة"],
+  ].map(([href, text]) => `<a class="dchip" href="${href}">${escapeHtml(text)}</a>`).join("");
+
+  const sectionIds = { "أسعار الشقق حسب الميزانية": "budget", "استلام فوري ولا تحت الإنشاء؟": "ready", "أنظمة السداد والتقسيط": "installments" };
+  const sections = guide.sections(s).map(([heading, paragraphs]) => `<section${sectionIds[heading] ? ` id="${sectionIds[heading]}"` : ""}><h2>${escapeHtml(heading)}</h2>${paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</section>`);
+  const faq = guide.faq(s);
+  const stat = (value, labelText) => `<div><b>${escapeHtml(value)}</b><span>${escapeHtml(labelText)}</span></div>`;
+  const body = `<style>${directoryStyles()}.answer-box{margin:22px 0 0;padding:18px 20px;border-radius:16px;background:#fffaf1;border:1px solid var(--line);color:#14352a}.dhero .updated{margin:6px 0 0;color:#d8c9a8;font-size:14px}.dhero .updated a{color:#fff;font-weight:700}.jump{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0 6px}</style>
+<section class="dhero"><div class="dwrap"><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" ‹ ")}</p><span class="eyebrow">شقق للبيع</span>
+<h1>${escapeHtml(guide.h1)}</h1><p class="lead">${escapeHtml(description)}</p>
+${lastUpdated ? `<p class="updated">آخر تحديث للأسعار: <time datetime="${escapeHtml(lastUpdated.slice(0, 10))}">${escapeHtml(formatDate(lastUpdated, "ar"))}</time></p>` : ""}
+${searchMount("ar", "مثال: شقة غرفتين في التجمع تحت 8 مليون ومقدم 5%")}
+<div class="stats">${stat(fmtNum(rows.length), "شقة متاحة")}${stat(fmtNum(projectIds.size), "مشروع")}${stat(s.minFmt, "أقل سعر ظاهر")}${stat(`${s.medSqmFmt} ج`, "متوسط سعر المتر")}</div></div></section>
+<main class="dmain">
+  <div class="prose"><p class="answer-box"><strong>الإجابة السريعة:</strong> ${escapeHtml(guide.answer(s))}</p></div>
+  ${voiceBox()}
+  <nav class="jump" aria-label="اختصارات الصفحة">${jumpChips}</nav>
+  <div class="sh" id="units"><div><h2>شقق متاحة للبيع في التجمع الخامس الآن</h2><p>مرتبة من الأرخص للأغلى — اضغط على أي شقة تشوف تفاصيلها وخطة السداد</p></div></div>
+  <input type="checkbox" id="show-all" hidden><div class="pgrid lim">${ordered.map(unitCard).join("")}</div>${ordered.length > 12 ? `<div class="showall"><label class="more" for="show-all">اعرض شقق أكتر (${ordered.length})</label></div>` : ""}
+  <div class="sh" id="price-per-sqm"><div><h2>سعر متر الشقق في كل مشروع في التجمع الخامس</h2><p>${escapeHtml(`${projectsAr(projectRows.length)} مرتبة من أقل سعر متر لأعلى سعر متر`)}</p></div></div>
+  ${priceTable}
+  <div class="sh" id="by-developer"><div><h2>شقق التجمع الخامس حسب المطور</h2></div></div><div class="dchips">${devChips}</div>
+  <div class="prose">
+  ${sections.join("\n  ")}
+  <h2 id="faq">أسئلة شائعة عن شقق للبيع في التجمع الخامس</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}
+  <h2>صفحات قريبة</h2><p><a href="/ar/areas/${escapeHtml(areaSlug)}">دليل مشاريع التجمع الخامس والقاهرة الجديدة</a> · <a href="/ar/areas/mostakbal-city">مشاريع مستقبل سيتي</a> · <a href="/guides/">كل الأدلة والمقالات</a></p>
+  <p class="note">الأرقام مبنية على الشقق الظاهرة عندنا وليست تقييمًا للسوق بالكامل. السعر النهائي والتوافر بيتأكدوا مع المطور وقت الطلب.</p></div></main>
+<div class="band"><div class="dwrap"><div><h2>عايز شقة في التجمع الخامس في حدود ميزانيتك؟</h2><p>ابعتلنا المساحة والميزانية والمنطقة، ونرشحلك أنسب 3 شقق بسعر المتر لكل واحدة.</p></div><a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>كلمنا على واتساب</span></a></div></div>`;
+  return renderPage({
+    lang: "ar",
+    title,
+    description,
+    path,
+    alternatePath: "",
+    body,
+    image: projectImage(ordered[0].project),
+    schemas: [
+      breadcrumbSchema(crumbs),
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: title,
+        url: `${SITE_URL}${path}`,
+        ...(lastUpdated ? { dateModified: lastUpdated } : {}),
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: ordered.length,
+          itemListElement: ordered.map((row, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: `${apartmentLabelAr(row.unit)} في ${row.project.name}`,
+            url: `${SITE_URL}${unitPath({ ...row.unit, project_slug: row.project.slug })}`,
+          })),
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faq.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
+      },
     ],
   });
 }
@@ -2496,6 +2719,9 @@ function notFound(lang = "ar") {
 }
 
 module.exports = {
+  renderApartments,
+  isApartmentUnit,
+  APARTMENT_PAGE_AREAS,
   GA4_TAG,
   developerGroups,
   developerKey,
