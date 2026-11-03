@@ -3,6 +3,7 @@ import {
   adminApi,
   formatPrice,
   hideLegacyDuplicates,
+  mediaImages,
   STATUS_LABELS,
   type AdminProject,
   type AdminUnit,
@@ -12,27 +13,35 @@ import {
   type WaInboxValues,
 } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
+import ProjectForm, { type NewProject } from "./ProjectForm";
+import { SearchSelect } from "./SearchSelect";
 import { Badge, Chip, EmptyState, inputClass, Modal } from "./ui";
 
+/** Bucket for units whose project name did not match any project on the site. */
+const UNMATCHED = "__unmatched__";
+
 /**
- * "وحدات واتساب": units Claude read from the WhatsApp developer groups (via Make.com) wait here.
- * Nothing shows on the site until the admin edits (if needed) and presses "وافق".
- * Also holds the on/off switch per WhatsApp group.
+ * "وحدات واتساب": units Claude read from the WhatsApp developer groups wait here.
+ * Same layout as the units tab: projects on the right, that project's WhatsApp units on the left,
+ * with the units already on the site underneath to compare. Nothing shows on the site until "وافق".
  */
 export default function WhatsAppInboxTab({ projects, onChanged }: { projects: AdminProject[]; onChanged: () => void }) {
   const { token, notify, handleError } = useAdmin();
   const [status, setStatus] = useState<WaInboxStatus>("pending");
   const [items, setItems] = useState<WaInboxItem[]>([]);
   const [matches, setMatches] = useState<Map<string, AdminUnit>>(new Map());
+  const [duplicates, setDuplicates] = useState<Record<string, number[]>>({});
   const [counts, setCounts] = useState<Record<WaInboxStatus, number>>({ pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [editing, setEditing] = useState<WaInboxItem | null>(null);
+  const [bucket, setBucket] = useState("");
   const [query, setQuery] = useState("");
   const [groupsOpen, setGroupsOpen] = useState(false);
-
   const [reloadKey, setReloadKey] = useState(0);
+  const [unitsState, setUnitsState] = useState<{ projectId: string; units: AdminUnit[] }>({ projectId: "", units: [] });
+
   const reload = () => {
     setLoading(true);
     setReloadKey((key) => key + 1);
@@ -51,6 +60,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
         if (!active) return;
         setItems(result.items);
         setMatches(new Map(result.matches.map((unit) => [unit.id, unit])));
+        setDuplicates(result.duplicates ?? {});
         setCounts(result.counts);
         setSelected(new Set());
       })
@@ -61,13 +71,47 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
     };
   }, [token, status, reloadKey, handleError]);
 
-  const visible = useMemo(() => {
+  const projectById = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
+  const itemById = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
+
+  /** Right-hand list: one row per project that has WhatsApp units (+ one row for the unmatched ones). */
+  const buckets = useMemo(() => {
+    const map = new Map<string, WaInboxItem[]>();
+    for (const item of items) {
+      const id = item.project_id && projectById.has(item.project_id) ? item.project_id : UNMATCHED;
+      map.set(id, [...(map.get(id) ?? []), item]);
+    }
     const needle = query.trim().toLowerCase();
-    if (!needle) return items;
-    return items.filter((item) =>
-      [item.project_name, item.developer, item.unit_type, item.source_group, item.location].some((value) => String(value || "").toLowerCase().includes(needle)),
-    );
-  }, [items, query]);
+    return [...map.entries()]
+      .map(([id, list]) => ({ id, list, project: projectById.get(id) ?? null }))
+      .filter(({ project, list }) =>
+        !needle ||
+        [project?.name, project?.developer, project?.area_group, ...list.map((item) => `${item.project_name} ${item.source_group}`)].some((value) =>
+          String(value || "").toLowerCase().includes(needle),
+        ),
+      )
+      .sort((a, b) => Number(b.id === UNMATCHED) - Number(a.id === UNMATCHED) || b.list.length - a.list.length);
+  }, [items, projectById, query]);
+
+  // Keep a valid bucket selected (first one by default, as the units tab keeps a project open).
+  const activeBucket = buckets.find((row) => row.id === bucket) ?? buckets[0] ?? null;
+  const activeProject = activeBucket?.project ?? null;
+  const rows = activeBucket?.list ?? [];
+
+  // Units already on the site for the open project, to compare and to pick photos from.
+  const activeProjectId = activeProject?.id ?? "";
+  useEffect(() => {
+    if (!activeProjectId) return;
+    let active = true;
+    adminApi
+      .units(token, activeProjectId)
+      .then((result) => active && setUnitsState({ projectId: activeProjectId, units: result.units }))
+      .catch(() => active && setUnitsState({ projectId: activeProjectId, units: [] }));
+    return () => {
+      active = false;
+    };
+  }, [token, activeProjectId, reloadKey]);
+  const siteUnits = unitsState.projectId === activeProjectId ? unitsState.units : [];
 
   const quickApprove = async (item: WaInboxItem) => {
     if (missing(item).length) return setEditing(item);
@@ -103,73 +147,272 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
       else next.add(id);
       return next;
     });
+  const rowIds = rows.map((item) => item.id);
+  const allChecked = rowIds.length > 0 && rowIds.every((id) => selected.has(id));
+  const pending = status === "pending";
 
   return (
-    <section className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-black">وحدات واتساب</h2>
-          <p className="text-sm text-[#5c6a62]">الوحدات اللي اتسحبت من جروبات المطورين. مفيش حاجة بتظهر على الموقع غير لما توافق عليها.</p>
+    <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
+      <aside className={`rounded-3xl border border-[#e7ddc8] bg-white p-3 ${bucket ? "hidden lg:block" : ""}`}>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="text-lg font-black">وحدات واتساب</h2>
+          <div className="flex gap-1">
+            <button onClick={reload} className="rounded-full bg-[#f1eadc] px-3 py-1.5 text-xs font-black">
+              تحديث
+            </button>
+            <button onClick={() => setGroupsOpen(true)} className="rounded-full border border-[#d8c9ab] px-3 py-1.5 text-xs font-black">
+              الجروبات
+            </button>
+          </div>
         </div>
-        <button onClick={() => setGroupsOpen(true)} className="rounded-full border border-[#d8c9ab] bg-white px-4 py-2 text-sm font-black">
-          الجروبات (تشغيل / إيقاف)
-        </button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip active={status === "pending"} onClick={() => changeStatus("pending")}>
-          مستنية موافقة ({counts.pending})
-        </Chip>
-        <Chip active={status === "approved"} onClick={() => changeStatus("approved")}>
-          اتوافق عليها ({counts.approved})
-        </Chip>
-        <Chip active={status === "rejected"} onClick={() => changeStatus("rejected")}>
-          اترفضت ({counts.rejected})
-        </Chip>
+        <div className="flex flex-wrap gap-1.5">
+          <Chip active={status === "pending"} onClick={() => changeStatus("pending")}>
+            مستنية ({counts.pending})
+          </Chip>
+          <Chip active={status === "approved"} onClick={() => changeStatus("approved")}>
+            اتوافق ({counts.approved})
+          </Chip>
+          <Chip active={status === "rejected"} onClick={() => changeStatus("rejected")}>
+            اترفض ({counts.rejected})
+          </Chip>
+        </div>
         <input
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="دور بالمشروع أو المطور أو الجروب"
-          className={`${inputClass} max-w-xs`}
+          placeholder="ابحث بالمشروع أو المطور أو الجروب…"
+          className={`${inputClass} mt-2`}
         />
-        {status === "pending" && selected.size > 0 && (
-          <button onClick={() => void reject([...selected])} className="rounded-full bg-red-50 px-4 py-2 text-sm font-black text-red-600">
-            ارفض المختار ({selected.size})
-          </button>
-        )}
-        <button onClick={reload} className="rounded-full bg-[#f1eadc] px-3 py-1.5 text-xs font-black">
-          تحديث
-        </button>
-      </div>
-
-      {loading ? (
-        <p className="py-10 text-center text-sm text-[#5c6a62]">بيحمّل…</p>
-      ) : !visible.length ? (
-        <EmptyState title={status === "pending" ? "مفيش وحدات مستنية" : "مفيش حاجة هنا"} text="أول ما مطور ينزل وحدات في الجروب هتظهر هنا." />
-      ) : (
-        <div className="grid gap-3 lg:grid-cols-2">
-          {visible.map((item) => (
-            <InboxCard
-              key={item.id}
-              item={item}
-              match={item.match_unit_id ? matches.get(item.match_unit_id) ?? null : null}
-              pending={status === "pending"}
-              busy={busyId === item.id}
-              checked={selected.has(item.id)}
-              onCheck={() => toggleSelect(item.id)}
-              onEdit={() => setEditing(item)}
-              onApprove={() => void quickApprove(item)}
-              onReject={() => void reject([item.id])}
-            />
-          ))}
+        <div className="mt-3 max-h-[calc(100vh-260px)] space-y-1 overflow-y-auto">
+          {loading && <p className="p-4 text-center text-sm font-bold text-[#5c6a62]">جاري التحميل…</p>}
+          {!loading && !buckets.length && <p className="p-4 text-center text-sm font-bold text-[#5c6a62]">مفيش وحدات هنا</p>}
+          {!loading &&
+            buckets.map(({ id, list, project }) => {
+              const active = id === activeBucket?.id;
+              const image = project ? mediaImages(project)[0] : "";
+              const dupes = list.filter((item) => duplicates[String(item.id)]?.length).length;
+              return (
+                <button
+                  key={id}
+                  onClick={() => {
+                    setBucket(id);
+                    setSelected(new Set());
+                  }}
+                  className={`flex w-full items-center gap-3 rounded-2xl p-2 text-right transition ${active ? "bg-[#0d1f18] text-white" : "hover:bg-[#f7f2ea]"}`}
+                >
+                  {id === UNMATCHED ? (
+                    <span className="grid h-12 w-16 shrink-0 place-items-center rounded-lg bg-red-50 text-[10px] font-black text-red-600">مش متطابقة</span>
+                  ) : image ? (
+                    <img src={image} alt="" loading="lazy" className="h-12 w-16 shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <span className="grid h-12 w-16 shrink-0 place-items-center rounded-lg bg-[#f1eadc] text-[10px] font-black text-[#5c6a62]">بدون صور</span>
+                  )}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-black">{project ? project.name : "مشاريع مش موجودة على الموقع"}</span>
+                    <span className={`block truncate text-xs ${active ? "text-white/70" : "text-[#5c6a62]"}`}>
+                      {project ? `${project.developer || "—"} · ${project.area_group || project.location || "—"}` : "اختار المشروع أو اعمله جديد"}
+                      {dupes ? ` · ${dupes} مكررة` : ""}
+                    </span>
+                  </span>
+                  <Badge tone={id === UNMATCHED ? "error" : "pending"}>{list.length}</Badge>
+                </button>
+              );
+            })}
         </div>
-      )}
+      </aside>
+
+      <section className={bucket ? "" : "hidden lg:block"}>
+        {!loading && !activeBucket && <EmptyState title={pending ? "مفيش وحدات مستنية" : "مفيش حاجة هنا"} text="أول ما مطور ينزل وحدات في الجروب هتظهر هنا." />}
+        {activeBucket && (
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-[#e7ddc8] bg-white">
+              <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] p-4">
+                <button onClick={() => setBucket("")} className="rounded-full bg-[#f7f2ea] px-3 py-1.5 text-sm font-bold lg:hidden">
+                  → رجوع
+                </button>
+                <div className="me-auto min-w-0">
+                  <h2 className="truncate text-xl font-black">{activeProject ? activeProject.name : "وحدات مشروعها مش موجود على الموقع"}</h2>
+                  <p className="text-xs text-[#5c6a62]">
+                    {activeProject
+                      ? `${activeProject.developer || "—"} · ${[activeProject.sub_area, activeProject.area_group].filter(Boolean).join(", ") || activeProject.location || "—"} · ${siteUnits.length} وحدة على الموقع`
+                      : "دوس «تعديل» على كل وحدة واختار مشروعها، أو اعمل المشروع جديد من نفس الشاشة."}
+                  </p>
+                </div>
+                {pending && selected.size > 0 && (
+                  <button onClick={() => void reject([...selected])} className="rounded-full bg-red-50 px-4 py-2 text-sm font-black text-red-600">
+                    ارفض المختار ({selected.size})
+                  </button>
+                )}
+              </div>
+
+              <div className="overflow-x-auto p-4">
+                <table className="w-full min-w-[900px] text-right text-sm">
+                  <thead className="text-xs font-black text-[#5c6a62]">
+                    <tr className="border-b border-[#efe7d8]">
+                      {pending && (
+                        <th className="w-8 p-2">
+                          <input
+                            type="checkbox"
+                            aria-label="تحديد الكل"
+                            checked={allChecked}
+                            onChange={() => setSelected(allChecked ? new Set() : new Set(rowIds))}
+                            className="h-4 w-4 cursor-pointer accent-[#0d1f18]"
+                          />
+                        </th>
+                      )}
+                      {!activeProject && <th className="p-2">المشروع (من الجروب)</th>}
+                      <th className="p-2">النوع</th>
+                      <th className="p-2">المساحة</th>
+                      <th className="p-2">السعر</th>
+                      <th className="p-2">المقدم / التقسيط</th>
+                      <th className="p-2">الاستلام</th>
+                      <th className="p-2">جاية من</th>
+                      <th className="p-2"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((item) => {
+                      const match = item.match_unit_id ? matches.get(item.match_unit_id) ?? null : null;
+                      const gaps = missing(item);
+                      const twins = (duplicates[String(item.id)] ?? []).map((id) => itemById.get(id)).filter(Boolean) as WaInboxItem[];
+                      return (
+                        <tr key={item.id} className={`border-b border-[#f4eee2] align-top ${selected.has(item.id) ? "bg-[#fffaf1]" : ""}`}>
+                          {pending && (
+                            <td className="p-2">
+                              <input
+                                type="checkbox"
+                                aria-label="اختيار"
+                                checked={selected.has(item.id)}
+                                onChange={() => toggleSelect(item.id)}
+                                className="mt-1 h-4 w-4 cursor-pointer accent-[#0d1f18]"
+                              />
+                            </td>
+                          )}
+                          {!activeProject && (
+                            <td className="p-2">
+                              <span className="font-black">{item.project_name || "—"}</span>
+                              <span className="block text-xs text-[#5c6a62]">{item.developer || ""}</span>
+                            </td>
+                          )}
+                          <td className="p-2">
+                            <span className="font-black">{item.unit_type || "—"}</span>
+                            <span className="block text-xs text-[#5c6a62]">{item.bedrooms_text || ""}</span>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {match && <Badge tone="gold">هتحدّث وحدة موجودة</Badge>}
+                              {twins.length > 0 && <Badge tone="pending">مكررة ×{twins.length + 1}</Badge>}
+                              {item.status === "approved" && <Badge tone="ok">اتوافق</Badge>}
+                              {item.status === "rejected" && <Badge tone="muted">اترفض</Badge>}
+                            </div>
+                          </td>
+                          <td className="p-2">{Number(item.area_sqm) ? `${Number(item.area_sqm)} م²` : "—"}</td>
+                          <td className="p-2 font-bold">
+                            {formatPrice(item.starting_price)}
+                            {match && Number(match.starting_price) > 0 && (
+                              <span className="block text-[11px] font-normal text-[#5c6a62]">الحالي: {formatPrice(match.starting_price)}</span>
+                            )}
+                          </td>
+                          <td className="p-2 text-xs text-[#5c6a62]">
+                            {item.down_payment_text || "—"}
+                            <span className="block">{item.installments_text || ""}</span>
+                          </td>
+                          <td className="p-2 text-xs text-[#5c6a62]">{item.delivery_text || "—"}</td>
+                          <td className="p-2 text-xs text-[#5c6a62]">
+                            <span className="block font-bold text-[#1b2420]">{item.source_group || "جروب"}</span>
+                            {when(item.created_at)}
+                            {twins.length > 0 && (
+                              <span className="mt-1 block text-[11px] text-amber-700">
+                                برضه في: {[...new Set(twins.map((twin) => twin.source_group || "جروب"))].join("، ")}
+                              </span>
+                            )}
+                            {pending && gaps.length > 0 && <span className="mt-1 block font-bold text-red-600">ناقص: {gaps.join("، ")}</span>}
+                          </td>
+                          <td className="p-2">
+                            {pending && (
+                              <div className="flex flex-wrap justify-end gap-1">
+                                <button onClick={() => setEditing(item)} className="rounded-lg bg-[#f7f2ea] px-2 py-1 text-xs font-black">
+                                  تعديل وصور
+                                </button>
+                                <button onClick={() => void reject([item.id])} className="rounded-lg bg-white px-2 py-1 text-xs font-black text-red-600">
+                                  ارفض
+                                </button>
+                                <button
+                                  onClick={() => void quickApprove(item)}
+                                  disabled={busyId === item.id}
+                                  className="rounded-lg bg-[#0d1f18] px-2 py-1 text-xs font-black text-white disabled:opacity-40"
+                                >
+                                  {busyId === item.id ? "…" : "وافق"}
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {activeProject && (
+              <div className="rounded-3xl border border-[#e7ddc8] bg-white p-4">
+                <h3 className="mb-2 text-base font-black">الوحدات الموجودة على الموقع في {activeProject.name}</h3>
+                {!siteUnits.length ? (
+                  <p className="p-4 text-center text-sm text-[#5c6a62]">مفيش وحدات للمشروع ده على الموقع لسه.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[720px] text-right text-sm">
+                      <thead className="text-xs font-black text-[#5c6a62]">
+                        <tr className="border-b border-[#efe7d8]">
+                          <th className="p-2">النوع</th>
+                          <th className="p-2">المساحة</th>
+                          <th className="p-2">السعر</th>
+                          <th className="p-2">المقدم / التقسيط</th>
+                          <th className="p-2">الاستلام</th>
+                          <th className="p-2">الحالة</th>
+                          <th className="p-2">صور</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {siteUnits.map((unit) => {
+                          const touched = rows.some((item) => item.match_unit_id === unit.id);
+                          return (
+                            <tr key={unit.id} className={`border-b border-[#f4eee2] ${touched ? "bg-[#fffaf1]" : ""}`}>
+                              <td className="p-2">
+                                <span className="font-black">{unit.unit_type || "—"}</span>
+                                <span className="block text-xs text-[#5c6a62]">{unit.bedrooms_text || ""}</span>
+                                {touched && <Badge tone="gold">جاله تحديث من واتساب</Badge>}
+                              </td>
+                              <td className="p-2">{unit.area_sqm ? `${unit.area_sqm} م²` : "—"}</td>
+                              <td className="p-2 font-bold">{formatPrice(unit.starting_price)}</td>
+                              <td className="p-2 text-xs text-[#5c6a62]">
+                                {unit.down_payment_text || "—"}
+                                <span className="block">{unit.installments_text || ""}</span>
+                              </td>
+                              <td className="p-2 text-xs text-[#5c6a62]">{unit.delivery_text || "—"}</td>
+                              <td className="p-2">
+                                <Badge tone={unit.availability_status === "available" ? "ok" : "muted"}>
+                                  {STATUS_LABELS[String(unit.availability_status)] ?? unit.availability_status}
+                                </Badge>
+                              </td>
+                              <td className="p-2 text-xs">{mediaImages(unit).length || "—"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       {editing && (
         <EditDialog
           item={editing}
           projects={projects}
+          onProjectCreated={onChanged}
           onClose={() => setEditing(null)}
           onDone={async (message) => {
             setEditing(null);
@@ -180,7 +423,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
         />
       )}
       {groupsOpen && <GroupsDialog onClose={() => setGroupsOpen(false)} />}
-    </section>
+    </div>
   );
 }
 
@@ -199,98 +442,6 @@ function when(iso: string | null) {
   return new Date(iso).toLocaleString("ar-EG", { timeZone: "Africa/Cairo", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
 
-function InboxCard({
-  item,
-  match,
-  pending,
-  busy,
-  checked,
-  onCheck,
-  onEdit,
-  onApprove,
-  onReject,
-}: {
-  item: WaInboxItem;
-  match: AdminUnit | null;
-  pending: boolean;
-  busy: boolean;
-  checked: boolean;
-  onCheck: () => void;
-  onEdit: () => void;
-  onApprove: () => void;
-  onReject: () => void;
-}) {
-  const gaps = missing(item);
-  const rows: [string, string | null][] = [
-    ["الغرف", item.bedrooms_text],
-    ["المقدم", item.down_payment_text],
-    ["التقسيط", item.installments_text],
-    ["الاستلام", item.delivery_text],
-    ["التشطيب", item.finishing],
-    ["المنطقة", item.location],
-  ];
-  return (
-    <article className={`rounded-3xl border bg-white p-4 ${checked ? "border-[#a3854e]" : "border-[#e7ddc8]"}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            {pending && <input type="checkbox" checked={checked} onChange={onCheck} aria-label="اختيار" />}
-            <h3 className="truncate text-lg font-black">{item.project_name || "مشروع مش معروف"}</h3>
-            {!item.project_id && <Badge tone="error">مش متطابق مع مشروع على الموقع</Badge>}
-            {match && <Badge tone="gold">هتحدّث وحدة موجودة</Badge>}
-            {item.status === "approved" && <Badge tone="ok">اتوافق</Badge>}
-            {item.status === "rejected" && <Badge tone="muted">اترفض</Badge>}
-          </div>
-          <p className="text-sm text-[#5c6a62]">{item.developer || "—"}</p>
-        </div>
-        <div className="shrink-0 text-left">
-          <p className="text-lg font-black">{formatPrice(item.starting_price)}</p>
-          <p className="text-sm font-bold">
-            {item.unit_type || "—"} · {Number(item.area_sqm) ? `${Number(item.area_sqm)} م²` : "—"}
-          </p>
-        </div>
-      </div>
-
-      <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
-        {rows.map(([label, value]) => (
-          <div key={label} className="min-w-0">
-            <dt className="text-[11px] font-bold text-[#5c6a62]">{label}</dt>
-            <dd className="truncate">{value || "—"}</dd>
-          </div>
-        ))}
-      </dl>
-      {item.description && <p className="mt-2 line-clamp-2 text-sm text-[#3d4a43]">{item.description}</p>}
-
-      {match && (
-        <p className="mt-2 rounded-xl bg-[#fbf8f2] px-3 py-2 text-xs">
-          الموجود دلوقتي: {match.unit_type} {match.area_sqm} م² — {formatPrice(match.starting_price)} ({STATUS_LABELS[match.availability_status || ""] || match.availability_status})
-        </p>
-      )}
-      {pending && gaps.length > 0 && <p className="mt-2 text-xs font-bold text-red-600">ناقص: {gaps.join("، ")} — دوس تعديل وكمّله</p>}
-
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-[11px] text-[#5c6a62]">
-          {item.source_group || "جروب"} · {when(item.created_at)}
-          {item.image_url ? " · فيه صورة في الجروب" : ""}
-        </p>
-        {pending && (
-          <div className="flex gap-2">
-            <button onClick={onEdit} className="rounded-full bg-[#f1eadc] px-4 py-2 text-sm font-black">
-              ✏️ تعديل
-            </button>
-            <button onClick={onReject} className="rounded-full bg-red-50 px-4 py-2 text-sm font-black text-red-600">
-              ❌ ارفض
-            </button>
-            <button onClick={onApprove} disabled={busy} className="rounded-full bg-[#0d1f18] px-4 py-2 text-sm font-black text-white disabled:opacity-40">
-              {busy ? "بيحفظ…" : "✅ وافق"}
-            </button>
-          </div>
-        )}
-      </div>
-    </article>
-  );
-}
-
 const TEXT_INPUTS: { key: keyof WaInboxValues; label: string; placeholder: string }[] = [
   { key: "unit_type", label: "النوع *", placeholder: "Apartment / Villa / Chalet" },
   { key: "bedrooms_text", label: "الغرف", placeholder: "3 Bedrooms" },
@@ -298,22 +449,24 @@ const TEXT_INPUTS: { key: keyof WaInboxValues; label: string; placeholder: strin
   { key: "installments_text", label: "التقسيط", placeholder: "8 years" },
   { key: "delivery_text", label: "الاستلام", placeholder: "2029" },
   { key: "finishing", label: "التشطيب", placeholder: "Fully Finished" },
-  { key: "location", label: "المنطقة", placeholder: "New Cairo" },
+  { key: "location", label: "المنطقة (للوحدة)", placeholder: "سيبها فاضية وتاخد منطقة المشروع" },
 ];
 
-/** Every field of the unit in one form: edit once, then save or approve once. */
+/** Every field of the unit in one form, plus the project's photos to attach: edit once, then save or approve once. */
 function EditDialog({
   item,
   projects,
+  onProjectCreated,
   onClose,
   onDone,
 }: {
   item: WaInboxItem;
   projects: AdminProject[];
+  onProjectCreated: () => void;
   onClose: () => void;
   onDone: (message: string) => Promise<void>;
 }) {
-  const { token, handleError } = useAdmin();
+  const { token, handleError, notify } = useAdmin();
   const [values, setValues] = useState<WaInboxValues>({
     project_id: item.project_id ?? "",
     location: item.location ?? "",
@@ -329,21 +482,29 @@ function EditDialog({
   });
   const [replaceId, setReplaceId] = useState(item.match_unit_id ?? "");
   const [availability, setAvailability] = useState<"available" | "new_launch">("available");
-  const [projectQuery, setProjectQuery] = useState("");
   const [unitsState, setUnitsState] = useState<{ projectId: string; units: AdminUnit[] }>({ projectId: "", units: [] });
+  const [images, setImages] = useState<string[]>([]);
+  const [extraProjects, setExtraProjects] = useState<AdminProject[]>([]);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const allProjects = useMemo(() => [...extraProjects, ...projects.filter((row) => !extraProjects.some((extra) => extra.id === row.id))], [projects, extraProjects]);
   const projectId = String(values.project_id || "");
-  const liveProjects = useMemo(() => hideLegacyDuplicates(projects), [projects]);
-  const project = liveProjects.find((row) => row.id === projectId) ?? projects.find((row) => row.id === projectId) ?? null;
-  const projectOptions = useMemo(() => {
-    const needle = projectQuery.trim().toLowerCase();
-    const list = liveProjects.filter((row) => !needle || `${row.name} ${row.developer ?? ""}`.toLowerCase().includes(needle));
-    return list.slice(0, needle ? 50 : 400);
-  }, [liveProjects, projectQuery]);
+  const liveProjects = useMemo(() => hideLegacyDuplicates(allProjects), [allProjects]);
+  const project = allProjects.find((row) => row.id === projectId) ?? null;
+  const projectOptions = useMemo(
+    () =>
+      [...(project && !liveProjects.includes(project) ? [project] : []), ...liveProjects].map((row) => ({
+        value: row.id,
+        label: `${row.name} — ${row.developer ?? ""}`,
+        hint: row.area_group || row.location || "",
+      })),
+    [liveProjects, project],
+  );
 
-  // Units of the chosen project, so the admin can pick which one this replaces (or none = new unit).
-  const units = unitsState.projectId === projectId ? unitsState.units : [];
+  // Units of the chosen project: which one this replaces (or none = new unit) and their photos.
+  const units = useMemo(() => (unitsState.projectId === projectId ? unitsState.units : []), [unitsState, projectId]);
   useEffect(() => {
     if (!projectId) return;
     let active = true;
@@ -356,14 +517,27 @@ function EditDialog({
     };
   }, [token, projectId]);
 
+  /** Photos already on Supabase for this project: the project's own, then each unit's. */
+  const photoGroups = useMemo(() => {
+    const groups: { label: string; urls: string[] }[] = [];
+    if (project) groups.push({ label: `صور المشروع (${project.name})`, urls: mediaImages(project) });
+    for (const unit of units) {
+      const urls = mediaImages(unit).filter((url) => !groups.some((group) => group.urls.includes(url)));
+      if (urls.length) groups.push({ label: `${unit.unit_type || "وحدة"}${unit.area_sqm ? ` ${unit.area_sqm} م²` : ""}`, urls });
+    }
+    return groups.filter((group) => group.urls.length);
+  }, [project, units]);
+  const replacing = units.find((unit) => unit.id === replaceId) ?? null;
+
   const set = (key: keyof WaInboxValues, value: string) => setValues((current) => ({ ...current, [key]: value }));
+  const toggleImage = (url: string) => setImages((current) => (current.includes(url) ? current.filter((value) => value !== url) : [...current, url]));
   const gaps = missing({ project_id: projectId || null, unit_type: String(values.unit_type || ""), area_sqm: values.area_sqm ?? null, starting_price: values.starting_price ?? null });
 
   const submit = async (approve: boolean) => {
     setBusy(true);
     try {
       if (approve) {
-        const result = await adminApi.waInboxApprove(token, item.id, values, replaceId, availability);
+        const result = await adminApi.waInboxApprove(token, item.id, values, replaceId, availability, images);
         await onDone(result.action === "update" ? "اتحدثت الوحدة الموجودة على الموقع" : "اتضافت وحدة جديدة على الموقع");
       } else {
         await adminApi.waInboxSave(token, item.id, values);
@@ -376,44 +550,57 @@ function EditDialog({
     }
   };
 
+  const createProject = async (form: NewProject) => {
+    setCreating(true);
+    try {
+      await adminApi.projectCreate(token, form);
+      const data = await adminApi.projects(token);
+      const created = data.projects.find((row) => row.name === form.name.trim() && row.area_group === form.area_group);
+      if (created) {
+        setExtraProjects([created]);
+        set("project_id", created.id);
+        setReplaceId("");
+        setImages([]);
+      }
+      setNewProjectOpen(false);
+      notify(`اتعمل مشروع ${form.name} — كمّل الوحدة ووافق`);
+      onProjectCreated();
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <Modal title="تعديل الوحدة قبل الموافقة" onClose={onClose} wide>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm sm:col-span-2">
+        <div className="block text-sm sm:col-span-2">
           <span className="mb-1 block font-bold">المشروع *</span>
-          <input
-            type="search"
-            value={projectQuery}
-            onChange={(event) => setProjectQuery(event.target.value)}
-            placeholder={item.project_name ? `اللي جه من الجروب: ${item.project_name} — دور هنا لو عايز تغيّره` : "دور على المشروع"}
-            className={`${inputClass} mb-2`}
-          />
-          <select
-            value={projectId}
-            onChange={(event) => {
-              set("project_id", event.target.value);
-              setReplaceId("");
-            }}
-            className={inputClass}
-          >
-            <option value="">— اختار المشروع —</option>
-            {project && !projectOptions.some((row) => row.id === project.id) && (
-              <option value={project.id}>
-                {project.name} — {project.developer}
-              </option>
-            )}
-            {projectOptions.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.name} — {row.developer}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <div className="min-w-0 flex-1">
+              <SearchSelect
+                options={projectOptions}
+                value={projectId}
+                onChange={(next) => {
+                  set("project_id", next);
+                  setReplaceId("");
+                  setImages([]);
+                }}
+                placeholder={item.project_name ? `اللي جه من الجروب: ${item.project_name}` : "اختار المشروع"}
+                dir="ltr"
+              />
+            </div>
+            <button type="button" onClick={() => setNewProjectOpen(true)} className="shrink-0 rounded-xl border border-[#d8c9ab] px-3 py-2 text-xs font-black text-[#8a6630]">
+              + مشروع جديد
+            </button>
+          </div>
           {!projectId && item.project_name && (
             <span className="mt-1 block text-xs text-red-600">
-              «{item.project_name}» مش موجود على الموقع. اختاره من القايمة، ولو مشروع جديد ضيفه الأول من تابة المشاريع.
+              «{item.project_name}» مش موجود على الموقع. اختاره من القايمة لو موجود باسم تاني، أو دوس «+ مشروع جديد».
             </span>
           )}
-        </label>
+        </div>
 
         {TEXT_INPUTS.map(({ key, label, placeholder }) => (
           <label key={key} className="block text-sm">
@@ -460,6 +647,58 @@ function EditDialog({
             ))}
           </select>
         </label>
+
+        <div className="sm:col-span-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-bold">صور الوحدة (من الصور اللي على Supabase)</span>
+            {images.length > 0 && (
+              <button type="button" onClick={() => setImages([])} className="text-xs font-bold text-[#8a6630] underline">
+                شيل الاختيار ({images.length})
+              </button>
+            )}
+          </div>
+          {!projectId ? (
+            <p className="rounded-xl bg-[#f7f2ea] p-3 text-xs text-[#5c6a62]">اختار المشروع الأول عشان تظهر صوره.</p>
+          ) : !photoGroups.length ? (
+            <p className="rounded-xl bg-[#f7f2ea] p-3 text-xs text-[#5c6a62]">المشروع ده مافيهوش صور لسه. ارفعها من تابة الصور، والوحدة هتعرض صور المشروع تلقائيًا.</p>
+          ) : (
+            <div className="space-y-3 rounded-2xl border border-[#efe6d4] p-3">
+              {photoGroups.map((group) => (
+                <div key={group.label}>
+                  <p className="mb-1 text-xs font-black text-[#5c6a62]">{group.label}</p>
+                  <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                    {group.urls.map((url) => {
+                      const order = images.indexOf(url);
+                      return (
+                        <button
+                          type="button"
+                          key={url}
+                          onClick={() => toggleImage(url)}
+                          className={`relative overflow-hidden rounded-lg border-2 ${order >= 0 ? "border-[#a3854e]" : "border-transparent"}`}
+                        >
+                          <img src={url} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
+                          {order >= 0 && (
+                            <span className="absolute right-1 top-1 rounded-full bg-[#0d1f18] px-1.5 text-[10px] font-black text-white">
+                              {order === 0 ? "غلاف" : order + 1}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              <p className="text-[11px] text-[#5c6a62]">
+                أول صورة تختارها بتبقى الغلاف.{" "}
+                {replacing
+                  ? images.length
+                    ? "الصور دي هتحل محل صور الوحدة الحالية."
+                    : `لو ماختارتش صور، الوحدة الحالية هتفضل بصورها (${mediaImages(replacing).length}).`
+                  : "لو ماختارتش صور، الوحدة هتعرض صور المشروع تلقائيًا."}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
 
       {gaps.length > 0 && <p className="mt-3 text-sm font-bold text-red-600">لازم تكمّل: {gaps.join("، ")} قبل الموافقة.</p>}
@@ -479,11 +718,21 @@ function EditDialog({
           {busy ? "بيحفظ…" : "✅ احفظ ووافق"}
         </button>
       </div>
+
+      {newProjectOpen && (
+        <ProjectForm
+          projects={projects}
+          initial={{ name: item.project_name ?? "", developer: item.developer ?? "", area_group: item.area_group ?? "" }}
+          busy={creating}
+          onCancel={() => setNewProjectOpen(false)}
+          onSubmit={(form) => void createProject(form)}
+        />
+      )}
     </Modal>
   );
 }
 
-/** On/off per WhatsApp group. Off = Make skips the group (no AI cost, nothing reaches this tab). */
+/** On/off per WhatsApp group. Off = the group's messages are skipped (no AI cost, nothing reaches this tab). */
 function GroupsDialog({ onClose }: { onClose: () => void }) {
   const { token, handleError } = useAdmin();
   const [groups, setGroups] = useState<WaGroup[] | null>(null);

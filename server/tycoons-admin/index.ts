@@ -39,7 +39,9 @@ const FILE_RULES: Record<string, { types: Record<string, string>; maxBytes: numb
 const UNIT_TEXT_FIELDS = ["unit_type", "bedrooms_text", "down_payment_text", "installments_text", "delivery_text", "finishing", "description", "location"] as const;
 const UNIT_STATUSES = ["available", "sold", "not_confirmed", "review_only", "new_launch"];
 const MEDIA_FIELDS = ["image_url", "gallery_urls", "video_url", "brochure_url"] as const;
-const PROJECT_COLUMNS = "id,name,slug,developer,location,image_url,gallery_urls,video_url,brochure_url,description,hero_text,seo_title,seo_description,down_payment_text,installments_text,delivery_text,created_at,last_updated_at";
+/** The 9 main areas (same list the WhatsApp intake uses). */
+const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"];
+const PROJECT_COLUMNS = "id,name,slug,developer,location,area_group,sub_area,image_url,gallery_urls,video_url,brochure_url,description,hero_text,seo_title,seo_description,down_payment_text,installments_text,delivery_text,created_at,last_updated_at";
 const UNIT_COLUMNS =
   "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,video_url,brochure_url,created_at,last_updated_at";
 
@@ -816,14 +818,40 @@ async function uniqueSlug(base: string) {
   return `${root}-${Date.now().toString(36)}`;
 }
 
+function cleanAreaGroup(value: unknown) {
+  const group = text(value);
+  if (!group) return null;
+  if (!AREA_GROUPS.includes(group)) throw new HttpError(400, "area_group_invalid");
+  return group;
+}
+
+/**
+ * Developer names come from public.developers so the same company is never written twice.
+ * A name (or alias) already in the table -> its exact name. allowNew -> a new row is added.
+ */
+async function canonicalDeveloper(value: unknown, allowNew: boolean) {
+  const name = text(value).slice(0, 200);
+  if (!name) throw new HttpError(400, "developer_required");
+  const rows = await readAll<Json & { slug: string; name: string }>("developers", "slug,name,aliases", "slug");
+  const key = slugify(name);
+  const row = rows.find((item) => slugify(item.name) === key || item.slug === key
+    || (Array.isArray(item.aliases) && (item.aliases as unknown[]).some((alias) => slugify(alias) === key)));
+  if (row) return row.name;
+  if (!allowNew) throw new HttpError(400, "developer_unknown");
+  fail((await db.from("developers").insert({ slug: key, name, aliases: [name] })).error);
+  return name;
+}
+
 async function projectCreate(user: AdminUser, body: Json) {
   const values = (body.values as Json) ?? {};
   const name = text(values.name).slice(0, 200);
-  const developer = text(values.developer).slice(0, 200);
-  const location = text(values.location).slice(0, 200);
   if (!name) throw new HttpError(400, "project_name_required");
-  if (!developer) throw new HttpError(400, "developer_required");
+  const areaGroup = cleanAreaGroup(values.area_group);
+  const subArea = text(values.sub_area).slice(0, 120) || null;
+  // New form: main area + sub area. Old callers still send location only.
+  const location = text(values.location).slice(0, 200) || (areaGroup ? (subArea ? `${subArea}, ${areaGroup}` : areaGroup) : "");
   if (!location) throw new HttpError(400, "location_required");
+  const developer = await canonicalDeveloper(values.developer, values.new_developer === true);
 
   const { data: twins } = await db.from("projects").select("id").ilike("name", name).ilike("developer", developer).limit(1);
   if (twins?.length) throw new HttpError(409, "project_exists");
@@ -835,6 +863,8 @@ async function projectCreate(user: AdminUser, body: Json) {
     name,
     developer,
     location,
+    area_group: areaGroup,
+    sub_area: subArea,
     slug,
     status: "available",
     description: description || `${name} من ${developer} في ${location}. تعرض الصفحة أحدث الوحدات والأسعار المسجلة لدى Tycoons مع ضرورة تأكيد التوفر وقت الطلب.`,
@@ -892,9 +922,9 @@ async function unitDelete(user: AdminUser, body: Json) {
 
 // ---------- projects: edit / delete ----------
 
-const PROJECT_EDIT_FIELDS = ["name", "developer", "location", "description", "hero_text", "seo_title", "seo_description", "down_payment_text", "installments_text", "delivery_text"] as const;
+const PROJECT_EDIT_FIELDS = ["name", "developer", "location", "area_group", "sub_area", "description", "hero_text", "seo_title", "seo_description", "down_payment_text", "installments_text", "delivery_text"] as const;
 const PROJECT_FIELD_LABELS: Record<string, string> = {
-  name: "الاسم", developer: "المطور", location: "المنطقة", description: "الوصف", hero_text: "النص التعريفي",
+  name: "الاسم", developer: "المطور", location: "المنطقة", area_group: "المنطقة الرئيسية", sub_area: "المنطقة الفرعية", description: "الوصف", hero_text: "النص التعريفي",
   seo_title: "عنوان جوجل", seo_description: "وصف جوجل", down_payment_text: "المقدم", installments_text: "التقسيط", delivery_text: "الاستلام",
 };
 
@@ -908,8 +938,10 @@ async function projectUpdate(user: AdminUser, body: Json) {
   for (const key of PROJECT_EDIT_FIELDS) {
     if (!(key in input)) continue;
     const limit = key === "description" ? 6000 : key === "seo_description" ? 320 : 300;
-    const value = text(input[key]).slice(0, limit);
+    let value = text(input[key]).slice(0, limit);
     if ((key === "name" || key === "developer" || key === "location") && !value) throw new HttpError(400, `${key}_required`);
+    if (key === "area_group") value = cleanAreaGroup(value) ?? "";
+    if (key === "developer" && normalise(project.developer) !== normalise(value)) value = await canonicalDeveloper(value, input.new_developer === true);
     if (normalise(project[key]) !== normalise(value)) changed[key] = value || null;
   }
   if (!Object.keys(changed).length) return { applied: false, pending: false, unchanged: true };

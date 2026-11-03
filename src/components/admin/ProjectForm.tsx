@@ -1,30 +1,37 @@
 import { useState } from "react";
+import { areaLabel, type AdminProject, type NewProjectValues } from "../../lib/adminApi";
+import { AreaFields, DeveloperSelect } from "./SearchSelect";
 import { Modal, inputClass } from "./ui";
 
-export interface NewProject {
-  name: string;
-  developer: string;
-  location: string;
-  description: string;
-}
+export type NewProject = NewProjectValues;
 
-const FIELDS: { key: keyof NewProject; label: string; placeholder: string; required?: boolean }[] = [
-  { key: "name", label: "اسم المشروع", placeholder: "Mountain View Aliva", required: true },
-  { key: "developer", label: "المطور", placeholder: "Mountain View", required: true },
-  { key: "location", label: "المنطقة", placeholder: "Mostakbal City", required: true },
-];
-
+/**
+ * New project: the developer and the area are picked from lists (with search), so the same
+ * company or area is never written two ways. `initial` pre-fills it (e.g. from a WhatsApp unit).
+ */
 export default function ProjectForm({
+  projects,
+  initial,
   busy,
   onCancel,
   onSubmit,
 }: {
+  projects: AdminProject[];
+  initial?: Partial<NewProject>;
   busy: boolean;
   onCancel: () => void;
   onSubmit: (values: NewProject) => void;
 }) {
-  const [values, setValues] = useState<NewProject>({ name: "", developer: "", location: "", description: "" });
-  const ready = values.name.trim() && values.developer.trim() && values.location.trim();
+  const [values, setValues] = useState<NewProject>({
+    name: initial?.name ?? "",
+    developer: initial?.developer ?? "",
+    new_developer: initial?.new_developer ?? false,
+    area_group: initial?.area_group ?? "",
+    sub_area: initial?.sub_area ?? "",
+    description: initial?.description ?? "",
+  });
+  const ready = values.name.trim() && values.developer.trim() && values.area_group;
+  const twin = projects.find((project) => project.name.trim().toLowerCase() === values.name.trim().toLowerCase());
 
   return (
     <Modal title="مشروع جديد" onClose={onCancel}>
@@ -35,21 +42,36 @@ export default function ProjectForm({
         }}
       >
         <div className="grid gap-3">
-          {FIELDS.map(({ key, label, placeholder, required }) => (
-            <label key={key} className="block text-sm">
-              <span className="mb-1 block font-bold">
-                {label}
-                {required ? " *" : ""}
-              </span>
-              <input
-                value={values[key]}
-                onChange={(event) => setValues({ ...values, [key]: event.target.value })}
-                placeholder={placeholder}
-                required={required}
-                className={inputClass}
-              />
-            </label>
-          ))}
+          <label className="block text-sm">
+            <span className="mb-1 block font-bold">اسم المشروع *</span>
+            <input
+              value={values.name}
+              onChange={(event) => setValues({ ...values, name: event.target.value })}
+              placeholder="Mountain View Aliva"
+              required
+              className={inputClass}
+              dir="ltr"
+            />
+            {twin && <span className="mt-1 block text-xs font-bold text-red-600">فيه مشروع بنفس الاسم: {twin.name} — {twin.developer}. اتأكد إنه مش نفسه.</span>}
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-bold">المطور *</span>
+            <DeveloperSelect value={values.developer} onChange={(developer, isNew) => setValues({ ...values, developer, new_developer: isNew })} />
+            {values.new_developer && <span className="mt-1 block text-xs text-[#8a6630]">«{values.developer}» هيتضاف كمطور جديد في تابة المطورين.</span>}
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <AreaFields
+              projects={projects}
+              group={values.area_group}
+              sub={values.sub_area}
+              onChange={(area_group, sub_area) => setValues({ ...values, area_group, sub_area })}
+            />
+          </div>
+          {values.area_group && (
+            <p className="text-xs text-[#5c6a62]">
+              هيظهر على الموقع: <b dir="ltr">{areaLabel(values.area_group, values.sub_area)}</b>
+            </p>
+          )}
           <label className="block text-sm">
             <span className="mb-1 block font-bold">وصف قصير (اختياري)</span>
             <textarea
