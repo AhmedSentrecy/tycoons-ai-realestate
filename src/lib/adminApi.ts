@@ -52,8 +52,6 @@ export interface AdminProject extends MediaFields {
   delivery_text?: string | null;
   /** Default finishing of the project / phase (units without one take it). */
   finishing?: string | null;
-  /** New project kept off the public site (with its units) until its first article is published. */
-  awaiting_article?: boolean;
   created_at?: string | null;
   last_updated_at?: string | null;
 }
