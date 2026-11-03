@@ -10,6 +10,7 @@ const {
   renderProject,
   renderUnit,
   renderCollection,
+  renderApartments,
   renderGuide,
   renderEditorialArticle,
   renderStaticPage,
@@ -180,7 +181,11 @@ exports.handler = async function handler(event) {
         }
         html = renderUnit(projects, slug, "ar");
       }
-      if (type === "area") {
+      // /ar/areas/<area>/apartments-for-sale: the apartments page next to the area guide.
+      const apartmentsRoute = type === "area" ? slug.match(/^([a-z0-9-]+)\/apartments-for-sale$/) : null;
+      if (apartmentsRoute) {
+        html = renderApartments(projects, apartmentsRoute[1], lang);
+      } else if (type === "area") {
         const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
         html = renderCollection(projects, "area", slug, lang, guides);
       }

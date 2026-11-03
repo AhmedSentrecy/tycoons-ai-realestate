@@ -2,7 +2,7 @@
 
 // Long-form area guides for New Cairo, the North Coast and Sheikh Zayed (29 Oct 2026).
 // Same shape as AREA_SEARCH_CONTENT["mostakbal-city"] in _seo-utils.cjs:
-//   { ar|en: { title(), description(), map, sections: [[heading, paragraphs[]]], faq: [[q, a]] } }
+//   { ar|en: { title(), h1?, description(), map, sections: [[heading, paragraphs[]]], faq: [[q, a]] } }
 // Facts researched 29 Oct 2026 (government announcements, master developers, transport ministry
 // statements). Prices, payment plans and project counts come from Tycoons' own inventory on that
 // date and are written as "around"; the live list under each guide is always the current one.
@@ -11,6 +11,7 @@
 const NEW_CAIRO = {
   ar: {
     title: ({ plural }) => `مشاريع التجمع الخامس 2026 — الأسعار و${plural}`,
+    h1: "مشاريع التجمع الخامس والقاهرة الجديدة 2026",
     description: ({ minFmt, plural }) => `دليل القاهرة الجديدة والتجمع الخامس 2026: المناطق والطرق والمونوريل وأسعار المتر، و${plural} متاحة بأسعار من ${minFmt} ومقدمات من 3%.`,
     map: { heading: "خريطة القاهرة الجديدة والتجمع الخامس", query: "New Cairo, Cairo Governorate, Egypt", locality: "New Cairo" },
     sections: [
@@ -103,6 +104,7 @@ const NEW_CAIRO = {
   },
   en: {
     title: ({ plural }) => `New Cairo Projects 2026 — Prices & ${plural}`,
+    h1: "New Cairo & Fifth Settlement Projects 2026",
     description: ({ minFmt, plural }) => `New Cairo & Fifth Settlement guide 2026: districts, roads, monorail, price per m² and ${plural} from ${minFmt}, with plans from 3% down.`,
     map: { heading: "New Cairo map", query: "New Cairo, Cairo Governorate, Egypt", locality: "New Cairo" },
     sections: [
