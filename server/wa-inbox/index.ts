@@ -141,12 +141,27 @@ async function matchUnit(projectId: string, unitType: string, area: number | nul
 
 // ---------- Make.com ----------
 
-async function track(body: Json) {
+/** Group subject straight from WAHA (GOWS answers Name, WEBJS answers subject). */
+async function wahaGroupName(req: Request, groupId: string): Promise<string | null> {
+  const key = text(req.headers.get("x-waha-key"));
+  if (!key) return null;
+  const { data } = await db.from("media_admin_settings").select("value").eq("key", "wa_waha_base_url").maybeSingle();
+  const base = text(data?.value).replace(/\/+$/, "");
+  if (!/^https?:\/\//i.test(base)) return null;
+  const response = await fetch(`${base}/api/default/groups/${encodeURIComponent(groupId)}`, { headers: { "X-Api-Key": key }, signal: AbortSignal.timeout(8000) }).catch(() => null);
+  if (!response?.ok) return null;
+  const group = (await response.json().catch(() => ({}))) as Json;
+  return text(group.subject || group.Name || group.name || (group.groupMetadata as Json | undefined)?.subject).slice(0, 300) || null;
+}
+
+async function track(req: Request, body: Json) {
   const groupId = text(body.group_id).slice(0, 200);
   if (!groupId) throw new HttpError(400, "group_id_required");
-  const name = text(body.group_name).slice(0, 300) || null;
+  const given = text(body.group_name).slice(0, 300);
+  let name: string | null = given && given !== groupId ? given : null;
   const { data: existing, error } = await db.from("wa_groups").select("group_id,name,track,messages").eq("group_id", groupId).maybeSingle();
   fail(error);
+  if (!name && !existing?.name) name = await wahaGroupName(req, groupId);
   if (!existing) {
     fail((await db.from("wa_groups").insert({ group_id: groupId, name, track: true, messages: 1 })).error);
     return { track: true, new_group: true };
@@ -170,8 +185,9 @@ async function intake(body: Json) {
   if (!values.unit_type && !values.project_name) return { stored: false, reason: "empty" };
   // Groups switched off in the admin are ignored even if Make still sends them.
   if (values.source_group_id) {
-    const { data: group } = await db.from("wa_groups").select("track").eq("group_id", values.source_group_id).maybeSingle();
+    const { data: group } = await db.from("wa_groups").select("track,name").eq("group_id", values.source_group_id).maybeSingle();
     if (group && group.track === false) return { stored: false, reason: "group_off" };
+    if (!values.source_group && group?.name) values.source_group = group.name;
   }
 
   const projects = await allProjects();
@@ -366,7 +382,7 @@ Deno.serve(async (req: Request) => {
     const action = text(body.action);
     if (action === "track" || action === "intake" || action === "intake_batch") {
       await requireIntake(req);
-      if (action === "track") return reply(await track(body));
+      if (action === "track") return reply(await track(req, body));
       return reply(action === "intake" ? await intake(body) : await intakeBatch(body));
     }
     const user = await requireUser(req);
