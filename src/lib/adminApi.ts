@@ -465,7 +465,7 @@ export const adminApi = {
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
     call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
   waInbox: (token: string, status: WaInboxStatus) =>
-    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]> }>("list", { status }, token, WA_INBOX_API),
+    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string> }>("list", { status }, token, WA_INBOX_API),
   waInboxSave: (token: string, id: number, values: WaInboxValues) =>
     call<{ item: WaInboxItem }>("save", { id, values }, token, WA_INBOX_API),
   waInboxApprove: (
@@ -489,6 +489,9 @@ export const adminApi = {
 };
 
 export type WaInboxStatus = "pending" | "approved" | "rejected";
+/** Where a detail the WhatsApp message left out was filled from. */
+export type WaFillSource = "unit" | "project" | "units";
+export const WA_FILL_LABELS: Record<WaFillSource, string> = { unit: "من الوحدة الحالية", project: "من بيانات المشروع", units: "من وحدات المشروع" };
 
 /** The 9 main areas: projects.area_group, the WhatsApp intake and the area dropdowns all use this list. */
 export const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"] as const;
