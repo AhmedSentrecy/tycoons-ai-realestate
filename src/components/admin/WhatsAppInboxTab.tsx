@@ -30,7 +30,7 @@ const UNMATCHED = "__unmatched__";
  * Same layout as the units tab: projects on the right, that project's WhatsApp units on the left,
  * with the units already on the site underneath to compare. Nothing shows on the site until "وافق".
  */
-export default function WhatsAppInboxTab({ projects, onChanged, onWriteArticle }: { projects: AdminProject[]; onChanged: () => void; onWriteArticle?: (projectId: string) => void }) {
+export default function WhatsAppInboxTab({ projects, onChanged }: { projects: AdminProject[]; onChanged: () => void }) {
   const { token, notify, handleError } = useAdmin();
   const [status, setStatus] = useState<WaInboxStatus>("pending");
   const [items, setItems] = useState<WaInboxItem[]>([]);
@@ -292,16 +292,6 @@ export default function WhatsAppInboxTab({ projects, onChanged, onWriteArticle }
                   </button>
                 )}
               </div>
-              {activeProject?.awaiting_article && (
-                <div className="flex flex-wrap items-center gap-2 border-b border-red-100 bg-red-50 px-4 py-2 text-xs">
-                  <span className="font-bold text-red-700">المشروع ده مش ظاهر على الموقع لحد ما مقاله يتنشر — الوحدات اللي توافق عليها هتستنى معاه.</span>
-                  {onWriteArticle && (
-                    <button onClick={() => onWriteArticle(activeProject.id)} className="ms-auto rounded-full bg-[#0d1f18] px-3 py-1 font-black text-white">
-                      اكتب المقال
-                    </button>
-                  )}
-                </div>
-              )}
               {activeProject && pending && (
                 <FinishingBar
                   current={activeProject.finishing || ""}

@@ -5,8 +5,7 @@ import { Badge, inputClass } from "./ui";
 
 /**
  * "مشاريع من غير مقال": every project with a page and no published article yet. A project leaves the
- * list by itself once one of its articles is published. New projects (awaiting_article) are also kept
- * off the public site, with their units, until then.
+ * list by itself once one of its articles is published. Nothing is hidden from the site.
  */
 export default function ArticleQueue({
   projects,
@@ -26,12 +25,12 @@ export default function ArticleQueue({
   const [open, setOpen] = useState(true);
   const [query, setQuery] = useState("");
 
-  const { queue, hidden } = useMemo(() => {
+  const queue = useMemo(() => {
     const published = new Set(articles.filter((article) => article.status === "published" && article.project_id).map((article) => article.project_id));
-    const list = articleProjects(projects)
+    // Most units first: those pages get the most visits.
+    return articleProjects(projects)
       .filter((project) => !published.has(project.id))
-      .sort((a, b) => Number(Boolean(b.awaiting_article)) - Number(Boolean(a.awaiting_article)) || (b.units_count || 0) - (a.units_count || 0) || a.name.localeCompare(b.name));
-    return { queue: list, hidden: list.filter((project) => project.awaiting_article).length };
+      .sort((a, b) => (b.units_count || 0) - (a.units_count || 0) || a.name.localeCompare(b.name));
   }, [projects, articles]);
 
   const drafts = useMemo(() => {
@@ -52,10 +51,7 @@ export default function ArticleQueue({
           <h2 className="text-lg font-black">
             مشاريع من غير مقال ({queue.length}) <span className="text-xs text-[#8a958f]">{open ? "▴" : "▾"}</span>
           </h2>
-          <p className="text-xs text-[#5c6a62]">
-            {hidden > 0 ? `${hidden} منهم مش ظاهرين على الموقع هما ووحداتهم لحد ما مقالهم يتنشر. ` : ""}
-            أول ما تنشر مقال لمشروع، بيتشال من القايمة لوحده.
-          </p>
+          <p className="text-xs text-[#5c6a62]">أول ما تنشر مقال لمشروع، بيتشال من القايمة لوحده. الأكتر وحدات فوق.</p>
         </button>
         {open && queue.length > 8 && (
           <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث في القايمة…" className={`${inputClass} max-w-xs`} />
@@ -77,7 +73,6 @@ export default function ArticleQueue({
                       {project.developer || "—"} · {project.area_group || project.location || "—"} · {project.units_count || 0} وحدة
                     </span>
                   </div>
-                  {project.awaiting_article && <Badge tone="error">مش ظاهر على الموقع</Badge>}
                   {draft && <Badge tone="pending">فيه مسودة</Badge>}
                   {draft ? (
                     <button type="button" disabled={busy} onClick={() => onOpen(draft.id)} className="rounded-lg bg-[#f1eadc] px-3 py-1.5 text-xs font-black disabled:opacity-50">

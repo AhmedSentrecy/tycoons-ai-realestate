@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { adminApi, hideLegacyDuplicates, mediaImages, type AdminProject, type ProjectEditValues } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import { AreaFields, DeveloperSelect, FinishingSelect } from "./SearchSelect";
-import { Badge, Modal, inputClass } from "./ui";
+import { Badge, Chip, Modal, inputClass } from "./ui";
 
 type FieldKey = keyof ProjectEditValues;
 const FIELDS: { key: FieldKey; label: string; long?: boolean; required?: boolean; hint?: string }[] = [
@@ -27,13 +27,33 @@ export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { p
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<AdminProject | null>(null);
   const [deleting, setDeleting] = useState<AdminProject | null>(null);
+  const [articleFilter, setArticleFilter] = useState<"all" | "with" | "without">("all");
+  // Which projects have a published article (SEO / GEO), from the articles list.
+  const [articleState, setArticleState] = useState<{ published: Set<string> } | null>(null);
+  useEffect(() => {
+    let active = true;
+    adminApi
+      .articles(token)
+      .then((data) => active && setArticleState({ published: new Set(data.articles.filter((article) => article.status === "published" && article.project_id).map((article) => String(article.project_id))) }))
+      .catch(() => active && setArticleState(null));
+    return () => {
+      active = false;
+    };
+  }, [token]);
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
     return hideLegacyDuplicates(projects)
       .filter((project) => !q || `${project.name} ${project.developer ?? ""} ${project.location ?? ""}`.toLowerCase().includes(q))
+      .filter((project) => {
+        if (articleFilter === "all" || !articleState) return true;
+        const has = articleState.published.has(project.id);
+        return Boolean(project.slug) && (articleFilter === "with" ? has : !has);
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [projects, query]);
+  }, [projects, query, articleFilter, articleState]);
+  const withArticle = articleState ? hideLegacyDuplicates(projects).filter((project) => project.slug && articleState.published.has(project.id)).length : 0;
+  const withoutArticle = articleState ? hideLegacyDuplicates(projects).filter((project) => project.slug && !articleState.published.has(project.id)).length : 0;
 
   return (
     <section className="rounded-3xl border border-[#e7ddc8] bg-white p-5">
@@ -44,6 +64,13 @@ export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { p
         </div>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث باسم المشروع أو المطور أو المنطقة" className={`${inputClass} max-w-sm`} />
       </div>
+      {articleState && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <Chip active={articleFilter === "all"} onClick={() => setArticleFilter("all")}>الكل</Chip>
+          <Chip active={articleFilter === "with"} onClick={() => setArticleFilter("with")}>ليها مقال ({withArticle})</Chip>
+          <Chip active={articleFilter === "without"} onClick={() => setArticleFilter("without")}>ملهاش مقال ({withoutArticle})</Chip>
+        </div>
+      )}
       <p className="mt-3 text-xs text-[#5c6a62]">{list.length} مشروع</p>
       <ul className="mt-2 grid gap-2">
         {list.map((project) => {
@@ -52,7 +79,7 @@ export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { p
             <li key={project.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#eee5d6] p-3">
               {cover ? <img src={cover} alt="" loading="lazy" className="h-12 w-16 rounded-lg object-cover" /> : <span className="h-12 w-16 rounded-lg bg-[#f1ebdc]" />}
               <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">{project.name} {!project.slug && <Badge tone="muted">ملوش صفحة</Badge>} {project.awaiting_article && <Badge tone="error">مستني مقال — مش ظاهر على الموقع</Badge>}</p>
+                <p className="truncate font-bold">{project.name} {!project.slug && <Badge tone="muted">ملوش صفحة</Badge>} {project.slug && articleState && (articleState.published.has(project.id) ? <Badge tone="ok">ليه مقال</Badge> : <Badge tone="error">ملوش مقال</Badge>)}</p>
                 <p className="truncate text-xs text-[#5c6a62]">
                   {project.developer} · {project.location} · {project.available_units} وحدة متاحة من {project.units_count}
                   {project.new_units_week ? ` · ${project.new_units_week} جديدة الأسبوع ده` : ""} · آخر تحديث {fmt(project.last_updated_at)}
@@ -63,7 +90,7 @@ export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { p
                   افتح الصفحة
                 </a>
               )}
-              {project.awaiting_article && onWriteArticle && (
+              {project.slug && articleState && !articleState.published.has(project.id) && onWriteArticle && (
                 <button type="button" onClick={() => onWriteArticle(project.id)} className="rounded-full bg-[#d9b87c] px-4 py-1.5 text-xs font-black text-[#0d1f18]">
                   اكتب المقال
                 </button>

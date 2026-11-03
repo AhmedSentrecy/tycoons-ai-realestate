@@ -231,7 +231,7 @@ type Tab = "projects" | "media" | "units" | "developers" | "launches" | "article
 function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser; onSignOut: () => void }) {
   const isOwner = user.role === "owner";
   const [tab, setTab] = useState<Tab>("media");
-  // "اكتب المقال" from the projects / WhatsApp tabs: open the articles tab on that project.
+  // "اكتب المقال" from the projects tab: open the articles tab on that project.
   const [articleFocus, setArticleFocus] = useState<string | null>(null);
   const writeArticle = (projectId: string) => {
     setArticleFocus(projectId);
@@ -462,7 +462,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
               onCreateProject={() => setProjectFormOpen(true)}
             />
           )}
-          {tab === "wainbox" && <WhatsAppInboxTab projects={projects} onChanged={refresh} onWriteArticle={writeArticle} />}
+          {tab === "wainbox" && <WhatsAppInboxTab projects={projects} onChanged={refresh} />}
           {tab === "launches" && <HomepageLaunchesTab projects={projects} />}
           {tab === "articles" && <ArticlesTab projects={projects} focusProjectId={articleFocus} onFocusHandled={() => setArticleFocus(null)} />}
           {tab === "faq" && <ProjectFaqTab projects={projects} />}
