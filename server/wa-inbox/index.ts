@@ -25,8 +25,11 @@ interface AdminUser { id: string; role: string; display_name: string }
 const TEXT_FIELDS = ["project_name", "developer", "location", "unit_type", "bedrooms_text", "down_payment_text", "installments_text", "delivery_text", "finishing", "description"] as const;
 const UNIT_TEXT_FIELDS = ["location", "unit_type", "bedrooms_text", "down_payment_text", "installments_text", "delivery_text", "finishing", "description"] as const;
 const APPROVE_STATUSES = ["available", "new_launch"];
+/** The 9 main areas (same list Claude uses and projects.area_group holds). */
+const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"];
+const MAX_GALLERY = 60;
 const INBOX_COLUMNS =
-  "id,created_at,updated_at,status,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,description,image_url,source_group,sender,message_id,match_unit_id,decided_at,result_unit_id,note";
+  "id,created_at,updated_at,status,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,description,image_url,source_group,sender,message_id,match_unit_id,decided_at,result_unit_id,note,area_group";
 const UNIT_COLUMNS =
   "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,last_updated_at";
 
@@ -133,9 +136,25 @@ async function matchUnit(projectId: string, unitType: string, area: number | nul
   if (!area) return null;
   const { data, error } = await db.from("units").select("id,unit_type,area_sqm,availability_status").eq("project_id", projectId).limit(1000);
   fail(error);
-  const type = norm(unitType);
-  const same = ((data ?? []) as Json[]).filter((unit) => norm(unit.unit_type) === type && Math.abs(Number(unit.area_sqm) - area) < 1);
-  same.sort((a, b) => Number(b.availability_status === "available") - Number(a.availability_status === "available"));
+  return bestUnit((data ?? []) as Json[], unitType, area);
+}
+
+/**
+ * Same type and area (less than 1 m² apart). The site often prefixes the project to the type
+ * ("MV 1.1 - Millennial" vs "Millennial"), so one name ending with the other also counts.
+ */
+function sameType(a: unknown, b: unknown) {
+  const x = norm(a);
+  const y = norm(b);
+  if (!x || !y) return false;
+  return x === y || (Math.min(x.length, y.length) >= 4 && (x.endsWith(y) || y.endsWith(x)));
+}
+
+function bestUnit(units: Json[], unitType: string, area: number | null): string | null {
+  if (!area) return null;
+  const same = units.filter((unit) => sameType(unit.unit_type, unitType) && Math.abs(Number(unit.area_sqm) - area) < 1);
+  same.sort((a, b) => Number(b.availability_status === "available") - Number(a.availability_status === "available")
+    || Number(norm(b.unit_type) === norm(unitType)) - Number(norm(a.unit_type) === norm(unitType)));
   return same.length ? text(same[0].id) : null;
 }
 
@@ -175,6 +194,7 @@ async function intake(body: Json) {
   for (const field of TEXT_FIELDS) values[field] = text(body[field]).slice(0, 2000) || null;
   values.project_name = text(values.project_name).split(" @ ")[0].trim() || null;
   values.area_sqm = positiveNumber(body.area_sqm);
+  values.area_group = AREA_GROUPS.includes(text(body.area_group)) ? text(body.area_group) : null;
   values.starting_price = positiveNumber(body.starting_price);
   const image = text(body.image_url || body.media_url);
   values.image_url = /^https?:\/\/[^\s]+$/i.test(image) ? image.slice(0, 2000) : null;
@@ -250,6 +270,19 @@ async function list(body: Json) {
     .order(status === "pending" ? "created_at" : "decided_at", { ascending: false }).limit(status === "pending" ? 1000 : 200);
   fail(error);
   const rows = (data ?? []) as Json[];
+  // Pending units saved before a match existed (or before the better type match): suggest one now.
+  if (status === "pending") {
+    const open = rows.filter((row) => text(row.project_id) && !text(row.match_unit_id) && Number(row.area_sqm) > 0);
+    const projectIds = [...new Set(open.map((row) => text(row.project_id)))];
+    if (projectIds.length) {
+      const { data: units, error: unitsError } = await db.from("units").select("id,project_id,unit_type,area_sqm,availability_status").in("project_id", projectIds).limit(5000);
+      fail(unitsError);
+      for (const row of open) {
+        const own = ((units ?? []) as Json[]).filter((unit) => unit.project_id === row.project_id);
+        row.match_unit_id = bestUnit(own, text(row.unit_type), Number(row.area_sqm));
+      }
+    }
+  }
   const ids = [...new Set(rows.map((row) => text(row.match_unit_id)).filter(Boolean))];
   let matches: Json[] = [];
   if (ids.length) {
@@ -262,7 +295,28 @@ async function list(body: Json) {
     const { count } = await db.from("wa_unit_inbox").select("id", { count: "exact", head: true }).eq("status", key);
     counts[key] = count ?? 0;
   }
-  return { items: rows, matches, counts };
+  return { items: rows, matches, counts, duplicates: findDuplicates(rows) };
+}
+
+/**
+ * Same unit sent more than once (another group or another message) before anyone decided:
+ * same project, type, bedrooms and area (less than 1 m² apart). Answer: inbox id -> the other ids.
+ */
+function findDuplicates(rows: Json[]) {
+  const groups = new Map<string, Json[]>();
+  for (const row of rows) {
+    const area = Number(row.area_sqm);
+    const project = text(row.project_id) || norm(row.project_name);
+    if (!project || !norm(row.unit_type) || !(area > 0)) continue;
+    const key = [project, norm(row.unit_type), norm(row.bedrooms_text), Math.round(area)].join("|");
+    groups.set(key, [...(groups.get(key) ?? []), row]);
+  }
+  const out: Record<string, number[]> = {};
+  for (const list of groups.values()) {
+    if (list.length < 2 || new Set(list.map((row) => text(row.message_id) || String(row.id))).size < 2) continue;
+    for (const row of list) out[String(row.id)] = list.filter((other) => other.id !== row.id).map((other) => Number(other.id));
+  }
+  return out;
 }
 
 async function loadInbox(id: unknown) {
@@ -320,6 +374,14 @@ async function approve(user: AdminUser, body: Json) {
   const unitValues: Json = { area_sqm: Number(saved.area_sqm), starting_price: Number(saved.starting_price), availability_status: status };
   for (const field of UNIT_TEXT_FIELDS) unitValues[field] = text(saved[field]) || null;
   unitValues.location = unitValues.location || project.location || "Egypt";
+  // Photos the admin picked from the project's Supabase photos (cover first, same format as the media editor).
+  const picked = [...new Set([body.image_url, ...(Array.isArray(body.gallery_urls) ? body.gallery_urls : [])].map(text).filter(Boolean))];
+  if (picked.length > MAX_GALLERY) throw new HttpError(400, "gallery_too_long");
+  if (picked.some((url) => url.length > 2000 || url.includes(",") || !/^https:\/\/[^\s]+$/i.test(url))) throw new HttpError(400, "invalid_image_url");
+  if (picked.length) {
+    unitValues.image_url = picked[0];
+    unitValues.gallery_urls = picked.join(", ");
+  }
 
   const replaceId = text(body.replace_unit_id);
   const label = `${unitValues.unit_type}${unitValues.area_sqm ? ` ${unitValues.area_sqm} م²` : ""} في ${project.name}`;

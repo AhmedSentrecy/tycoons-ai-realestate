@@ -314,7 +314,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
         setStorage(data.storage);
         setPendingTotal(data.pending_total);
         const created = data.projects.find(
-          (project) => project.name === values.name.trim() && project.developer === values.developer.trim(),
+          (project) => project.name === values.name.trim() && project.area_group === values.area_group,
         );
         if (created) setSelectedId(created.id);
       } else {
@@ -467,7 +467,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
         </div>
 
         {projectFormOpen && (
-          <ProjectForm busy={creatingProject} onCancel={() => setProjectFormOpen(false)} onSubmit={(values) => void createProject(values)} />
+          <ProjectForm projects={projects} busy={creatingProject} onCancel={() => setProjectFormOpen(false)} onSubmit={(values) => void createProject(values)} />
         )}
 
         {settingsOpen && (

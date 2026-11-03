@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { adminApi, hideLegacyDuplicates, mediaImages, type AdminProject, type ProjectEditValues } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
+import { AreaFields, DeveloperSelect } from "./SearchSelect";
 import { Badge, Modal, inputClass } from "./ui";
 
 type FieldKey = keyof ProjectEditValues;
 const FIELDS: { key: FieldKey; label: string; long?: boolean; required?: boolean; hint?: string }[] = [
   { key: "name", label: "اسم المشروع", required: true },
   { key: "developer", label: "المطور", required: true, hint: "لو غيرته، كل وحدات المشروع بتتنقل للمطور الجديد" },
-  { key: "location", label: "المنطقة", required: true },
+  { key: "location", label: "اسم المنطقة الظاهر على الموقع", required: true, hint: "النص اللي بيظهر في صفحة المشروع. المنطقة الرئيسية والفرعية تحت هما اللي بيتربط بيهم البحث والواتساب." },
   { key: "hero_text", label: "جملة تعريفية قصيرة" },
   { key: "description", label: "وصف المشروع", long: true },
   { key: "down_payment_text", label: "المقدم (مثال: 5%)" },
@@ -75,10 +76,11 @@ export default function ProjectsTab({ projects, onChanged }: { projects: AdminPr
       {editing && (
         <EditDialog
           project={editing}
+          projects={projects}
           onClose={() => setEditing(null)}
-          onSave={async (values) => {
+          onSave={async (values, newDeveloper) => {
             try {
-              const result = await adminApi.projectUpdate(token, editing.id, values);
+              const result = await adminApi.projectUpdate(token, editing.id, values, newDeveloper);
               notify(result.applied ? `اتحفظ ${values.name || editing.name}` : "مفيش تغيير");
               setEditing(null);
               onChanged();
@@ -108,11 +110,24 @@ export default function ProjectsTab({ projects, onChanged }: { projects: AdminPr
   );
 }
 
-function EditDialog({ project, onClose, onSave }: { project: AdminProject; onClose: () => void; onSave: (values: ProjectEditValues) => Promise<void> }) {
-  const initial = Object.fromEntries(FIELDS.map(({ key }) => [key, String(project[key] ?? "")])) as Record<FieldKey, string>;
+const EDIT_KEYS: FieldKey[] = [...FIELDS.map(({ key }) => key), "area_group", "sub_area"];
+
+function EditDialog({
+  project,
+  projects,
+  onClose,
+  onSave,
+}: {
+  project: AdminProject;
+  projects: AdminProject[];
+  onClose: () => void;
+  onSave: (values: ProjectEditValues, newDeveloper: boolean) => Promise<void>;
+}) {
+  const initial = Object.fromEntries(EDIT_KEYS.map((key) => [key, String(project[key] ?? "")])) as Record<FieldKey, string>;
   const [values, setValues] = useState(initial);
+  const [newDeveloper, setNewDeveloper] = useState(false);
   const [busy, setBusy] = useState(false);
-  const changed = Object.fromEntries(FIELDS.filter(({ key }) => values[key] !== initial[key]).map(({ key }) => [key, values[key]])) as ProjectEditValues;
+  const changed = Object.fromEntries(EDIT_KEYS.filter((key) => values[key] !== initial[key]).map((key) => [key, values[key]])) as ProjectEditValues;
   const ready = values.name.trim() && values.developer.trim() && values.location.trim() && Object.keys(changed).length > 0;
   return (
     <Modal title={`تعديل ${project.name}`} onClose={onClose} wide>
@@ -121,7 +136,7 @@ function EditDialog({ project, onClose, onSave }: { project: AdminProject; onClo
           event.preventDefault();
           if (!ready) return;
           setBusy(true);
-          await onSave(changed);
+          await onSave(changed, newDeveloper);
           setBusy(false);
         }}
         className="grid gap-3 sm:grid-cols-2"
@@ -129,7 +144,15 @@ function EditDialog({ project, onClose, onSave }: { project: AdminProject; onClo
         {FIELDS.map(({ key, label, long, required, hint }) => (
           <label key={key} className={`block text-sm ${long ? "sm:col-span-2" : ""}`}>
             <span className="mb-1 block font-bold">{label}{required ? " *" : ""}</span>
-            {long ? (
+            {key === "developer" ? (
+              <DeveloperSelect
+                value={values.developer}
+                onChange={(developer, isNew) => {
+                  setValues({ ...values, developer });
+                  setNewDeveloper(isNew);
+                }}
+              />
+            ) : long ? (
               <textarea value={values[key]} onChange={(event) => setValues({ ...values, [key]: event.target.value })} rows={key === "description" ? 6 : 2} className={inputClass} />
             ) : (
               <input value={values[key]} onChange={(event) => setValues({ ...values, [key]: event.target.value })} required={required} className={inputClass} />
@@ -137,6 +160,12 @@ function EditDialog({ project, onClose, onSave }: { project: AdminProject; onClo
             {hint && <span className="mt-1 block text-xs text-[#5c6a62]">{hint}</span>}
           </label>
         ))}
+        <AreaFields
+          projects={projects}
+          group={values.area_group}
+          sub={values.sub_area}
+          onChange={(area_group, sub_area) => setValues({ ...values, area_group, sub_area })}
+        />
         <p className="rounded-2xl bg-[#f7f2ea] p-3 text-xs text-[#5c6a62] sm:col-span-2">رابط الصفحة مش بيتغير لو غيرت الاسم، عشان جوجل ميخسرش الصفحة. التعديل بيظهر على الموقع خلال دقايق.</p>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-sm font-bold">إلغاء</button>

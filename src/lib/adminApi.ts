@@ -35,6 +35,9 @@ export interface AdminProject extends MediaFields {
   slug: string | null;
   developer: string | null;
   location: string | null;
+  /** One of AREA_GROUPS. */
+  area_group?: string | null;
+  sub_area?: string | null;
   units_count: number;
   available_units: number;
   units_with_own_media: number;
@@ -51,7 +54,7 @@ export interface AdminProject extends MediaFields {
   last_updated_at?: string | null;
 }
 
-export type ProjectEditValues = Partial<Record<"name" | "developer" | "location" | "description" | "hero_text" | "seo_title" | "seo_description" | "down_payment_text" | "installments_text" | "delivery_text", string>>;
+export type ProjectEditValues = Partial<Record<"name" | "developer" | "location" | "area_group" | "sub_area" | "description" | "hero_text" | "seo_title" | "seo_description" | "down_payment_text" | "installments_text" | "delivery_text", string>>;
 
 export interface AdminDeveloper {
   slug: string;
@@ -425,13 +428,14 @@ export const adminApi = {
     token: string,
     body: { target: MediaTarget; id: string; image_url: string; gallery_urls: string[]; video_url: string; brochure_url: string },
   ) => call<SubmitResult & { values: Omit<MediaFields, "id"> }>("save_media", body, token),
-  projectCreate: (token: string, values: { name: string; developer: string; location: string; description: string }) =>
+  projectCreate: (token: string, values: NewProjectValues) =>
     call<SubmitResult>("project_create", { values }, token),
   unitCreate: (token: string, projectId: string, values: UnitValues) =>
     call<SubmitResult>("unit_create", { project_id: projectId, values }, token),
   unitUpdate: (token: string, id: string, values: UnitValues) => call<SubmitResult>("unit_update", { id, values }, token),
   unitDelete: (token: string, id: string) => call<SubmitResult>("unit_delete", { id }, token),
-  projectUpdate: (token: string, id: string, values: ProjectEditValues) => call<SubmitResult>("project_update", { id, values }, token),
+  projectUpdate: (token: string, id: string, values: ProjectEditValues, newDeveloper = false) =>
+    call<SubmitResult>("project_update", { id, values: newDeveloper ? { ...values, new_developer: true } : values }, token),
   projectDelete: (token: string, id: string, confirmName: string) => call<SubmitResult>("project_delete", { id, confirm_name: confirmName }, token),
   developers: (token: string) => call<{ developers: AdminDeveloper[]; logo_prefix: string }>("developers", {}, token),
   developerSave: (token: string, slug: string, name: string, values: DeveloperEditValues) =>
@@ -461,13 +465,20 @@ export const adminApi = {
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
     call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
   waInbox: (token: string, status: WaInboxStatus) =>
-    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number> }>("list", { status }, token, WA_INBOX_API),
+    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]> }>("list", { status }, token, WA_INBOX_API),
   waInboxSave: (token: string, id: number, values: WaInboxValues) =>
     call<{ item: WaInboxItem }>("save", { id, values }, token, WA_INBOX_API),
-  waInboxApprove: (token: string, id: number, values: WaInboxValues, replaceUnitId: string, availabilityStatus: "available" | "new_launch") =>
+  waInboxApprove: (
+    token: string,
+    id: number,
+    values: WaInboxValues,
+    replaceUnitId: string,
+    availabilityStatus: "available" | "new_launch",
+    images: string[] = [],
+  ) =>
     call<{ ok: boolean; unit_id: string; action: "create" | "update" }>(
       "approve",
-      { id, values, replace_unit_id: replaceUnitId, availability_status: availabilityStatus },
+      { id, values, replace_unit_id: replaceUnitId, availability_status: availabilityStatus, image_url: images[0] ?? "", gallery_urls: images },
       token,
       WA_INBOX_API,
     ),
@@ -478,6 +489,32 @@ export const adminApi = {
 };
 
 export type WaInboxStatus = "pending" | "approved" | "rejected";
+
+/** The 9 main areas: projects.area_group, the WhatsApp intake and the area dropdowns all use this list. */
+export const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"] as const;
+
+export interface NewProjectValues {
+  name: string;
+  developer: string;
+  /** true = the developer is not in the developers list yet and should be added. */
+  new_developer?: boolean;
+  area_group: string;
+  sub_area: string;
+  description: string;
+}
+
+/** What the site shows as the project's area: "Golden Square, New Cairo" or just "New Cairo". */
+export const areaLabel = (group: string, sub: string) => (sub ? `${sub}, ${group}` : group);
+
+/** Sub areas already used by projects of one main area, most used first. */
+export function subAreaOptions(projects: Pick<AdminProject, "area_group" | "sub_area">[], group: string): string[] {
+  const counts = new Map<string, number>();
+  for (const project of projects) {
+    const sub = String(project.sub_area || "").trim();
+    if (project.area_group === group && sub) counts.set(sub, (counts.get(sub) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([sub]) => sub);
+}
 export const WA_INBOX_FIELDS = [
   "project_id",
   "location",
@@ -517,6 +554,8 @@ export interface WaInboxItem {
   sender: string | null;
   message_id: string | null;
   match_unit_id: string | null;
+  /** Main area Claude gave the unit (one of AREA_GROUPS). */
+  area_group?: string | null;
   decided_at: string | null;
   result_unit_id: string | null;
   note: string | null;
