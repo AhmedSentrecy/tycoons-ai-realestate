@@ -213,9 +213,19 @@ async function intake(body: Json) {
  * form fields describe the message. Each unit goes through intake() on its own.
  */
 async function intakeBatch(body: Json) {
+  // Make blanks form values that look like JSON, so Make sends Claude's answer base64-encoded (units_b64).
+  let raw = text(body.units_json);
+  if (!raw && text(body.units_b64)) {
+    try {
+      raw = new TextDecoder().decode(Uint8Array.from(atob(text(body.units_b64)), (char) => char.charCodeAt(0)));
+    } catch {
+      throw new HttpError(400, "units_b64_invalid");
+    }
+  }
+  if (!raw) console.warn("intake_batch without units", JSON.stringify(Object.fromEntries(Object.entries(body).map(([key, value]) => [key, text(value).length]))));
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text(body.units_json) || "{}");
+    parsed = JSON.parse(raw || "{}");
   } catch {
     throw new HttpError(400, "units_json_invalid");
   }
