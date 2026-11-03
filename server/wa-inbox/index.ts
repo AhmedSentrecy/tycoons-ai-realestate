@@ -64,11 +64,33 @@ function positiveNumber(value: unknown): number | null {
 
 // ---------- auth ----------
 
+/**
+ * Make proves itself with either key:
+ * - x-intake-key: media_admin_settings.wa_inbox_key
+ * - x-waha-key: the WAHA API key Make already holds. It is checked once against the WAHA server
+ *   (media_admin_settings.wa_waha_base_url) and only its SHA-256 is remembered (wa_waha_key_hash),
+ *   so no new secret has to be copied into Make.
+ */
 async function requireIntake(req: Request) {
-  const given = text(req.headers.get("x-intake-key"));
-  const { data, error } = await db.from("media_admin_settings").select("value").eq("key", "wa_inbox_key").maybeSingle();
+  const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", ["wa_inbox_key", "wa_waha_key_hash", "wa_waha_base_url"]);
   if (error) throw new HttpError(503, "settings_unavailable");
-  if (!timingSafeEqual(given, text(data?.value))) throw new HttpError(401, "intake_key_invalid");
+  const setting = (key: string) => text((data ?? []).find((row) => row.key === key)?.value);
+  const intakeKey = text(req.headers.get("x-intake-key"));
+  if (intakeKey && timingSafeEqual(intakeKey, setting("wa_inbox_key"))) return;
+  const wahaKey = text(req.headers.get("x-waha-key"));
+  if (wahaKey.length >= 16) {
+    const hash = await sha256(wahaKey);
+    if (timingSafeEqual(hash, setting("wa_waha_key_hash"))) return;
+    const base = setting("wa_waha_base_url");
+    if (/^https?:\/\/[^\s]+$/i.test(base)) {
+      const check = await fetch(`${base.replace(/\/+$/, "")}/api/sessions`, { headers: { "X-Api-Key": wahaKey }, signal: AbortSignal.timeout(8000) }).catch(() => null);
+      if (check?.ok) {
+        await db.from("media_admin_settings").upsert({ key: "wa_waha_key_hash", value: hash, updated_at: new Date().toISOString() });
+        return;
+      }
+    }
+  }
+  throw new HttpError(401, "intake_key_invalid");
 }
 
 async function requireUser(req: Request): Promise<AdminUser> {
