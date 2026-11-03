@@ -41,7 +41,7 @@ const UNIT_STATUSES = ["available", "sold", "not_confirmed", "review_only", "new
 const MEDIA_FIELDS = ["image_url", "gallery_urls", "video_url", "brochure_url"] as const;
 /** The 9 main areas (same list the WhatsApp intake uses). */
 const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"];
-const PROJECT_COLUMNS = "id,name,slug,developer,location,area_group,sub_area,image_url,gallery_urls,video_url,brochure_url,description,hero_text,seo_title,seo_description,down_payment_text,installments_text,delivery_text,created_at,last_updated_at";
+const PROJECT_COLUMNS = "id,name,slug,developer,location,area_group,sub_area,image_url,gallery_urls,video_url,brochure_url,description,hero_text,seo_title,seo_description,down_payment_text,installments_text,delivery_text,finishing,created_at,last_updated_at";
 const UNIT_COLUMNS =
   "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,video_url,brochure_url,created_at,last_updated_at";
 
@@ -865,6 +865,7 @@ async function projectCreate(user: AdminUser, body: Json) {
     location,
     area_group: areaGroup,
     sub_area: subArea,
+    finishing: text(values.finishing).slice(0, 300) || null,
     slug,
     status: "available",
     description: description || `${name} من ${developer} في ${location}. تعرض الصفحة أحدث الوحدات والأسعار المسجلة لدى Tycoons مع ضرورة تأكيد التوفر وقت الطلب.`,
@@ -922,10 +923,10 @@ async function unitDelete(user: AdminUser, body: Json) {
 
 // ---------- projects: edit / delete ----------
 
-const PROJECT_EDIT_FIELDS = ["name", "developer", "location", "area_group", "sub_area", "description", "hero_text", "seo_title", "seo_description", "down_payment_text", "installments_text", "delivery_text"] as const;
+const PROJECT_EDIT_FIELDS = ["name", "developer", "location", "area_group", "sub_area", "description", "hero_text", "seo_title", "seo_description", "down_payment_text", "installments_text", "delivery_text", "finishing"] as const;
 const PROJECT_FIELD_LABELS: Record<string, string> = {
   name: "الاسم", developer: "المطور", location: "المنطقة", area_group: "المنطقة الرئيسية", sub_area: "المنطقة الفرعية", description: "الوصف", hero_text: "النص التعريفي",
-  seo_title: "عنوان جوجل", seo_description: "وصف جوجل", down_payment_text: "المقدم", installments_text: "التقسيط", delivery_text: "الاستلام",
+  seo_title: "عنوان جوجل", seo_description: "وصف جوجل", down_payment_text: "المقدم", installments_text: "التقسيط", delivery_text: "الاستلام", finishing: "التشطيب",
 };
 
 async function projectUpdate(user: AdminUser, body: Json) {

@@ -112,12 +112,73 @@ async function requireUser(req: Request): Promise<AdminUser> {
 
 // ---------- matching ----------
 
-interface ProjectRow { id: string; name: string; developer: string | null; location: string | null }
+interface ProjectRow { id: string; name: string; developer: string | null; location: string | null; area_group?: string | null }
 
 async function allProjects(): Promise<ProjectRow[]> {
-  const { data, error } = await db.from("projects").select("id,name,developer,location").limit(5000);
+  const { data, error } = await db.from("projects").select("id,name,developer,location,area_group").limit(5000);
   fail(error);
   return (data ?? []) as ProjectRow[];
+}
+
+/** Names that are not a project name (Claude writes them when the message names none). */
+const NO_NAME_KEYS = new Set(["", "needsprojectname", "unknown", "unknownproject", "na", "none"]);
+const aliasKey = (name: unknown) => norm(text(name).split(" @ ")[0]);
+
+/** WhatsApp names the admin already confirmed: alias key -> project id. */
+async function allAliases(): Promise<Map<string, string>> {
+  const { data, error } = await db.from("wa_project_aliases").select("alias_key,project_id").limit(10000);
+  fail(error);
+  return new Map(((data ?? []) as Json[]).map((row) => [text(row.alias_key), text(row.project_id)]));
+}
+
+/** Remembers "this WhatsApp name is that project" so the next units with the same name link by themselves. */
+async function rememberAlias(name: unknown, projectId: string, userId: string | null) {
+  const key = aliasKey(name);
+  if (NO_NAME_KEYS.has(key) || key.length < 3) return false;
+  const { data: project } = await db.from("projects").select("name").eq("id", projectId).maybeSingle();
+  if (!project || norm(project.name) === key) return false;
+  await db.from("wa_project_aliases").upsert({ alias_key: key, alias: text(name).slice(0, 300), project_id: projectId, created_by: userId });
+  return true;
+}
+
+type SuggestKind = "phase" | "master" | "similar";
+interface Suggestion { project_id: string; name: string; kind: SuggestKind }
+
+/** Words of a name, for "similar name" suggestions. */
+const words = (value: unknown) => new Set(text(value).toLowerCase().split(/[^a-z0-9\u0600-\u06ff]+/).filter((word) => word.length >= 3));
+
+/**
+ * The project an unmatched WhatsApp name most likely means (the admin confirms it):
+ * phase  -> a project whose name the message name starts with, longest first ("Taj City - Origami Golf" -> "Taj City - Origami")
+ * master -> the same, but the site only has the master project ("Sarai - Elan" -> "Sarai")
+ * similar -> same developer and at least two words in common (most of the name)
+ */
+function suggestProject(all: ProjectRow[], name: string, developer: string, areaGroup = ""): Suggestion | null {
+  const key = aliasKey(name);
+  // Another main area is another project (Ivoire East is not Ivoire West).
+  const projects = areaGroup && areaGroup !== "Other" ? all.filter((project) => !project.area_group || project.area_group === areaGroup || project.area_group === "Other") : all;
+  if (NO_NAME_KEYS.has(key) || key.length < 3) return null;
+  const dev = norm(developer);
+  const sameDev = (project: ProjectRow) => Boolean(dev && norm(project.developer) && (norm(project.developer).includes(dev) || dev.includes(norm(project.developer))));
+  const prefix = projects.filter((project) => { const pn = norm(project.name); return pn.length >= 4 && key.startsWith(pn); })
+    .sort((a, b) => norm(b.name).length - norm(a.name).length || Number(sameDev(b)) - Number(sameDev(a)));
+  if (prefix.length) {
+    const best = prefix[0];
+    const phase = text(best.name).includes(" - ") || norm(best.name).length >= key.length - 3;
+    return { project_id: best.id, name: best.name, kind: phase ? "phase" : "master" };
+  }
+  const mine = words(name);
+  if (!mine.size) return null;
+  let best: ProjectRow | null = null;
+  let bestScore = 0;
+  for (const project of projects) {
+    if (!sameDev(project)) continue;
+    const theirs = words(project.name);
+    const common = [...mine].filter((word) => theirs.has(word)).length;
+    const score = common / Math.max(mine.size, theirs.size, 1);
+    if (common && score > bestScore) [best, bestScore] = [project, score];
+  }
+  return best && bestScore >= 0.5 && [...mine].filter((word) => words(best!.name).has(word)).length >= 2 ? { project_id: best.id, name: best.name, kind: "similar" } : null;
 }
 
 /** Same project name (ignoring spaces/case/punctuation); a developer match breaks ties. */
@@ -162,7 +223,7 @@ function bestUnit(units: Json[], unitType: string, area: number | null): string 
 
 /** Unit details a WhatsApp message often leaves out. */
 const FILL_FIELDS = ["down_payment_text", "installments_text", "delivery_text", "finishing"] as const;
-const PROJECT_FILL_FIELDS = new Set(["down_payment_text", "installments_text", "delivery_text"]);
+const PROJECT_FILL_FIELDS = new Set(["down_payment_text", "installments_text", "delivery_text", "finishing"]);
 type FillSource = "unit" | "project" | "units";
 
 /** Most frequent non-empty value of one field (ties: the first seen). */
@@ -268,7 +329,8 @@ async function intake(body: Json) {
   }
 
   const projects = await allProjects();
-  const project = matchProject(projects, text(values.project_name), text(values.developer));
+  const aliased = (await allAliases()).get(aliasKey(values.project_name));
+  const project = (aliased ? projects.find((row) => row.id === aliased) : null) ?? matchProject(projects, text(values.project_name), text(values.developer));
   if (project) {
     values.project_id = project.id;
     values.project_name = project.name;
@@ -329,14 +391,34 @@ async function list(body: Json) {
   const rows = (data ?? []) as Json[];
   const autoFilled: Record<string, Record<string, FillSource>> = {};
   const previouslyRejected: Record<string, string> = {};
+  const suggestions: Record<string, Suggestion> = {};
+  const finishingSuggestions: Record<string, string> = {};
   if (status === "pending") {
+    // Unmatched units: a name the admin already confirmed links by itself (saved), otherwise the
+    // most likely project is suggested for one-click confirmation.
+    const unmatched = rows.filter((row) => !text(row.project_id));
+    if (unmatched.length) {
+      const [projects, aliases] = await Promise.all([allProjects(), allAliases()]);
+      for (const row of unmatched) {
+        const aliased = aliases.get(aliasKey(row.project_name));
+        const project = aliased ? projects.find((item) => item.id === aliased) : null;
+        if (project) {
+          const linked = { project_id: project.id, project_name: project.name, developer: project.developer, updated_at: new Date().toISOString() };
+          const { error: linkError } = await db.from("wa_unit_inbox").update(linked).eq("id", Number(row.id)).eq("status", "pending");
+          if (!linkError) Object.assign(row, linked, { location: row.location || project.location });
+          continue;
+        }
+        const suggestion = suggestProject(projects, text(row.project_name), text(row.developer), text(row.area_group));
+        if (suggestion) suggestions[String(row.id)] = suggestion;
+      }
+    }
     // Units saved before a match existed (or before the better type match) get one now, and the
     // details the message left out are filled from the site (shown to the admin as auto-filled).
     const projectIds = [...new Set(rows.map((row) => text(row.project_id)).filter(Boolean))];
     if (projectIds.length) {
       const [{ data: units, error: unitsError }, { data: projects, error: projectsError }] = await Promise.all([
         db.from("units").select(`id,project_id,unit_type,area_sqm,availability_status,${FILL_FIELDS.join(",")}`).in("project_id", projectIds).limit(10000),
-        db.from("projects").select("id,down_payment_text,installments_text,delivery_text").in("id", projectIds),
+        db.from("projects").select("id,down_payment_text,installments_text,delivery_text,finishing").in("id", projectIds),
       ]);
       fail(unitsError);
       fail(projectsError);
@@ -348,6 +430,13 @@ async function list(body: Json) {
         const match = own.find((unit) => unit.id === row.match_unit_id) ?? null;
         const filled = fillGaps(row, match, projectById.get(text(row.project_id)) ?? null, own);
         if (Object.keys(filled).length) autoFilled[String(row.id)] = filled;
+      }
+      // A project with no default finishing whose units on the site all have the same one:
+      // suggested as the project's default (the admin confirms it in the project header).
+      for (const id of projectIds) {
+        if (text(projectById.get(id)?.finishing)) continue;
+        const values = ((units ?? []) as Json[]).filter((unit) => unit.project_id === id).map((unit) => text(unit.finishing)).filter(Boolean);
+        if (values.length >= 2 && new Set(values.map((value) => value.toLowerCase())).size === 1) finishingSuggestions[id] = values[0];
       }
     }
     const { data: rejected, error: rejectedError } = await db.from("wa_unit_inbox")
@@ -373,7 +462,8 @@ async function list(body: Json) {
     const { count } = await db.from("wa_unit_inbox").select("id", { count: "exact", head: true }).eq("status", key);
     counts[key] = count ?? 0;
   }
-  return { items: rows, matches, counts, duplicates: findDuplicates(rows), auto_filled: autoFilled, previously_rejected: previouslyRejected };
+  return { items: rows, matches, counts, duplicates: findDuplicates(rows), auto_filled: autoFilled, previously_rejected: previouslyRejected,
+    suggestions, finishing_suggestions: finishingSuggestions };
 }
 
 /**
@@ -424,7 +514,7 @@ function cleanEdits(input: Json) {
   return out;
 }
 
-async function save(body: Json) {
+async function save(body: Json, user: AdminUser | null = null) {
   const item = await loadInbox(body.id);
   if (item.status !== "pending") throw new HttpError(409, "already_decided");
   const edits = cleanEdits((body.values as Json) ?? {});
@@ -433,6 +523,8 @@ async function save(body: Json) {
     if (!project) throw new HttpError(404, "project_not_found");
     edits.project_name = project.name;
     edits.developer = project.developer;
+    // The admin picked the project by hand for a name the site did not know: remember it.
+    if (!text(item.project_id)) await rememberAlias(item.project_name, text(edits.project_id), user?.id ?? null).catch(() => false);
   }
   edits.updated_at = new Date().toISOString();
   const { data, error } = await db.from("wa_unit_inbox").update(edits).eq("id", Number(item.id)).select(INBOX_COLUMNS).single();
@@ -441,7 +533,7 @@ async function save(body: Json) {
 }
 
 async function approve(user: AdminUser, body: Json) {
-  const saved = (await save(body)).item as Json;
+  const saved = (await save(body, user)).item as Json;
   const { data: project } = await db.from("projects").select("id,name,developer,location").eq("id", text(saved.project_id)).maybeSingle();
   if (!project) throw new HttpError(400, "project_required");
   if (!text(saved.unit_type)) throw new HttpError(400, "unit_type_required");
@@ -451,7 +543,7 @@ async function approve(user: AdminUser, body: Json) {
 
   const replaceId = text(body.replace_unit_id);
   // Same gap filling the admin saw in the list (quick approve sends no values).
-  const { data: projectRows } = await db.from("projects").select("id,down_payment_text,installments_text,delivery_text").eq("id", project.id).maybeSingle();
+  const { data: projectRows } = await db.from("projects").select("id,down_payment_text,installments_text,delivery_text,finishing").eq("id", project.id).maybeSingle();
   const { data: siteUnits } = await db.from("units").select(`id,project_id,unit_type,area_sqm,availability_status,${FILL_FIELDS.join(",")}`).eq("project_id", project.id).limit(2000);
   const own = (siteUnits ?? []) as Json[];
   fillGaps(saved, own.find((unit) => unit.id === replaceId) ?? null, (projectRows ?? null) as Json | null, own);
@@ -496,6 +588,28 @@ async function approve(user: AdminUser, body: Json) {
   const unitId = replaceId || text(((result as Json)?.created_ids as unknown[] | undefined)?.[0]);
   fail((await db.from("wa_unit_inbox").update({ status: "approved", decided_by: user.id, decided_at: now, result_unit_id: unitId || null, updated_at: now }).eq("id", Number(saved.id))).error);
   return { ok: true, unit_id: unitId, action };
+}
+
+/**
+ * The admin confirmed (or picked) the project of an unmatched unit: every pending unit with the same
+ * WhatsApp name is linked to it, and the name is remembered for the units that come later.
+ */
+async function linkProject(user: AdminUser, body: Json) {
+  const item = await loadInbox(body.id);
+  if (item.status !== "pending") throw new HttpError(409, "already_decided");
+  const projectId = text(body.project_id);
+  if (!/^[0-9a-f-]{36}$/i.test(projectId)) throw new HttpError(400, "project_id_invalid");
+  const { data: project } = await db.from("projects").select("id,name,developer,location").eq("id", projectId).maybeSingle();
+  if (!project) throw new HttpError(404, "project_not_found");
+  const key = aliasKey(item.project_name);
+  const { data: pending, error } = await db.from("wa_unit_inbox").select("id,project_name,project_id").eq("status", "pending").limit(2000);
+  fail(error);
+  const sameName = NO_NAME_KEYS.has(key) ? [] : ((pending ?? []) as Json[]).filter((row) => !text(row.project_id) && aliasKey(row.project_name) === key);
+  const ids = [...new Set([Number(item.id), ...sameName.map((row) => Number(row.id))])];
+  const now = new Date().toISOString();
+  fail((await db.from("wa_unit_inbox").update({ project_id: project.id, project_name: project.name, developer: project.developer, updated_at: now }).in("id", ids).eq("status", "pending")).error);
+  const remembered = body.remember === false ? false : await rememberAlias(item.project_name, project.id, user.id);
+  return { ok: true, linked: ids.length, remembered };
 }
 
 async function reject(user: AdminUser, body: Json) {
@@ -548,9 +662,10 @@ Deno.serve(async (req: Request) => {
     const user = await requireUser(req);
     switch (action) {
       case "list": return reply(await list(body));
-      case "save": return reply(await save(body));
+      case "save": return reply(await save(body, user));
       case "approve": return reply(await approve(user, body));
       case "reject": return reply(await reject(user, body));
+      case "link_project": return reply(await linkProject(user, body));
       case "groups": return reply(await groups());
       case "group_toggle": return reply(await groupToggle(body));
       default: return reply({ error: "unknown_action" }, 400);

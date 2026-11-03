@@ -50,11 +50,13 @@ export interface AdminProject extends MediaFields {
   down_payment_text?: string | null;
   installments_text?: string | null;
   delivery_text?: string | null;
+  /** Default finishing of the project / phase (units without one take it). */
+  finishing?: string | null;
   created_at?: string | null;
   last_updated_at?: string | null;
 }
 
-export type ProjectEditValues = Partial<Record<"name" | "developer" | "location" | "area_group" | "sub_area" | "description" | "hero_text" | "seo_title" | "seo_description" | "down_payment_text" | "installments_text" | "delivery_text", string>>;
+export type ProjectEditValues = Partial<Record<"name" | "developer" | "location" | "area_group" | "sub_area" | "description" | "hero_text" | "seo_title" | "seo_description" | "down_payment_text" | "installments_text" | "delivery_text" | "finishing", string>>;
 
 export interface AdminDeveloper {
   slug: string;
@@ -465,7 +467,7 @@ export const adminApi = {
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
     call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
   waInbox: (token: string, status: WaInboxStatus) =>
-    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string> }>("list", { status }, token, WA_INBOX_API),
+    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string> }>("list", { status }, token, WA_INBOX_API),
   waInboxSave: (token: string, id: number, values: WaInboxValues) =>
     call<{ item: WaInboxItem }>("save", { id, values }, token, WA_INBOX_API),
   waInboxApprove: (
@@ -482,6 +484,9 @@ export const adminApi = {
       token,
       WA_INBOX_API,
     ),
+  /** Links the unit (and every pending unit with the same WhatsApp name) to the project and remembers the name. */
+  waInboxLink: (token: string, id: number, projectId: string) =>
+    call<{ ok: boolean; linked: number; remembered: boolean }>("link_project", { id, project_id: projectId }, token, WA_INBOX_API),
   waInboxReject: (token: string, ids: number[]) => call<{ ok: boolean; rejected: number }>("reject", { ids }, token, WA_INBOX_API),
   waGroups: (token: string) => call<{ groups: WaGroup[] }>("groups", {}, token, WA_INBOX_API),
   waGroupToggle: (token: string, groupId: string, track: boolean) =>
@@ -491,6 +496,19 @@ export const adminApi = {
 export type WaInboxStatus = "pending" | "approved" | "rejected";
 /** Where a detail the WhatsApp message left out was filled from. */
 export type WaFillSource = "unit" | "project" | "units";
+/** The project an unmatched WhatsApp name most likely means (confirmed by the admin). */
+export interface WaProjectSuggestion { project_id: string; name: string; kind: "phase" | "master" | "similar" }
+export const WA_SUGGEST_LABELS: Record<WaProjectSuggestion["kind"], string> = { phase: "نفس المرحلة", master: "المشروع الأم", similar: "اسم قريب" };
+
+/** Usual finishing types (the field still accepts any text). */
+export const FINISHING_OPTIONS = [
+  "Core & Shell", "Semi Finished", "Flexi Finished", "Fully Finished", "Fully Finished with ACs", "Furnished",
+] as const;
+export const FINISHING_LABELS: Record<string, string> = {
+  "Core & Shell": "طوب أحمر", "Semi Finished": "نص تشطيب", "Flexi Finished": "٣/٤ تشطيب",
+  "Fully Finished": "تشطيب كامل", "Fully Finished with ACs": "تشطيب كامل + تكييفات", Furnished: "مفروش",
+};
+
 export const WA_FILL_LABELS: Record<WaFillSource, string> = { unit: "من الوحدة الحالية", project: "من بيانات المشروع", units: "من وحدات المشروع" };
 
 /** The 9 main areas: projects.area_group, the WhatsApp intake and the area dropdowns all use this list. */
@@ -504,6 +522,7 @@ export interface NewProjectValues {
   area_group: string;
   sub_area: string;
   description: string;
+  finishing?: string;
 }
 
 /** What the site shows as the project's area: "Golden Square, New Cairo" or just "New Cairo". */

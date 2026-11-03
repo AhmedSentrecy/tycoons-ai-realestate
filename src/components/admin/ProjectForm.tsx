@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { areaLabel, type AdminProject, type NewProjectValues } from "../../lib/adminApi";
-import { AreaFields, DeveloperSelect } from "./SearchSelect";
+import { AreaFields, DeveloperSelect, FinishingSelect } from "./SearchSelect";
 import { Modal, inputClass } from "./ui";
 
 export type NewProject = NewProjectValues;
@@ -29,6 +29,7 @@ export default function ProjectForm({
     area_group: initial?.area_group ?? "",
     sub_area: initial?.sub_area ?? "",
     description: initial?.description ?? "",
+    finishing: initial?.finishing ?? "",
   });
   const ready = values.name.trim() && values.developer.trim() && values.area_group;
   const twin = projects.find((project) => project.name.trim().toLowerCase() === values.name.trim().toLowerCase());
@@ -72,6 +73,11 @@ export default function ProjectForm({
               هيظهر على الموقع: <b dir="ltr">{areaLabel(values.area_group, values.sub_area)}</b>
             </p>
           )}
+          <label className="block text-sm">
+            <span className="mb-1 block font-bold">التشطيب الافتراضي (اختياري)</span>
+            <FinishingSelect value={values.finishing ?? ""} onChange={(finishing) => setValues({ ...values, finishing })} />
+            <span className="mt-1 block text-xs text-[#5c6a62]">أي وحدة من الواتساب من غير تشطيب بتاخده من هنا.</span>
+          </label>
           <label className="block text-sm">
             <span className="mb-1 block font-bold">وصف قصير (اختياري)</span>
             <textarea
