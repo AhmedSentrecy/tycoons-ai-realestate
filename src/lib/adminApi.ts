@@ -6,6 +6,8 @@ const SUPABASE_PUBLISHABLE_KEY =
 const API = `${SUPABASE_URL}/functions/v1/tycoons-admin`;
 /** Homepage "بتتطرح دلوقتي" carousel (own small function, same admin login). */
 const LAUNCHES_API = `${SUPABASE_URL}/functions/v1/homepage-launches`;
+/** Units from WhatsApp developer groups waiting for approval (own small function, same admin login). */
+const WA_INBOX_API = `${SUPABASE_URL}/functions/v1/wa-inbox`;
 export const ADMIN_TOKEN_KEY = "tycoons_admin_token";
 
 export type MediaTarget = "project" | "unit";
@@ -458,7 +460,76 @@ export const adminApi = {
   homepageLaunches: (token: string) => call<HomepageLaunchList>("homepage_launches", {}, token, LAUNCHES_API),
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
     call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
+  waInbox: (token: string, status: WaInboxStatus) =>
+    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number> }>("list", { status }, token, WA_INBOX_API),
+  waInboxSave: (token: string, id: number, values: WaInboxValues) =>
+    call<{ item: WaInboxItem }>("save", { id, values }, token, WA_INBOX_API),
+  waInboxApprove: (token: string, id: number, values: WaInboxValues, replaceUnitId: string, availabilityStatus: "available" | "new_launch") =>
+    call<{ ok: boolean; unit_id: string; action: "create" | "update" }>(
+      "approve",
+      { id, values, replace_unit_id: replaceUnitId, availability_status: availabilityStatus },
+      token,
+      WA_INBOX_API,
+    ),
+  waInboxReject: (token: string, ids: number[]) => call<{ ok: boolean; rejected: number }>("reject", { ids }, token, WA_INBOX_API),
+  waGroups: (token: string) => call<{ groups: WaGroup[] }>("groups", {}, token, WA_INBOX_API),
+  waGroupToggle: (token: string, groupId: string, track: boolean) =>
+    call<{ groups: WaGroup[] }>("group_toggle", { group_id: groupId, track }, token, WA_INBOX_API),
 };
+
+export type WaInboxStatus = "pending" | "approved" | "rejected";
+export const WA_INBOX_FIELDS = [
+  "project_id",
+  "location",
+  "unit_type",
+  "bedrooms_text",
+  "area_sqm",
+  "starting_price",
+  "down_payment_text",
+  "installments_text",
+  "delivery_text",
+  "finishing",
+  "description",
+] as const;
+export type WaInboxValues = Partial<Record<(typeof WA_INBOX_FIELDS)[number], string | number | null>>;
+
+/** One unit Claude read from a WhatsApp developer group, waiting for the admin's decision. */
+export interface WaInboxItem {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  status: WaInboxStatus;
+  project_id: string | null;
+  project_name: string | null;
+  developer: string | null;
+  location: string | null;
+  unit_type: string | null;
+  bedrooms_text: string | null;
+  area_sqm: number | string | null;
+  starting_price: number | string | null;
+  down_payment_text: string | null;
+  installments_text: string | null;
+  delivery_text: string | null;
+  finishing: string | null;
+  description: string | null;
+  image_url: string | null;
+  source_group: string | null;
+  sender: string | null;
+  message_id: string | null;
+  match_unit_id: string | null;
+  decided_at: string | null;
+  result_unit_id: string | null;
+  note: string | null;
+}
+
+export interface WaGroup {
+  group_id: string;
+  name: string | null;
+  track: boolean;
+  first_seen_at: string;
+  last_seen_at: string;
+  messages: number;
+}
 
 /** One project in the homepage "بتتطرح دلوقتي" carousel (order = position in the list). */
 export interface HomepageLaunchItem {
@@ -564,6 +635,12 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_password: "اسم المستخدم أو كلمة السر غلط",
   too_many_attempts: "محاولات كتير غلط. استنى ربع ساعة وجرّب تاني",
   login_required: "انتهت الجلسة، ادخل تاني",
+  project_required: "اختار المشروع الأول",
+  area_required: "اكتب المساحة الأول",
+  price_required: "اكتب السعر الأول",
+  already_decided: "الوحدة دي اتوافق عليها أو اترفضت قبل كده",
+  inbox_item_not_found: "الوحدة دي مش موجودة — حدّث الصفحة",
+  group_not_found: "الجروب ده مش موجود — حدّث الصفحة",
   session_check_failed: "في مشكلة مؤقتة في السيرفر، جرّب تاني بعد ثواني",
   owner_only: "الصلاحية دي للمالك بس",
   project_has_articles: "المشروع ده عليه مقالات — امسح المقالات بتاعته أو انقلها لمشروع تاني الأول",
