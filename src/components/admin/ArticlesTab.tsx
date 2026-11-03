@@ -274,18 +274,24 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
   }, [token, handleError]);
 
   const editorRef = useRef<HTMLElement>(null);
-  /** "اكتب المقال" from the list (or from the projects tab): a new Arabic article on that project. */
-  function writeFor(project: AdminProject) {
+  /**
+   * "اكتب العربي / الإنجليزي" from the list (or from the projects tab): a new article on that project in
+   * the missing language, already paired (hreflang) with the published article in the other language.
+   */
+  function writeFor(project: AdminProject, language: "ar" | "en" = "ar") {
     if (busyRef.current) return;
-    patchValues({ language: "ar", target_type: "project", project_id: project.id, area_name: null }, true);
-    setTopic(`${project.name}${project.developer ? ` من ${project.developer}` : ""}`);
+    patchValues({ language, target_type: "project", project_id: project.id, area_name: null }, true);
+    setTopic(language === "ar" ? `${project.name}${project.developer ? ` من ${project.developer}` : ""}` : `${project.name}${project.developer ? ` by ${project.developer}` : ""}`);
+    const other = articles.find((article) => article.project_id === project.id && article.status === "published" && article.language !== language);
+    if (other) setTranslationChoice(other.id);
     editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   useEffect(() => {
     if (!focusProjectId || loading) return;
     const project = projects.find((row) => row.id === focusProjectId);
-    if (project) writeFor(project);
+    const published = new Set(articles.filter((article) => article.project_id === focusProjectId && article.status === "published").map((article) => article.language));
+    if (project) writeFor(project, published.has("ar") && !published.has("en") ? "en" : "ar");
     onFocusHandled?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusProjectId, loading]);

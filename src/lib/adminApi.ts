@@ -52,6 +52,10 @@ export interface AdminProject extends MediaFields {
   delivery_text?: string | null;
   /** Default finishing of the project / phase (units without one take it). */
   finishing?: string | null;
+  /** WhatsApp requests from the site for this project: all-time, last 30 days, and rank (1 = most requested). */
+  wa_requests?: number;
+  wa_requests_30d?: number;
+  wa_rank?: number | null;
   created_at?: string | null;
   last_updated_at?: string | null;
 }
@@ -859,3 +863,19 @@ export function formatPrice(value: number | string | null | undefined) {
   return `${Math.round(number / 1000)} ألف`;
 }
 
+
+/** "طلبات واتساب: 7 · الترتيب #1" for a project, or "" when nobody asked yet. */
+export function waDemandLabel(project: Pick<AdminProject, "wa_requests" | "wa_requests_30d" | "wa_rank">): string {
+  if (!project.wa_requests) return "";
+  return `طلبات واتساب: ${project.wa_requests}${project.wa_requests_30d ? ` (${project.wa_requests_30d} آخر 30 يوم)` : ""} · الترتيب #${project.wa_rank}`;
+}
+
+/** Published article languages per project id. */
+export function articleLanguages(articles: { project_id: string | null; status: string; language: string }[]): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>();
+  for (const article of articles) {
+    if (article.status !== "published" || !article.project_id) continue;
+    map.set(article.project_id, new Set([...(map.get(article.project_id) ?? []), article.language]));
+  }
+  return map;
+}
