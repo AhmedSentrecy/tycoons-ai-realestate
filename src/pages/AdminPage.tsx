@@ -231,6 +231,12 @@ type Tab = "projects" | "media" | "units" | "developers" | "launches" | "article
 function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser; onSignOut: () => void }) {
   const isOwner = user.role === "owner";
   const [tab, setTab] = useState<Tab>("media");
+  // "اكتب المقال" from the projects / WhatsApp tabs: open the articles tab on that project.
+  const [articleFocus, setArticleFocus] = useState<string | null>(null);
+  const writeArticle = (projectId: string) => {
+    setArticleFocus(projectId);
+    setTab("articles");
+  };
   const [projects, setProjects] = useState<AdminProject[]>([]);
   // Media and units never show old duplicate rows; articles get the full list so
   // their auto-fix can move a draft from a duplicate to the project with a page.
@@ -429,7 +435,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
 
         <div className="mx-auto max-w-7xl px-4 py-4">
           <InventorySummary projects={projects} />
-          {tab === "projects" && <ProjectsTab projects={projects} onChanged={refresh} />}
+          {tab === "projects" && <ProjectsTab projects={projects} onChanged={refresh} onWriteArticle={writeArticle} />}
           {tab === "developers" && <DevelopersTab />}
           {tab === "media" && (
             <MediaTab
@@ -456,9 +462,9 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
               onCreateProject={() => setProjectFormOpen(true)}
             />
           )}
-          {tab === "wainbox" && <WhatsAppInboxTab projects={projects} onChanged={refresh} />}
+          {tab === "wainbox" && <WhatsAppInboxTab projects={projects} onChanged={refresh} onWriteArticle={writeArticle} />}
           {tab === "launches" && <HomepageLaunchesTab projects={projects} />}
-          {tab === "articles" && <ArticlesTab projects={projects} />}
+          {tab === "articles" && <ArticlesTab projects={projects} focusProjectId={articleFocus} onFocusHandled={() => setArticleFocus(null)} />}
           {tab === "faq" && <ProjectFaqTab projects={projects} />}
           {tab === "approvals" && <ApprovalsTab onChanged={refresh} pendingTotal={pendingTotal} />}
           {tab === "users" && isOwner && <UsersTab />}

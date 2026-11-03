@@ -22,7 +22,7 @@ const FIELDS: { key: FieldKey; label: string; long?: boolean; required?: boolean
 const fmt = (value?: string | null) => (value ? new Date(value).toLocaleDateString("ar-EG-u-nu-latn", { day: "numeric", month: "short", year: "numeric" }) : "—");
 
 /** Projects: edit their details and delete them. Changes apply at once and show in «سجل التعديلات». */
-export default function ProjectsTab({ projects, onChanged }: { projects: AdminProject[]; onChanged: () => void }) {
+export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { projects: AdminProject[]; onChanged: () => void; onWriteArticle?: (projectId: string) => void }) {
   const { token, notify, handleError } = useAdmin();
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<AdminProject | null>(null);
@@ -52,7 +52,7 @@ export default function ProjectsTab({ projects, onChanged }: { projects: AdminPr
             <li key={project.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#eee5d6] p-3">
               {cover ? <img src={cover} alt="" loading="lazy" className="h-12 w-16 rounded-lg object-cover" /> : <span className="h-12 w-16 rounded-lg bg-[#f1ebdc]" />}
               <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">{project.name} {!project.slug && <Badge tone="muted">ملوش صفحة</Badge>}</p>
+                <p className="truncate font-bold">{project.name} {!project.slug && <Badge tone="muted">ملوش صفحة</Badge>} {project.awaiting_article && <Badge tone="error">مستني مقال — مش ظاهر على الموقع</Badge>}</p>
                 <p className="truncate text-xs text-[#5c6a62]">
                   {project.developer} · {project.location} · {project.available_units} وحدة متاحة من {project.units_count}
                   {project.new_units_week ? ` · ${project.new_units_week} جديدة الأسبوع ده` : ""} · آخر تحديث {fmt(project.last_updated_at)}
@@ -62,6 +62,11 @@ export default function ProjectsTab({ projects, onChanged }: { projects: AdminPr
                 <a href={`/projects/${project.slug}`} target="_blank" rel="noopener" className="rounded-full border border-[#e0d3bb] px-3 py-1.5 text-xs font-bold">
                   افتح الصفحة
                 </a>
+              )}
+              {project.awaiting_article && onWriteArticle && (
+                <button type="button" onClick={() => onWriteArticle(project.id)} className="rounded-full bg-[#d9b87c] px-4 py-1.5 text-xs font-black text-[#0d1f18]">
+                  اكتب المقال
+                </button>
               )}
               <button type="button" onClick={() => setEditing(project)} className="rounded-full bg-[#14352a] px-4 py-1.5 text-xs font-bold text-white">
                 تعديل

@@ -90,8 +90,8 @@ export default function ProjectForm({
           </label>
         </div>
         <p className="mt-3 rounded-2xl bg-[#f7f2ea] p-3 text-xs leading-relaxed text-[#5c6a62]">
-          رابط المشروع على الموقع وعنوان ووصف الـSEO بيتعملوا تلقائي من الاسم والمطور والمنطقة. بعد الحفظ افتح المشروع وارفع صوره وضيف وحداته،
-          وصفحته هتظهر على الموقع بعد أول «حدّث الموقع».
+          رابط المشروع على الموقع وعنوان ووصف الـSEO بيتعملوا تلقائي من الاسم والمطور والمنطقة. بعد الحفظ ارفع صوره وضيف وحداته.
+          <b className="block text-[#8a6630]">المشروع ووحداته مش هيظهروا على الموقع غير لما تنشر له مقال (SEO وGEO) من تابة «المقالات» — هتلاقيه في قايمة «مشاريع من غير مقال».</b>
         </p>
         <div className="mt-4 flex justify-end gap-2">
           <button type="button" onClick={onCancel} className="rounded-full px-4 py-2 text-sm font-bold">

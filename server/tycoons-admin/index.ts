@@ -41,7 +41,7 @@ const UNIT_STATUSES = ["available", "sold", "not_confirmed", "review_only", "new
 const MEDIA_FIELDS = ["image_url", "gallery_urls", "video_url", "brochure_url"] as const;
 /** The 9 main areas (same list the WhatsApp intake uses). */
 const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"];
-const PROJECT_COLUMNS = "id,name,slug,developer,location,area_group,sub_area,image_url,gallery_urls,video_url,brochure_url,description,hero_text,seo_title,seo_description,down_payment_text,installments_text,delivery_text,finishing,created_at,last_updated_at";
+const PROJECT_COLUMNS = "id,name,slug,developer,location,area_group,sub_area,image_url,gallery_urls,video_url,brochure_url,description,hero_text,seo_title,seo_description,down_payment_text,installments_text,delivery_text,finishing,awaiting_article,created_at,last_updated_at";
 const UNIT_COLUMNS =
   "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,video_url,brochure_url,created_at,last_updated_at";
 
@@ -317,6 +317,23 @@ async function reviewArticle(article: Json) {
     : { data: [], error: null };
   fail(unitsError);
   return assessArticleReview(article, { projects: scopedProjects, units: units ?? [] });
+}
+
+/**
+ * Facts for writing the first article of a project that is still off the public site
+ * (projects.awaiting_article): same fields the article generator reads with the public key.
+ */
+async function articleFacts(body: Json) {
+  const id = text(body.project_id);
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(400, "project_id_invalid");
+  const { data: project, error } = await db.from("projects").select("id,name,slug,developer,location,description,hero_text,highlights,faq").eq("id", id).maybeSingle();
+  fail(error);
+  if (!project) throw new HttpError(404, "project_not_found");
+  const { data: units, error: unitsError } = await db.from("units")
+    .select("id,project_id,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,availability_status,last_updated_at")
+    .eq("project_id", id).eq("availability_status", "available").order("last_updated_at", { ascending: false }).limit(24);
+  fail(unitsError);
+  return { projects: [project], units: units ?? [] };
 }
 
 async function loadProject(id: string) {
@@ -1313,6 +1330,7 @@ Deno.serve(async (req: Request) => {
       case "units": return reply(await listUnits(body));
       case "articles": return reply(await listArticles());
       case "article": return reply(await getArticle(body));
+      case "article_facts": return reply(await articleFacts(body));
       case "article_save": return reply(await saveArticle(user, body));
       case "article_publish": return reply(await publishArticle(user, body));
       case "article_generation_claim": return reply(await claimArticleGeneration(user, tokenHash, body));
