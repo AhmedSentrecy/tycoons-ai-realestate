@@ -158,6 +158,63 @@ function bestUnit(units: Json[], unitType: string, area: number | null): string 
   return same.length ? text(same[0].id) : null;
 }
 
+// ---------- filling gaps ----------
+
+/** Unit details a WhatsApp message often leaves out. */
+const FILL_FIELDS = ["down_payment_text", "installments_text", "delivery_text", "finishing"] as const;
+const PROJECT_FILL_FIELDS = new Set(["down_payment_text", "installments_text", "delivery_text"]);
+type FillSource = "unit" | "project" | "units";
+
+/** Most frequent non-empty value of one field (ties: the first seen). */
+function mostCommon(units: Json[], field: string): string {
+  const counts = new Map<string, number>();
+  for (const unit of units) {
+    const value = text(unit[field]);
+    if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  let best = "";
+  let bestCount = 0;
+  for (const [value, count] of counts) if (count > bestCount) [best, bestCount] = [value, count];
+  return best;
+}
+
+/**
+ * Fills the details the message left empty, never the ones it gave:
+ * 1. the unit on the site this one updates, 2. the project's own down payment / installments /
+ * delivery, 3. the most common value among the project's units of the same type (or of all its
+ * units when they all agree). Answer: field -> where the value came from.
+ */
+function fillGaps(row: Json, match: Json | null, project: Json | null, units: Json[]): Record<string, FillSource> {
+  const filled: Record<string, FillSource> = {};
+  const sameTypeUnits = units.filter((unit) => sameType(unit.unit_type, row.unit_type));
+  for (const field of FILL_FIELDS) {
+    if (text(row[field])) continue;
+    let value = text(match?.[field]);
+    let source: FillSource = "unit";
+    if (!value && project && PROJECT_FILL_FIELDS.has(field)) {
+      value = text(project[field]);
+      source = "project";
+    }
+    if (!value) {
+      value = mostCommon(sameTypeUnits, field);
+      if (!value) {
+        const all = new Set(units.map((unit) => text(unit[field])).filter(Boolean));
+        if (all.size === 1) value = [...all][0];
+      }
+      source = "units";
+    }
+    if (value) {
+      row[field] = value;
+      filled[field] = source;
+    }
+  }
+  return filled;
+}
+
+/** Same unit and price as one already rejected: shown with a "rejected before" badge. */
+const rejectKey = (row: Json) =>
+  [text(row.project_id) || norm(row.project_name), norm(row.unit_type), norm(row.bedrooms_text), Math.round(Number(row.area_sqm) || 0), Math.round(Number(row.starting_price) || 0)].join("|");
+
 // ---------- Make.com ----------
 
 /** Group subject straight from WAHA (GOWS answers Name, WEBJS answers subject). */
@@ -270,17 +327,38 @@ async function list(body: Json) {
     .order(status === "pending" ? "created_at" : "decided_at", { ascending: false }).limit(status === "pending" ? 1000 : 200);
   fail(error);
   const rows = (data ?? []) as Json[];
-  // Pending units saved before a match existed (or before the better type match): suggest one now.
+  const autoFilled: Record<string, Record<string, FillSource>> = {};
+  const previouslyRejected: Record<string, string> = {};
   if (status === "pending") {
-    const open = rows.filter((row) => text(row.project_id) && !text(row.match_unit_id) && Number(row.area_sqm) > 0);
-    const projectIds = [...new Set(open.map((row) => text(row.project_id)))];
+    // Units saved before a match existed (or before the better type match) get one now, and the
+    // details the message left out are filled from the site (shown to the admin as auto-filled).
+    const projectIds = [...new Set(rows.map((row) => text(row.project_id)).filter(Boolean))];
     if (projectIds.length) {
-      const { data: units, error: unitsError } = await db.from("units").select("id,project_id,unit_type,area_sqm,availability_status").in("project_id", projectIds).limit(5000);
+      const [{ data: units, error: unitsError }, { data: projects, error: projectsError }] = await Promise.all([
+        db.from("units").select(`id,project_id,unit_type,area_sqm,availability_status,${FILL_FIELDS.join(",")}`).in("project_id", projectIds).limit(10000),
+        db.from("projects").select("id,down_payment_text,installments_text,delivery_text").in("id", projectIds),
+      ]);
       fail(unitsError);
-      for (const row of open) {
+      fail(projectsError);
+      const projectById = new Map(((projects ?? []) as Json[]).map((project) => [text(project.id), project]));
+      for (const row of rows) {
+        if (!text(row.project_id)) continue;
         const own = ((units ?? []) as Json[]).filter((unit) => unit.project_id === row.project_id);
-        row.match_unit_id = bestUnit(own, text(row.unit_type), Number(row.area_sqm));
+        if (!text(row.match_unit_id) && Number(row.area_sqm) > 0) row.match_unit_id = bestUnit(own, text(row.unit_type), Number(row.area_sqm));
+        const match = own.find((unit) => unit.id === row.match_unit_id) ?? null;
+        const filled = fillGaps(row, match, projectById.get(text(row.project_id)) ?? null, own);
+        if (Object.keys(filled).length) autoFilled[String(row.id)] = filled;
       }
+    }
+    const { data: rejected, error: rejectedError } = await db.from("wa_unit_inbox")
+      .select("project_id,project_name,unit_type,bedrooms_text,area_sqm,starting_price,decided_at").eq("status", "rejected")
+      .order("decided_at", { ascending: false }).limit(5000);
+    fail(rejectedError);
+    const rejectedAt = new Map<string, string>();
+    for (const row of (rejected ?? []) as Json[]) if (!rejectedAt.has(rejectKey(row))) rejectedAt.set(rejectKey(row), text(row.decided_at));
+    for (const row of rows) {
+      const when = rejectedAt.get(rejectKey(row));
+      if (when) previouslyRejected[String(row.id)] = when;
     }
   }
   const ids = [...new Set(rows.map((row) => text(row.match_unit_id)).filter(Boolean))];
@@ -295,7 +373,7 @@ async function list(body: Json) {
     const { count } = await db.from("wa_unit_inbox").select("id", { count: "exact", head: true }).eq("status", key);
     counts[key] = count ?? 0;
   }
-  return { items: rows, matches, counts, duplicates: findDuplicates(rows) };
+  return { items: rows, matches, counts, duplicates: findDuplicates(rows), auto_filled: autoFilled, previously_rejected: previouslyRejected };
 }
 
 /**
@@ -371,9 +449,20 @@ async function approve(user: AdminUser, body: Json) {
   if (!saved.starting_price) throw new HttpError(400, "price_required");
   const status = APPROVE_STATUSES.includes(text(body.availability_status)) ? text(body.availability_status) : "available";
 
+  const replaceId = text(body.replace_unit_id);
+  // Same gap filling the admin saw in the list (quick approve sends no values).
+  const { data: projectRows } = await db.from("projects").select("id,down_payment_text,installments_text,delivery_text").eq("id", project.id).maybeSingle();
+  const { data: siteUnits } = await db.from("units").select(`id,project_id,unit_type,area_sqm,availability_status,${FILL_FIELDS.join(",")}`).eq("project_id", project.id).limit(2000);
+  const own = (siteUnits ?? []) as Json[];
+  fillGaps(saved, own.find((unit) => unit.id === replaceId) ?? null, (projectRows ?? null) as Json | null, own);
+
   const unitValues: Json = { area_sqm: Number(saved.area_sqm), starting_price: Number(saved.starting_price), availability_status: status };
-  for (const field of UNIT_TEXT_FIELDS) unitValues[field] = text(saved[field]) || null;
-  unitValues.location = unitValues.location || project.location || "Egypt";
+  for (const field of UNIT_TEXT_FIELDS) {
+    const value = text(saved[field]);
+    // An update never erases what the unit already has: an empty field keeps the old value.
+    if (value || !replaceId) unitValues[field] = value || null;
+  }
+  if (!replaceId || unitValues.location !== undefined) unitValues.location = unitValues.location || project.location || "Egypt";
   // Photos the admin picked from the project's Supabase photos (cover first, same format as the media editor).
   const picked = [...new Set([body.image_url, ...(Array.isArray(body.gallery_urls) ? body.gallery_urls : [])].map(text).filter(Boolean))];
   if (picked.length > MAX_GALLERY) throw new HttpError(400, "gallery_too_long");
@@ -383,7 +472,6 @@ async function approve(user: AdminUser, body: Json) {
     unitValues.gallery_urls = picked.join(", ");
   }
 
-  const replaceId = text(body.replace_unit_id);
   const label = `${unitValues.unit_type}${unitValues.area_sqm ? ` ${unitValues.area_sqm} م²` : ""} في ${project.name}`;
   let ops: Json[];
   let before: unknown = null;

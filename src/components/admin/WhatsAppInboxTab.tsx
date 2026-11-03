@@ -5,12 +5,14 @@ import {
   hideLegacyDuplicates,
   mediaImages,
   STATUS_LABELS,
+  WA_FILL_LABELS,
   type AdminProject,
   type AdminUnit,
   type WaGroup,
   type WaInboxItem,
   type WaInboxStatus,
   type WaInboxValues,
+  type WaFillSource,
 } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import ProjectForm, { type NewProject } from "./ProjectForm";
@@ -31,6 +33,8 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   const [items, setItems] = useState<WaInboxItem[]>([]);
   const [matches, setMatches] = useState<Map<string, AdminUnit>>(new Map());
   const [duplicates, setDuplicates] = useState<Record<string, number[]>>({});
+  const [autoFilled, setAutoFilled] = useState<Record<string, Record<string, WaFillSource>>>({});
+  const [rejectedBefore, setRejectedBefore] = useState<Record<string, string>>({});
   const [counts, setCounts] = useState<Record<WaInboxStatus, number>>({ pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -61,6 +65,8 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
         setItems(result.items);
         setMatches(new Map(result.matches.map((unit) => [unit.id, unit])));
         setDuplicates(result.duplicates ?? {});
+        setAutoFilled(result.auto_filled ?? {});
+        setRejectedBefore(result.previously_rejected ?? {});
         setCounts(result.counts);
         setSelected(new Set());
       })
@@ -264,7 +270,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                       <th className="p-2">النوع</th>
                       <th className="p-2">المساحة</th>
                       <th className="p-2">السعر</th>
-                      <th className="p-2">المقدم / التقسيط</th>
+                      <th className="p-2">المقدم / التقسيط / التشطيب</th>
                       <th className="p-2">الاستلام</th>
                       <th className="p-2">جاية من</th>
                       <th className="p-2"></th>
@@ -275,6 +281,8 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                       const match = item.match_unit_id ? matches.get(item.match_unit_id) ?? null : null;
                       const gaps = missing(item);
                       const twins = (duplicates[String(item.id)] ?? []).map((id) => itemById.get(id)).filter(Boolean) as WaInboxItem[];
+                      const filled = autoFilled[String(item.id)] ?? {};
+                      const rejectedAt = rejectedBefore[String(item.id)];
                       return (
                         <tr key={item.id} className={`border-b border-[#f4eee2] align-top ${selected.has(item.id) ? "bg-[#fffaf1]" : ""}`}>
                           {pending && (
@@ -300,6 +308,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                             <div className="mt-1 flex flex-wrap gap-1">
                               {match && <Badge tone="gold">هتحدّث وحدة موجودة</Badge>}
                               {twins.length > 0 && <Badge tone="pending">مكررة ×{twins.length + 1}</Badge>}
+                              {rejectedAt && <Badge tone="error">اترفضت قبل كده · {when(rejectedAt)}</Badge>}
                               {item.status === "approved" && <Badge tone="ok">اتوافق</Badge>}
                               {item.status === "rejected" && <Badge tone="muted">اترفض</Badge>}
                             </div>
@@ -313,9 +322,22 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                           </td>
                           <td className="p-2 text-xs text-[#5c6a62]">
                             {item.down_payment_text || "—"}
-                            <span className="block">{item.installments_text || ""}</span>
+                            <AutoMark source={filled.down_payment_text} />
+                            <span className="block">
+                              {item.installments_text || ""}
+                              <AutoMark source={filled.installments_text} />
+                            </span>
+                            {item.finishing && (
+                              <span className="block">
+                                {item.finishing}
+                                <AutoMark source={filled.finishing} />
+                              </span>
+                            )}
                           </td>
-                          <td className="p-2 text-xs text-[#5c6a62]">{item.delivery_text || "—"}</td>
+                          <td className="p-2 text-xs text-[#5c6a62]">
+                            {item.delivery_text || "—"}
+                            <AutoMark source={filled.delivery_text} />
+                          </td>
                           <td className="p-2 text-xs text-[#5c6a62]">
                             <span className="block font-bold text-[#1b2420]">{item.source_group || "جروب"}</span>
                             {when(item.created_at)}
@@ -411,6 +433,8 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
       {editing && (
         <EditDialog
           item={editing}
+          filled={autoFilled[String(editing.id)] ?? {}}
+          rejectedAt={rejectedBefore[String(editing.id)] ?? ""}
           projects={projects}
           onProjectCreated={onChanged}
           onClose={() => setEditing(null)}
@@ -424,6 +448,16 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
       )}
       {groupsOpen && <GroupsDialog onClose={() => setGroupsOpen(false)} />}
     </div>
+  );
+}
+
+/** Small grey note after a detail the message did not give (filled from the site). */
+function AutoMark({ source }: { source?: WaFillSource }) {
+  if (!source) return null;
+  return (
+    <span title={`الرسالة ماذكرتهاش — ${WA_FILL_LABELS[source]}`} className="ms-1 rounded bg-sky-50 px-1 text-[10px] font-black text-sky-700">
+      تلقائي
+    </span>
   );
 }
 
@@ -455,12 +489,16 @@ const TEXT_INPUTS: { key: keyof WaInboxValues; label: string; placeholder: strin
 /** Every field of the unit in one form, plus the project's photos to attach: edit once, then save or approve once. */
 function EditDialog({
   item,
+  filled,
+  rejectedAt,
   projects,
   onProjectCreated,
   onClose,
   onDone,
 }: {
   item: WaInboxItem;
+  filled: Record<string, WaFillSource>;
+  rejectedAt: string;
   projects: AdminProject[];
   onProjectCreated: () => void;
   onClose: () => void;
@@ -605,7 +643,15 @@ function EditDialog({
         {TEXT_INPUTS.map(({ key, label, placeholder }) => (
           <label key={key} className="block text-sm">
             <span className="mb-1 block font-bold">{label}</span>
-            <input value={String(values[key] ?? "")} onChange={(event) => set(key, event.target.value)} placeholder={placeholder} className={inputClass} />
+            <input
+              value={String(values[key] ?? "")}
+              onChange={(event) => set(key, event.target.value)}
+              placeholder={placeholder}
+              className={`${inputClass} ${filled[key] && values[key] === item[key as keyof WaInboxItem] ? "border-sky-300 bg-sky-50" : ""}`}
+            />
+            {filled[key] && (
+              <span className="mt-1 block text-[11px] font-bold text-sky-700">الرسالة ماذكرتهاش — اتملت {WA_FILL_LABELS[filled[key]]}. راجعها.</span>
+            )}
           </label>
         ))}
         <label className="block text-sm">
@@ -701,6 +747,11 @@ function EditDialog({
         </div>
       </div>
 
+      {rejectedAt && (
+        <p className="mt-3 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-600">
+          وحدة بنفس المشروع والنوع والمساحة والسعر اترفضت قبل كده ({when(rejectedAt)}).
+        </p>
+      )}
       {gaps.length > 0 && <p className="mt-3 text-sm font-bold text-red-600">لازم تكمّل: {gaps.join("، ")} قبل الموافقة.</p>}
       <div className="mt-4 flex flex-wrap justify-end gap-2">
         <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-sm font-bold">
