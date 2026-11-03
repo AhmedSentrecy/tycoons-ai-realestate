@@ -2,9 +2,10 @@
 // Units extracted from WhatsApp developer groups wait here until an admin approves them.
 //
 // Two kinds of callers:
-// - Make.com (header x-intake-key = media_admin_settings.wa_inbox_key):
+// - Make.com (header x-waha-key or x-intake-key, see requireIntake):
 //     track  -> registers the WhatsApp group and answers { track } (false = skip this group)
 //     intake -> stores one extracted unit as "pending" (duplicates of the same message are ignored)
+//     intake_batch -> same for every unit in Claude's answer for one message (units_json)
 // - The admin page (header x-admin-token, same sessions as tycoons-admin):
 //     list, save, approve, reject, groups, group_toggle
 // Approve writes to public.units through admin_apply_ops and logs the change in
@@ -191,6 +192,30 @@ async function intake(body: Json) {
   return { stored: Boolean(data?.length), id: data?.[0]?.id ?? null, project_matched: Boolean(project), replaces_unit: values.match_unit_id ?? null };
 }
 
+/**
+ * One call per WhatsApp message: units_json is Claude's raw answer ({"units":[...]}), the other
+ * form fields describe the message. Each unit goes through intake() on its own.
+ */
+async function intakeBatch(body: Json) {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text(body.units_json) || "{}");
+  } catch {
+    throw new HttpError(400, "units_json_invalid");
+  }
+  const list = Array.isArray(parsed) ? parsed : Array.isArray((parsed as Json)?.units) ? ((parsed as Json).units as unknown[]) : [];
+  const meta = {
+    source_group: body.source_group, source_group_id: body.source_group_id, sender: body.sender,
+    message_id: body.message_id, image_url: body.image_url || body.media_url,
+  };
+  const results = [];
+  for (const raw of list.slice(0, 100)) {
+    if (!raw || typeof raw !== "object") continue;
+    results.push(await intake({ ...(raw as Json), ...meta }));
+  }
+  return { units: list.length, stored: results.filter((result) => result.stored).length, results };
+}
+
 // ---------- admin ----------
 
 async function list(body: Json) {
@@ -339,9 +364,10 @@ Deno.serve(async (req: Request) => {
   try {
     const body = await readBody(req);
     const action = text(body.action);
-    if (action === "track" || action === "intake") {
+    if (action === "track" || action === "intake" || action === "intake_batch") {
       await requireIntake(req);
-      return reply(action === "track" ? await track(body) : await intake(body));
+      if (action === "track") return reply(await track(body));
+      return reply(action === "intake" ? await intake(body) : await intakeBatch(body));
     }
     const user = await requireUser(req);
     switch (action) {
