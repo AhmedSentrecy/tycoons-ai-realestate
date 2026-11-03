@@ -112,10 +112,16 @@ async function requireUser(req: Request): Promise<AdminUser> {
 
 // ---------- matching ----------
 
-interface ProjectRow { id: string; name: string; developer: string | null; location: string | null; area_group?: string | null }
+interface ProjectRow { id: string; name: string; developer: string | null; location: string | null; area_group?: string | null; slug?: string | null }
+
+/**
+ * 60 projects exist twice: an old row without a page (no slug, no units) and the live one with a
+ * page and all the units. Matching always prefers the live row so units land where the site has them.
+ */
+const live = (project: ProjectRow) => Number(Boolean(text(project.slug)));
 
 async function allProjects(): Promise<ProjectRow[]> {
-  const { data, error } = await db.from("projects").select("id,name,developer,location,area_group").limit(5000);
+  const { data, error } = await db.from("projects").select("id,name,developer,location,area_group,slug").limit(5000);
   fail(error);
   return (data ?? []) as ProjectRow[];
 }
@@ -159,7 +165,7 @@ function suggestProject(all: ProjectRow[], name: string, developer: string, area
   const dev = norm(developer);
   const sameDev = (project: ProjectRow) => Boolean(dev && norm(project.developer) && (norm(project.developer).includes(dev) || dev.includes(norm(project.developer))));
   const prefix = all.filter((project) => { const pn = norm(project.name); return pn.length >= 4 && key.startsWith(pn); })
-    .sort((a, b) => norm(b.name).length - norm(a.name).length || Number(sameDev(b)) - Number(sameDev(a)));
+    .sort((a, b) => norm(b.name).length - norm(a.name).length || Number(sameDev(b)) - Number(sameDev(a)) || live(b) - live(a));
   if (prefix.length) {
     const best = prefix[0];
     const phase = text(best.name).includes(" - ") || norm(best.name).length >= key.length - 3;
@@ -176,7 +182,7 @@ function suggestProject(all: ProjectRow[], name: string, developer: string, area
     const theirs = words(project.name);
     const common = [...mine].filter((word) => theirs.has(word)).length;
     const score = common / Math.max(mine.size, theirs.size, 1);
-    if (common && score > bestScore) [best, bestScore] = [project, score];
+    if (common && (score > bestScore || (score === bestScore && best && live(project) > live(best)))) [best, bestScore] = [project, score];
   }
   return best && bestScore >= 0.5 && [...mine].filter((word) => words(best!.name).has(word)).length >= 2 ? { project_id: best.id, name: best.name, kind: "similar" } : null;
 }
@@ -189,7 +195,9 @@ function matchProject(projects: ProjectRow[], name: string, developer: string): 
   if (!candidates.length) candidates = projects.filter((project) => key.length >= 5 && norm(project.name).startsWith(key));
   if (candidates.length <= 1) return candidates[0] ?? null;
   const dev = norm(developer);
-  return candidates.find((project) => dev && (norm(project.developer).includes(dev) || dev.includes(norm(project.developer)))) ?? candidates[0];
+  const sameDev = (project: ProjectRow) => Number(Boolean(dev && (norm(project.developer).includes(dev) || dev.includes(norm(project.developer)))));
+  // Same developer first, then the live row (with a page) over its old duplicate.
+  return [...candidates].sort((a, b) => sameDev(b) - sameDev(a) || live(b) - live(a))[0];
 }
 
 /** An existing unit of the same type and area in the project (the one approval would replace). */
