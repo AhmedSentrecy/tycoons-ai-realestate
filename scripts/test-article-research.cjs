@@ -5,6 +5,8 @@ const assert = require("node:assert/strict");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
 const root = path.resolve(__dirname, "..");
+// These tests mock the OpenAI API; a real ANTHROPIC_API_KEY in the build env must not reroute them.
+process.env.ARTICLE_PROVIDER = "openai";
 const gen = require("../netlify/functions/_article-generation.cjs");
 const { renderEditorialArticle } = require("../netlify/functions/_seo-utils.cjs");
 let checks = 0;

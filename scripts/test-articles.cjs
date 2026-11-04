@@ -5,6 +5,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 process.env.OPENAI_API_KEY = "test-only-not-a-real-key";
+// These tests mock the OpenAI API; a real ANTHROPIC_API_KEY in the build env must not reroute them.
+process.env.ARTICLE_PROVIDER = "openai";
 const { renderSafeMarkdown } = require("../netlify/functions/_article-render.cjs");
 const { renderEditorialArticle, renderGuide } = require("../netlify/functions/_seo-utils.cjs");
 const { buildOpenAiRequest, parseOpenAiOutput, groundInputForFacts } = require("../netlify/functions/_article-generation.cjs");

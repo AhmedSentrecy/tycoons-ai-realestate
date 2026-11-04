@@ -23,6 +23,7 @@ function walk(node, visit) {
 
 (async () => {
   process.env.ANTHROPIC_API_KEY = "test-key";
+  delete process.env.ARTICLE_PROVIDER;
   delete process.env.ANTHROPIC_ARTICLE_MODEL;
   delete process.env.ANTHROPIC_RESEARCH_MODEL;
 
