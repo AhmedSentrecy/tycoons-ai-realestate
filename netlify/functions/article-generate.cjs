@@ -245,7 +245,7 @@ exports.handler = async function handler(event) {
       await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, error: String(error?.message || "generation_failed") }).catch(() => undefined);
     }
     console.error("[article-generate]", JSON.stringify({ error: error?.message || "generation_failed", ...(error?.diagnostics || {}) }));
-    return jsonResponse(Number(error?.status) || 500, { error: error?.message || "generation_failed", ...(error?.generationFailure ? { generation_failure: error.generationFailure } : {}), ...(error?.retryAfterSeconds ? { retry_after_seconds: error.retryAfterSeconds } : {}) }, error?.retryAfterSeconds ? { "retry-after": String(error.retryAfterSeconds) } : {});
+    return jsonResponse(Number(error?.status) || 500, { error: error?.message || "generation_failed", ...(error?.generationFailure ? { generation_failure: error.generationFailure } : {}), ...(error?.retryAfterSeconds ? { retry_after_seconds: error.retryAfterSeconds } : {}), ...(error?.providerDetail ? { provider_detail: error.providerDetail } : {}) }, error?.retryAfterSeconds ? { "retry-after": String(error.retryAfterSeconds) } : {});
   }
 };
 

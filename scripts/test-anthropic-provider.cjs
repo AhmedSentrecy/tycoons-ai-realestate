@@ -128,6 +128,9 @@ function walk(node, visit) {
     await assert.rejects(claudeResponses(buildOpenAiRequest(draftInput, [project], []), 60000), (error) => error.message === code && (!retry || error.retryAfterSeconds === retry));
     checks += 1;
   }
+  global.fetch = async () => reply({ type: "error", error: { type: "invalid_request_error", message: "tools.0: bad field   sk-ant-api03-SECRET" } }, 400);
+  await assert.rejects(claudeResponses(buildOpenAiRequest(draftInput, [project], []), 60000), (error) => error.message === "generation_provider_request_invalid" && error.providerDetail === "tools.0: bad field [key]");
+  checks += 1;
   global.fetch = async () => { throw Object.assign(new Error("t"), { name: "TimeoutError" }); };
   await assert.rejects(claudeResponses(buildOpenAiRequest(draftInput, [project], []), 60000), /generation_provider_unavailable/); checks += 1;
   eq(extractJson('noise {"a":1} tail'), { a: 1 }, "JSON found inside text");

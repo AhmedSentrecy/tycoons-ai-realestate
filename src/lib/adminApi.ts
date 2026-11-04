@@ -249,14 +249,17 @@ export class AdminApiError extends Error {
   retryAfterSeconds: number | null;
   generationFailure: GenerationFailure | null;
   reviewIssues: ArticleReviewIssue[] | null;
+  /** The AI provider's own reason for a rejected generation request (no secrets). */
+  providerDetail: string | null;
 
-  constructor(code: string, status: number, retryAfterSeconds: number | null = null, generationFailure: GenerationFailure | null = null, reviewIssues: ArticleReviewIssue[] | null = null) {
+  constructor(code: string, status: number, retryAfterSeconds: number | null = null, generationFailure: GenerationFailure | null = null, reviewIssues: ArticleReviewIssue[] | null = null, providerDetail: string | null = null) {
     super(code);
     this.code = code;
     this.status = status;
     this.retryAfterSeconds = retryAfterSeconds;
     this.generationFailure = generationFailure;
     this.reviewIssues = reviewIssues;
+    this.providerDetail = providerDetail;
   }
 }
 
@@ -323,7 +326,7 @@ async function generate<T>(token: string, idempotencyKey: string, payload: Recor
       await new Promise((resolve) => setTimeout(resolve, Number.isFinite(hinted) && hinted > 0 ? Math.min(hinted, 15000) : GENERATION_POLL.delayMs));
       continue;
     }
-    throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure), safeReviewIssues(data.review_issues));
+    throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure), safeReviewIssues(data.review_issues), typeof data.provider_detail === "string" ? data.provider_detail.slice(0, 240) : null);
   }
 }
 
@@ -819,7 +822,8 @@ export function errorMessage(error: unknown): string {
     return `صف ${row}: ${errorMessage(new AdminApiError(inner, 400))}`;
   }
   if (code.startsWith("apply_failed")) return "التعديل ماتطبقش — البيانات اتغيرت. حدّث الصفحة وجرّب تاني";
-  return ERROR_MESSAGES[code] || `حصل خطأ${code ? ` (${code})` : ""}`;
+  const detail = error instanceof AdminApiError && error.providerDetail ? ` — رد الـ AI: ${error.providerDetail}` : "";
+  return (ERROR_MESSAGES[code] || `حصل خطأ${code ? ` (${code})` : ""}`) + detail;
 }
 
 export const STATUS_LABELS: Record<string, string> = {

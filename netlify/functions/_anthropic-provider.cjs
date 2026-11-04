@@ -80,9 +80,13 @@ function claudeFailure(response, data) {
   else if (response.status === 429 || type === "rate_limit_error") { code = "generation_provider_rate_limited"; status = 429; }
   else if (response.status >= 500 || type === "overloaded_error" || type === "api_error") { code = "generation_provider_unavailable"; status = 503; }
   else if (response.status === 400) code = "generation_provider_request_invalid";
+  // Claude's own reason, shown in the admin so a rejected request can be fixed (never a key).
+  const detail = message.replace(/sk-ant-[a-zA-Z0-9_-]+/g, "[key]").replace(/\s+/g, " ").trim().slice(0, 240);
   return Object.assign(new Error(code), {
     status,
+    ...(detail ? { providerDetail: detail } : {}),
     diagnostics: {
+      ...(detail ? { provider_error_message: detail } : {}),
       stage: "provider_response",
       provider: "anthropic",
       provider_status: response.status,
