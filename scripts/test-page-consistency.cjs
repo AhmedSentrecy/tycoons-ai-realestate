@@ -88,7 +88,7 @@ ok(!html.includes("عن المطور:"), "no developer bio when the page already
 ok(!/<a href="\/projects\/bloomfields--tatweer-misr">/.test(html.split('id="article"')[1] || ""), "embedded guide does not link the page to itself");
 ok(html.includes("الاستلام من 3 شهور لـ 4.5 سنين حسب الوحدة"), "sidebar delivery agrees with the unit cards");
 ok(!html.includes("الاستلام خلال سنة"), "project's single delivery line is not shown when units differ");
-ok(html.includes("آخر تحديث للسعر"), "unit card shows the last price update when newer than the listing date");
+ok(!html.includes("آخر تحديث للسعر"), "unit cards carry no price-update date (Ahmed, Nov 2026)");
 ok(html.includes("كمبوند بلوم فيلدز المستقبل سيتي من تطوير مصر"), "H1 carries the searched keyword");
 ok(html.includes("Tatweer Misr · المستقبل سيتي"), "hero area in Arabic");
 eq(reported.length, 1, "number conflict reported for the page");

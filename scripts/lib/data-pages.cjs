@@ -282,18 +282,9 @@ function isNewUnit(unit, now = Date.now()) {
 }
 const NEW_TAG = '<span class="ms-2 inline-block rounded-full bg-[#1faa59] px-2.5 py-0.5 align-middle text-xs font-bold text-white">جديد</span>';
 
-// The price date a buyer needs is the last price check, not the day the unit was first listed.
-function unitDateLine(unit) {
-  const updated = arDate(unit.last_updated_at);
-  const created = arDate(unit.created_at);
-  const newer = updated && (!created || new Date(unit.last_updated_at) - new Date(unit.created_at) > 86400000);
-  if (newer) return `<p class="mt-1 text-xs text-[#5c6a62]">آخر تحديث للسعر ${escapeHtml(updated)}</p>`;
-  return created ? `<p class="mt-1 text-xs text-[#5c6a62]">اتضافت ${escapeHtml(created)}</p>` : "";
-}
-
 function staticUnitCard(unit, projectSlug = "") {
   const plan = [text(unit.down_payment_text), text(unit.installments_text)].filter(Boolean).map(arabicField).join(" · ");
-  return `<details class="overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white p-6"><summary class="cursor-pointer list-none"><h3 class="text-xl font-extrabold">${escapeHtml(arabicField(unit.unit_type))} ${escapeHtml(arabicField(unit.bedrooms_text))}${isNewUnit(unit) ? NEW_TAG : ""}</h3>${unitDateLine(unit)}<p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه${Number(unit.starting_price) > 0 && Number(unit.area_sqm) >= 20 ? ` · سعر المتر ${new Intl.NumberFormat("en-EG").format(Math.round(Number(unit.starting_price) / Number(unit.area_sqm)))} جنيه` : ""}</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary>${plan ? `<p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml(plan)}</p>` : ""}${unit.id ? `<a href="${escapeHtml(unitPath({ ...unit, project_slug: projectSlug }))}" class="mt-4 inline-block font-bold text-[#8a6630]">كل تفاصيل الوحدة</a>` : ""}</details>`;
+  return `<details class="overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white p-6"><summary class="cursor-pointer list-none"><h3 class="text-xl font-extrabold">${escapeHtml(arabicField(unit.unit_type))} ${escapeHtml(arabicField(unit.bedrooms_text))}${isNewUnit(unit) ? NEW_TAG : ""}</h3>${arDate(unit.created_at) ? `<p class="mt-1 text-xs text-[#5c6a62]">اتضافت ${escapeHtml(arDate(unit.created_at))}</p>` : ""}<p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه${Number(unit.starting_price) > 0 && Number(unit.area_sqm) >= 20 ? ` · سعر المتر ${new Intl.NumberFormat("en-EG").format(Math.round(Number(unit.starting_price) / Number(unit.area_sqm)))} جنيه` : ""}</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary>${plan ? `<p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml(plan)}</p>` : ""}${unit.id ? `<a href="${escapeHtml(unitPath({ ...unit, project_slug: projectSlug }))}" class="mt-4 inline-block font-bold text-[#8a6630]">كل تفاصيل الوحدة</a>` : ""}</details>`;
 }
 
 // Turn other projects' names inside already-escaped text into links to their pages
