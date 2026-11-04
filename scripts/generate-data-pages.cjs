@@ -8,6 +8,7 @@ const { projectAliases } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
 const { unitPath } = require("../netlify/functions/_unit-url.cjs");
 const { projectsFromUnits } = require("../src/lib/projectFaq.ts");
+const { hasIndexableContent } = require("../netlify/functions/_localized-project-content.cjs");
 
 const root = path.resolve(__dirname, "..");
 const dist = path.join(root, "dist");
@@ -81,15 +82,30 @@ async function main() {
   for (const list of guidesByProject.values()) list.sort((a, b) => String(b.published_at).localeCompare(String(a.published_at)));
   // Units that still have a page (sold or removed units drop out of `units`).
   const liveUnitIds = units.length ? new Set(units.map((unit) => String(unit.id))) : null;
+  // Unit id -> readable URL, so guides link the same URL as the unit table.
+  const unitPaths = new Map(units.filter((unit) => projectById.has(unit.project_id))
+    .map((unit) => [String(unit.id).toLowerCase(), unitPath({ ...unit, project_slug: projectById.get(unit.project_id).slug })]));
+  // The newest Arabic guide of a project that has units is shown in full on the project page
+  // (renderProjectStatic). Its /guides/ URL then 301s to the project page: one page per project,
+  // like the competitors ranking first, instead of the same article at two addresses.
+  const embeddedGuideRedirects = new Map();
+  for (const [projectId, list] of guidesByProject) {
+    const project = projectById.get(projectId);
+    const newest = list.find((guide) => guide.language === "ar" && /^[a-z0-9-]+$/.test(String(guide.slug || "")));
+    if (!project || !newest || !(unitsByProject.get(projectId) || []).length || hasIndexableContent(project, "ar")) continue;
+    embeddedGuideRedirects.set(newest.slug, `/projects/${project.slug}`);
+  }
   let guideCount = 0;
   for (const guide of guides) {
     if (!/^[a-z0-9-]+$/.test(String(guide.slug || ""))) continue;
+    // Redirected to its project page (see embeddedGuideRedirects): no second copy is built.
+    if (guide.language === "ar" && embeddedGuideRedirects.has(guide.slug)) continue;
     const project = guide.project_id ? projectById.get(guide.project_id) : null;
     const related = (guidesByProject.get(guide.project_id) || []).filter((item) => item.language === guide.language);
     const translation = guide.translation_key ? guides.find((item) =>
       item.slug && item.translation_key === guide.translation_key && item.language !== guide.language && item.published_at && item.reviewed_at) : null;
     const view = editorialArticleView({ status: "published", ...guide }, translation ? { ...translation, status: "published" } : null, {
-      project, related, liveUnitIds,
+      project, related, liveUnitIds, unitPaths,
       // Live price table of this project's available units (as of this build).
       units: guide.project_id ? unitsByProject.get(guide.project_id) || [] : [],
       // The project pages built below embed the newest guide, so its canonical is the project page.
@@ -106,10 +122,14 @@ async function main() {
     guideCount += 1;
   }
 
+  const numberConflicts = [];
   // Other public projects (with units) for the "nearby" and "same developer" answers.
   const faqContext = {
     // Units that still have a page: guide links to any other unit render as plain text (SEO-05).
     liveUnitIds,
+    unitPaths,
+    // Pages that contradict themselves on a number (see _page-consistency.cjs).
+    reportConflict: (slug, problems) => numberConflicts.push({ slug, problems }),
     otherProjects: projectsFromUnits(units.filter((unit) => projectById.has(unit.project_id))),
     // Every public project with units, so a page can link the projects it mentions and
     // show "projects near …" (internal links between project pages).
@@ -159,9 +179,20 @@ async function main() {
         `/ar/projects/${oldSlug} /projects/${canonicalSlug} 301!`,
         `/en/projects/${oldSlug} /en/projects/${canonicalSlug} 301!`,
       ]),
+    ...[...embeddedGuideRedirects.entries()].flatMap(([slug, projectPath]) => [
+      `/guides/${slug}/ ${projectPath} 301!`,
+      `/guides/${slug} ${projectPath} 301!`,
+    ]),
   ];
   await fs.writeFile(path.join(dist, "_redirects"), `${redirects.join("\n")}\n`, "utf8");
 
+  for (const { slug, problems } of numberConflicts) {
+    for (const problem of problems) {
+      console.warn(problem.kind === "land_area"
+        ? `Number conflict on /projects/${slug}: land area stated as ${problem.values.join(" / ")}. Keep one value in the project's texts.`
+        : `Number conflict on /projects/${slug}: copy says the price starts from ${problem.values.join(" / ")} but the inventory minimum is ${problem.expected}.`);
+    }
+  }
   console.log(
     `Generated ${guideCount} guide pages, ${projectCount} project pages and ${unitCount} unit pages (${indexableIds.size} indexable) plus ${redirects.length} redirect rules from Supabase and private app routing.`,
   );

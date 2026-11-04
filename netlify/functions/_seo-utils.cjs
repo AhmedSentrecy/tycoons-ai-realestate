@@ -2598,7 +2598,7 @@ function editorialArticleView(article, translation = null, extras = {}) {
   ${projectCard}
   ${takeawaysHtml}
   ${priceDateNoteHtml({ markdown: article.body_markdown, reviewedAt: article.reviewed_at, ar, unitsHref: project ? `${projectPath}#units` : "" })}
-  <article>${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: extras.liveUnitIds })}</article>
+  <article>${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: extras.liveUnitIds, unitPaths: extras.unitPaths })}</article>
   ${guideUnitsTableHtml(extras.units, project, lang)}
   ${faqHtml}
   ${relatedHtml}
