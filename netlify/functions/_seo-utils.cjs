@@ -2608,7 +2608,10 @@ function editorialArticleView(article, translation = null, extras = {}) {
   // The newest guide about a project is shown in full on the project page, which is
   // then its canonical URL (one strong page instead of two copies of the same text).
   const newest = Array.isArray(extras.related) ? extras.related[0] : null;
-  const embeddedInProject = Boolean(project && newest && newest.slug === article.slug && !hasIndexableContent(project, lang));
+  // Only when the caller knows the project page really embeds this guide (extras.projectEmbedsGuide):
+  // the guide page loads a short project row, so it cannot tell on its own, and every guide keeps
+  // its own URL as canonical (the behaviour live until now).
+  const embeddedInProject = Boolean(extras.projectEmbedsGuide && project && newest && newest.slug === article.slug && !hasIndexableContent(project, lang));
   return {
     lang,
     title: article.meta_title || `${article.title} | Tycoons Investments`,
