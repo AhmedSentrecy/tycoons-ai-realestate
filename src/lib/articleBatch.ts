@@ -1,6 +1,6 @@
 // "اكتب مسودات لأول 5": writes draft articles for the first projects of the missing-articles list,
 // one after the other, from the admin's own browser session (nothing runs unattended).
-// Each project = web research + draft + save as draft. Nothing is published: every draft still
+// Each project = "اكتب المقال" (Google data + web research + draft, one request) + save as draft. Nothing is published: every draft still
 // goes through the normal review and "نشر" in the articles tab.
 import { AdminApiError, adminApi, type AdminArticle, type AdminProject, type ArticleValues } from "./adminApi";
 
@@ -11,7 +11,7 @@ export interface BatchItem {
   /** Published article in the other language, linked as its translation (hreflang). */
   translationOf?: string;
 }
-export type BatchStep = "waiting" | "research" | "draft" | "save" | "done" | "failed" | "skipped";
+export type BatchStep = "waiting" | "write" | "save" | "done" | "failed" | "skipped";
 export interface BatchProgress {
   step: BatchStep;
   /** Seconds left while waiting for the generation limit (6 requests / 10 minutes). */
@@ -66,14 +66,11 @@ export async function runArticleBatch(
       continue;
     }
     const target = { language: item.language, target_type: "project" as const, project_id: id, area_name: null };
-    const topic = batchTopic(item.project, item.language);
     const run = crypto.randomUUID();
     const wait = (step: BatchStep) => (seconds: number) => onProgress(id, { step, waitSeconds: seconds });
     try {
-      onProgress(id, { step: "research" });
-      const research = await withLimit(() => adminApi.articleResearch(token, `research:${run}`, target, topic), wait("research"), stopped);
-      onProgress(id, { step: "draft" });
-      const draft = await withLimit(() => adminApi.articleDraft(token, `draft:${run}`, target, topic, research.facts ?? []), wait("draft"), stopped);
+      onProgress(id, { step: "write" });
+      const draft = await withLimit(() => adminApi.articleWrite(token, `write:${run}`, target), wait("write"), stopped);
       onProgress(id, { step: "save" });
       const values: ArticleValues = {
         ...target,

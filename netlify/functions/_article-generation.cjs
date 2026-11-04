@@ -23,14 +23,14 @@ function parseRequest(event) {
   let body;
   try { body = JSON.parse(event.body || "{}"); } catch { throw Object.assign(new Error("invalid_json"), { status: 400 }); }
   const action = String(body.action || "");
-  if (!['topics', 'research', 'draft', 'rewrite', 'project_faq'].includes(action)) throw Object.assign(new Error("invalid_action"), { status: 400 });
+  if (!['topics', 'research', 'draft', 'rewrite', 'project_faq', 'write'].includes(action)) throw Object.assign(new Error("invalid_action"), { status: 400 });
   const targetType = String(body.target_type || "");
   if (!['project', 'area'].includes(targetType)) throw Object.assign(new Error("invalid_target"), { status: 400 });
   const language = body.language === "en" ? "en" : "ar";
   const topic = String(body.topic || "").trim().slice(0, 180);
   if (['research', 'draft'].includes(action) && topic.length < 5) throw Object.assign(new Error("topic_required"), { status: 400 });
   const input = { action, targetType, language, topic, projectId: String(body.project_id || ""), areaName: String(body.area_name || "").trim().slice(0, 120) };
-  if (action === 'project_faq' && (targetType !== 'project' || !input.projectId)) throw Object.assign(new Error("project_required"), { status: 400 });
+  if (['project_faq', 'write'].includes(action) && (targetType !== 'project' || !input.projectId)) throw Object.assign(new Error("project_required"), { status: 400 });
   if (action === 'draft') input.researchFacts = sanitizeResearchFacts(body.research_facts);
   if (action === 'rewrite') {
     const lines = Array.isArray(body.lines) ? body.lines.map((line) => cleanLine(line, 800)).filter(Boolean) : [];
@@ -408,6 +408,47 @@ function seoDraftRules(language) {
   ];
 }
 
+// "اكتب المقال": the order the pages ranking on Google for project names use, written
+// without prices or numbers (the live price table of our units is shown with every guide).
+function seoBriefRules(brief, project, language) {
+  if (!brief || !brief.keyword) return [];
+  const ar = language !== "en";
+  const name = project?.name || "";
+  const outline = (Array.isArray(brief.competitors) ? brief.competitors : []).flatMap((page) => (page.headings || []).map((heading) => heading.text)).slice(0, 60);
+  const sections = ar
+    ? [
+        `opening paragraph (no heading): 2-3 sentences answering what ${name} is, where it is and who develops it, containing the focus keyword`,
+        `## نبذة عن ${brief.keyword}: a short bullet list (developer, location, concept, unit types)`,
+        `## موقع ${name} وإزاي توصله: landmarks, roads and nearby areas, described without numbers`,
+        "## the developer and its well-known projects",
+        "## the project concept, master plan and design",
+        `## أنواع الوحدات في ${name}: unit types only, and tell the reader the live price table on this page has current prices, payment plans and delivery`,
+        "## services and amenities",
+        "## phases and construction progress, described qualitatively without dates",
+        `## عيوب ${name} أو نقط لازم تعرفها قبل الشراء: honest trade-offs supported by the facts (distance, area still developing, phases), never invented`,
+        `## ${name} مناسب لمين؟`,
+        "## قبل ما تقرر (closing section, as required above)",
+      ]
+    : [
+        `opening paragraph (no heading): 2-3 sentences answering what ${name} is, where it is and who develops it, containing the focus keyword`,
+        `## About ${brief.keyword}: a short bullet list (developer, location, concept, unit types)`,
+        `## ${name} location and access: landmarks, roads and nearby areas, without numbers`,
+        "## the developer and its well-known projects",
+        "## the project concept, master plan and design",
+        `## Unit types in ${name}: types only, and tell the reader the live price table on this page has current prices, payment plans and delivery`,
+        "## services and amenities",
+        "## phases and construction progress, qualitatively without dates",
+        `## ${name} drawbacks and what to check before buying: honest trade-offs supported by the facts, never invented`,
+        `## Who is ${name} for?`,
+        "## Before you decide (closing section, as required above)",
+      ];
+  return [
+    `SEO brief from Google data: the focus_keyword is exactly "${brief.keyword}" (${brief.source === "dataforseo" ? "the most searched spelling in Egypt" : "chosen spelling"}). Use it verbatim as focus_keyword, at the start of the title and meta_title, in meta_description, in the first sentence and in at least two ## headings. Use other spellings naturally once or twice: ${(brief.volumes || []).slice(0, 6).map((row) => row.keyword).filter((keyword) => keyword !== brief.keyword).join(", ") || "none"}.`,
+    `Write a complete guide of at least ${Number(brief.target_words) || 1200} words in body_markdown (the pages ranking first are about that long), in this order: ${sections.join(" | ")}. Skip a section only when the supplied facts have nothing for it; never pad with generic text.`,
+    ...(outline.length ? [`The pages ranking first on Google for this keyword cover these headings: ${outline.join(" • ")}. Cover the same buyer questions where the supplied facts allow, in your own words and your own structure. Never copy their wording, and never take prices, numbers or claims from these headings.`] : []),
+  ];
+}
+
 function buildOpenAiRequest(input, projects, units = []) {
   const refs = sourceRefs(projects, units);
   const rules = [
@@ -432,6 +473,7 @@ function buildOpenAiRequest(input, projects, units = []) {
     if (areas.length) rules.push(`Internal linking: link the project page at least once and the area page at least once (${areas.map((area) => `[${area.label}](${area.url})`).join(', ')}), each with a descriptive label inside a sentence, not as a bare list.`);
     rules.push("End with a short section titled 'قبل ما تقرر' in Arabic or 'Before you decide' in English: two or three sentences inviting the reader to confirm current prices, payment plans and availability with the Tycoons team. Never mention editors, human review, AI, drafts or verification processes anywhere in the article.");
     rules.push(...seoDraftRules(input.language));
+    rules.push(...seoBriefRules(input.seoBrief, projects[0], input.language));
   }
   const schema = input.action === 'topics' ? topicSchema() : draftSchema();
   const model = process.env.OPENAI_ARTICLE_MODEL || "gpt-5-mini";
@@ -442,7 +484,7 @@ function buildOpenAiRequest(input, projects, units = []) {
       { role: "user", content: `BEGIN_UNTRUSTED_PUBLIC_FACTS\n${JSON.stringify({ task: input.action, topic: input.topic || undefined, target: input.targetType, public_facts: { projects, available_units: units, ...(input.researchFacts?.length ? { research_facts: input.researchFacts.map(({ fact, category, confidence }) => ({ fact, category, confidence })) } : {}) } })}\nEND_UNTRUSTED_PUBLIC_FACTS` },
     ],
     text: { format: { type: "json_schema", name: input.action === 'topics' ? "article_topics" : "article_draft", strict: true, schema } },
-    max_output_tokens: input.action === 'topics' ? 2400 : 14000,
+    max_output_tokens: input.action === 'topics' ? 2400 : input.seoBrief ? 24000 : 14000,
   };
   if (/^gpt-5(?:-|$)/.test(model)) request.reasoning = { effort: input.action === 'topics' ? "low" : "medium" };
   return request;

@@ -2,7 +2,8 @@
 
 const crypto = require("node:crypto");
 const { claudeResponses } = require("./_anthropic-provider.cjs");
-const { RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, buildRewriteRequest, buildProjectFaqRequest, parseOpenAiOutput, groundInputForFacts } = require("./_article-generation.cjs");
+const { seoBrief } = require("./_seo-brief.cjs");
+const { RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, buildRewriteRequest, buildProjectFaqRequest, parseOpenAiOutput, groundInputForFacts, sanitizeResearchFacts } = require("./_article-generation.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
@@ -195,11 +196,38 @@ async function rewrite(input, safetyId) {
   return parseOpenAiOutput(response, "rewrite", { input, projects });
 }
 
+// "اكتب المقال": one claim for the whole article. Google data (keyword + what ranks) →
+// web research on that keyword → draft in the ranking pages' order. Saved as a draft only.
+const SOFT_RESEARCH_ERRORS = new Set(["generation_shape_invalid", "generation_invalid", "generation_empty", "generation_refused", "generation_incomplete", "generation_incomplete_max_output_tokens"]);
+
+async function write(input, safetyId) {
+  const { projects, units } = await loadPublicFacts({ ...input, action: "draft" });
+  const brief = await seoBrief(projects[0], input.language, (request) => providerCall(request, 60000, safetyId));
+  const hints = [...new Set((brief.competitors || []).flatMap((page) => (page.headings || []).map((heading) => heading.text)))].slice(0, 12).join("، ");
+  const researchInput = { ...input, action: "research", topic: `${brief.keyword}${hints ? ` — ${input.language === "en" ? "also cover" : "غطّي كمان"}: ${hints}` : ""}`.slice(0, 600) };
+  let researched = { facts: [], excluded: [], notes: "" };
+  try {
+    const response = await providerCall(buildResearchRequest(researchInput, projects), 50000, safetyId, { request: buildResearchRequest(researchInput, projects, RESEARCH_FALLBACK_MODEL), timeoutMs: 45000 });
+    researched = parseOpenAiOutput(response, "research", { input: researchInput, projects });
+  } catch (error) {
+    // A research answer that does not validate still lets the article be written from our own data.
+    if (!SOFT_RESEARCH_ERRORS.has(error?.message)) throw error;
+  }
+  const draftInput = { ...input, action: "draft", topic: brief.keyword, researchFacts: sanitizeResearchFacts(researched.facts), seoBrief: brief };
+  const draft = await draftFrom(draftInput, projects, units, safetyId);
+  return { ...draft, research: { facts: researched.facts, excluded: researched.excluded || [], notes: researched.notes || "" }, seo_brief: brief, generated_as: "draft" };
+}
+
 async function generate(input, safetyId) {
   if (input.action === "research") return research(input, safetyId);
   if (input.action === "rewrite") return rewrite(input, safetyId);
   if (input.action === "project_faq") return projectFaq(input, safetyId);
+  if (input.action === "write") return write(input, safetyId);
   const { projects, units } = await loadPublicFacts(input);
+  return draftFrom(input, projects, units, safetyId);
+}
+
+async function draftFrom(input, projects, units, safetyId) {
   const groundedInput = groundInputForFacts(input, projects);
   // Do not buy a draft for a unit-area comparison when the source has no usable sample.
   if (input.action === "draft" && /مساح|متر|\barea|\bsize/i.test(input.topic)) {
@@ -277,7 +305,8 @@ exports.handler = async function handler(event) {
     if (claim.state === "exhausted") return jsonResponse(429, { error: "generation_attempts_exhausted" });
     if (claim.state !== "claimed" || !claim.lock_token) throw Object.assign(new Error("generation_claim_invalid"), { status: 502 });
     lockToken = String(claim.lock_token);
-    if (articleProvider() === "anthropic") {
+    // Claude, and the full "write" flow (Google data + research + draft), run in the background.
+    if (articleProvider() === "anthropic" || input.action === "write") {
       // A poll that finds the key free again means the background run ended with an error.
       // Never buy a new attempt from a poll: release the key and report the failure.
       const polling = String(event.headers?.["x-generation-poll"] || event.headers?.["X-Generation-Poll"] || "") === "1";

@@ -159,6 +159,19 @@ export interface ResearchFact {
 }
 export interface ResearchResult { facts: ResearchFact[]; excluded: ResearchFact[]; notes: string; generated_as: "research" }
 
+/** Google data behind "اكتب المقال": the chosen keyword, search volumes and the pages ranking first. */
+export interface SeoBrief {
+  keyword: string;
+  language: "ar" | "en";
+  source: "dataforseo" | "ai";
+  volumes: { keyword: string; volume: number }[];
+  competitors: { rank: number; url: string; domain: string; title: string; words: number; headings: { level: number; text: string }[] }[];
+  target_words: number;
+  notes: string[];
+}
+export type ArticleDraftResult = Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "focus_keyword" | "key_takeaways" | "faq" | "source_refs" | "review_issues"> & { generated_as: "draft" };
+export type ArticleWriteResult = ArticleDraftResult & { research: Omit<ResearchResult, "generated_as">; seo_brief: SeoBrief };
+
 export const UNIT_FIELDS = [
   "unit_type",
   "bedrooms_text",
@@ -431,6 +444,9 @@ export const adminApi = {
     generate<ResearchResult>(token, idempotencyKey, { action: "research", topic, ...target }),
   articleRewrite: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, lines: string[]) =>
     generate<{ lines: string[]; generated_as: "rewrite" }>(token, idempotencyKey, { action: "rewrite", lines, ...target }),
+  // One button: Google data (keyword + what ranks) → web research → draft. Runs in the background.
+  articleWrite: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">) =>
+    generate<ArticleWriteResult>(token, idempotencyKey, { action: "write", ...target }),
   articleDraft: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string, researchFacts: ResearchFact[] = []) =>
     generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "focus_keyword" | "key_takeaways" | "faq" | "source_refs" | "review_issues"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target, ...(researchFacts.length ? { research_facts: researchFacts } : {}) }),
   signUpload: (token: string, body: { target: MediaTarget; id: string; kind: MediaKind; content_type: string; size: number }) =>

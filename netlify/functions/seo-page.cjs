@@ -140,7 +140,7 @@ exports.handler = async function handler(event) {
         // Links to units that no longer have a page render as plain text (SEO-05); if the units
         // can't be loaded, keep the links rather than strip them all.
         const liveUnitIds = Array.isArray(liveUnits) && liveUnits.length ? new Set(liveUnits.map((unit) => String(unit.id))) : null;
-        html = renderEditorialArticle(article, translation, { ...extras, liveUnitIds });
+        html = renderEditorialArticle(article, translation, { ...extras, liveUnitIds, units: Array.isArray(liveUnits) ? liveUnits : [] });
       }
     }
     if (type === "static") html = renderStaticPage(slug);
