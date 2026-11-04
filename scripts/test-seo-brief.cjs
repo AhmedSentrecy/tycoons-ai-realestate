@@ -132,5 +132,29 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   ok(!html.includes("99,000,000"), "only this project's units");
   ok(!renderEditorialArticle(published, null, { project, related: [], units: [] }).includes("guide-prices"), "no table without units");
 
+  // The real guide route: the article row carries project_id, so the page shows the project card
+  // and the live table, and keeps its own URL as canonical.
+  const guideCalls = [];
+  global.fetch = async (url) => {
+    const target = new URL(String(url));
+    guideCalls.push(target);
+    const table = target.pathname.split("/").pop();
+    if (table === "published_editorial_articles" && target.searchParams.get("slug")) return reply([{ ...published, translation_key: null, target_type: "project" }].map((row) => {
+      const select = target.searchParams.get("select").split(",");
+      return Object.fromEntries(Object.entries(row).filter(([key]) => select.includes(key)));
+    }));
+    if (table === "published_editorial_articles") return reply([{ title: published.title, slug: published.slug, language: "ar", project_id: project.id }]);
+    if (table === "projects") return reply([project]);
+    if (table === "units") return reply(target.searchParams.get("offset") === "0" ? units.filter((unit) => unit.project_id === project.id).map((unit) => ({ ...unit, availability_status: "available" })) : []);
+    return reply([]);
+  };
+  const seoPage = require("../netlify/functions/seo-page.cjs");
+  const page = await seoPage.handler({ rawUrl: "https://tycoons-inv.com/guides/bloomfields-guide/", path: "/guides/bloomfields-guide/", queryStringParameters: { lang: "ar", type: "guide", slug: "bloomfields-guide" }, headers: {} });
+  const articleCall = guideCalls.find((call) => call.pathname.endsWith("published_editorial_articles") && call.searchParams.get("slug"));
+  ok(articleCall.searchParams.get("select").split(",").includes("project_id"), "guide query asks for project_id");
+  ok(page.statusCode === 200 && page.body.includes('id="guide-prices"'), "live price table on the real guide page");
+  ok(page.body.includes("المقال ده عن"), "project card shown");
+  ok(page.body.includes('rel="canonical" href="https://tycoons-inv.com/guides/bloomfields-guide/"'), "guide keeps its own canonical");
+
   console.log(`SEO brief and write-flow tests passed (${checks} checks; offline only).`);
 })().catch((error) => { console.error(error); process.exit(1); });
