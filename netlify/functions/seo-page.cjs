@@ -147,11 +147,14 @@ exports.handler = async function handler(event) {
     }
     if (type === "static") html = renderStaticPage(slug);
     if (type === "guides") {
-      const [articles, projectsForGuides] = await Promise.all([
+      const [articles, projectsForGuides, unitsForGuides] = await Promise.all([
         fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at,project_id", order: "published_at.desc", limit: "300" }),
         fetchProjectsMeta().catch(() => []),
+        fetchUnits().catch(() => null),
       ]);
-      html = renderGuidesIndex(lang, articles, projectsForGuides);
+      // Guides shown in full on their project page link that page, not the /guides/ redirect.
+      const projectIdsWithUnits = Array.isArray(unitsForGuides) ? new Set(unitsForGuides.map((unit) => String(unit.project_id || "")).filter(Boolean)) : null;
+      html = renderGuidesIndex(lang, articles, projectsForGuides, projectIdsWithUnits);
     }
     if (!["guide", "guides", "static"].includes(type)) {
       const [units, projectsMeta] = await Promise.all([
@@ -161,7 +164,7 @@ exports.handler = async function handler(event) {
       ]);
       const projects = groupProjects(units, projectsMeta);
       if (type === "home") {
-        const articles = await fetchRest("published_editorial_articles", { select: "title,slug,language,published_at", language: `eq.${lang}`, order: "published_at.desc", limit: "6" });
+        const articles = await fetchRest("published_editorial_articles", { select: "title,slug,language,published_at,project_id", language: `eq.${lang}`, order: "published_at.desc", limit: "6" });
         html = renderDirectory(projects, lang, articles);
       }
       if (type === "project") {

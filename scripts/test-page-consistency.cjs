@@ -94,6 +94,26 @@ ok(html.includes("Tatweer Misr · المستقبل سيتي"), "hero area in Ara
 eq(reported.length, 1, "number conflict reported for the page");
 ok(reported[0].problems.some((problem) => problem.kind === "land_area"), "the 420 feddan vs 405 feddan conflict");
 
+// Arabic names in headings and link text; links skip the /guides/ redirect.
+const { arabicProjectName, embeddedGuidePaths } = require("../netlify/functions/_seo-utils.cjs");
+eq(arabicProjectName("bloomfields--tatweer-misr"), "كمبوند بلوم فيلدز المستقبل سيتي", "Arabic search name from the reviewed title");
+eq(arabicProjectName("no-such-project"), "", "no Arabic name written");
+ok(html.includes("أسئلة شائعة عن كمبوند بلوم فيلدز المستقبل سيتي"), "template headings in Arabic");
+ok(!/أسئلة شائعة عن Bloomfields|صور Bloomfields/.test(html), "no Latin-only headings");
+const embeddedPaths = embeddedGuidePaths([
+  { slug: "old-guide", project_id: "p-bloom", language: "ar", published_at: "2026-10-01" },
+  { slug: "new-guide", project_id: "p-bloom", language: "ar", published_at: "2026-11-04" },
+  { slug: "unitless-guide", project_id: "p-none", language: "ar", published_at: "2026-11-04" },
+], [{ id: "p-bloom", slug: "bloomfields--tatweer-misr" }, { id: "p-none", slug: "no-units" }], new Set(["p-bloom"]));
+eq(embeddedPaths.get("new-guide"), "/projects/bloomfields--tatweer-misr", "newest guide links its project page");
+ok(!embeddedPaths.has("old-guide") && !embeddedPaths.has("unitless-guide"), "older guides and projects without units keep /guides/");
+// Nearby-project cards quote other projects' prices; they never count as this page's starting price.
+const nearbyHtml = renderProjectStatic(shell, project, units, [], {
+  projectLinks: [{ id: "p-x", name: "Other", slug: "other--dev", developer: "Dev", location: "Mostakbal City", minPrice: 4100000 }],
+  reportConflict: (slug, problems) => { if (problems.some((problem) => problem.kind === "starting_price")) throw new Error("nearby price counted"); },
+});
+ok(nearbyHtml.includes("4,100,000"), "nearby card rendered");
+
 // Article prompts: one value per fact, majority rule for conflicting physical facts.
 const { buildResearchRequest, buildProjectFaqRequest } = require("../netlify/functions/_article-generation.cjs");
 const subject = [{ name: "Bloomfields", developer: "Tatweer Misr", location: "Mostakbal City" }];

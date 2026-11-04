@@ -1241,7 +1241,7 @@ function projectCardHtml(project, lang) {
   const message = encodeURIComponent(`${ar ? "أهلاً Tycoons، مهتم بمشروع" : "Hello Tycoons, I am interested in"} ${project.name}\n${SITE_URL}${href}`);
   return `<article class="pcard" data-area="${escapeHtml(area.slug)}" data-types="${cats.join(" ")}"${ready ? " data-ready" : ""}${min && min < 10000000 ? " data-u10" : ""}>
 <div class="pimg"><a href="${href}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(projectImage(project))}" alt="${escapeHtml(`${project.name} — ${ar ? area.ar : area.en}`)}" loading="lazy" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
-<div class="pbody"><h3><a href="${href}">${escapeHtml(project.name)}</a></h3><p class="ploc">${escapeHtml(area.indexable ? (ar ? area.ar : area.en) : projectLocation(project))} · ${escapeHtml(devDisplayName(project.developer, lang))}</p>
+<div class="pbody"><h3><a href="${href}">${escapeHtml((ar && arabicProjectName(project.slug)) || project.name)}</a></h3><p class="ploc">${escapeHtml(area.indexable ? (ar ? area.ar : area.en) : projectLocation(project))} · ${escapeHtml(devDisplayName(project.developer, lang))}</p>
 <p class="pprice">${min ? `${ar ? "يبدأ من" : "From"} <b>${escapeHtml(new Intl.NumberFormat("en-EG").format(min))}</b> ${ar ? "ج.م" : "EGP"}` : (ar ? "السعر عند الطلب" : "Price on request")}</p>
 <div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${ar ? `${unitsAr(project.units.length)} متاحة` : `${project.units.length} ${project.units.length === 1 ? "unit" : "units"} available`}</span></div>
 <div class="pcta"><a class="go" href="${href}">${ar ? "الوحدات والأسعار" : "Units & prices"}</a><a class="w" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" rel="noopener">${ar ? "واتساب" : "WhatsApp"}</a></div></div></article>`;
@@ -1532,8 +1532,9 @@ function renderDirectory(allProjects, lang, articles = []) {
   const projectCards = sorted.map((project) => projectCardHtml(project, lang)).join("");
 
   const guideList = (articles || []).filter((article) => (article.language || "ar") === lang && article.slug && article.title).slice(0, 3);
+  const embedded = embeddedGuidePaths(articles, allProjects.map((project) => ({ ...project, id: project.id || project.project_id })), new Set(allProjects.filter((project) => (project.units || []).length).map((project) => String(project.id || project.project_id))));
   const guideCards = guideList.length
-    ? guideList.map((article) => `<a class="g3" href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/"><small>${ar ? "دليل" : "Guide"}</small><h3>${escapeHtml(article.title)}</h3></a>`).join("")
+    ? guideList.map((article) => `<a class="g3" href="${escapeHtml((ar && embedded.get(article.slug)) || `${lang === "en" ? "/en" : ""}/guides/${article.slug}/`)}"><small>${ar ? "دليل" : "Guide"}</small><h3>${escapeHtml(article.title)}</h3></a>`).join("")
     : Object.entries(ar ? GUIDES : ENGLISH_GUIDES).slice(0, 3).map(([slug, guide]) => `<a class="g3" href="${ar ? "" : "/en"}/guides/${slug}/"><small>${ar ? "دليل" : "Guide"}</small><h3>${escapeHtml(guide.title || guide.h1 || slug)}</h3></a>`).join("");
 
   const title = ar
@@ -2461,13 +2462,46 @@ function publicEditorialMarkdown(markdown, ar) {
   }).join("\n");
 }
 
+// The newest Arabic guide of a project with units is shown in full on the project page, and its
+// /guides/ URL 301s there (scripts/generate-data-pages.cjs). Links to it go to the project page
+// directly instead of through the redirect. projectIdsWithUnits: Set of project ids with units.
+function embeddedGuidePaths(articles, projects, projectIdsWithUnits) {
+  const paths = new Map();
+  const byId = new Map((Array.isArray(projects) ? projects : []).filter((project) => project && project.id).map((project) => [String(project.id), project]));
+  const newest = new Map();
+  for (const article of Array.isArray(articles) ? articles : []) {
+    if (!article || !article.project_id || !article.slug || (article.language || "ar") === "en") continue;
+    const key = String(article.project_id);
+    const current = newest.get(key);
+    if (!current || String(article.published_at || "") > String(current.published_at || "")) newest.set(key, article);
+  }
+  for (const [projectId, article] of newest) {
+    const project = byId.get(projectId);
+    const slug = String(project?.slug || "").trim();
+    if (!slug || hasIndexableContent(project, "ar")) continue;
+    if (projectIdsWithUnits && !projectIdsWithUnits.has(projectId)) continue;
+    paths.set(article.slug, `/projects/${slug}`);
+  }
+  return paths;
+}
+
+// Arabic search name of a project for headings and link text ("كمبوند بلوم فيلدز المستقبل سيتي"),
+// from the reviewed names in src/content/project-names-ar.json; "" when none is written.
+function arabicProjectName(slug) {
+  const entry = PROJECT_NAMES_AR[String(slug || "")];
+  if (!entry) return "";
+  const fromTitle = String(entry.title || "").split(/\s+20\d\d|\s+—\s+/)[0].trim();
+  if (fromTitle) return fromTitle;
+  return String(entry.h1 || "").split(/\s+—\s+/)[0].trim();
+}
+
 function editorialGuidePath(article) {
   return article.language === "en" ? `/en/guides/${article.slug}/` : `/guides/${article.slug}/`;
 }
 
 // /guides/ and /en/guides/: one hub linking every buyer guide and published article,
 // so guides are no longer orphans and crawlers have a single entry point.
-function renderGuidesIndex(lang = "ar", articles = [], projects = []) {
+function renderGuidesIndex(lang = "ar", articles = [], projects = [], projectIdsWithUnits = null) {
   const ar = lang !== "en";
   const path = ar ? "/guides/" : "/en/guides/";
   const alternatePath = ar ? "/en/guides/" : "/guides/";
@@ -2476,7 +2510,7 @@ function renderGuidesIndex(lang = "ar", articles = [], projects = []) {
   }));
   const published = (Array.isArray(articles) ? articles : [])
     .filter((article) => article && article.slug && article.title && (ar ? article.language !== "en" : article.language === "en"))
-    .map((article) => ({ title: article.title, description: article.excerpt || "", href: editorialGuidePath(article), projectId: article.project_id || null }));
+    .map((article) => ({ title: article.title, description: article.excerpt || "", href: (ar && projectIdsWithUnits && embeddedGuidePaths(articles, projects, projectIdsWithUnits).get(article.slug)) || editorialGuidePath(article), projectId: article.project_id || null }));
   const items = [...staticGuides, ...published];
   // Project guides grouped by the project's area, so the page has real sections (H2s) and
   // readers (and crawlers) see which guides belong to which market.
@@ -2766,6 +2800,8 @@ module.exports = {
   projectLocation,
   projectLastUpdated,
   renderDirectory,
+  embeddedGuidePaths,
+  arabicProjectName,
   renderProject,
   renderUnit,
   renderCollection,
