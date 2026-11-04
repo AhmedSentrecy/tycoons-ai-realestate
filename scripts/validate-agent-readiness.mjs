@@ -47,6 +47,23 @@ assert.deepEqual(serverCard.tools, [
   "create_whatsapp_inquiry",
 ]);
 
+const aiCatalog = json("public/.well-known/ai-catalog.json");
+assert.ok(typeof aiCatalog.specVersion === "string" && aiCatalog.specVersion.length > 0);
+assert.equal(aiCatalog.host.identifier, "did:web:tycoons-inv.com");
+assert.ok(Array.isArray(aiCatalog.entries) && aiCatalog.entries.length > 0);
+for (const entry of aiCatalog.entries) {
+  assert.match(entry.identifier, /^urn:air:tycoons-inv\.com:[a-z0-9-]+:[a-z0-9-]+$/);
+  assert.ok(entry.displayName);
+  assert.match(entry.type, /^[a-z]+\/[a-z0-9.+-]+$/);
+  assert.ok(("url" in entry) !== ("data" in entry), `${entry.identifier} needs exactly one of url or data`);
+  if (entry.url) {
+    assert.match(entry.url, /^https:\/\/tycoons-inv\.com\//);
+    const localPath = path.join("public", new URL(entry.url).pathname);
+    assert.ok(fs.existsSync(path.join(root, localPath)), `${entry.url} must exist in public/`);
+  }
+  assert.ok(entry.representativeQueries.length >= 2 && entry.representativeQueries.length <= 5);
+}
+
 const skillPath = "public/.well-known/agent-skills/search-properties/SKILL.md";
 const skill = read(skillPath);
 const skillDigest = `sha256:${createHash("sha256").update(fs.readFileSync(path.join(root, skillPath))).digest("hex")}`;
