@@ -49,8 +49,17 @@ function unlinkMissingUnits(markdown, liveUnitIds) {
     (link, label, id) => (live.has(id) || live.has(id.toLowerCase()) ? link : label));
 }
 
+// Old guides link units by their bare id (/units/<uuid>), which 301s to the readable URL the
+// unit table uses. Two URLs for one unit on the same page split crawl and link signals
+// (audit Nov 2026: 6 such pairs on the Bloomfields page), so link the readable URL directly.
+function readableUnitLinks(markdown, unitPaths) {
+  if (!unitPaths || typeof unitPaths.get !== "function") return markdown;
+  return markdown.replace(/\]\(\s*\/units\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?\s*\)/gi,
+    (link, id) => { const path = unitPaths.get(id) || unitPaths.get(id.toLowerCase()); return path ? `](${path})` : link; });
+}
+
 function renderSafeMarkdown(markdown, options = {}) {
-  const lines = unlinkMissingUnits(String(markdown || ""), options && options.liveUnitIds).replace(/\r/g, "").split("\n");
+  const lines = readableUnitLinks(unlinkMissingUnits(String(markdown || ""), options && options.liveUnitIds), options && options.unitPaths).replace(/\r/g, "").split("\n");
   const out = [];
   let list = [];
   const flushList = () => {
