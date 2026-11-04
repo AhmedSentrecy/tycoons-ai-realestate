@@ -27,7 +27,10 @@ async function dfs(path, task, timeoutMs = 30000) {
   const data = await response.json().catch(() => ({}));
   const first = Array.isArray(data?.tasks) ? data.tasks[0] : null;
   if (!response.ok || !first || Number(first.status_code) !== 20000) {
-    throw Object.assign(new Error("seo_data_failed"), { diagnostics: { stage: "dataforseo", path, status: response.status, task_status: first?.status_code } });
+    // DataForSEO's own code says why (40100 = wrong login/password, 40200 = no balance, ...).
+    const code = Number(first?.status_code || data?.status_code) || response.status;
+    const message = String(first?.status_message || data?.status_message || "").replace(/\s+/g, " ").slice(0, 120);
+    throw Object.assign(new Error("seo_data_failed"), { reason: `${code}${message ? ` ${message}` : ""}`, diagnostics: { stage: "dataforseo", path, status: response.status, task_status: first?.status_code } });
   }
   return Array.isArray(first.result) ? first.result : [];
 }
@@ -95,7 +98,7 @@ async function seoBrief(project, language, askAi) {
     const best = volumes.find((row) => row.volume > 0 && (language === "en" ? !isArabic(row.keyword) : isArabic(row.keyword)));
     if (best) { brief.keyword = best.keyword; brief.source = "dataforseo"; }
   } catch (error) {
-    brief.notes.push("search_volume_failed");
+    brief.notes.push(`search_volume_failed${error?.reason ? `: ${error.reason}` : error?.name === "TimeoutError" ? ": timeout" : ""}`);
   }
   try {
     const serp = await dfs("/serp/google/organic/live/advanced", { keyword: brief.keyword, location_code: EGYPT, language_code: language === "en" ? "en" : "ar", device: "mobile", depth: 10 });
@@ -111,7 +114,7 @@ async function seoBrief(project, language, askAi) {
     const median = lengths.length ? lengths[Math.floor(lengths.length / 2)] : 0;
     brief.target_words = Math.min(2500, Math.max(1200, Math.round(median * 1.1)));
   } catch (error) {
-    brief.notes.push("serp_failed");
+    brief.notes.push(`serp_failed${error?.reason ? `: ${error.reason}` : error?.name === "TimeoutError" ? ": timeout" : ""}`);
   }
   return brief;
 }
