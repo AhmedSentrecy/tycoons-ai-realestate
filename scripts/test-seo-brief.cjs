@@ -156,5 +156,15 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   ok(page.body.includes("المقال ده عن"), "project card shown");
   ok(page.body.includes('rel="canonical" href="https://tycoons-inv.com/guides/bloomfields-guide/"'), "guide keeps its own canonical");
 
+  // The build-time (static) guide pages: units passed → table; canonical to the project page as before.
+  const { editorialArticleView } = require("../netlify/functions/_seo-utils.cjs");
+  const related = [{ title: published.title, slug: published.slug, language: "ar", project_id: project.id }];
+  const staticView = editorialArticleView(published, null, { project, related, units, projectEmbedsGuide: true });
+  ok(staticView.body.includes('id="guide-prices"'), "static guide page gets the live table");
+  eq(staticView.canonicalPath, "/projects/bloomfields", "static newest guide keeps the project-page canonical (unchanged)");
+  eq(editorialArticleView(published, null, { project, related, units }).canonicalPath, "", "function-rendered guide keeps its own canonical (unchanged)");
+  const generator = require("node:fs").readFileSync(require("node:path").join(__dirname, "generate-data-pages.cjs"), "utf8");
+  ok(/units: guide\.project_id \? unitsByProject\.get\(guide\.project_id\)/.test(generator) && generator.includes("projectEmbedsGuide: true"), "build passes units and the embed flag");
+
   console.log(`SEO brief and write-flow tests passed (${checks} checks; offline only).`);
 })().catch((error) => { console.error(error); process.exit(1); });
