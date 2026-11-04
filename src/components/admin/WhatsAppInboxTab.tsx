@@ -48,6 +48,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   const [editing, setEditing] = useState<WaInboxItem | null>(null);
   const [bucket, setBucket] = useState("");
   const [query, setQuery] = useState("");
+  const [unitQuery, setUnitQuery] = useState("");
   const [groupsOpen, setGroupsOpen] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [unitsState, setUnitsState] = useState<{ projectId: string; units: AdminUnit[] }>({ projectId: "", units: [] });
@@ -111,10 +112,26 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   const activeBucket = buckets.find((row) => row.id === bucket) ?? buckets[0] ?? null;
   const activeProject = activeBucket?.project ?? null;
   // Unmatched units with a suggested project first (one click each).
-  const rows = useMemo(() => {
+  const bucketRows = useMemo(() => {
     const list = activeBucket?.list ?? [];
     return activeBucket?.project ? list : [...list].sort((a, b) => Number(Boolean(suggestions[String(b.id)])) - Number(Boolean(suggestions[String(a.id)])));
   }, [activeBucket, suggestions]);
+  // Search inside the open list: every word must appear somewhere in the unit (name, type, area, price, group…).
+  const rows = useMemo(() => {
+    const words = searchText(unitQuery).split(/\s+/).filter(Boolean);
+    if (!words.length) return bucketRows;
+    return bucketRows.filter((item) => {
+      const suggestion = suggestions[String(item.id)];
+      const haystack = searchText(
+        [
+          item.project_name, item.developer, item.location, item.area_group, item.unit_type, item.bedrooms_text, item.area_sqm,
+          item.starting_price, item.down_payment_text, item.installments_text, item.delivery_text, item.finishing,
+          item.description, item.source_group, item.sender, suggestion?.name,
+        ].join(" "),
+      );
+      return words.every((word) => haystack.includes(word));
+    });
+  }, [bucketRows, unitQuery, suggestions]);
 
   // Units already on the site for the open project, to compare and to pick photos from.
   const activeProjectId = activeProject?.id ?? "";
@@ -286,6 +303,14 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                       : "دوس «تعديل» على كل وحدة واختار مشروعها، أو اعمل المشروع جديد من نفس الشاشة."}
                   </p>
                 </div>
+                <input
+                  type="search"
+                  value={unitQuery}
+                  onChange={(event) => { setUnitQuery(event.target.value); setSelected(new Set()); }}
+                  placeholder="ابحث في الوحدات: اسم، نوع، مساحة، سعر، جروب…"
+                  className={`${inputClass} w-full sm:w-80`}
+                />
+                {unitQuery.trim() && <span className="text-xs font-bold text-[#5c6a62]">{rows.length} من {bucketRows.length}</span>}
                 {pending && selected.size > 0 && (
                   <button onClick={() => void reject([...selected])} className="rounded-full bg-red-50 px-4 py-2 text-sm font-black text-red-600">
                     ارفض المختار ({selected.size})
@@ -449,6 +474,11 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                         </tr>
                       );
                     })}
+                    {!rows.length && unitQuery.trim() && (
+                      <tr>
+                        <td colSpan={9} className="p-6 text-center text-sm text-[#5c6a62]">مفيش وحدة فيها «{unitQuery.trim()}».</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1011,4 +1041,15 @@ function GroupsDialog({ onClose }: { onClose: () => void }) {
       )}
     </Modal>
   );
+}
+
+/** Lowercase, Arabic digits → 0-9, أ/إ/آ → ا, ة → ه, ى → ي, so "تاون هاوس" / "٢٢٠" match the way the groups write them. */
+function searchText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي")
+    .replace(/,/g, "");
 }
