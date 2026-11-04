@@ -223,5 +223,20 @@ function walk(node, visit) {
   const finish = admin.find((call) => call.action === "article_generation_finish");
   ok(finish && finish.lock_token === lock && finish.idempotency_key === "topics:abcdefghijklmnop", "result stored under the same key and lock");
 
+  // 9. A poll that re-claims the key after a failed background run never starts a new paid attempt.
+  admin.length = 0; backgroundCall = null;
+  const baseFetch = global.fetch;
+  global.fetch = async (url, options = {}) => {
+    if (String(url).includes("/functions/v1/tycoons-admin") && JSON.parse(options.body).action === "article_generation_claim") { admin.push(JSON.parse(options.body)); return reply({ state: "claimed", lock_token: lock, attempt: 2 }); }
+    return baseFetch(url, options);
+  };
+  const polled = await generateModule.handler({ ...event, headers: { ...event.headers, "x-generation-poll": "1" } });
+  eq([polled.statusCode, JSON.parse(polled.body).error], [502, "generation_background_failed"], "failed run reported to the poll");
+  eq(backgroundCall, null, "no new background run from a poll");
+  ok(admin.some((call) => call.action === "article_generation_finish" && call.error === "generation_background_failed"), "key released with the error");
+  const pressed = await generateModule.handler(event);
+  eq(pressed.statusCode, 409, "a new press (not a poll) may retry");
+  ok(backgroundCall, "retry started by the user");
+
   console.log(`Claude article provider tests passed (${checks} checks; offline only).`);
 })().catch((error) => { console.error(error); process.exit(1); });

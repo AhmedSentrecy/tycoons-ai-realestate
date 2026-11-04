@@ -117,6 +117,8 @@ const CLAUDE_FALLBACK_ERRORS = new Set([
   "generation_provider_credit_exhausted", "generation_provider_spend_limit_exceeded", "generation_provider_unavailable",
 ]);
 
+const CLAUDE_TIMEOUT_MS = 9 * 60 * 1000;
+
 function openAiCall(request, timeoutMs, safetyId) {
   return fetchJson("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -136,7 +138,8 @@ function openAiCall(request, timeoutMs, safetyId) {
 async function providerCall(request, timeoutMs, safetyId, openAiRetry = null) {
   if (articleProvider() === "anthropic") {
     try {
-      return await claudeResponses(request, timeoutMs);
+      // Claude always runs in the background function (up to 15 minutes), so it gets up to 9.
+      return await claudeResponses(request, Math.max(timeoutMs, CLAUDE_TIMEOUT_MS));
     } catch (error) {
       // A timeout may still be writing on Claude's side, so it never triggers a second paid draft.
       if (!process.env.OPENAI_API_KEY || !CLAUDE_FALLBACK_ERRORS.has(error?.message) || error?.diagnostics?.stage !== "provider_response") throw error;
@@ -275,6 +278,13 @@ exports.handler = async function handler(event) {
     if (claim.state !== "claimed" || !claim.lock_token) throw Object.assign(new Error("generation_claim_invalid"), { status: 502 });
     lockToken = String(claim.lock_token);
     if (articleProvider() === "anthropic") {
+      // A poll that finds the key free again means the background run ended with an error.
+      // Never buy a new attempt from a poll: release the key and report the failure.
+      const polling = String(event.headers?.["x-generation-poll"] || event.headers?.["X-Generation-Poll"] || "") === "1";
+      if (polling && Number(claim.attempt) > 1) {
+        await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, error: "generation_background_failed" }).catch(() => undefined);
+        return jsonResponse(502, { error: "generation_background_failed" });
+      }
       await startBackground(event, { token, key, fingerprint, lockToken, input });
       // The admin polls this same key: "busy" while Claude writes, then the stored result.
       return jsonResponse(409, { error: "generation_in_progress", retry_after_seconds: 5 }, { "retry-after": "5" });

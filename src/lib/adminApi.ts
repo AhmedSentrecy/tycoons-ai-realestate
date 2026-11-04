@@ -313,10 +313,11 @@ export const GENERATION_POLL = { delayMs: 5000, maxWaitMs: 600000 };
 
 async function generate<T>(token: string, idempotencyKey: string, payload: Record<string, unknown>): Promise<T> {
   const started = Date.now();
-  for (;;) {
+  for (let poll = 0; ; poll += 1) {
     const response = await fetch("/.netlify/functions/article-generate", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-admin-token": token, "x-idempotency-key": idempotencyKey },
+      // Polls are marked so the server never starts a new paid attempt while waiting.
+      headers: { "Content-Type": "application/json", "x-admin-token": token, "x-idempotency-key": idempotencyKey, ...(poll ? { "x-generation-poll": "1" } : {}) },
       body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => ({}));
@@ -763,6 +764,8 @@ Object.assign(ERROR_MESSAGES, {
   generation_provider_model_access_failed: "النموذج المحدد غير متاح لهذا المشروع أو أن المفتاح لا يملك صلاحية استخدامه.",
   generation_provider_permission_denied: "مفتاح الـ AI ملوش صلاحية للطلب ده. راجع صلاحيات المفتاح.",
   generation_provider_unavailable: "خدمة كتابة المحتوى (Claude) مش متاحة دلوقتي. جرّب تاني بعد شوية.",
+  generation_background_failed: "الكتابة وقفت قبل ما تخلص. اعمل refresh للصفحة وجرّب تاني؛ مفيش محاولة جديدة اتعملت لوحدها.",
+  generation_background_unavailable: "تعذر بدء الكتابة في الخلفية. جرّب تاني بعد دقيقة.",
   generation_provider_request_invalid: "رفضت خدمة إنشاء المحتوى إعدادات الطلب. راجع النموذج وإعدادات التوليد.",
   generation_provider_limit_unknown: "رفض مزود إنشاء المحتوى الطلب بسبب حد غير محدد. راجع كود الخطأ ومعرّف الطلب في سجل الوظيفة قبل إعادة المحاولة.",
   generation_provider_failed: "فشل مزود إنشاء المحتوى. راجع بيانات التشخيص الآمنة في سجل الوظيفة.",
