@@ -1,0 +1,71 @@
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Tycoons Investments",
+    "identifier": "did:web:tycoons-inv.com",
+    "url": "https://tycoons-inv.com"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:tycoons-inv.com:server:property-search",
+      "displayName": "Tycoons Property Search MCP Server",
+      "description": "Read-only MCP server for searching, comparing and pricing off-plan apartments, villas and chalets in New Cairo, Sheikh Zayed, North Coast, Ain Sokhna and Mostakbal City, Egypt.",
+      "type": "application/mcp-server-card+json",
+      "url": "https://tycoons-inv.com/.well-known/mcp/server-card.json",
+      "representativeQueries": [
+        "apartments for sale in New Cairo under 8 million EGP",
+        "compare Mountain View and SODIC projects in New Cairo",
+        "calculate the monthly installment for a villa in Sheikh Zayed",
+        "شقة للبيع في التجمع الخامس بالتقسيط",
+        "شاليه في الساحل الشمالي بمقدم قليل"
+      ]
+    },
+    {
+      "identifier": "urn:air:tycoons-inv.com:api:property-api",
+      "displayName": "Tycoons Property API (OpenAPI)",
+      "description": "OpenAPI 3.1 description of the public Tycoons property endpoints, including the MCP endpoint and its health check.",
+      "type": "application/vnd.oai.openapi+json",
+      "url": "https://tycoons-inv.com/api/openapi.json",
+      "representativeQueries": [
+        "Egyptian real estate inventory API",
+        "search off-plan property listings in Egypt programmatically",
+        "property payment plan API for Egypt"
+      ]
+    },
+    {
+      "identifier": "urn:air:tycoons-inv.com:catalog:api-catalog",
+      "displayName": "Tycoons API Catalog (RFC 9727)",
+      "description": "Linkset listing every public Tycoons API with its description, documentation and status links.",
+      "type": "application/linkset+json",
+      "url": "https://tycoons-inv.com/.well-known/api-catalog",
+      "representativeQueries": [
+        "list Tycoons Investments APIs",
+        "where is the Tycoons property API documentation"
+      ]
+    },
+    {
+      "identifier": "urn:air:tycoons-inv.com:skill:search-properties",
+      "displayName": "Search Properties Agent Skill",
+      "description": "Agent skill index describing how to search Tycoons' available Egyptian property inventory from natural-language buyer criteria.",
+      "type": "application/json",
+      "url": "https://tycoons-inv.com/.well-known/agent-skills/index.json",
+      "representativeQueries": [
+        "find a 3-bedroom apartment in New Cairo",
+        "villas for sale in Sheikh Zayed with installments",
+        "عايز فيلا في الشيخ زايد بالتقسيط"
+      ]
+    },
+    {
+      "identifier": "urn:air:tycoons-inv.com:docs:llms-txt",
+      "displayName": "Tycoons llms.txt",
+      "description": "Plain-language guide for AI assistants to the site's area, developer and project pages.",
+      "type": "text/plain",
+      "url": "https://tycoons-inv.com/llms.txt",
+      "representativeQueries": [
+        "best compounds in New Cairo 2026",
+        "off-plan property prices in Mostakbal City",
+        "أسعار الكمباوندات في القاهرة الجديدة"
+      ]
+    }
+  ]
+}
