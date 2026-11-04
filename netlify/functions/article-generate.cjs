@@ -215,6 +215,8 @@ async function write(input, safetyId) {
   }
   const draftInput = { ...input, action: "draft", topic: brief.keyword, researchFacts: sanitizeResearchFacts(researched.facts), seoBrief: brief };
   const draft = await draftFrom(draftInput, projects, units, safetyId);
+  // The live price table on the guide page replaces the frozen "sample" lists for this flow.
+  draft.body_markdown = String(draft.body_markdown || "").replace(/\n+##\s+(?:عينة حديثة من الوحدات المتاحة|Recent sample of available units|حقائق تجارية موثقة للمراجعة|Sourced commercial facts for review)\n(?:-[^\n]*\n?)*/g, "\n").trim();
   return { ...draft, research: { facts: researched.facts, excluded: researched.excluded || [], notes: researched.notes || "" }, seo_brief: brief, generated_as: "draft" };
 }
 

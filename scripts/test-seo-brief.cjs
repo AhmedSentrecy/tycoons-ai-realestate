@@ -52,7 +52,7 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   eq(brief.competitors.map((page) => page.domain), ["aqarsky.com", "diarna.net"], "own site and video sites skipped");
   eq(brief.competitors[0].headings[0].text, "عيوب بلوم فيلدز", "competitor headings kept");
   ok(!JSON.stringify(brief).includes("كلمة كلمة"), "competitor text never kept");
-  eq(brief.target_words, 2200, "target = 1.1 × competitor length");
+  eq(brief.target_words, 2200, "target = 1.1 × the longest competitor");
   const en = await seoBrief(project, "en", async () => variantsAnswer);
   eq(en.keyword, "bloomfields", "English article uses the English spelling");
 
@@ -73,7 +73,7 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   const admin = [];
   const claude = [];
   let background = null;
-  const draft = { focus_keyword: "كمبوند بلوم فيلدز", title: "كمبوند بلوم فيلدز: الموقع والمطور", slug: "bloomfields-guide", excerpt: "كمبوند بلوم فيلدز من تطوير مصر في مستقبل سيتي.", meta_title: "كمبوند بلوم فيلدز | دليل المشتري", meta_description: "كمبوند بلوم فيلدز في مستقبل سيتي من تطوير مصر.", key_takeaways: ["أ", "ب", "ج"], body_markdown: `كمبوند بلوم فيلدز مشروع من [Bloomfields](/projects/bloomfields).\n\n## نبذة عن كمبوند بلوم فيلدز\n\nنص.\n\n## قبل ما تقرر\n\nكلمنا.`, faq: [{ question: "س", answer: "ج" }, { question: "س2", answer: "ج2" }, { question: "س3", answer: "ج3" }], comparison_project_ids: [], unit_evidence: [], claim_evidence: [] };
+  const draft = { focus_keyword: "كمبوند بلوم فيلدز", title: "كمبوند بلوم فيلدز: الموقع والمطور", slug: "bloomfields-guide", excerpt: "كمبوند بلوم فيلدز من تطوير مصر في مستقبل سيتي.", meta_title: "كمبوند بلوم فيلدز | دليل المشتري", meta_description: "كمبوند بلوم فيلدز في مستقبل سيتي من تطوير مصر.", key_takeaways: ["أ", "ب", "ج"], body_markdown: `كمبوند بلوم فيلدز مشروع من [Bloomfields](/projects/bloomfields).\n\n## نبذة عن كمبوند بلوم فيلدز\n\nنص.\n\n## قبل ما تقرر\n\nكلمنا.\n\n## عينة حديثة من الوحدات المتاحة\n- [Apartment](/units/u1): 76 م² — x.`, faq: [{ question: "س", answer: "ج" }, { question: "س2", answer: "ج2" }, { question: "س3", answer: "ج3" }], comparison_project_ids: [], unit_evidence: [], claim_evidence: [] };
   global.fetch = async (url, options = {}) => {
     const target = String(url);
     if (target.includes("/functions/v1/tycoons-admin")) {
@@ -111,6 +111,8 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   eq(finish.response.focus_keyword, "كمبوند بلوم فيلدز", "draft keyword");
   eq(finish.response.seo_brief.keyword, "كمبوند بلوم فيلدز", "brief returned to the admin");
   eq(finish.response.research.facts.length, 1, "research facts returned");
+  ok(!finish.response.body_markdown.includes("عينة حديثة"), "frozen unit sample removed (live table instead)");
+  ok(claude.at(-1).system.includes("leave unit_evidence and claim_evidence empty"), "no frozen price lists asked");
   ok(finish.response.source_refs.some((ref) => ref.type === "web" && ref.url === "https://tatweermisr.com/bloomfields"), "web source cited");
   ok(claude.some((body) => body.tools) && claude.at(-1).system.includes('focus_keyword is exactly "كمبوند بلوم فيلدز"'), "research then a draft with the brief");
   const parse = require("../netlify/functions/_article-generation.cjs").parseRequest;

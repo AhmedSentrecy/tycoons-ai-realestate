@@ -445,6 +445,7 @@ function seoBriefRules(brief, project, language) {
   return [
     `SEO brief from Google data: the focus_keyword is exactly "${brief.keyword}" (${brief.source === "dataforseo" ? "the most searched spelling in Egypt" : "chosen spelling"}). Use it verbatim as focus_keyword, at the start of the title and meta_title, in meta_description, in the first sentence and in at least two ## headings. Use other spellings naturally once or twice: ${(brief.volumes || []).slice(0, 6).map((row) => row.keyword).filter((keyword) => keyword !== brief.keyword).join(", ") || "none"}.`,
     `Write a complete guide of at least ${Number(brief.target_words) || 1200} words in body_markdown (the pages ranking first are about that long), in this order: ${sections.join(" | ")}. Skip a section only when the supplied facts have nothing for it; never pad with generic text.`,
+    "This guide is shown next to a live table of our current unit prices, so leave unit_evidence and claim_evidence empty ([]) and link at most a few unit pages by name.",
     ...(outline.length ? [`The pages ranking first on Google for this keyword cover these headings: ${outline.join(" • ")}. Cover the same buyer questions where the supplied facts allow, in your own words and your own structure. Never copy their wording, and never take prices, numbers or claims from these headings.`] : []),
   ];
 }

@@ -83,7 +83,7 @@ async function seoBrief(project, language, askAi) {
   const variants = parseVariants(await askAi(buildKeywordVariantsRequest(project)).catch(() => null), project);
   const candidates = language === "en" ? variants.en : variants.ar;
   const fallback = candidates[0] || cleanKeyword(project.name);
-  const brief = { keyword: fallback, language, source: "ai", volumes: [], competitors: [], target_words: 1200, notes: [] };
+  const brief = { keyword: fallback, language, source: "ai", volumes: [], competitors: [], target_words: 1500, notes: [] };
   if (!dfsConfigured()) {
     brief.notes.push("dataforseo_not_configured");
     return brief;
@@ -110,9 +110,9 @@ async function seoBrief(project, language, askAi) {
     const top = organic.slice(0, MAX_COMPETITORS);
     const pages = await Promise.all(top.map((item) => dfs("/on_page/content_parsing/live", { url: item.url }, 40000).then((result) => pageOutline(result[0])).catch(() => ({ headings: [], words: 0 }))));
     brief.competitors = top.map((item, index) => ({ ...item, ...pages[index] }));
-    const lengths = brief.competitors.map((item) => item.words).filter((words) => words > 200).sort((a, b) => a - b);
-    const median = lengths.length ? lengths[Math.floor(lengths.length / 2)] : 0;
-    brief.target_words = Math.min(2500, Math.max(1200, Math.round(median * 1.1)));
+    // Longer than the longest of the first pages (not the median), never under 1,500 words.
+    const longest = Math.max(0, ...brief.competitors.map((item) => item.words).filter((words) => words > 200));
+    brief.target_words = Math.min(2500, Math.max(1500, Math.round(longest * 1.1)));
   } catch (error) {
     brief.notes.push(`serp_failed${error?.reason ? `: ${error.reason}` : error?.name === "TimeoutError" ? ": timeout" : ""}`);
   }
