@@ -184,5 +184,44 @@ function walk(node, visit) {
   delete process.env.ANTHROPIC_API_KEY;
   eq(__test.articleProvider(), "openai", "OpenAI when only its key is set");
 
+  // 8. With Claude, the handler claims the key, starts the background function and answers "in progress";
+  //    the background function writes the result under the same key and lock.
+  process.env.ANTHROPIC_API_KEY = "test-key";
+  const generateModule = require("../netlify/functions/article-generate.cjs");
+  const backgroundModule = require("../netlify/functions/article-generate-background.cjs");
+  const token = "t".repeat(40);
+  const lock = "11111111-2222-3333-4444-555555555555";
+  const admin = [];
+  let backgroundCall = null;
+  global.fetch = async (url, options = {}) => {
+    const target = String(url);
+    if (target.includes("/functions/v1/tycoons-admin")) {
+      const body = JSON.parse(options.body);
+      admin.push(body);
+      if (body.action === "article_generation_claim") return reply({ state: "claimed", lock_token: lock, attempt: 1 });
+      return reply({ ok: true });
+    }
+    if (target.includes("article-generate-background")) { backgroundCall = { url: target, body: JSON.parse(options.body), headers: options.headers }; return reply({}, 202); }
+    if (target.includes("/rest/v1/projects")) return reply([{ id: "p1", name: "Telal East", developer: "Roya", location: "New Cairo", slug: "telal-east" }]);
+    if (target.includes("/rest/v1/units")) return reply([]);
+    if (target.includes("api.anthropic.com")) return reply({ id: "m", stop_reason: "end_turn", usage: {}, content: [{ type: "text", text: JSON.stringify({ topics: [] }) }] });
+    throw new Error(`unexpected fetch ${target}`);
+  };
+  const event = { httpMethod: "POST", headers: { host: "deploy-preview-105--site.netlify.app", "x-admin-token": token, "x-idempotency-key": "topics:abcdefghijklmnop" }, body: JSON.stringify({ action: "topics", language: "ar", target_type: "project", project_id: "p1" }) };
+  const started = await generateModule.handler(event);
+  eq(started.statusCode, 409, "Claude run answers in progress");
+  eq(JSON.parse(started.body).error, "generation_in_progress", "client keeps polling");
+  ok(backgroundCall && backgroundCall.url === "https://deploy-preview-105--site.netlify.app/.netlify/functions/article-generate-background", "background function on the same deploy");
+  eq(backgroundCall.body.lock_token, lock, "lock handed over");
+  eq(admin.filter((call) => call.action === "article_generation_finish").length, 0, "nothing finished before the background run");
+  const forged = await backgroundModule.handler({ httpMethod: "POST", headers: { "x-admin-token": token }, body: JSON.stringify({ ...backgroundCall.body, fingerprint: "0".repeat(64) }) });
+  eq(forged.statusCode, 400, "fingerprint must match the input");
+  const quietError = console.error; console.error = () => {};
+  const done = await backgroundModule.handler({ httpMethod: "POST", headers: { "x-admin-token": token }, body: JSON.stringify(backgroundCall.body) });
+  console.error = quietError;
+  eq(done.statusCode, 200, "background run finished");
+  const finish = admin.find((call) => call.action === "article_generation_finish");
+  ok(finish && finish.lock_token === lock && finish.idempotency_key === "topics:abcdefghijklmnop", "result stored under the same key and lock");
+
   console.log(`Claude article provider tests passed (${checks} checks; offline only).`);
 })().catch((error) => { console.error(error); process.exit(1); });

@@ -88,7 +88,7 @@ async function expectTimeoutPolling() {
     assert.equal(error.code, "http_504");
     assert.match(errorMessage(error), /اضغط نفس الزرار تاني/);
   }
-  GENERATION_POLL.maxWaitMs = 150000;
+  GENERATION_POLL.maxWaitMs = 600000;
   GENERATION_POLL.delayMs = 5000;
 }
 

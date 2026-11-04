@@ -213,6 +213,44 @@ async function generate(input, safetyId) {
   return result;
 }
 
+// Claude takes longer than a normal Netlify function may run (about a minute), so with Claude
+// the work runs in article-generate-background (up to 15 minutes) and the admin keeps polling
+// the same idempotency key until the stored result is replayed.
+async function finishGeneration(token, key, fingerprint, lockToken, input) {
+  try {
+    const safetyId = crypto.createHash("sha256").update(`${token}:${key}`).digest("hex").slice(0, 24);
+    const data = await generate(input, safetyId);
+    await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, response: data });
+    return { data };
+  } catch (error) {
+    await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, error: String(error?.message || "generation_failed") }).catch(() => undefined);
+    console.error("[article-generate]", JSON.stringify({ error: error?.message || "generation_failed", ...(error?.diagnostics || {}) }));
+    return { error };
+  }
+}
+
+function errorResponse(error) {
+  return jsonResponse(Number(error?.status) || 500, { error: error?.message || "generation_failed", ...(error?.generationFailure ? { generation_failure: error.generationFailure } : {}), ...(error?.retryAfterSeconds ? { retry_after_seconds: error.retryAfterSeconds } : {}), ...(error?.providerDetail ? { provider_detail: error.providerDetail } : {}) }, error?.retryAfterSeconds ? { "retry-after": String(error.retryAfterSeconds) } : {});
+}
+
+function siteOrigin(event) {
+  const host = String(event.headers?.host || event.headers?.Host || "").trim();
+  if (/^[a-z0-9.-]+(?::\d+)?$/i.test(host)) return `${/^(?:localhost|127\.)/.test(host) ? "http" : "https"}://${host}`;
+  return process.env.DEPLOY_PRIME_URL || process.env.URL || "";
+}
+
+async function startBackground(event, payload) {
+  const origin = siteOrigin(event);
+  if (!origin) throw Object.assign(new Error("generation_background_unavailable"), { status: 503 });
+  const response = await fetch(`${origin}/.netlify/functions/article-generate-background`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-admin-token": payload.token },
+    body: JSON.stringify({ key: payload.key, fingerprint: payload.fingerprint, lock_token: payload.lockToken, input: payload.input }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (response.status !== 202 && !response.ok) throw Object.assign(new Error("generation_background_unavailable"), { status: 503, diagnostics: { stage: "background_start", status: response.status } });
+}
+
 exports.handler = async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type,x-admin-token,x-idempotency-key", "access-control-allow-methods": "POST,OPTIONS" }, body: "" };
   if (event.httpMethod !== "POST") return jsonResponse(405, { error: "method_not_allowed" });
@@ -236,19 +274,23 @@ exports.handler = async function handler(event) {
     if (claim.state === "exhausted") return jsonResponse(429, { error: "generation_attempts_exhausted" });
     if (claim.state !== "claimed" || !claim.lock_token) throw Object.assign(new Error("generation_claim_invalid"), { status: 502 });
     lockToken = String(claim.lock_token);
-    const safetyId = crypto.createHash("sha256").update(`${token}:${key}`).digest("hex").slice(0, 24);
-    const data = await generate(input, safetyId);
-    await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, response: data });
-    return jsonResponse(200, data);
+    if (articleProvider() === "anthropic") {
+      await startBackground(event, { token, key, fingerprint, lockToken, input });
+      // The admin polls this same key: "busy" while Claude writes, then the stored result.
+      return jsonResponse(409, { error: "generation_in_progress", retry_after_seconds: 5 }, { "retry-after": "5" });
+    }
+    const { data, error } = await finishGeneration(token, key, fingerprint, lockToken, input);
+    return error ? errorResponse(error) : jsonResponse(200, data);
   } catch (error) {
     if (lockToken) {
       await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, error: String(error?.message || "generation_failed") }).catch(() => undefined);
     }
     console.error("[article-generate]", JSON.stringify({ error: error?.message || "generation_failed", ...(error?.diagnostics || {}) }));
-    return jsonResponse(Number(error?.status) || 500, { error: error?.message || "generation_failed", ...(error?.generationFailure ? { generation_failure: error.generationFailure } : {}), ...(error?.retryAfterSeconds ? { retry_after_seconds: error.retryAfterSeconds } : {}), ...(error?.providerDetail ? { provider_detail: error.providerDetail } : {}) }, error?.retryAfterSeconds ? { "retry-after": String(error.retryAfterSeconds) } : {});
+    return errorResponse(error);
   }
 };
 
-
 // Offline tests only.
 exports.__test = { providerCall, articleProvider };
+exports.finishGeneration = finishGeneration;
+exports.parseRequest = parseRequest;

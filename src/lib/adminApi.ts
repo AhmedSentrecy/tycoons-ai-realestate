@@ -308,7 +308,8 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}, to
 // the function keeps running and stores its result under the idempotency key.
 // Re-sending the same key returns that stored result (or "in progress" until it
 // is ready), so polling never pays for a second generation.
-export const GENERATION_POLL = { delayMs: 5000, maxWaitMs: 150000 };
+// Claude drafts run in a background function (up to 15 minutes); the admin waits up to 10.
+export const GENERATION_POLL = { delayMs: 5000, maxWaitMs: 600000 };
 
 async function generate<T>(token: string, idempotencyKey: string, payload: Record<string, unknown>): Promise<T> {
   const started = Date.now();
