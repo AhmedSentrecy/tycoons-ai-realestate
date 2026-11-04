@@ -159,6 +159,19 @@ export interface ResearchFact {
 }
 export interface ResearchResult { facts: ResearchFact[]; excluded: ResearchFact[]; notes: string; generated_as: "research" }
 
+/** Google data behind "اكتب المقال": the chosen keyword, search volumes and the pages ranking first. */
+export interface SeoBrief {
+  keyword: string;
+  language: "ar" | "en";
+  source: "dataforseo" | "ai";
+  volumes: { keyword: string; volume: number }[];
+  competitors: { rank: number; url: string; domain: string; title: string; words: number; headings: { level: number; text: string }[] }[];
+  target_words: number;
+  notes: string[];
+}
+export type ArticleDraftResult = Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "focus_keyword" | "key_takeaways" | "faq" | "source_refs" | "review_issues"> & { generated_as: "draft" };
+export type ArticleWriteResult = ArticleDraftResult & { research: Omit<ResearchResult, "generated_as">; seo_brief: SeoBrief };
+
 export const UNIT_FIELDS = [
   "unit_type",
   "bedrooms_text",
@@ -249,14 +262,17 @@ export class AdminApiError extends Error {
   retryAfterSeconds: number | null;
   generationFailure: GenerationFailure | null;
   reviewIssues: ArticleReviewIssue[] | null;
+  /** The AI provider's own reason for a rejected generation request (no secrets). */
+  providerDetail: string | null;
 
-  constructor(code: string, status: number, retryAfterSeconds: number | null = null, generationFailure: GenerationFailure | null = null, reviewIssues: ArticleReviewIssue[] | null = null) {
+  constructor(code: string, status: number, retryAfterSeconds: number | null = null, generationFailure: GenerationFailure | null = null, reviewIssues: ArticleReviewIssue[] | null = null, providerDetail: string | null = null) {
     super(code);
     this.code = code;
     this.status = status;
     this.retryAfterSeconds = retryAfterSeconds;
     this.generationFailure = generationFailure;
     this.reviewIssues = reviewIssues;
+    this.providerDetail = providerDetail;
   }
 }
 
@@ -305,14 +321,16 @@ async function call<T>(action: string, payload: Record<string, unknown> = {}, to
 // the function keeps running and stores its result under the idempotency key.
 // Re-sending the same key returns that stored result (or "in progress" until it
 // is ready), so polling never pays for a second generation.
-export const GENERATION_POLL = { delayMs: 5000, maxWaitMs: 150000 };
+// Claude drafts run in a background function (up to 15 minutes); the admin waits up to 10.
+export const GENERATION_POLL = { delayMs: 5000, maxWaitMs: 600000 };
 
 async function generate<T>(token: string, idempotencyKey: string, payload: Record<string, unknown>): Promise<T> {
   const started = Date.now();
-  for (;;) {
+  for (let poll = 0; ; poll += 1) {
     const response = await fetch("/.netlify/functions/article-generate", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-admin-token": token, "x-idempotency-key": idempotencyKey },
+      // Polls are marked so the server never starts a new paid attempt while waiting.
+      headers: { "Content-Type": "application/json", "x-admin-token": token, "x-idempotency-key": idempotencyKey, ...(poll ? { "x-generation-poll": "1" } : {}) },
       body: JSON.stringify(payload),
     });
     const data = await response.json().catch(() => ({}));
@@ -323,7 +341,7 @@ async function generate<T>(token: string, idempotencyKey: string, payload: Recor
       await new Promise((resolve) => setTimeout(resolve, Number.isFinite(hinted) && hinted > 0 ? Math.min(hinted, 15000) : GENERATION_POLL.delayMs));
       continue;
     }
-    throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure), safeReviewIssues(data.review_issues));
+    throw new AdminApiError(String(data.error || `http_${response.status}`), response.status, Number(data.retry_after_seconds) || null, safeGenerationFailure(data.generation_failure), safeReviewIssues(data.review_issues), typeof data.provider_detail === "string" ? data.provider_detail.slice(0, 240) : null);
   }
 }
 
@@ -426,6 +444,9 @@ export const adminApi = {
     generate<ResearchResult>(token, idempotencyKey, { action: "research", topic, ...target }),
   articleRewrite: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, lines: string[]) =>
     generate<{ lines: string[]; generated_as: "rewrite" }>(token, idempotencyKey, { action: "rewrite", lines, ...target }),
+  // One button: Google data (keyword + what ranks) → web research → draft. Runs in the background.
+  articleWrite: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">) =>
+    generate<ArticleWriteResult>(token, idempotencyKey, { action: "write", ...target }),
   articleDraft: (token: string, idempotencyKey: string, target: Pick<ArticleValues, "language" | "target_type" | "project_id" | "area_name">, topic: string, researchFacts: ResearchFact[] = []) =>
     generate<Pick<ArticleValues, "title" | "slug" | "excerpt" | "body_markdown" | "meta_title" | "meta_description" | "focus_keyword" | "key_takeaways" | "faq" | "source_refs" | "review_issues"> & { generated_as: "draft" }>(token, idempotencyKey, { action: "draft", topic, ...target, ...(researchFacts.length ? { research_facts: researchFacts } : {}) }),
   signUpload: (token: string, body: { target: MediaTarget; id: string; kind: MediaKind; content_type: string; size: number }) =>
@@ -751,14 +772,16 @@ Object.assign(ERROR_MESSAGES, {
   article_translation_taken: "النسخة دي مربوطة بالفعل بمقال تاني بنفس اللغة",
   article_review_blocked: "توجد ملاحظات تمنع النشر. راجع الملاحظات في المحرر، ثم صحّحها واحفظ المسودة لإعادة الفحص.",
   article_review_confirmation_required: "راجع حقائق النسخة المحفوظة ومصادرها وجميع ملاحظات المراجعة، ثم أكّد المراجعة قبل النشر.",
-  generation_provider_credit_exhausted: "رصيد OpenAI API المستخدم بالموقع منتهٍ. أضف رصيدًا من إعدادات الفوترة ثم حاول مجددًا.",
-  generation_provider_spend_limit_exceeded: "وصل مشروع OpenAI إلى حد الإنفاق المسموح. راجع حدود الإنفاق للمشروع أو المؤسسة.",
-  generation_provider_usage_limit_exceeded: "وصل حساب OpenAI إلى حد الاستخدام المسموح. راجع حدود الاستخدام أو اطلب زيادتها.",
-  generation_provider_quota_exceeded: "وصل OpenAI إلى حد حصة أو فوترة غير محدد. راجع الرصيد وحدود الاستخدام والإنفاق قبل إعادة المحاولة.",
-  generation_provider_authentication_failed: "تعذر توثيق مفتاح OpenAI الخاص بالموقع. راجع إعداد OPENAI_API_KEY وصلاحياته.",
+  generation_provider_credit_exhausted: "رصيد حساب الـ AI (Claude أو OpenAI) خلص. اشحن الرصيد من صفحة Billing وجرّب تاني.",
+  generation_provider_spend_limit_exceeded: "حساب الـ AI (Claude أو OpenAI) وصل لحد الصرف الشهري. ارفع الحد من إعدادات الحساب.",
+  generation_provider_usage_limit_exceeded: "حساب الـ AI وصل لحد الاستخدام المسموح. راجع حدود الاستخدام أو اطلب زيادتها.",
+  generation_provider_quota_exceeded: "حساب الـ AI وصل لحد في الحصة أو الفوترة. راجع الرصيد والحدود قبل ما تجرّب تاني.",
+  generation_provider_authentication_failed: "مفتاح الـ AI بتاع الموقع مش شغال. راجع ANTHROPIC_API_KEY (أو OPENAI_API_KEY) في Netlify.",
   generation_provider_model_access_failed: "النموذج المحدد غير متاح لهذا المشروع أو أن المفتاح لا يملك صلاحية استخدامه.",
-  generation_provider_permission_denied: "لا يملك مشروع OpenAI أو المفتاح صلاحية تنفيذ هذا الطلب. راجع صلاحيات المشروع والمفتاح.",
-  generation_provider_unavailable: "خدمة إنشاء المحتوى غير متاحة مؤقتًا. راجع حالة OpenAI ثم حاول لاحقًا.",
+  generation_provider_permission_denied: "مفتاح الـ AI ملوش صلاحية للطلب ده. راجع صلاحيات المفتاح.",
+  generation_provider_unavailable: "خدمة كتابة المحتوى (Claude) مش متاحة دلوقتي. جرّب تاني بعد شوية.",
+  generation_background_failed: "الكتابة وقفت قبل ما تخلص. اعمل refresh للصفحة وجرّب تاني؛ مفيش محاولة جديدة اتعملت لوحدها.",
+  generation_background_unavailable: "تعذر بدء الكتابة في الخلفية. جرّب تاني بعد دقيقة.",
   generation_provider_request_invalid: "رفضت خدمة إنشاء المحتوى إعدادات الطلب. راجع النموذج وإعدادات التوليد.",
   generation_provider_limit_unknown: "رفض مزود إنشاء المحتوى الطلب بسبب حد غير محدد. راجع كود الخطأ ومعرّف الطلب في سجل الوظيفة قبل إعادة المحاولة.",
   generation_provider_failed: "فشل مزود إنشاء المحتوى. راجع بيانات التشخيص الآمنة في سجل الوظيفة.",
@@ -819,7 +842,8 @@ export function errorMessage(error: unknown): string {
     return `صف ${row}: ${errorMessage(new AdminApiError(inner, 400))}`;
   }
   if (code.startsWith("apply_failed")) return "التعديل ماتطبقش — البيانات اتغيرت. حدّث الصفحة وجرّب تاني";
-  return ERROR_MESSAGES[code] || `حصل خطأ${code ? ` (${code})` : ""}`;
+  const detail = error instanceof AdminApiError && error.providerDetail ? ` — رد الـ AI: ${error.providerDetail}` : "";
+  return (ERROR_MESSAGES[code] || `حصل خطأ${code ? ` (${code})` : ""}`) + detail;
 }
 
 export const STATUS_LABELS: Record<string, string> = {

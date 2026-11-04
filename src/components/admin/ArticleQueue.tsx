@@ -155,12 +155,12 @@ export default function ArticleQueue({
       </div>
       {open && confirming && (
         <div className="mt-3 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-3 text-sm">
-          <p className="font-black">هتتكتب {batchItems.length} مسودات، كل مشروع: بحث في النت + كتابة مسودة.</p>
+          <p className="font-black">هتتكتب {batchItems.length} مسودات، كل مشروع: تحليل جوجل + بحث في النت + كتابة المقال.</p>
           <ul className="mt-1 list-disc ps-5 text-xs text-[#5c6a62]">
             {batchItems.map((item) => <li key={item.project.id}><span dir="ltr">{item.project.name}</span> — {item.language === "ar" ? "عربي" : "إنجليزي"}</li>)}
           </ul>
           <p className="mt-2 text-xs text-[#5c6a62]">
-            بتاخد حوالي 15–25 دقيقة، لأن المسموح 6 طلبات كتابة كل 10 دقايق، فهيستنى لوحده لما يوصل للحد. سيب الصفحة دي مفتوحة لحد ما يخلص.
+            بتاخد حوالي 15–30 دقيقة (كل مقال 3–6 دقايق). سيب الصفحة دي مفتوحة لحد ما يخلص.
             المسودات بتتحفظ بس — مفيش حاجة بتتنشر غير لما تراجعها وتدوس «نشر» بنفسك.
           </p>
           <div className="mt-2 flex gap-2">
@@ -238,7 +238,7 @@ export default function ArticleQueue({
 }
 
 const STEP_TONE: Record<BatchProgress["step"], "pending" | "ok" | "error" | "muted" | "gold"> = {
-  waiting: "muted", research: "gold", draft: "gold", save: "gold", done: "ok", failed: "error", skipped: "muted",
+  waiting: "muted", write: "gold", save: "gold", done: "ok", failed: "error", skipped: "muted",
 };
 
 const ERRORS: Record<string, string> = {
@@ -246,14 +246,14 @@ const ERRORS: Record<string, string> = {
   generation_in_progress: "في كتابة شغالة لنفس المشروع — جرّب تاني بعد دقيقة",
   generation_timeout: "الكتابة أخدت وقت طويل — جرّب تاني",
   login_required: "سجّل دخول تاني",
+  generation_background_failed: "الكتابة وقفت قبل ما تخلص — جرّب تاني",
 };
 
 function stepLabel(progress: BatchProgress) {
   const wait = progress.waitSeconds ? ` — مستني الحد ${Math.floor(progress.waitSeconds / 60)}:${String(progress.waitSeconds % 60).padStart(2, "0")}` : "";
   switch (progress.step) {
     case "waiting": return "في الدور";
-    case "research": return `بحث في النت${wait}`;
-    case "draft": return `بيكتب المسودة${wait}`;
+    case "write": return `بيحلل جوجل ويبحث ويكتب${wait}`;
     case "save": return "بيحفظ";
     case "done": return "اتحفظت مسودة ✓";
     case "skipped": return "اتوقفت";

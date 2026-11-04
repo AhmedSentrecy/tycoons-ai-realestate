@@ -2533,6 +2533,22 @@ function renderGuidesIndex(lang = "ar", articles = [], projects = []) {
 // translation_key), or null. Only then are hreflang alternates emitted.
 // `extras.project` is the article's public project row ({name, slug, developer,
 // location, image_url}); `extras.related` other published guides about it.
+// Live prices of our available units for the guide's project, rendered at request time from
+// the inventory (never from the article text), so a guide's prices are always current.
+function guideUnitsTableHtml(units, project, lang) {
+  const ar = lang !== "en";
+  const rows = (Array.isArray(units) ? units : [])
+    .filter((unit) => project && String(unit.project_id) === String(project.id) && numberValue(unit.starting_price) > 0)
+    .sort((a, b) => numberValue(a.starting_price) - numberValue(b.starting_price))
+    .slice(0, 20);
+  if (!rows.length) return "";
+  const updated = rows.map((unit) => String(unit.last_updated_at || "")).filter(Boolean).sort().pop();
+  const projectPath = ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`;
+  return `<section aria-labelledby="guide-prices"><h2 id="guide-prices">${ar ? `أسعار ${escapeHtml(project.name)} المتاحة دلوقتي` : `${escapeHtml(project.name)} prices available now`}</h2><div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "سعر المتر" : "Per m²"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
+  ${rows.map((unit) => `<tr><td><a href="${escapeHtml(unitPath({ ...unit, project_slug: project.slug }))}">${escapeHtml(clean(unit.unit_type))}</a></td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(pricePerSqm(unit))) : "—"}</td><td>${escapeHtml(payText(unit.down_payment_text, lang))}</td><td>${escapeHtml(payText(unit.installments_text, lang))}</td><td>${escapeHtml(payText(unit.delivery_text, lang))}</td></tr>`).join("")}
+  </tbody></table></div><p class="note">${ar ? `الأسعار من وحدات Tycoons المتاحة${updated ? `، آخر تحديث ${escapeHtml(formatDate(updated, lang))}` : ""}، وبتتأكد مع المطور وقت الطلب.` : `Prices from Tycoons' available units${updated ? `, last updated ${escapeHtml(formatDate(updated, lang))}` : ""}; reconfirmed with the developer on request.`} <a href="${escapeHtml(projectPath)}#units">${ar ? "كل الوحدات" : "All units"}</a></p></section>`;
+}
+
 function editorialArticleView(article, translation = null, extras = {}) {
   if (!article || article.status !== "published" || !article.published_at || !article.reviewed_at) return null;
   const project = extras.project && extras.project.slug && extras.project.name ? extras.project : null;
@@ -2583,6 +2599,7 @@ function editorialArticleView(article, translation = null, extras = {}) {
   ${takeawaysHtml}
   ${priceDateNoteHtml({ markdown: article.body_markdown, reviewedAt: article.reviewed_at, ar, unitsHref: project ? `${projectPath}#units` : "" })}
   <article>${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: extras.liveUnitIds })}</article>
+  ${guideUnitsTableHtml(extras.units, project, lang)}
   ${faqHtml}
   ${relatedHtml}
   ${webSourcesHtml}

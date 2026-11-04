@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { adminApi, AdminApiError, isImageUrl, type AdminArticle, type AdminProject, type ArticleFaqItem, type ArticleValues, type ResearchFact, type ResearchResult, type TopicIdea } from "../../lib/adminApi";
+import { adminApi, AdminApiError, isImageUrl, type AdminArticle, type AdminProject, type ArticleFaqItem, type ArticleValues, type ResearchFact, type ResearchResult, type SeoBrief, type TopicIdea } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import { Badge, EmptyState, Modal, inputClass } from "./ui";
 import EditorialWorkflowPanel from "./EditorialWorkflowPanel";
@@ -161,6 +161,26 @@ function SeoScorePanel({ checks }: { checks: SeoCheck[] }) {
   </div>;
 }
 
+// What Google showed for this article: the chosen keyword with real monthly searches in Egypt,
+// and the headings / length of the pages ranking first (their text is never kept).
+function SeoBriefPanel({ brief }: { brief: SeoBrief }) {
+  const format = (value: number) => new Intl.NumberFormat("en-EG").format(value);
+  return (
+    <div className="mt-3 rounded-xl border bg-white p-3 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <strong>تحليل جوجل:</strong>
+        <span>الكلمة المفتاحية <b>«{brief.keyword}»</b></span>
+        <Badge tone={brief.source === "dataforseo" ? "ok" : "gold"}>{brief.source === "dataforseo" ? "من أرقام جوجل (DataForSEO)" : "من غير أرقام بحث"}</Badge>
+        <span className="text-xs text-[#5c6a62]">الطول المستهدف: {format(brief.target_words)} كلمة</span>
+      </div>
+      {brief.notes.includes("dataforseo_not_configured") && <p className="mt-1 text-xs text-amber-700">بيانات DataForSEO مش متحطة في Netlify، فالكلمة اتختارت من غير أرقام بحث.</p>}
+      {brief.notes.filter((note) => /_failed/.test(note)).map((note) => <p key={note} className="mt-1 text-xs text-amber-700" dir="auto">{/40100|401\b/.test(note) ? "DataForSEO رفض الدخول: راجع DATAFORSEO_LOGIN و DATAFORSEO_PASSWORD (الـ API password من صفحة API Access، مش باسورد الحساب). " : /40200|402\b/.test(note) ? "رصيد DataForSEO خلص. " : ""}({note})</p>)}
+      {brief.volumes.length > 0 && <table className="mt-2 w-full text-xs"><thead><tr className="text-[#5c6a62]"><th className="text-start">الكلمة</th><th className="text-start">بحث/شهر في مصر</th></tr></thead><tbody>{brief.volumes.slice(0, 8).map((row) => <tr key={row.keyword} className={row.keyword === brief.keyword ? "font-black" : ""}><td className="text-start"><span dir="auto">{row.keyword}</span></td><td className="text-start">{format(row.volume)}</td></tr>)}</tbody></table>}
+      {brief.competitors.length > 0 && <details className="mt-2 text-xs"><summary className="cursor-pointer font-bold">أول نتايج في جوجل ({brief.competitors.length})</summary><ul className="mt-1 space-y-2">{brief.competitors.map((page) => <li key={page.url}><a href={page.url} target="_blank" rel="noopener noreferrer" className="font-bold text-[#a3854e] underline" dir="auto">#{page.rank} {page.domain}</a> — {page.words ? `${format(page.words)} كلمة` : "الطول غير معروف"}{page.headings.length > 0 && <span className="block text-[#5c6a62]" dir="auto">{page.headings.slice(0, 12).map((heading) => heading.text).join(" • ")}</span>}</li>)}</ul></details>}
+    </div>
+  );
+}
+
 export default function ArticlesTab({ projects, focusProjectId = null, onFocusHandled }: { projects: AdminProject[]; focusProjectId?: string | null; onFocusHandled?: () => void }) {
   const { token, handleError, notify } = useAdmin();
   const [articles, setArticles] = useState<AdminArticle[]>([]);
@@ -171,7 +191,8 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
   const [ideas, setIdeas] = useState<TopicIdea[]>([]);
   const [topic, setTopic] = useState("");
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<"load" | "topics" | "research" | "draft" | "save" | "publish" | "fix" | "">("");
+  const [busy, setBusy] = useState<"load" | "topics" | "research" | "draft" | "write" | "save" | "publish" | "fix" | "">("");
+  const [seoBrief, setSeoBrief] = useState<SeoBrief | null>(null);
   // Web research results; only facts the editor keeps checked are sent to the draft.
   const [research, setResearch] = useState<ResearchResult | null>(null);
   const [droppedFacts, setDroppedFacts] = useState<number[]>([]);
@@ -214,6 +235,7 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
       idempotency.current.clear();
       setIdeas([]);
       setResearch(null);
+      setSeoBrief(null);
       setDroppedFacts([]);
       setTopic("");
       setSelectedId(null);
@@ -304,14 +326,14 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
       const { article } = await adminApi.article(token, id);
       if (operation !== operationId.current || context !== editorContext.current) return;
       const normalized = withSeoDefaults(article);
-      setSelectedId(id); setLoadedArticle(normalized); setValues(normalized); setSavedFingerprint(articleFingerprint(normalized)); setIdeas([]); setResearch(null); setDroppedFacts([]); setTopic(article.title); setReviewConfirmed(false); setTranslationChoice(null);
+      setSelectedId(id); setLoadedArticle(normalized); setValues(normalized); setSavedFingerprint(articleFingerprint(normalized)); setIdeas([]); setResearch(null); setSeoBrief(null); setDroppedFacts([]); setTopic(article.title); setReviewConfirmed(false); setTranslationChoice(null);
     } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
   }
 
   function newArticle() {
     if (busyRef.current) return;
     editorContext.current += 1;
-    setSelectedId(null); setLoadedArticle(null); setValues(emptyArticle()); setSavedFingerprint(""); setIdeas([]); setResearch(null); setDroppedFacts([]); setTopic(""); setReviewConfirmed(false); setTranslationChoice(null);
+    setSelectedId(null); setLoadedArticle(null); setValues(emptyArticle()); setSavedFingerprint(""); setIdeas([]); setResearch(null); setSeoBrief(null); setDroppedFacts([]); setTopic(""); setReviewConfirmed(false); setTranslationChoice(null);
   }
 
   const generationTarget = () => ({ language: values.language, target_type: values.target_type, project_id: values.target_type === "project" ? values.project_id : null, area_name: values.target_type === "area" ? values.area_name : null });
@@ -368,6 +390,33 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
         faq: Array.isArray(result.faq) ? result.faq : [],
       });
       notify("تم إنشاء مسودة فقط. راجعها وعدّلها قبل الحفظ أو النشر.");
+    } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
+  }
+
+  // "اكتب المقال": the server analyses Google, researches and writes; the result is saved
+  // straight away as a draft (never published) and opened for review.
+  async function writeArticle() {
+    if (values.target_type !== "project" || !values.project_id) return;
+    const operation = beginOperation("write");
+    if (!operation) return;
+    const context = editorContext.current;
+    try {
+      const result = await adminApi.articleWrite(token, requestKey("write", values.project_id), generationTarget());
+      if (operation !== operationId.current || context !== editorContext.current) return;
+      const next: ArticleValues = {
+        ...values,
+        title: result.title, slug: result.slug, excerpt: result.excerpt, body_markdown: result.body_markdown,
+        meta_title: result.meta_title, meta_description: result.meta_description, source_refs: result.source_refs,
+        focus_keyword: result.focus_keyword ?? "", key_takeaways: Array.isArray(result.key_takeaways) ? result.key_takeaways : [],
+        faq: Array.isArray(result.faq) ? result.faq : [], review_issues: result.review_issues ?? [],
+      };
+      const { article } = await adminApi.articleSave(token, selectedId, next, loadedArticle?.revision ?? null, translationChoice ?? undefined);
+      if (operation !== operationId.current) return;
+      const normalized = withSeoDefaults(article);
+      setSelectedId(article.id); setLoadedArticle(normalized); setValues(normalized); setSavedFingerprint(articleFingerprint(normalized)); setReviewConfirmed(false); setTranslationChoice(null);
+      setResearch({ ...result.research, generated_as: "research" }); setDroppedFacts([]); setSeoBrief(result.seo_brief ?? null);
+      await refresh();
+      notify("اتكتب المقال واتحفظ كمسودة. راجعه وانشره بنفسك.");
     } catch (error) { if (operation === operationId.current) handleError(error); } finally { endOperation(operation); }
   }
 
@@ -477,9 +526,19 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
         {values.target_type === "project" ? <label className="text-sm font-bold">المشروع<select disabled={Boolean(busy)} className={inputClass} value={values.project_id || ""} onChange={(event) => patchValues({ project_id: event.target.value || null }, true)}><option value="">اختر مشروعاً</option>{articleProjects(projects).map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}{values.project_id && !articleProjects(projects).some((project) => project.id === values.project_id) && <option value={values.project_id}>{projects.find((project) => project.id === values.project_id)?.name ?? "مشروع"} (نسخة قديمة — دوس صلّح)</option>}</select></label> : <label className="text-sm font-bold">المنطقة<select disabled={Boolean(busy)} className={inputClass} value={values.area_name || ""} onChange={(event) => patchValues({ area_name: event.target.value || null }, true)}><option value="">اختر منطقة</option>{areas.map((area) => <option key={area}>{area}</option>)}</select></label>}
       </div>
       <div className="mt-4 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-4">
+        {values.target_type === "project" && <div className="flex flex-wrap items-center gap-3">
+          <button disabled={!canGenerate || Boolean(busy)} onClick={() => void writeArticle()} className="rounded-xl bg-[#0d1f18] px-5 py-3 font-black text-white disabled:opacity-50">{busy === "write" ? "جارٍ كتابة المقال… (3–6 دقايق، سيب الصفحة مفتوحة)" : "اكتب المقال"}</button>
+          <small className="max-w-md text-[#5c6a62]">بيحلل جوجل بالأرقام (الكلمة اللي الناس بتدوّر بيها وإيه اللي واخد أول ترتيب)، يبحث في النت، يكتب المقال ويحفظه مسودة. مفيش حاجة بتتنشر غير لما تراجعها.</small>
+        </div>}
+        {seoBrief && <SeoBriefPanel brief={seoBrief} />}
+        <details className="mt-3" open={values.target_type !== "project"}>
+          <summary className="cursor-pointer text-sm font-bold text-[#5c6a62]">{values.target_type === "project" ? "مقال بموضوع تاني (خطوات يدوية، اختياري)" : "خطوات كتابة مقال المنطقة"}</summary>
+          <div className="mt-3">
         <div className="flex flex-wrap gap-2"><button disabled={!canGenerate || Boolean(busy)} onClick={() => void suggestTopics()} className="rounded-xl bg-[#d9b87c] px-4 py-2 font-black disabled:opacity-50">{busy === "topics" ? "جارٍ الاقتراح…" : "اقترح موضوعات"}</button></div>
         {ideas.length > 0 && <div className="mt-3 grid gap-2 md:grid-cols-2">{ideas.map((idea) => <button disabled={Boolean(busy)} key={idea.title} onClick={() => setTopic(idea.title)} className="rounded-xl border bg-white p-3 text-start disabled:opacity-50"><strong>{idea.title}</strong><span className="mt-1 block text-xs text-[#5c6a62]">{idea.rationale}</span>{idea.angle && <span className="mt-1 block text-xs text-[#a3854e]">{idea.angle}</span>}</button>)}</div>}
-        <div className="mt-3 flex gap-2"><input disabled={Boolean(busy)} className={inputClass} value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="موضوع المقال" /><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void researchTopic()} className="shrink-0 rounded-xl bg-[#d9b87c] px-4 py-2 font-black disabled:opacity-50">{busy === "research" ? "جارٍ البحث في النت… (حتى دقيقة)" : "ابحث في النت"}</button><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void generateDraft()} className="shrink-0 rounded-xl bg-[#0d1f18] px-4 py-2 font-black text-white disabled:opacity-50">{busy === "draft" ? "جارٍ إنشاء المسودة… (قد تستغرق دقيقة)" : "أنشئ مسودة"}</button></div>
+        <div className="mt-3 flex gap-2"><input disabled={Boolean(busy)} className={inputClass} value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="موضوع المقال" /><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void researchTopic()} className="shrink-0 rounded-xl bg-[#d9b87c] px-4 py-2 font-black disabled:opacity-50">{busy === "research" ? "جارٍ البحث في النت… (حتى دقيقتين)" : "ابحث في النت"}</button><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void generateDraft()} className="shrink-0 rounded-xl bg-[#0d1f18] px-4 py-2 font-black text-white disabled:opacity-50">{busy === "draft" ? "جارٍ كتابة المسودة… (2–5 دقايق، سيب الصفحة مفتوحة)" : "أنشئ مسودة"}</button></div>
+          </div>
+        </details>
         {research && <div className="mt-3 rounded-xl border bg-white p-3">
           <div className="flex flex-wrap items-center justify-between gap-2"><strong>معلومات من النت ({selectedFacts().length} من {research.facts.length} مختارة)</strong><small className="text-[#5c6a62]">الأسعار والسداد والتسليم والمتاح بتيجي من بيانات الموقع بس، مش من النت.</small></div>
           {research.facts.length === 0 ? <p className="mt-2 text-sm text-[#5c6a62]">مفيش معلومات موثوقة من مصدرين أو من موقع المطور.</p> : <ul className="mt-2 space-y-2">{research.facts.map((fact, index) => <li key={index} className="flex items-start gap-2 text-sm">
@@ -490,7 +549,7 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
           {research.excluded.length > 0 && <details className="mt-2 text-xs text-[#5c6a62]"><summary>اتشال {research.excluded.length} معلومة (مصدر واحد أو معلومة تجارية)</summary><ul className="mt-1 list-disc ps-5">{research.excluded.map((fact, index) => <li key={index}>{fact.fact} — {fact.reason === "commercial" ? "معلومة تجارية" : "مصدر واحد بس"}</li>)}</ul></details>}
           {research.notes && <p className="mt-2 text-xs text-[#5c6a62]">ملاحظات البحث: {research.notes}</p>}
         </div>}
-        <p className="mt-2 text-xs text-[#5c6a62]">لا توجد بيانات حجم بحث أو GSC هنا. الأفضل: اختار موضوع ← "ابحث في النت" ← راجع المعلومات ← "أنشئ مسودة".</p>
+        <p className="mt-2 text-xs text-[#5c6a62]">الأسعار والسداد والاستلام بتظهر في جدول حي من وحداتنا جنب المقال، مش جوه نصّه.</p>
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_320px]">

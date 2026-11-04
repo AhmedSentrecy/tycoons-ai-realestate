@@ -1,0 +1,136 @@
+"use strict";
+// Offline tests for "اكتب المقال": DataForSEO brief (mocked) and the one-claim write flow.
+const assert = require("node:assert/strict");
+let checks = 0;
+const ok = (value, message) => { assert.ok(value, message); checks += 1; };
+const eq = (a, b, message) => { assert.deepEqual(a, b, message); checks += 1; };
+const reply = (body, status = 200) => ({ ok: status < 400, status, headers: { get: () => null }, json: async () => body });
+const dfsTask = (result) => reply({ tasks: [{ status_code: 20000, result }] });
+
+const project = { id: "11111111-1111-4111-8111-111111111111", name: "Bloomfields", developer: "Tatweer Misr", location: "Mostakbal City", slug: "bloomfields" };
+const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز", "كمبوند بلوم فيلدز", "اسعار بلوم فيلدز", "بلوم فيلدز 2026"], en: ["bloomfields", "bloomfields mostakbal city"] }), status: "completed", output: [] };
+
+(async () => {
+  const { seoBrief, parseVariants, pageOutline } = require("../netlify/functions/_seo-brief.cjs");
+  const variants = parseVariants(variantsAnswer, project);
+  eq(variants.ar, ["بلوم فيلدز", "كمبوند بلوم فيلدز"], "price and year variants dropped");
+  ok(variants.en.includes("Bloomfields") || variants.en.includes("bloomfields"), "English name kept");
+
+  const outline = pageOutline([{ items: [{ page_content: { main_topic: [{ h_title: "موقع كمبوند بلوم فيلدز", level: 2, primary_content: [{ text: "كلام كتير هنا عن الموقع" }] }, { h_title: "title", level: 1 }], secondary_topic: [{ h_title: "خدمات", level: 3, primary_content: [{ text: "حمام سباحة" }] }] } }] }][0]);
+  eq(outline.headings, [{ level: 2, text: "موقع كمبوند بلوم فيلدز" }, { level: 3, text: "خدمات" }], "only h2/h3 headings kept");
+  eq(outline.words, 7, "words counted");
+
+  // Without DataForSEO credentials: the first AI variant.
+  delete process.env.DATAFORSEO_LOGIN; delete process.env.DATAFORSEO_PASSWORD;
+  const offline = await seoBrief(project, "ar", async () => variantsAnswer);
+  eq([offline.keyword, offline.source, offline.notes], ["بلوم فيلدز", "ai", ["dataforseo_not_configured"]], "works without DataForSEO");
+
+  // With DataForSEO: the most searched Arabic spelling, then the top pages' headings.
+  process.env.DATAFORSEO_LOGIN = "login"; process.env.DATAFORSEO_PASSWORD = "secret";
+  const calls = [];
+  global.fetch = async (url, options) => {
+    const path = new URL(String(url)).pathname;
+    const body = JSON.parse(options.body)[0];
+    calls.push({ path, body, auth: options.headers.Authorization });
+    if (path.endsWith("/search_volume/live")) return dfsTask([{ keyword: "بلوم فيلدز", search_volume: 390 }, { keyword: "كمبوند بلوم فيلدز", search_volume: 720 }, { keyword: "bloomfields", search_volume: 4400 }]);
+    if (path.endsWith("/organic/live/advanced")) return dfsTask([{ items: [
+      { type: "organic", rank_group: 1, url: "https://tycoons-inv.com/projects/bloomfields", title: "us" },
+      { type: "organic", rank_group: 2, url: "https://www.youtube.com/watch?v=1", title: "video" },
+      { type: "organic", rank_group: 3, url: "https://aqarsky.com/p", title: "كمبوند بلوم فيلدز" },
+      { type: "organic", rank_group: 4, url: "https://diarna.net/p", title: "بلوم فيلدز" },
+      { type: "local_pack", url: "https://maps", title: "x" },
+    ] }]);
+    if (path.endsWith("/content_parsing/live")) return dfsTask([{ items: [{ page_content: { main_topic: [{ h_title: body.url.includes("aqarsky") ? "عيوب بلوم فيلدز" : "موقع بلوم فيلدز", level: 2, primary_content: [{ text: "كلمة ".repeat(2000) }] }] } }] }]);
+    throw new Error(`unexpected ${url}`);
+  };
+  const brief = await seoBrief(project, "ar", async () => variantsAnswer);
+  eq(brief.keyword, "كمبوند بلوم فيلدز", "highest Arabic volume wins for an Arabic article");
+  eq(brief.source, "dataforseo", "keyword from Google data");
+  ok(calls[0].auth === `Basic ${Buffer.from("login:secret").toString("base64")}`, "basic auth");
+  eq(calls[0].body.location_code, 2818, "Egypt");
+  eq(calls[1].body.keyword, "كمبوند بلوم فيلدز", "SERP for the chosen keyword");
+  eq(brief.competitors.map((page) => page.domain), ["aqarsky.com", "diarna.net"], "own site and video sites skipped");
+  eq(brief.competitors[0].headings[0].text, "عيوب بلوم فيلدز", "competitor headings kept");
+  ok(!JSON.stringify(brief).includes("كلمة كلمة"), "competitor text never kept");
+  eq(brief.target_words, 2200, "target = 1.1 × the longest competitor");
+  const en = await seoBrief(project, "en", async () => variantsAnswer);
+  eq(en.keyword, "bloomfields", "English article uses the English spelling");
+
+  // Draft rules carry the brief.
+  const { buildOpenAiRequest } = require("../netlify/functions/_article-generation.cjs");
+  const request = buildOpenAiRequest({ action: "draft", language: "ar", targetType: "project", projectId: project.id, topic: brief.keyword, researchFacts: [], seoBrief: brief }, [project], []);
+  const system = request.input[0].content;
+  ok(system.includes('focus_keyword is exactly "كمبوند بلوم فيلدز"'), "keyword forced");
+  ok(system.includes("at least 2200 words"), "length target");
+  ok(system.includes("عيوب بلوم فيلدز") && system.includes("Never copy their wording"), "competitor headings, no copying");
+  ok(system.includes("live price table"), "prices come from the live table");
+  eq(request.max_output_tokens, 24000, "room for a long guide");
+
+  // The whole write flow: one claim → background → brief + research + draft.
+  process.env.ANTHROPIC_API_KEY = "k"; delete process.env.ARTICLE_PROVIDER;
+  const token = "t".repeat(40);
+  const lock = "11111111-2222-3333-4444-555555555555";
+  const admin = [];
+  const claude = [];
+  let background = null;
+  const draft = { focus_keyword: "كمبوند بلوم فيلدز", title: "كمبوند بلوم فيلدز: الموقع والمطور", slug: "bloomfields-guide", excerpt: "كمبوند بلوم فيلدز من تطوير مصر في مستقبل سيتي.", meta_title: "كمبوند بلوم فيلدز | دليل المشتري", meta_description: "كمبوند بلوم فيلدز في مستقبل سيتي من تطوير مصر.", key_takeaways: ["أ", "ب", "ج"], body_markdown: `كمبوند بلوم فيلدز مشروع من [Bloomfields](/projects/bloomfields).\n\n## نبذة عن كمبوند بلوم فيلدز\n\nنص.\n\n## قبل ما تقرر\n\nكلمنا.\n\n## عينة حديثة من الوحدات المتاحة\n- [Apartment](/units/u1): 76 م² — x.`, faq: [{ question: "س", answer: "ج" }, { question: "س2", answer: "ج2" }, { question: "س3", answer: "ج3" }], comparison_project_ids: [], unit_evidence: [], claim_evidence: [] };
+  global.fetch = async (url, options = {}) => {
+    const target = String(url);
+    if (target.includes("/functions/v1/tycoons-admin")) {
+      const body = JSON.parse(options.body); admin.push(body);
+      return reply(body.action === "article_generation_claim" ? { state: "claimed", lock_token: lock, attempt: 1 } : { ok: true });
+    }
+    if (target.includes("article-generate-background")) { background = JSON.parse(options.body); return reply({}, 202); }
+    if (target.includes("/rest/v1/projects")) return reply([project]);
+    if (target.includes("/rest/v1/units")) return reply([]);
+    if (target.includes("dataforseo")) {
+      const path = new URL(target).pathname;
+      if (path.endsWith("/search_volume/live")) return dfsTask([{ keyword: "كمبوند بلوم فيلدز", search_volume: 720 }]);
+      if (path.endsWith("/organic/live/advanced")) return dfsTask([{ items: [] }]);
+    }
+    if (target.includes("api.anthropic.com")) {
+      const body = JSON.parse(options.body);
+      claude.push(body);
+      if (body.output_config?.format?.schema?.properties?.ar) return reply({ id: "m", stop_reason: "end_turn", usage: {}, content: [{ type: "text", text: JSON.stringify({ ar: ["كمبوند بلوم فيلدز"], en: ["bloomfields"] }) }] });
+      if (body.tools) return reply({ id: "m", stop_reason: "end_turn", usage: {}, content: [{ type: "web_search_tool_result", content: [{ url: "https://tatweermisr.com/bloomfields", title: "Bloomfields" }] }, { type: "text", text: JSON.stringify({ facts: [{ fact: "يقع المشروع في مستقبل سيتي شرق القاهرة.", category: "location", confidence: "official", sources: [{ url: "https://tatweermisr.com/bloomfields", title: "Bloomfields - Tatweer Misr" }] }], notes: "" }) }] });
+      return reply({ id: "m", stop_reason: "end_turn", usage: {}, content: [{ type: "text", text: JSON.stringify(draft) }] });
+    }
+    throw new Error(`unexpected ${target}`);
+  };
+  const { handler } = require("../netlify/functions/article-generate.cjs");
+  const backgroundHandler = require("../netlify/functions/article-generate-background.cjs").handler;
+  const event = { httpMethod: "POST", headers: { host: "deploy-preview-105--x.netlify.app", "x-admin-token": token, "x-idempotency-key": "write:abcdefghijklmnop" }, body: JSON.stringify({ action: "write", language: "ar", target_type: "project", project_id: project.id }) };
+  const started = await handler(event);
+  eq(started.statusCode, 409, "write runs in the background");
+  eq(admin.filter((call) => call.action === "article_generation_claim").length, 1, "one claim for the whole article");
+  const quiet = console.error; console.error = () => {};
+  await backgroundHandler({ httpMethod: "POST", headers: { "x-admin-token": token }, body: JSON.stringify(background) });
+  console.error = quiet;
+  const finish = admin.find((call) => call.action === "article_generation_finish");
+  ok(finish && finish.response, `write finished with a result (${finish && finish.error})`);
+  eq(finish.response.focus_keyword, "كمبوند بلوم فيلدز", "draft keyword");
+  eq(finish.response.seo_brief.keyword, "كمبوند بلوم فيلدز", "brief returned to the admin");
+  eq(finish.response.research.facts.length, 1, "research facts returned");
+  ok(!finish.response.body_markdown.includes("عينة حديثة"), "frozen unit sample removed (live table instead)");
+  ok(claude.at(-1).system.includes("leave unit_evidence and claim_evidence empty"), "no frozen price lists asked");
+  ok(finish.response.source_refs.some((ref) => ref.type === "web" && ref.url === "https://tatweermisr.com/bloomfields"), "web source cited");
+  ok(claude.some((body) => body.tools) && claude.at(-1).system.includes('focus_keyword is exactly "كمبوند بلوم فيلدز"'), "research then a draft with the brief");
+  const parse = require("../netlify/functions/_article-generation.cjs").parseRequest;
+  assert.throws(() => parse({ body: JSON.stringify({ action: "write", language: "ar", target_type: "area", area_name: "x" }) }), /project_required/); checks += 1;
+
+  // The guide page shows a live price table of the project's available units.
+  const { renderEditorialArticle } = require("../netlify/functions/_seo-utils.cjs");
+  const published = { id: "a1", status: "published", published_at: "2026-11-04T10:00:00Z", reviewed_at: "2026-11-04T10:00:00Z", language: "ar", title: "كمبوند بلوم فيلدز", slug: "bloomfields-guide", excerpt: "دليل", body_markdown: "نص المقال.", project_id: project.id, source_refs: [] };
+  const units = [
+    { id: "u2", project_id: project.id, unit_type: "Apartment", bedrooms_text: "3", area_sqm: 175, starting_price: 11663000, down_payment_text: "5%", installments_text: "10 years", delivery_text: "2028", last_updated_at: "2026-11-01T00:00:00Z" },
+    { id: "u1", project_id: project.id, unit_type: "Apartment", bedrooms_text: "1", area_sqm: 76, starting_price: 5846000, down_payment_text: "5%", installments_text: "8 years", delivery_text: "2027", last_updated_at: "2026-11-03T00:00:00Z" },
+    { id: "u3", project_id: "other", unit_type: "Villa", starting_price: 99000000 },
+  ];
+  const html = renderEditorialArticle(published, null, { project, related: [], units });
+  ok(html.includes('id="guide-prices"') && html.includes("أسعار Bloomfields المتاحة دلوقتي"), "live price table on the guide");
+  ok(html.indexOf("5,846,000") > 0 && html.indexOf("5,846,000") < html.indexOf("11,663,000"), "cheapest first");
+  ok(!html.includes("99,000,000"), "only this project's units");
+  ok(!renderEditorialArticle(published, null, { project, related: [], units: [] }).includes("guide-prices"), "no table without units");
+
+  console.log(`SEO brief and write-flow tests passed (${checks} checks; offline only).`);
+})().catch((error) => { console.error(error); process.exit(1); });

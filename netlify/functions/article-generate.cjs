@@ -1,7 +1,9 @@
 "use strict";
 
 const crypto = require("node:crypto");
-const { RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, buildRewriteRequest, buildProjectFaqRequest, parseOpenAiOutput, groundInputForFacts } = require("./_article-generation.cjs");
+const { claudeResponses } = require("./_anthropic-provider.cjs");
+const { seoBrief } = require("./_seo-brief.cjs");
+const { RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, buildRewriteRequest, buildProjectFaqRequest, parseOpenAiOutput, groundInputForFacts, sanitizeResearchFacts } = require("./_article-generation.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
@@ -100,6 +102,61 @@ async function adminCall(token, action, payload = {}) {
   });
 }
 
+// Which AI writes the articles: ARTICLE_PROVIDER=anthropic|openai. Without it, Claude is used
+// once ANTHROPIC_API_KEY is set, otherwise OpenAI as before.
+function articleProvider() {
+  const chosen = String(process.env.ARTICLE_PROVIDER || "").toLowerCase();
+  if (chosen === "openai" && process.env.OPENAI_API_KEY) return "openai";
+  if (chosen === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
+  return process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.OPENAI_API_KEY ? "openai" : "";
+}
+
+// Account-level Claude failures (key, credit, model access, outage) fall back to OpenAI once,
+// when its key is still set. Content or validation problems never switch provider.
+const CLAUDE_FALLBACK_ERRORS = new Set([
+  "generation_provider_authentication_failed", "generation_provider_permission_denied", "generation_provider_model_access_failed",
+  "generation_provider_credit_exhausted", "generation_provider_spend_limit_exceeded", "generation_provider_unavailable",
+]);
+
+const CLAUDE_TIMEOUT_MS = 9 * 60 * 1000;
+
+function openAiCall(request, timeoutMs, safetyId) {
+  return fetchJson("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "content-type": "application/json",
+      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
+    },
+    body: JSON.stringify(request),
+  }, timeoutMs, true);
+}
+
+/**
+ * Sends one request to the configured provider. `openAiRetry` is the optional OpenAI-only
+ * second request (the web-search fallback model) used when the first OpenAI request is rejected.
+ */
+async function providerCall(request, timeoutMs, safetyId, openAiRetry = null) {
+  if (articleProvider() === "anthropic") {
+    try {
+      // Claude always runs in the background function (up to 15 minutes), so it gets up to 9.
+      return await claudeResponses(request, Math.max(timeoutMs, CLAUDE_TIMEOUT_MS));
+    } catch (error) {
+      // A timeout may still be writing on Claude's side, so it never triggers a second paid draft.
+      if (!process.env.OPENAI_API_KEY || !CLAUDE_FALLBACK_ERRORS.has(error?.message) || error?.diagnostics?.stage !== "provider_response") throw error;
+      console.error("[article-generate]", JSON.stringify({ fallback: "openai", error: error.message, ...(error.diagnostics || {}) }));
+    }
+  }
+  try {
+    return await openAiCall(request, timeoutMs, safetyId);
+  } catch (error) {
+    // A model that rejects web search fails fast with a request/model error;
+    // retry once on the documented web-search model. Timeouts are not retried.
+    if (!openAiRetry || !["generation_provider_request_invalid", "generation_provider_model_access_failed"].includes(error?.message)) throw error;
+    return openAiCall(openAiRetry.request, openAiRetry.timeoutMs, safetyId);
+  }
+}
+
 async function loadPublicFacts(input) {
   const select = "id,name,slug,developer,location,description,hero_text,highlights,faq";
   let url;
@@ -123,82 +180,63 @@ async function loadPublicFacts(input) {
 
 async function research(input, safetyId) {
   const { projects } = await loadPublicFacts(input);
-  const call = (modelOverride, timeoutMs) => fetchJson("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "content-type": "application/json",
-      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
-    },
-    body: JSON.stringify(buildResearchRequest(input, projects, modelOverride)),
-  }, timeoutMs, true);
-  let response;
-  try {
-    response = await call("", 50000);
-  } catch (error) {
-    // A model that rejects web search fails fast with a request/model error;
-    // retry once on the documented web-search model. Timeouts are not retried.
-    if (!["generation_provider_request_invalid", "generation_provider_model_access_failed"].includes(error?.message)) throw error;
-    response = await call(RESEARCH_FALLBACK_MODEL, 45000);
-  }
+  const response = await providerCall(buildResearchRequest(input, projects), 50000, safetyId, { request: buildResearchRequest(input, projects, RESEARCH_FALLBACK_MODEL), timeoutMs: 45000 });
   return parseOpenAiOutput(response, "research", { input, projects });
 }
 
 async function projectFaq(input, safetyId) {
   const { projects } = await loadPublicFacts(input);
-  const call = (modelOverride, timeoutMs) => fetchJson("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "content-type": "application/json",
-      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
-    },
-    body: JSON.stringify(buildProjectFaqRequest(projects, modelOverride)),
-  }, timeoutMs, true);
-  let response;
-  try {
-    response = await call("", 50000);
-  } catch (error) {
-    if (!["generation_provider_request_invalid", "generation_provider_model_access_failed"].includes(error?.message)) throw error;
-    response = await call(RESEARCH_FALLBACK_MODEL, 45000);
-  }
+  const response = await providerCall(buildProjectFaqRequest(projects), 50000, safetyId, { request: buildProjectFaqRequest(projects, RESEARCH_FALLBACK_MODEL), timeoutMs: 45000 });
   return parseOpenAiOutput(response, "project_faq", { input, projects });
 }
 
 async function rewrite(input, safetyId) {
   const { projects } = await loadPublicFacts(input);
-  const response = await fetchJson("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "content-type": "application/json",
-      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
-    },
-    body: JSON.stringify(buildRewriteRequest(input, projects)),
-  }, 45000, true);
+  const response = await providerCall(buildRewriteRequest(input, projects), 45000, safetyId);
   return parseOpenAiOutput(response, "rewrite", { input, projects });
+}
+
+// "اكتب المقال": one claim for the whole article. Google data (keyword + what ranks) →
+// web research on that keyword → draft in the ranking pages' order. Saved as a draft only.
+const SOFT_RESEARCH_ERRORS = new Set(["generation_shape_invalid", "generation_invalid", "generation_empty", "generation_refused", "generation_incomplete", "generation_incomplete_max_output_tokens"]);
+
+async function write(input, safetyId) {
+  const { projects, units } = await loadPublicFacts({ ...input, action: "draft" });
+  const brief = await seoBrief(projects[0], input.language, (request) => providerCall(request, 60000, safetyId));
+  const hints = [...new Set((brief.competitors || []).flatMap((page) => (page.headings || []).map((heading) => heading.text)))].slice(0, 12).join("، ");
+  const researchInput = { ...input, action: "research", topic: `${brief.keyword}${hints ? ` — ${input.language === "en" ? "also cover" : "غطّي كمان"}: ${hints}` : ""}`.slice(0, 600) };
+  let researched = { facts: [], excluded: [], notes: "" };
+  try {
+    const response = await providerCall(buildResearchRequest(researchInput, projects), 50000, safetyId, { request: buildResearchRequest(researchInput, projects, RESEARCH_FALLBACK_MODEL), timeoutMs: 45000 });
+    researched = parseOpenAiOutput(response, "research", { input: researchInput, projects });
+  } catch (error) {
+    // A research answer that does not validate still lets the article be written from our own data.
+    if (!SOFT_RESEARCH_ERRORS.has(error?.message)) throw error;
+  }
+  const draftInput = { ...input, action: "draft", topic: brief.keyword, researchFacts: sanitizeResearchFacts(researched.facts), seoBrief: brief };
+  const draft = await draftFrom(draftInput, projects, units, safetyId);
+  // The live price table on the guide page replaces the frozen "sample" lists for this flow.
+  draft.body_markdown = String(draft.body_markdown || "").replace(/\n+##\s+(?:عينة حديثة من الوحدات المتاحة|Recent sample of available units|حقائق تجارية موثقة للمراجعة|Sourced commercial facts for review)\n(?:-[^\n]*\n?)*/g, "\n").trim();
+  return { ...draft, research: { facts: researched.facts, excluded: researched.excluded || [], notes: researched.notes || "" }, seo_brief: brief, generated_as: "draft" };
 }
 
 async function generate(input, safetyId) {
   if (input.action === "research") return research(input, safetyId);
   if (input.action === "rewrite") return rewrite(input, safetyId);
   if (input.action === "project_faq") return projectFaq(input, safetyId);
+  if (input.action === "write") return write(input, safetyId);
   const { projects, units } = await loadPublicFacts(input);
+  return draftFrom(input, projects, units, safetyId);
+}
+
+async function draftFrom(input, projects, units, safetyId) {
   const groundedInput = groundInputForFacts(input, projects);
   // Do not buy a draft for a unit-area comparison when the source has no usable sample.
   if (input.action === "draft" && /مساح|متر|\barea|\bsize/i.test(input.topic)) {
     const requiredUnits = /مقارن|compar/i.test(input.topic) ? 2 : 1;
     if (units.filter(unit => Number.isFinite(unit.area_sqm)).length < requiredUnits) throw Object.assign(new Error("generation_source_insufficient"), { status: 422 });
   }
-  const response = await fetchJson("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "content-type": "application/json",
-      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
-    },
-    body: JSON.stringify(buildOpenAiRequest(groundedInput, projects, units)),
-  }, 60000, true);
+  const response = await providerCall(buildOpenAiRequest(groundedInput, projects, units), 60000, safetyId);
   const parsed = parseOpenAiOutput(response, groundedInput.action, { input: groundedInput, projects, units });
   const result = { ...parsed, source_refs: [...sourceRefs(projects, units), ...(input.action === "draft" ? webSourceRefs(input.researchFacts) : [])], generated_as: "draft" };
   if (input.action === "draft") {
@@ -208,10 +246,48 @@ async function generate(input, safetyId) {
   return result;
 }
 
+// Claude takes longer than a normal Netlify function may run (about a minute), so with Claude
+// the work runs in article-generate-background (up to 15 minutes) and the admin keeps polling
+// the same idempotency key until the stored result is replayed.
+async function finishGeneration(token, key, fingerprint, lockToken, input) {
+  try {
+    const safetyId = crypto.createHash("sha256").update(`${token}:${key}`).digest("hex").slice(0, 24);
+    const data = await generate(input, safetyId);
+    await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, response: data });
+    return { data };
+  } catch (error) {
+    await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, error: String(error?.message || "generation_failed") }).catch(() => undefined);
+    console.error("[article-generate]", JSON.stringify({ error: error?.message || "generation_failed", ...(error?.diagnostics || {}) }));
+    return { error };
+  }
+}
+
+function errorResponse(error) {
+  return jsonResponse(Number(error?.status) || 500, { error: error?.message || "generation_failed", ...(error?.generationFailure ? { generation_failure: error.generationFailure } : {}), ...(error?.retryAfterSeconds ? { retry_after_seconds: error.retryAfterSeconds } : {}), ...(error?.providerDetail ? { provider_detail: error.providerDetail } : {}) }, error?.retryAfterSeconds ? { "retry-after": String(error.retryAfterSeconds) } : {});
+}
+
+function siteOrigin(event) {
+  const host = String(event.headers?.host || event.headers?.Host || "").trim();
+  if (/^[a-z0-9.-]+(?::\d+)?$/i.test(host)) return `${/^(?:localhost|127\.)/.test(host) ? "http" : "https"}://${host}`;
+  return process.env.DEPLOY_PRIME_URL || process.env.URL || "";
+}
+
+async function startBackground(event, payload) {
+  const origin = siteOrigin(event);
+  if (!origin) throw Object.assign(new Error("generation_background_unavailable"), { status: 503 });
+  const response = await fetch(`${origin}/.netlify/functions/article-generate-background`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-admin-token": payload.token },
+    body: JSON.stringify({ key: payload.key, fingerprint: payload.fingerprint, lock_token: payload.lockToken, input: payload.input }),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (response.status !== 202 && !response.ok) throw Object.assign(new Error("generation_background_unavailable"), { status: 503, diagnostics: { stage: "background_start", status: response.status } });
+}
+
 exports.handler = async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type,x-admin-token,x-idempotency-key", "access-control-allow-methods": "POST,OPTIONS" }, body: "" };
   if (event.httpMethod !== "POST") return jsonResponse(405, { error: "method_not_allowed" });
-  if (!process.env.OPENAI_API_KEY) return jsonResponse(503, { error: "generation_not_configured" });
+  if (!articleProvider()) return jsonResponse(503, { error: "generation_not_configured" });
   const token = String(event.headers?.["x-admin-token"] || event.headers?.["X-Admin-Token"] || "");
   const key = String(event.headers?.["x-idempotency-key"] || event.headers?.["X-Idempotency-Key"] || "");
   if (!IDEMPOTENCY_RE.test(key)) return jsonResponse(400, { error: "idempotency_key_required" });
@@ -231,16 +307,31 @@ exports.handler = async function handler(event) {
     if (claim.state === "exhausted") return jsonResponse(429, { error: "generation_attempts_exhausted" });
     if (claim.state !== "claimed" || !claim.lock_token) throw Object.assign(new Error("generation_claim_invalid"), { status: 502 });
     lockToken = String(claim.lock_token);
-    const safetyId = crypto.createHash("sha256").update(`${token}:${key}`).digest("hex").slice(0, 24);
-    const data = await generate(input, safetyId);
-    await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, response: data });
-    return jsonResponse(200, data);
+    // Claude, and the full "write" flow (Google data + research + draft), run in the background.
+    if (articleProvider() === "anthropic" || input.action === "write") {
+      // A poll that finds the key free again means the background run ended with an error.
+      // Never buy a new attempt from a poll: release the key and report the failure.
+      const polling = String(event.headers?.["x-generation-poll"] || event.headers?.["X-Generation-Poll"] || "") === "1";
+      if (polling && Number(claim.attempt) > 1) {
+        await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, error: "generation_background_failed" }).catch(() => undefined);
+        return jsonResponse(502, { error: "generation_background_failed" });
+      }
+      await startBackground(event, { token, key, fingerprint, lockToken, input });
+      // The admin polls this same key: "busy" while Claude writes, then the stored result.
+      return jsonResponse(409, { error: "generation_in_progress", retry_after_seconds: 5 }, { "retry-after": "5" });
+    }
+    const { data, error } = await finishGeneration(token, key, fingerprint, lockToken, input);
+    return error ? errorResponse(error) : jsonResponse(200, data);
   } catch (error) {
     if (lockToken) {
       await adminCall(token, "article_generation_finish", { idempotency_key: key, payload_fingerprint: fingerprint, lock_token: lockToken, error: String(error?.message || "generation_failed") }).catch(() => undefined);
     }
     console.error("[article-generate]", JSON.stringify({ error: error?.message || "generation_failed", ...(error?.diagnostics || {}) }));
-    return jsonResponse(Number(error?.status) || 500, { error: error?.message || "generation_failed", ...(error?.generationFailure ? { generation_failure: error.generationFailure } : {}), ...(error?.retryAfterSeconds ? { retry_after_seconds: error.retryAfterSeconds } : {}) }, error?.retryAfterSeconds ? { "retry-after": String(error.retryAfterSeconds) } : {});
+    return errorResponse(error);
   }
 };
 
+// Offline tests only.
+exports.__test = { providerCall, articleProvider };
+exports.finishGeneration = finishGeneration;
+exports.parseRequest = parseRequest;
