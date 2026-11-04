@@ -13,7 +13,14 @@
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
 const DEFAULT_MODEL = "claude-sonnet-5-5";
-const WEB_SEARCH_TOOL = "web_search_20250305";
+// Tried in order: if Claude rejects a tool definition (400, free), the next form is sent.
+// Newer versions call search "direct" (without the code-execution filter) to keep the same behaviour.
+const WEB_SEARCH_VARIANTS = [
+  (uses) => ({ type: "web_search_20250305", name: "web_search", max_uses: uses, user_location: { type: "approximate", country: "EG" } }),
+  (uses) => ({ type: "web_search_20260318", name: "web_search", max_uses: uses, allowed_callers: ["direct"], user_location: { type: "approximate", country: "EG" } }),
+  (uses) => ({ type: "web_search_20260318", name: "web_search", max_uses: uses, allowed_callers: ["direct"] }),
+  (uses) => ({ type: "web_search_20260209", name: "web_search", max_uses: uses, allowed_callers: ["direct"] }),
+];
 
 const articleModel = () => process.env.ANTHROPIC_ARTICLE_MODEL || DEFAULT_MODEL;
 const researchModel = () => process.env.ANTHROPIC_RESEARCH_MODEL || articleModel();
@@ -54,7 +61,7 @@ function toClaudeRequest(request, { forceSchema = true } = {}) {
     messages: user,
   };
   if (search) {
-    body.tools = [{ type: WEB_SEARCH_TOOL, name: "web_search", max_uses: Number(request.max_tool_calls) || 8, user_location: { type: "approximate", country: "EG" } }];
+    body.tools = [WEB_SEARCH_VARIANTS[0](Number(request.max_tool_calls) || 8)];
     if (schema) {
       body.system += `\n\nWhen your research is finished, reply with one JSON object only (no prose, no Markdown fences) that matches this JSON schema:\n${JSON.stringify(schema)}`;
     }
@@ -193,8 +200,19 @@ function responsesPayload(message, text, extra = {}) {
 async function claudeResponses(request, timeoutMs = 60000) {
   const started = Date.now();
   const left = () => Math.max(5000, timeoutMs - (Date.now() - started));
-  const body = toClaudeRequest(request);
-  let message = await callClaude(body, left());
+  let body = toClaudeRequest(request);
+  let message;
+  for (let variant = 0; ; variant += 1) {
+    try {
+      message = await callClaude(body, left());
+      break;
+    } catch (error) {
+      const toolRejected = Array.isArray(body.tools) && error?.message === "generation_provider_request_invalid" && /tools|web_search/i.test(error?.providerDetail || "");
+      if (!toolRejected || variant + 1 >= WEB_SEARCH_VARIANTS.length) throw error;
+      console.error("[article-generate]", JSON.stringify({ web_search_variant_rejected: body.tools[0].type, detail: error.providerDetail }));
+      body = { ...body, tools: [WEB_SEARCH_VARIANTS[variant + 1](body.tools[0].max_uses)] };
+    }
+  }
   const content = [...(message.content || [])];
   for (let turn = 0; message.stop_reason === "pause_turn" && turn < 3; turn += 1) {
     message = await callClaude({ ...body, messages: [...body.messages, { role: "assistant", content }] }, left());

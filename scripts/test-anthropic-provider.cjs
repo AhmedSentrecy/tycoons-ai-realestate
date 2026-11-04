@@ -88,6 +88,25 @@ function walk(node, visit) {
   const validated = parseOpenAiOutput(researchPayload, "research", { input: researchInput, projects: [project] });
   eq(validated.facts.length, 1, "research validator accepts the payload");
 
+  // 3b. A rejected web-search tool form is retried with the newer forms.
+  calls = [];
+  global.fetch = async (url, options) => {
+    const body = JSON.parse(options.body);
+    calls.push({ body });
+    if (calls.length < 3) return reply({ type: "error", error: { type: "invalid_request_error", message: `tools.0.${body.tools[0].type}: not supported` } }, 400);
+    return reply({ id: "m", stop_reason: "end_turn", usage: {}, content: [{ type: "web_search_tool_result", content: [{ url: "https://roya.com/telal-east", title: "Roya" }] }, { type: "text", text: JSON.stringify({ facts: [], notes: "" }) }] });
+  };
+  const quiet = console.error; console.error = () => {};
+  await claudeResponses(buildResearchRequest(researchInput, [project]), 50000);
+  console.error = quiet;
+  eq(calls.map((call) => call.body.tools[0].type), ["web_search_20250305", "web_search_20260318", "web_search_20260318"], "tool forms tried in order");
+  eq(calls[1].body.tools[0].allowed_callers, ["direct"], "newer form searches directly");
+  ok(!calls[2].body.tools[0].user_location, "last forms drop the location");
+  calls = [];
+  global.fetch = async (url, options) => { calls.push(JSON.parse(options.body)); return reply({ type: "error", error: { type: "invalid_request_error", message: "messages.0: bad" } }, 400); };
+  await assert.rejects(claudeResponses(buildResearchRequest(researchInput, [project]), 50000), /generation_provider_request_invalid/); checks += 1;
+  eq(calls.length, 1, "non-tool rejection is not retried");
+
   // 4. Research text that is not JSON → one conversion call with the schema.
   turn = 0;
   calls = [];
