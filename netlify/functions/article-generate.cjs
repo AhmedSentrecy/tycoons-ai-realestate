@@ -1,6 +1,7 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const { claudeResponses } = require("./_anthropic-provider.cjs");
 const { RESEARCH_FALLBACK_MODEL, IDEMPOTENCY_RE, jsonResponse, parseRequest, safeProject, safeUnit, sourceRefs, webSourceRefs, buildOpenAiRequest, buildResearchRequest, buildRewriteRequest, buildProjectFaqRequest, parseOpenAiOutput, groundInputForFacts } = require("./_article-generation.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
@@ -100,6 +101,58 @@ async function adminCall(token, action, payload = {}) {
   });
 }
 
+// Which AI writes the articles: ARTICLE_PROVIDER=anthropic|openai. Without it, Claude is used
+// once ANTHROPIC_API_KEY is set, otherwise OpenAI as before.
+function articleProvider() {
+  const chosen = String(process.env.ARTICLE_PROVIDER || "").toLowerCase();
+  if (chosen === "openai" && process.env.OPENAI_API_KEY) return "openai";
+  if (chosen === "anthropic" && process.env.ANTHROPIC_API_KEY) return "anthropic";
+  return process.env.ANTHROPIC_API_KEY ? "anthropic" : process.env.OPENAI_API_KEY ? "openai" : "";
+}
+
+// Account-level Claude failures (key, credit, model access, outage) fall back to OpenAI once,
+// when its key is still set. Content or validation problems never switch provider.
+const CLAUDE_FALLBACK_ERRORS = new Set([
+  "generation_provider_authentication_failed", "generation_provider_permission_denied", "generation_provider_model_access_failed",
+  "generation_provider_credit_exhausted", "generation_provider_spend_limit_exceeded", "generation_provider_unavailable",
+]);
+
+function openAiCall(request, timeoutMs, safetyId) {
+  return fetchJson("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "content-type": "application/json",
+      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
+    },
+    body: JSON.stringify(request),
+  }, timeoutMs, true);
+}
+
+/**
+ * Sends one request to the configured provider. `openAiRetry` is the optional OpenAI-only
+ * second request (the web-search fallback model) used when the first OpenAI request is rejected.
+ */
+async function providerCall(request, timeoutMs, safetyId, openAiRetry = null) {
+  if (articleProvider() === "anthropic") {
+    try {
+      return await claudeResponses(request, timeoutMs);
+    } catch (error) {
+      // A timeout may still be writing on Claude's side, so it never triggers a second paid draft.
+      if (!process.env.OPENAI_API_KEY || !CLAUDE_FALLBACK_ERRORS.has(error?.message) || error?.diagnostics?.stage !== "provider_response") throw error;
+      console.error("[article-generate]", JSON.stringify({ fallback: "openai", error: error.message, ...(error.diagnostics || {}) }));
+    }
+  }
+  try {
+    return await openAiCall(request, timeoutMs, safetyId);
+  } catch (error) {
+    // A model that rejects web search fails fast with a request/model error;
+    // retry once on the documented web-search model. Timeouts are not retried.
+    if (!openAiRetry || !["generation_provider_request_invalid", "generation_provider_model_access_failed"].includes(error?.message)) throw error;
+    return openAiCall(openAiRetry.request, openAiRetry.timeoutMs, safetyId);
+  }
+}
+
 async function loadPublicFacts(input) {
   const select = "id,name,slug,developer,location,description,hero_text,highlights,faq";
   let url;
@@ -123,59 +176,19 @@ async function loadPublicFacts(input) {
 
 async function research(input, safetyId) {
   const { projects } = await loadPublicFacts(input);
-  const call = (modelOverride, timeoutMs) => fetchJson("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "content-type": "application/json",
-      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
-    },
-    body: JSON.stringify(buildResearchRequest(input, projects, modelOverride)),
-  }, timeoutMs, true);
-  let response;
-  try {
-    response = await call("", 50000);
-  } catch (error) {
-    // A model that rejects web search fails fast with a request/model error;
-    // retry once on the documented web-search model. Timeouts are not retried.
-    if (!["generation_provider_request_invalid", "generation_provider_model_access_failed"].includes(error?.message)) throw error;
-    response = await call(RESEARCH_FALLBACK_MODEL, 45000);
-  }
+  const response = await providerCall(buildResearchRequest(input, projects), 50000, safetyId, { request: buildResearchRequest(input, projects, RESEARCH_FALLBACK_MODEL), timeoutMs: 45000 });
   return parseOpenAiOutput(response, "research", { input, projects });
 }
 
 async function projectFaq(input, safetyId) {
   const { projects } = await loadPublicFacts(input);
-  const call = (modelOverride, timeoutMs) => fetchJson("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "content-type": "application/json",
-      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
-    },
-    body: JSON.stringify(buildProjectFaqRequest(projects, modelOverride)),
-  }, timeoutMs, true);
-  let response;
-  try {
-    response = await call("", 50000);
-  } catch (error) {
-    if (!["generation_provider_request_invalid", "generation_provider_model_access_failed"].includes(error?.message)) throw error;
-    response = await call(RESEARCH_FALLBACK_MODEL, 45000);
-  }
+  const response = await providerCall(buildProjectFaqRequest(projects), 50000, safetyId, { request: buildProjectFaqRequest(projects, RESEARCH_FALLBACK_MODEL), timeoutMs: 45000 });
   return parseOpenAiOutput(response, "project_faq", { input, projects });
 }
 
 async function rewrite(input, safetyId) {
   const { projects } = await loadPublicFacts(input);
-  const response = await fetchJson("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "content-type": "application/json",
-      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
-    },
-    body: JSON.stringify(buildRewriteRequest(input, projects)),
-  }, 45000, true);
+  const response = await providerCall(buildRewriteRequest(input, projects), 45000, safetyId);
   return parseOpenAiOutput(response, "rewrite", { input, projects });
 }
 
@@ -190,15 +203,7 @@ async function generate(input, safetyId) {
     const requiredUnits = /مقارن|compar/i.test(input.topic) ? 2 : 1;
     if (units.filter(unit => Number.isFinite(unit.area_sqm)).length < requiredUnits) throw Object.assign(new Error("generation_source_insufficient"), { status: 422 });
   }
-  const response = await fetchJson("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "content-type": "application/json",
-      "OpenAI-Safety-Identifier": `tycoons-admin-${safetyId}`,
-    },
-    body: JSON.stringify(buildOpenAiRequest(groundedInput, projects, units)),
-  }, 60000, true);
+  const response = await providerCall(buildOpenAiRequest(groundedInput, projects, units), 60000, safetyId);
   const parsed = parseOpenAiOutput(response, groundedInput.action, { input: groundedInput, projects, units });
   const result = { ...parsed, source_refs: [...sourceRefs(projects, units), ...(input.action === "draft" ? webSourceRefs(input.researchFacts) : [])], generated_as: "draft" };
   if (input.action === "draft") {
@@ -211,7 +216,7 @@ async function generate(input, safetyId) {
 exports.handler = async function handler(event) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "content-type,x-admin-token,x-idempotency-key", "access-control-allow-methods": "POST,OPTIONS" }, body: "" };
   if (event.httpMethod !== "POST") return jsonResponse(405, { error: "method_not_allowed" });
-  if (!process.env.OPENAI_API_KEY) return jsonResponse(503, { error: "generation_not_configured" });
+  if (!articleProvider()) return jsonResponse(503, { error: "generation_not_configured" });
   const token = String(event.headers?.["x-admin-token"] || event.headers?.["X-Admin-Token"] || "");
   const key = String(event.headers?.["x-idempotency-key"] || event.headers?.["X-Idempotency-Key"] || "");
   if (!IDEMPOTENCY_RE.test(key)) return jsonResponse(400, { error: "idempotency_key_required" });
@@ -244,3 +249,6 @@ exports.handler = async function handler(event) {
   }
 };
 
+
+// Offline tests only.
+exports.__test = { providerCall, articleProvider };
