@@ -20,6 +20,27 @@ const exactTranslations: Record<string, string> = {
   "ready to move": "جاهز للاستلام",
 };
 
+// Same wording as netlify/functions/_display-text.cjs (server pages), so a field reads the same
+// before and after the page loads.
+const MONTHS_AR: Record<string, string> = { jan: "يناير", feb: "فبراير", mar: "مارس", apr: "أبريل", may: "مايو", jun: "يونيو", jul: "يوليو", aug: "أغسطس", sep: "سبتمبر", oct: "أكتوبر", nov: "نوفمبر", dec: "ديسمبر" };
+
+function yearsAr(n: string) {
+  const value = Number(n);
+  if (value === 1) return "سنة";
+  if (value === 1.5) return "سنة ونص";
+  if (value === 2) return "سنتين";
+  if (value === 2.5) return "سنتين ونص";
+  if (Number.isInteger(value) && value >= 3 && value <= 10) return `${value} سنوات`;
+  return Number.isInteger(value) ? `${value} سنة` : `${n} سنوات`;
+}
+function monthsAr(n: string) {
+  const value = Number(n);
+  if (value === 1) return "شهر";
+  if (value === 2) return "شهرين";
+  if (Number.isInteger(value) && value >= 3 && value <= 10) return `${value} شهور`;
+  return `${n} شهر`;
+}
+
 export function arabicField(value: unknown, fallback = "") {
   const source = String(value == null ? "" : value).replace(/\s+/g, " ").trim();
   if (!source) return fallback;
@@ -27,8 +48,20 @@ export function arabicField(value: unknown, fallback = "") {
   if (exact) return exact;
 
   return source
-    .replace(/delivery\s+in\s+(\d+)\s+years?/gi, "الاستلام خلال $1 سنوات")
-    .replace(/(\d+)\s+years?/gi, "$1 سنوات")
+    .replace(/^\s*delivery\s*:\s*/i, "الاستلام: ")
+    .replace(/\b(?:delivery\s+)?(?:in|within)\s+(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*years?\b/gi, "الاستلام خلال $1 لـ $2 سنين")
+    .replace(/\b(?:delivery\s+)?(?:in|within)\s+(\d+(?:\.\d+)?)\s*years?\b/gi, (_, n: string) => `الاستلام خلال ${yearsAr(n)}`)
+    .replace(/\b(?:delivery\s+)?(?:in|within)\s+(\d+)\s*months?\b/gi, (_, n: string) => `الاستلام خلال ${monthsAr(n)}`)
+    .replace(/\bdelivery\s+in\s+(20\d\d)\b/gi, "الاستلام في $1")
+    .replace(/\b(?:immediate delivery|ready to move)\b/gi, "استلام فوري")
+    .replace(/\bvaries\s+by\s+phase\b/gi, "حسب المرحلة")
+    .replace(/\(\s*constructed\s*\)/gi, "(مبني)")
+    .replace(/\bup\s+to\s+/gi, "حتى ")
+    .replace(/(\d+(?:\.\d+)?)\s*years?\b/gi, (_, n: string) => yearsAr(n))
+    .replace(/(\d+)\s*[-–]\s*(\d+)\s*months?\b/gi, "من $1 لـ $2 شهر")
+    .replace(/(\d+)\s*months?\b/gi, (_, n: string) => monthsAr(n))
+    .replace(/\bQ([1-4])\s*(20\d\d)\b/gi, (_, q: string, y: string) => `الربع ${["الأول", "التاني", "التالت", "الرابع"][Number(q) - 1]} ${y}`)
+    .replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:\s*-\s*|\s+)(20\d\d)\b/gi, (_, m: string, y: string) => `${MONTHS_AR[m.toLowerCase()]} ${y}`)
     .replace(/(\d+)\s+bedrooms?/gi, "$1 غرف نوم")
     .replace(/\bstandalone villa\b/gi, "فيلا مستقلة")
     .replace(/\btwin house\b/gi, "توين هاوس")

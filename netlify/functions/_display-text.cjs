@@ -55,11 +55,21 @@ const unitsAr = (n) => countAr(n, "وحدة", "وحدتين", "وحدات");
 const projectsAr = (n) => countAr(n, "مشروع", "مشروعين", "مشاريع", "واحد");
 function yearsAr(n) {
   const value = Number(n);
+  if (value === 1.5) return "سنة ونص";
+  if (value === 2.5) return "سنتين ونص";
   if (!Number.isInteger(value)) return `${n} سنوات`;
   if (value === 1) return "سنة";
   if (value === 2) return "سنتين";
   if (value >= 3 && value <= 10) return `${value} سنوات`;
   return `${value} سنة`;
+}
+
+function monthsAr(n) {
+  const value = Number(n);
+  if (value === 1) return "شهر";
+  if (value === 2) return "شهرين";
+  if (Number.isInteger(value) && value >= 3 && value <= 10) return `${value} شهور`;
+  return `${n} شهر`;
 }
 
 // Arabic rendering of a stored payment / delivery / unit-type string.
@@ -68,8 +78,14 @@ function arabicDisplay(value) {
   if (!out) return "";
   out = out
     .replace(/^\s*delivery\s*:\s*/i, "الاستلام: ")
-    .replace(/\bdelivery\s+in\s+(\d+)\s*(?:years?|y)\b/gi, (_, n) => `الاستلام خلال ${yearsAr(n)}`)
+    // "Delivery in 4.5 years", "Delivery within 6 months", "Within 2 years", "Delivery in 2027".
+    .replace(/\b(?:delivery\s+)?(?:in|within)\s+(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*(?:years?|y)\b/gi, (_, a, b) => `الاستلام خلال ${a} لـ ${b} سنين`)
+    .replace(/\b(?:delivery\s+)?(?:in|within)\s+(\d+(?:\.\d+)?)\s*(?:years?|y)\b/gi, (_, n) => `الاستلام خلال ${yearsAr(n)}`)
+    .replace(/\b(?:delivery\s+)?(?:in|within)\s+(\d+)\s*months?\b/gi, (_, n) => `الاستلام خلال ${monthsAr(n)}`)
+    .replace(/\bdelivery\s+in\s+(20\d\d)\b/gi, "الاستلام في $1")
     .replace(/\b(?:immediate delivery|ready to move|rtm)\b/gi, "استلام فوري")
+    .replace(/\bvaries\s+by\s+phase\b/gi, "حسب المرحلة")
+    .replace(/\(\s*constructed\s*\)/gi, "(مبني)")
     .replace(/\bdelivery\b\s*/gi, "استلام ")
     .replace(/\binstallments?\s+over\s+/gi, "تقسيط على ")
     .replace(/\bup\s+to\s+/gi, "حتى ")
@@ -77,7 +93,14 @@ function arabicDisplay(value) {
     .replace(/\bdown\s*payment\b/gi, "مقدم")
     .replace(/\bafter\s+(\d+)\s+months?\b/gi, (_, n) => `بعد ${Number(n) >= 3 && Number(n) <= 10 ? `${n} شهور` : `${n} شهر`}`)
     .replace(/(\d+(?:\.\d+)?)\s*-\s*(\d+)\s*(?:years?|y)\b/gi, "من $1 لـ $2 سنين")
-    .replace(/(\d+)\s*(?:years?|yrs?|y)\b/gi, (_, n) => yearsAr(n))
+    .replace(/(\d+(?:\.\d+)?)\s*(?:years?|yrs?|y)\b/gi, (_, n) => yearsAr(n))
+    .replace(/(\d+)\s*[-–]\s*(\d+)\s*months?\b/gi, "من $1 لـ $2 شهر")
+    .replace(/(\d+)\s*months?\b/gi, (_, n) => monthsAr(n))
+    .replace(/\binstallments?\b/gi, "تقسيط")
+    .replace(/\bover\b/gi, "على")
+    .replace(/\bwith\b/gi, "مع")
+    .replace(/(\d+(?:\.\d+)?\s*%)\s*discount\b/gi, "خصم $1")
+    .replace(/\bdiscount\b/gi, "خصم")
     .replace(/\bquarterly\b/gi, "ربع سنوي")
     .replace(/\bmonthly\b/gi, "شهري")
     .replace(/\bannual(?:ly)?\b/gi, "سنوي")
