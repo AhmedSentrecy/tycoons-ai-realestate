@@ -458,7 +458,7 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
 
   const canGenerate = values.target_type === "project" ? Boolean(values.project_id) : Boolean(values.area_name);
   const translationValue = translationChoice ?? pairedId;
-  return <><EditorialWorkflowPanel projects={projects} /><ArticleQueue projects={projects} articles={articles} busy={Boolean(busy)} activeProjectId={values.target_type === "project" ? values.project_id ?? null : null} onWrite={writeFor} onOpen={(id) => { void openArticle(id); editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} /><div className="grid gap-4 lg:grid-cols-[300px_1fr]">
+  return <><EditorialWorkflowPanel projects={projects} /><ArticleQueue projects={projects} articles={articles} busy={Boolean(busy)} activeProjectId={values.target_type === "project" ? values.project_id ?? null : null} onWrite={writeFor} onOpen={(id) => { void openArticle(id); editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} onBatchSaved={refresh} /><div className="grid gap-4 lg:grid-cols-[300px_1fr]">
     <aside className="rounded-3xl bg-white p-4 shadow-sm">
       <button disabled={Boolean(busy)} onClick={newArticle} className="w-full rounded-xl bg-[#0d1f18] px-4 py-3 font-black text-white disabled:opacity-50">مقال جديد</button>
       <div className="mt-3 space-y-2">
