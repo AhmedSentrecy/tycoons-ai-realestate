@@ -82,6 +82,10 @@ ok(hasIndexableContent({ ...projects[0], slug: "brand-new" }, "ar"), "a full pub
   ok(codes(review({ body_markdown: body.replace("500 فدان", "500 أكر") })).includes("guide_acre"), "acres are blocked");
   ok(codes(review({ body_markdown: body.replace(/ماونتن فيو التجمع مشروع/, "المشروع") })).includes("guide_keyword_missing"), "keyword must open the guide");
   ok(codes(review({ body_markdown: "قصير\n## المطور: x\n## عيوب x: نقط لازم تعرفها قبل الشراء\n## قبل ما تحجز" })).includes("guide_too_short"), "short guides are blocked");
+  ok(codes(review({ body_markdown: body.replace("كلم فريق Tycoons.", "ده أقوى مشروع في مصر والحق قبل ما يخلص.") })).includes("guide_hype"), "hype and pressure wording are blocked (Tycoons voice)");
+  const { buildOpenAiRequest } = require("../netlify/functions/_article-generation.cjs");
+  const prompt = buildOpenAiRequest({ action: "draft", language: "ar", targetType: "project", projectId: "p1", topic: "x", researchFacts: [], seoBrief: { keyword: "ماونتن فيو التجمع", source: "ai", competitors: [] } }, [{ id: "p1", name: "Mountain View iCity", developer: "Mountain View", location: "New Cairo", slug: "mv" }], []).input[0].content;
+  ok(prompt.includes("VOICE:") && prompt.includes("تعالى أقولك") && prompt.includes("drawbacks before the advantages"), "the writing tool gets the Tycoons voice");
   const older = assessArticleReview({ ...article, source_refs: refs, body_markdown: body.replace("## قبل ما تحجز", "## قبل ما تقرر").replace(/\(https:\/\/example\.com\)/, "") }, sources);
   ok(codes(older).includes("unsupported_numeric_claim") && !codes(older).some((code) => code.startsWith("guide_")), "older articles keep the strict no-numbers rule and no guide checks");
 

@@ -144,6 +144,9 @@ function guideIssues(article, add) {
   if (/(?<![\p{L}])(?:[وب]?أكر|[وب]?اكر|acres?)(?![\p{L}])/iu.test(all)) add("guide_acre", "body_markdown", "blocker", "Write land area in feddan only (فدان), never acres.");
   if (/\]\(\s*(?:https?:)?\/\//i.test(body)) add("guide_external_link", "body_markdown", "blocker", "Remove external links; the guide links only to pages on our site.");
   if (/نظرة (?:سريعة|عملية|مركزة)|لمحة|دليل مبسّط|ملف مفصّل/.test(all)) add("guide_stock_phrase", "body_markdown", "blocker", "Remove stock phrases such as نظرة سريعة or لمحة.");
+  // Tycoons voice (5 Nov 2026): no hype, no pressure, no promised returns.
+  const hype = /(?:أقوى|أفضل|اقوى|افضل) مشروع(?:ات)? (?:في|ف) مصر|فرص[ةه] (?:متتعوضش|لا تعوض|لا تتعوض|ما تتعوضش)|(?:الحق|إلحق|الحقوا) (?:قبل|احجز)|آخر (?:الوحدات|وحدات)|لوكيشن مرعب|الحصان (?:الأسود|الاسود|الكسبان)|عائد مضمون|ربح مضمون|مضمون ١٠٠|best project in egypt|once[- ]in[- ]a[- ]lifetime|guaranteed (?:return|profit)|last (?:few )?units|hurry/iu.exec(all);
+  if (hype) add("guide_hype", "body_markdown", "blocker", `Remove hype or pressure wording: “${hype[0]}”. Say what the project offers and who it suits instead.`);
 }
 
 export function assessArticleReview(article, sources = {}) {
