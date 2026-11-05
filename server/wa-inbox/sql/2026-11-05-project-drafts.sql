@@ -49,6 +49,12 @@ alter table public.wa_unit_inbox add column if not exists draft_id uuid referenc
 alter table public.wa_unit_inbox add column if not exists suggested_project_id uuid references public.projects(id) on delete set null;
 create index if not exists wa_unit_inbox_draft_idx on public.wa_unit_inbox (draft_id) where draft_id is not null;
 
+-- Spending mode (changeable in /admin → «الجروبات»): «مكثف» until Monday 9 Nov 2026 08:00 Cairo, then «عادي» by itself.
+insert into public.media_admin_settings (key, value, updated_at) values
+  ('wa_research_mode', 'intensive', now()),
+  ('wa_intensive_until', '2026-11-09T06:00:00.000Z', now())
+on conflict (key) do update set value = excluded.value, updated_at = excluded.updated_at;
+
 commit;
 
 -- Every 15 minutes: group the new WhatsApp names and research a few new projects (2 per run).

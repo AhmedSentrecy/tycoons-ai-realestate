@@ -520,6 +520,9 @@ export const adminApi = {
     call<{ draft: WaDraft }>("draft_save", { id, values, confirm }, token, WA_INBOX_API),
   waDraftResearch: (token: string, id: string) => call<{ draft: WaDraft }>("draft_research", { id }, token, WA_INBOX_API),
   waDraftReject: (token: string, id: string) => call<{ ok: boolean }>("draft_reject", { id }, token, WA_INBOX_API),
+  waResearchSettings: (token: string) => call<WaResearchSettings>("research_settings", {}, token, WA_INBOX_API),
+  waResearchSettingsSave: (token: string, mode: WaResearchMode, dailyCap: number | null, intensiveUntil: string) =>
+    call<WaResearchSettings>("research_settings_save", { mode, daily_cap: dailyCap, intensive_until: intensiveUntil }, token, WA_INBOX_API),
   waGroupDeveloper: (token: string, groupId: string, developer: string) =>
     call<{ groups: WaGroup[] }>("group_developer", { group_id: groupId, developer }, token, WA_INBOX_API),
   waInboxReject: (token: string, ids: number[]) => call<{ ok: boolean; rejected: number }>("reject", { ids }, token, WA_INBOX_API),
@@ -529,6 +532,17 @@ export const adminApi = {
 };
 
 export type WaInboxStatus = "pending" | "approved" | "rejected";
+/** How much Claude researches new projects: «مكثف» (every 15 min, 40/day), «عادي» (every 6 h, 8/day), «متوقف». */
+export type WaResearchMode = "intensive" | "normal" | "off";
+export interface WaResearchSettings {
+  /** In effect now («مكثف» becomes «عادي» by itself after `until`). */
+  mode: WaResearchMode;
+  chosen: WaResearchMode;
+  until: string | null;
+  cap: number;
+  used_today: number;
+  last_run: string | null;
+}
 /** Why a WhatsApp unit waits in "محتاج مراجعة" instead of "جاهز للموافقة". */
 export type WaDoubt =
   | "no_project" | "no_name" | "dev_unknown" | "dev_conflict" | "suggested_project" | "missing_type" | "missing_area" | "missing_price"

@@ -14,6 +14,8 @@ import {
   waDraftDoubtLabel,
   type WaDraft,
   type WaDraftField,
+  type WaResearchMode,
+  type WaResearchSettings,
   type AdminProject,
   type AdminUnit,
   type WaGroup,
@@ -1223,6 +1225,71 @@ function DraftEditDialog({ draft, onClose, onSaved }: { draft: WaDraft; onClose:
   );
 }
 
+const MODE_LABELS: Record<WaResearchMode, string> = { intensive: "مكثف", normal: "عادي", off: "متوقف" };
+
+/** How much Claude spends on new projects (and whether short WhatsApp messages are read too). */
+function ResearchModeBox() {
+  const { token, notify, handleError } = useAdmin();
+  const [settings, setSettings] = useState<WaResearchSettings | null>(null);
+  const [mode, setMode] = useState<WaResearchMode>("normal");
+  const [cap, setCap] = useState("");
+  const [until, setUntil] = useState("");
+  const [saving, setSaving] = useState(false);
+  const load = (next: WaResearchSettings) => {
+    setSettings(next);
+    setMode(next.chosen);
+    setCap(String(next.cap || ""));
+    setUntil(next.until ? next.until.slice(0, 16) : "");
+  };
+  useEffect(() => {
+    adminApi.waResearchSettings(token).then(load).catch(handleError);
+  }, [token, handleError]);
+  const save = async () => {
+    setSaving(true);
+    try {
+      load(await adminApi.waResearchSettingsSave(token, mode, cap ? Number(cap) : null, until ? new Date(until).toISOString() : ""));
+      notify("اتحفظ وضع البحث");
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+  if (!settings) return null;
+  return (
+    <div className="mb-4 space-y-2 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-3 text-sm">
+      <p className="font-black">
+        البحث عن المشاريع الجديدة: {MODE_LABELS[settings.mode]}
+        <span className="ms-2 text-xs font-bold text-[#5c6a62]">النهارده {settings.used_today} من {settings.cap}</span>
+      </p>
+      <p className="text-xs text-[#5c6a62]">
+        مكثف: كل 15 دقيقة لحد 40 مشروع في اليوم، والرسايل القصيرة بتتقري كمان. عادي: كل 6 ساعات لحد 8 مشاريع. متوقف: مفيش بحث خالص، بس الوحدات بتتربط بالمشاريع المعروفة.
+      </p>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="text-xs font-bold">
+          الوضع
+          <select value={mode} onChange={(event) => setMode(event.target.value as WaResearchMode)} className={`${inputClass} mt-1 py-1`}>
+            {(Object.keys(MODE_LABELS) as WaResearchMode[]).map((key) => <option key={key} value={key}>{MODE_LABELS[key]}</option>)}
+          </select>
+        </label>
+        <label className="text-xs font-bold">
+          حد أقصى في اليوم
+          <input type="number" min={1} max={200} value={cap} onChange={(event) => setCap(event.target.value)} className={`${inputClass} mt-1 w-24 py-1`} />
+        </label>
+        {mode === "intensive" && (
+          <label className="text-xs font-bold">
+            المكثف لحد (وبعدها عادي لوحده)
+            <input type="datetime-local" value={until} onChange={(event) => setUntil(event.target.value)} className={`${inputClass} mt-1 py-1`} />
+          </label>
+        )}
+        <button disabled={saving} onClick={() => void save()} className="rounded-full bg-[#0d1f18] px-4 py-1.5 text-xs font-black text-white disabled:opacity-50">
+          {saving ? "بيحفظ…" : "احفظ"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function GroupsDialog({ onClose, developers }: { onClose: () => void; developers: string[] }) {
   const { token, handleError } = useAdmin();
   const [groups, setGroups] = useState<WaGroup[] | null>(null);
@@ -1266,6 +1333,7 @@ function GroupsDialog({ onClose, developers }: { onClose: () => void; developers
 
   return (
     <Modal title="جروبات الواتساب" onClose={onClose}>
+      <ResearchModeBox />
       <datalist id="wa-group-developers">
         {developers.map((name) => <option key={name} value={name} />)}
       </datalist>

@@ -36,7 +36,7 @@ function timingSafeEqual(a: string, b: string) {
 let settingsCache: Record<string, string> | null = null;
 async function settings() {
   if (settingsCache) return settingsCache;
-  const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", ["wa_inbox_key", "wa_waha_base_url", "wa_waha_key", "anthropic_api_key"]);
+  const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", ["wa_inbox_key", "wa_waha_base_url", "wa_waha_key", "anthropic_api_key", "wa_research_mode", "wa_intensive_until"]);
   if (error) throw new Error("settings_unavailable");
   settingsCache = Object.fromEntries((data ?? []).map((row) => [row.key, text(row.value)]));
   return settingsCache;
@@ -54,7 +54,12 @@ function mediaKind(mime: string, fileName: string): Kind {
   return "other";
 }
 
-function passesFilter(event: Json): { ok: boolean; reason: string; kind: Kind } {
+/** «مكثف» in the admin (until its end date): short group messages are read too (more data in the first days). */
+function intensive(s: Record<string, string>) {
+  return s.wa_research_mode === "intensive" && (!s.wa_intensive_until || Date.parse(s.wa_intensive_until) > Date.now());
+}
+
+function passesFilter(event: Json, wide = false): { ok: boolean; reason: string; kind: Kind } {
   const payload = (event.payload ?? {}) as Json;
   const media = (payload.media ?? {}) as Json;
   const mime = text(media.mimetype).toLowerCase();
@@ -69,6 +74,7 @@ function passesFilter(event: Json): { ok: boolean; reason: string; kind: Kind } 
   if (body.length >= 10 && /[0-9٠-٩]/.test(body)) return { ok: true, reason: "text_with_number", kind: "text" };
   if (body.length >= 40) return { ok: true, reason: "long_text", kind: "text" };
   if (KEYWORDS.test(body)) return { ok: true, reason: "keyword", kind: "text" };
+  if (wide && body.length >= 4) return { ok: true, reason: "intensive_short", kind: "text" };
   return { ok: false, reason: "short_chat", kind: "text" };
 }
 
@@ -237,7 +243,7 @@ Deno.serve(async (req: Request) => {
     const key = new URL(req.url).searchParams.get("key") || "";
     if (!timingSafeEqual(key, s.wa_inbox_key || "")) return reply({ error: "key_invalid" }, 401);
     const event = ((await req.json().catch(() => ({}))) ?? {}) as Json;
-    const check = passesFilter(event);
+    const check = passesFilter(event, intensive(s));
     if (!check.ok) return reply({ skipped: check.reason });
     // Answer WAHA now; the slow part (download, Claude, intake) keeps running in the background.
     // deno-lint-ignore no-explicit-any

@@ -988,15 +988,69 @@ async function researchDraft(draft: Json) {
   }
 }
 
-/** pg_cron every 15 minutes (and the admin's «ابحث دلوقتي»): group new names, then research a few drafts. */
-async function researchRun(body: Json = {}) {
+// ---------- spending mode ----------
+//
+// «مكثف»: every pg_cron run (15 min), up to 40 new projects a day, until wa_intensive_until (then «عادي» by itself).
+// «عادي»: one run every 6 hours, up to 8 new projects a day. «متوقف»: nothing (units still arrive and link to known projects).
+// The admin changes it in «الجروبات». Keys in media_admin_settings.
+
+type ResearchMode = "intensive" | "normal" | "off";
+const MODE_DEFAULTS: Record<ResearchMode, { cap: number; everyMs: number }> = {
+  intensive: { cap: 40, everyMs: 0 },
+  normal: { cap: 8, everyMs: 6 * 60 * 60 * 1000 },
+  off: { cap: 0, everyMs: Infinity },
+};
+const MODE_KEYS = ["wa_research_mode", "wa_research_daily_cap", "wa_intensive_until", "wa_research_last_run"];
+
+async function researchSettings() {
+  const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", MODE_KEYS);
+  fail(error);
+  const get = (key: string) => text(((data ?? []) as Json[]).find((row) => row.key === key)?.value);
+  const chosen = (["intensive", "normal", "off"].includes(get("wa_research_mode")) ? get("wa_research_mode") : "normal") as ResearchMode;
+  const until = get("wa_intensive_until");
+  // «مكثف» ends by itself at its end date.
+  const mode: ResearchMode = chosen === "intensive" && until && Date.parse(until) < Date.now() ? "normal" : chosen;
+  const customCap = Number(get("wa_research_daily_cap"));
+  const cap = mode === "off" ? 0 : Number.isInteger(customCap) && customCap > 0 && chosen === mode ? customCap : MODE_DEFAULTS[mode].cap;
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const { count } = await db.from("wa_project_drafts").select("id", { count: "exact", head: true }).gte("researched_at", since);
+  return { mode, chosen, until: until || null, cap, used_today: count ?? 0, last_run: get("wa_research_last_run") || null };
+}
+
+async function setSetting(key: string, value: string | null) {
+  if (value === null) fail((await db.from("media_admin_settings").delete().eq("key", key)).error);
+  else fail((await db.from("media_admin_settings").upsert({ key, value, updated_at: new Date().toISOString() })).error);
+}
+
+/** The admin's mode switch in «الجروبات». */
+async function researchSettingsSave(body: Json) {
+  const mode = text(body.mode);
+  if (!["intensive", "normal", "off"].includes(mode)) throw new HttpError(400, "mode_invalid");
+  const cap = Number(body.daily_cap);
+  if (body.daily_cap !== undefined && body.daily_cap !== null && body.daily_cap !== "" && !(Number.isInteger(cap) && cap >= 1 && cap <= 200)) throw new HttpError(400, "daily_cap_invalid");
+  const until = text(body.intensive_until);
+  if (until && Number.isNaN(Date.parse(until))) throw new HttpError(400, "intensive_until_invalid");
+  await setSetting("wa_research_mode", mode);
+  await setSetting("wa_research_daily_cap", Number.isInteger(cap) && cap > 0 ? String(cap) : null);
+  await setSetting("wa_intensive_until", mode === "intensive" && until ? new Date(until).toISOString() : null);
+  return researchSettings();
+}
+
+/** pg_cron every 15 minutes (and «ابحث تاني»): group new names, then research a few drafts, within the mode's limits. */
+async function researchRun() {
+  const settings = await researchSettings();
+  if (settings.mode === "off") return { skipped: "off" };
+  const last = settings.last_run ? Date.parse(settings.last_run) : 0;
+  if (Date.now() - last < MODE_DEFAULTS[settings.mode].everyMs) return { skipped: "not_yet", mode: settings.mode };
+  const left = Math.max(0, settings.cap - settings.used_today);
+  if (!left) return { skipped: "daily_cap", mode: settings.mode, cap: settings.cap };
+  await setSetting("wa_research_last_run", new Date().toISOString());
   const grouped = await groupNewNames();
-  const query = db.from("wa_project_drafts").select(DRAFT_COLUMNS).eq("status", "researching").order("created_at", { ascending: true }).limit(RESEARCH_PER_RUN);
-  const { data, error } = text(body.draft_id) ? await db.from("wa_project_drafts").select(DRAFT_COLUMNS).eq("id", text(body.draft_id)).limit(1) : await query;
+  const { data, error } = await db.from("wa_project_drafts").select(DRAFT_COLUMNS).eq("status", "researching").order("created_at", { ascending: true }).limit(Math.min(RESEARCH_PER_RUN, left));
   fail(error);
   const researched = [];
   for (const draft of (data ?? []) as Json[]) researched.push(await researchDraft(draft));
-  return { ...grouped, researched };
+  return { mode: settings.mode, ...grouped, researched };
 }
 
 async function loadDraft(id: unknown) {
@@ -1015,7 +1069,7 @@ async function draftSave(user: AdminUser, body: Json) {
   const confirmed = new Set(((draft.confirmed as string[]) ?? []).map(text));
   for (const field of DRAFT_FIELDS) {
     if (!Object.prototype.hasOwnProperty.call(input, field)) continue;
-    let value = text(input[field]).slice(0, field === "description" ? 600 : 200);
+    const value = text(input[field]).slice(0, field === "description" ? 600 : 200);
     if (field === "area_group" && value && !AREA_GROUPS.includes(value)) throw new HttpError(400, "area_group_invalid");
     if (field === "name" && !value) throw new HttpError(400, "name_required");
     values[field] = value || null;
@@ -1070,7 +1124,7 @@ Deno.serve(async (req: Request) => {
       // Answer pg_cron now; grouping and research keep running in the background.
       // deno-lint-ignore no-explicit-any
       const runtime = (globalThis as any).EdgeRuntime;
-      const job = researchRun(body).catch((error) => console.error("research_run", error));
+      const job = researchRun().catch((error) => console.error("research_run", error));
       if (runtime?.waitUntil) runtime.waitUntil(job);
       else await job;
       return reply({ accepted: true });
@@ -1094,6 +1148,8 @@ Deno.serve(async (req: Request) => {
       case "draft_save": return reply(await draftSave(user, body));
       case "draft_reject": return reply(await draftReject(user, body));
       case "draft_research": return reply(await draftResearch(body));
+      case "research_settings": return reply(await researchSettings());
+      case "research_settings_save": return reply(await researchSettingsSave(body));
       default: return reply({ error: "unknown_action" }, 400);
     }
   } catch (error) {
