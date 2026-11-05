@@ -644,7 +644,8 @@ export default function ProjectPage() {
               </section>
             ))}
 
-            {projectArticle && (
+            {/* Same rule as the pre-rendered page: a project with its own full guide shows no second article. */}
+            {projectArticle && !ownGuide && (
               <section className="mt-14" aria-labelledby="project-article" id="article">
                 <p className="text-sm font-bold text-[#a3854e]">دليل Tycoons — تمت مراجعته قبل النشر</p>
                 <h2 id="project-article" className="mt-2 text-3xl font-extrabold leading-snug">{projectArticle.title}</h2>

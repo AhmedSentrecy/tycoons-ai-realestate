@@ -40,6 +40,12 @@ async function writePage(relativePath, html) {
 
 async function main() {
   const shell = await fs.readFile(path.join(dist, "index.html"), "utf8");
+  // Repo-owned project guides (content/project-articles.source.json) as one small file per project,
+  // so the browser renders the same guide as the pre-rendered page instead of the older DB copy.
+  const repoGuides = require("../content/project-articles.source.json").projects || {};
+  for (const [guideSlug, guide] of Object.entries(repoGuides)) {
+    await writePage(`project-content/${guideSlug}.json`, JSON.stringify({ ar: guide.ar, en: guide.en }));
+  }
   await writePage("en/index.html", require("./lib/english-home.cjs")(shell));
   const [projects, units] = await Promise.all([
     fetchRows("projects", "id,name,slug,developer,location,description,status,min_price,down_payment_text,installments_text,delivery_text,hero_text,seo_title,seo_description,seo_keywords,targeting,article_sections,faq,highlights,image_url,gallery_urls,video_url,last_updated_at,logo_path,logo_on_dark"),
