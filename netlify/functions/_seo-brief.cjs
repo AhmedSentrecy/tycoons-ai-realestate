@@ -7,6 +7,10 @@
 // The writer covers the same buyer questions in its own words; competitor text is never copied
 // (only headings and word counts leave this module).
 // Without DATAFORSEO_LOGIN / DATAFORSEO_PASSWORD the brief still works: keyword = first variant.
+// Fallback (Nov 2026): when DataForSEO fails (no balance 40200, timeout, any error) and
+// FIRECRAWL_API_KEY is set, each step falls back to Firecrawl: Google Trends picks the most
+// searched spelling (relative, no volumes), Firecrawl Search gives the top results, and
+// Firecrawl Scrape gives each page's headings and length. brief.source / brief.notes say which.
 
 const DFS_URL = "https://api.dataforseo.com/v3";
 const EGYPT = 2818;
@@ -33,6 +37,62 @@ async function dfs(path, task, timeoutMs = 30000) {
     throw Object.assign(new Error("seo_data_failed"), { reason: `${code}${message ? ` ${message}` : ""}`, diagnostics: { stage: "dataforseo", path, status: response.status, task_status: first?.status_code } });
   }
   return Array.isArray(first.result) ? first.result : [];
+}
+
+const FC_URL = "https://api.firecrawl.dev/v2";
+const fcConfigured = () => Boolean(process.env.FIRECRAWL_API_KEY);
+
+async function fc(path, body, timeoutMs = 45000) {
+  const response = await fetch(`${FC_URL}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.FIRECRAWL_API_KEY}`, "content-type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data?.success === false) {
+    throw Object.assign(new Error("firecrawl_failed"), { reason: `${response.status}${data?.error ? ` ${String(data.error).slice(0, 120)}` : ""}` });
+  }
+  return data?.data ?? {};
+}
+
+/** Google Trends (Egypt, last 12 months) through Firecrawl: the spelling searched most, or "". */
+async function trendsPick(candidates) {
+  const keywords = [...new Set(candidates.map(cleanKeyword).filter(Boolean))].slice(0, 5);
+  if (keywords.length < 2) return keywords[0] || "";
+  const data = await fc("/scrape", { alexandria: { provider: "firecrawl-trends", capability: "trends/interest_over_time", options: { geo: "EG", time: "today 12-m", keywords } } });
+  const result = (Array.isArray(data?.alexandria) ? data.alexandria[0] : null)?.data || {};
+  const points = Array.isArray(result.points) ? result.points : [];
+  const totals = keywords.map((_, index) => points.reduce((sum, point) => sum + (Number(point?.values?.[index]) || 0), 0));
+  const top = Math.max(0, ...totals);
+  return top > 0 ? keywords[totals.indexOf(top)] : "";
+}
+
+/** Headings + word count from a page's Markdown (structure only, never its text). */
+function markdownOutline(markdown) {
+  const headings = [];
+  let words = 0;
+  for (const line of String(markdown || "").split("\n")) {
+    const heading = line.match(/^(#{2,3})\s+(.+)/);
+    if (heading) {
+      const text = cleanKeyword(heading[2].replace(/[*_`\[\]]|\(https?:[^)]*\)/g, "")).slice(0, 120);
+      if (text && headings.length < 40) headings.push({ level: heading[1].length, text });
+    } else if (!/^#/.test(line)) {
+      words += line.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").split(/\s+/).filter((word) => /\p{L}/u.test(word)).length;
+    }
+  }
+  return { headings, words };
+}
+
+async function firecrawlOutline(url) {
+  const data = await fc("/scrape", { url, formats: ["markdown"], onlyMainContent: true }, 40000);
+  return markdownOutline(data?.markdown);
+}
+
+async function firecrawlSerp(keyword, language) {
+  const data = await fc("/search", { query: keyword, limit: 10, location: "Egypt", country: "EG", lang: language === "en" ? "en" : "ar" });
+  const web = Array.isArray(data?.web) ? data.web : Array.isArray(data) ? data : [];
+  return web.filter((item) => typeof item?.url === "string").map((item, index) => ({ rank: index + 1, url: item.url, title: item.title }));
 }
 
 const cleanKeyword = (value) => String(value || "").replace(/[\u0000-\u001f"<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 80);
@@ -84,39 +144,78 @@ async function seoBrief(project, language, askAi) {
   const candidates = language === "en" ? variants.en : variants.ar;
   const fallback = candidates[0] || cleanKeyword(project.name);
   const brief = { keyword: fallback, language, source: "ai", volumes: [], competitors: [], target_words: 1500, notes: [] };
-  if (!dfsConfigured()) {
-    brief.notes.push("dataforseo_not_configured");
-    return brief;
+  const dfsOn = dfsConfigured();
+  const fcOn = fcConfigured();
+  if (!dfsOn) brief.notes.push("dataforseo_not_configured");
+  if (!dfsOn && !fcOn) return brief;
+
+  // 1. Focus keyword: DataForSEO volumes, else Google Trends (Firecrawl), else the first AI variant.
+  let keywordDone = false;
+  if (dfsOn) {
+    try {
+      const keywords = [...new Set([...variants.ar, ...variants.en])].slice(0, 12);
+      const volumes = (await dfs("/keywords_data/google_ads/search_volume/live", { keywords, location_code: EGYPT }))
+        .map((row) => ({ keyword: cleanKeyword(row?.keyword), volume: Number(row?.search_volume) || 0 }))
+        .filter((row) => row.keyword)
+        .sort((a, b) => b.volume - a.volume);
+      brief.volumes = volumes;
+      const best = volumes.find((row) => row.volume > 0 && (language === "en" ? !isArabic(row.keyword) : isArabic(row.keyword)));
+      if (best) { brief.keyword = best.keyword; brief.source = "dataforseo"; keywordDone = true; }
+    } catch (error) {
+      brief.notes.push(`search_volume_failed${error?.reason ? `: ${error.reason}` : error?.name === "TimeoutError" ? ": timeout" : ""}`);
+    }
   }
-  try {
-    const keywords = [...new Set([...variants.ar, ...variants.en])].slice(0, 12);
-    const volumes = (await dfs("/keywords_data/google_ads/search_volume/live", { keywords, location_code: EGYPT }))
-      .map((row) => ({ keyword: cleanKeyword(row?.keyword), volume: Number(row?.search_volume) || 0 }))
-      .filter((row) => row.keyword)
-      .sort((a, b) => b.volume - a.volume);
-    brief.volumes = volumes;
-    const best = volumes.find((row) => row.volume > 0 && (language === "en" ? !isArabic(row.keyword) : isArabic(row.keyword)));
-    if (best) { brief.keyword = best.keyword; brief.source = "dataforseo"; }
-  } catch (error) {
-    brief.notes.push(`search_volume_failed${error?.reason ? `: ${error.reason}` : error?.name === "TimeoutError" ? ": timeout" : ""}`);
+  if (!keywordDone && fcOn) {
+    try {
+      const picked = await trendsPick(candidates);
+      if (picked) { brief.keyword = picked; brief.source = "google_trends"; }
+      brief.notes.push("keyword_from_google_trends");
+    } catch (error) {
+      brief.notes.push(`trends_failed${error?.reason ? `: ${error.reason}` : ""}`);
+    }
   }
-  try {
-    const serp = await dfs("/serp/google/organic/live/advanced", { keyword: brief.keyword, location_code: EGYPT, language_code: language === "en" ? "en" : "ar", device: "mobile", depth: 10 });
-    const organic = (serp[0]?.items || []).filter((item) => item?.type === "organic" && typeof item.url === "string").map((item) => {
+
+  // 2. Top results: DataForSEO SERP, else Firecrawl Search. 3. Headings + length of the first pages.
+  let organic = null;
+  if (dfsOn) {
+    try {
+      const serp = await dfs("/serp/google/organic/live/advanced", { keyword: brief.keyword, location_code: EGYPT, language_code: language === "en" ? "en" : "ar", device: "mobile", depth: 10 });
+      organic = (serp[0]?.items || []).filter((item) => item?.type === "organic" && typeof item.url === "string")
+        .map((item) => ({ rank: Number(item.rank_group) || 0, url: item.url, title: item.title }));
+    } catch (error) {
+      brief.notes.push(`serp_failed${error?.reason ? `: ${error.reason}` : error?.name === "TimeoutError" ? ": timeout" : ""}`);
+    }
+  }
+  if (!organic && fcOn) {
+    try {
+      organic = await firecrawlSerp(brief.keyword, language);
+      brief.notes.push("serp_from_firecrawl");
+    } catch (error) {
+      brief.notes.push(`firecrawl_search_failed${error?.reason ? `: ${error.reason}` : ""}`);
+    }
+  }
+  if (organic) {
+    const top = organic.map((item) => {
       let host = "";
       try { host = new URL(item.url).hostname.replace(/^www\./, "").toLowerCase(); } catch { host = ""; }
-      return { rank: Number(item.rank_group) || 0, url: item.url, domain: host, title: cleanKeyword(item.title).slice(0, 140) };
-    }).filter((item) => item.domain && !OWN_HOSTS.test(item.domain) && !SKIP_HOSTS.test(item.domain));
-    const top = organic.slice(0, MAX_COMPETITORS);
-    const pages = await Promise.all(top.map((item) => dfs("/on_page/content_parsing/live", { url: item.url }, 40000).then((result) => pageOutline(result[0])).catch(() => ({ headings: [], words: 0 }))));
+      return { rank: item.rank, url: item.url, domain: host, title: cleanKeyword(item.title).slice(0, 140) };
+    }).filter((item) => item.domain && !OWN_HOSTS.test(item.domain) && !SKIP_HOSTS.test(item.domain)).slice(0, MAX_COMPETITORS);
+    const outline = async (url) => {
+      if (dfsOn) {
+        try { return pageOutline((await dfs("/on_page/content_parsing/live", { url }, 40000))[0]); } catch { /* falls back below */ }
+      }
+      if (fcOn) {
+        try { return await firecrawlOutline(url); } catch { /* no outline for this page */ }
+      }
+      return { headings: [], words: 0 };
+    };
+    const pages = await Promise.all(top.map((item) => outline(item.url)));
     brief.competitors = top.map((item, index) => ({ ...item, ...pages[index] }));
     // Longer than the longest of the first pages (not the median), never under 1,500 words.
     const longest = Math.max(0, ...brief.competitors.map((item) => item.words).filter((words) => words > 200));
     brief.target_words = Math.min(2500, Math.max(1500, Math.round(longest * 1.1)));
-  } catch (error) {
-    brief.notes.push(`serp_failed${error?.reason ? `: ${error.reason}` : error?.name === "TimeoutError" ? ": timeout" : ""}`);
   }
   return brief;
 }
 
-module.exports = { seoBrief, buildKeywordVariantsRequest, parseVariants, pageOutline, dfsConfigured };
+module.exports = { seoBrief, buildKeywordVariantsRequest, parseVariants, pageOutline, markdownOutline, dfsConfigured, fcConfigured };
