@@ -20,6 +20,9 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   eq(outline.headings, [{ level: 2, text: "موقع كمبوند بلوم فيلدز" }, { level: 3, text: "خدمات" }], "only h2/h3 headings kept");
   eq(outline.words, 7, "words counted");
 
+  // Offline: the Netlify build has real DataForSEO / Firecrawl keys in its environment; the tests
+  // must never use them (or call the real services), so they are removed for this file.
+  delete process.env.FIRECRAWL_API_KEY;
   // Without DataForSEO credentials: the first AI variant.
   delete process.env.DATAFORSEO_LOGIN; delete process.env.DATAFORSEO_PASSWORD;
   const offline = await seoBrief(project, "ar", async () => variantsAnswer);
@@ -90,7 +93,7 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   eq(fallbackBrief.competitors[1].headings.map((heading) => heading.text), ["عيوب بلوم فيلدز", "خدمات"], "headings from Markdown, links stripped, h1 skipped");
   ok(!JSON.stringify(fallbackBrief).includes("كلمة كلمة"), "competitor text never kept");
   eq(fallbackBrief.target_words, 1980, "target = 1.1 × the longest competitor");
-  delete process.env.FIRECRAWL_API_KEY;
+  delete process.env.FIRECRAWL_API_KEY; // the write-flow tests below stay offline too
 
   // Draft rules carry the brief.
   const { buildOpenAiRequest } = require("../netlify/functions/_article-generation.cjs");
