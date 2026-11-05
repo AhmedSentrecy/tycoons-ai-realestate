@@ -34,3 +34,10 @@ declare module "*/_project-facts.cjs" {
   export function lastPriceUpdate(units: Array<{ last_updated_at?: string | null }>, fallback?: string | null): string;
   export function arabicType(value: string): string;
 }
+
+declare module "*/_unit-labels.cjs" {
+  export function unitTypeAr(value: unknown): string;
+  export function bedroomsAr(value: unknown): string;
+  export function arabicHeroLine(value: unknown, names?: { name?: string; nameAr?: string; location?: string; areaAr?: string; developer?: string; developerAr?: string }): string;
+  export function hasLatinWords(value: unknown, allowed?: string[]): boolean;
+}

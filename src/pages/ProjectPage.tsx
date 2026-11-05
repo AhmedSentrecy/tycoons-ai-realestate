@@ -3,7 +3,6 @@ import { Link, useParams } from "react-router";
 import {
   ArrowLeft,
   ArrowRight,
-  BadgeCheck,
   BedDouble,
   Building2,
   ChevronDown,
@@ -34,6 +33,7 @@ import { areaFor } from "@/lib/unitContent";
 
 import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
 import { projectFacts, lastPriceUpdate } from "../../netlify/functions/_project-facts.cjs";
+import { unitTypeAr, bedroomsAr, arabicHeroLine, hasLatinWords } from "../../netlify/functions/_unit-labels.cjs";
 import ProjectFacts from "@/components/ProjectFacts";
 import PageStructuredData from "@/components/PageStructuredData";
 import { unitPath } from "@/lib/unitUrl";
@@ -300,6 +300,19 @@ export default function ProjectPage() {
   // Arabic searched name for headings, the same rule as the pre-rendered page (arabicProjectName).
   const arabicHeadingName = (PROJECT_NAMES_AR[slug]?.title || "").split(/\s+20\d\d|\s+—\s+/)[0].trim() || (PROJECT_NAMES_AR[slug]?.h1 || "").split(/\s+—\s+/)[0].trim() || project?.project_name || "";
   const developerBrand = useDeveloper(project?.developer ?? "");
+  // Hero line in Arabic: stored copy with the English names swapped; if English is still left,
+  // the plain Arabic sentence instead (same rule as the pre-rendered page).
+  const heroLine = (() => {
+    if (!project) return "";
+    const areaAr = areaFor(project.location).ar;
+    const swapped = arabicHeroLine(content?.hero_text || project.description, {
+      name: project.project_name, nameAr: arabicHeadingName, location: project.location, areaAr,
+      developer: project.developer, developerAr: developerBrand?.name_ar || "",
+    });
+    return swapped && !hasLatinWords(swapped)
+      ? swapped
+      : `اعرف أسعار ومساحات ${arabicHeadingName} وخطط السداد والوحدات المتاحة في ${areaAr}.`;
+  })();
   // Ids of units that still have a page (null while loading, so no guide link is dropped early).
   const liveUnitIds = useMemo(() => (loading || !units.length ? null : new Set(units.map((unit) => unit.id))), [loading, units]);
   // The developer page exists only when one of its projects has listed units; a project shown
@@ -543,8 +556,8 @@ export default function ProjectPage() {
         "@type": "BreadcrumbList",
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "الرئيسية", item: SITE_URL },
-          { "@type": "ListItem", position: 2, name: project.location, item: `${SITE_URL}/ar/areas/${areaFor(project.location).slug}` },
-          ...(developerHasPage ? [{ "@type": "ListItem", position: 3, name: project.developer, item: `${SITE_URL}/ar/developers/${slugify(project.developer)}` }] : []),
+          { "@type": "ListItem", position: 2, name: areaFor(project.location).ar, item: `${SITE_URL}/ar/areas/${areaFor(project.location).slug}` },
+          ...(developerHasPage ? [{ "@type": "ListItem", position: 3, name: developerBrand?.name_ar || project.developer, item: `${SITE_URL}/ar/developers/${slugify(project.developer)}` }] : []),
           { "@type": "ListItem", position: developerHasPage ? 4 : 3, name: project.project_name, item: pageUrl },
         ],
       },
@@ -580,17 +593,17 @@ export default function ProjectPage() {
                 {developerHasPage ? (
                   <a href={`/ar/developers/${slugify(project.developer)}`} className="inline-flex items-center gap-1.5 hover:text-white">
                     <Building2 className="h-4 w-4" />
-                    {project.developer}
+                    {developerBrand?.name_ar || project.developer}
                   </a>
                 ) : (
                   <span className="inline-flex items-center gap-1.5">
                     <Building2 className="h-4 w-4" />
-                    {project.developer}
+                    {developerBrand?.name_ar || project.developer}
                   </span>
                 )}
                 <a href={`/ar/areas/${areaFor(project.location).slug}`} className="inline-flex items-center gap-1.5 hover:text-white">
                   <MapPin className="h-4 w-4" />
-                  {project.location}
+                  {areaFor(project.location).ar}
                 </a>
               </div>
               {content?.logo_url && (
@@ -602,7 +615,7 @@ export default function ProjectPage() {
                 {localizedArabic?.h1 || PROJECT_NAMES_AR[slug]?.h1 || project.project_name}
               </h1>
               <p className="mt-5 text-lg font-light text-white/70">
-                {content?.hero_text || project.description}
+                {heroLine}
               </p>
               <ProjectFacts
                 title={`${arabicHeadingName} في سطور`}
@@ -689,7 +702,7 @@ export default function ProjectPage() {
               </section>
             )}
 
-            {developerBrand?.about_ar && (
+            {developerBrand?.about_ar && !ownGuide && (
               <section className="mt-14" aria-labelledby="project-developer">
                 <h2 id="project-developer" className="text-2xl font-extrabold">عن المطور: {developerBrand.name_ar || developerBrand.name}</h2>
                 <p className="mt-4 font-light leading-loose text-[#5c6a62]">{developerBrand.about_ar}</p>
@@ -697,28 +710,12 @@ export default function ProjectPage() {
               </section>
             )}
 
-            <h2 className="mt-12 text-2xl font-extrabold">تفاصيل الطرح الحالي</h2>
-            <ul className="mt-6 grid gap-4 sm:grid-cols-2">
-              {(content?.highlights.length
-                ? content.highlights
-                : [project.down_payment_text, project.installments_text, project.finishing]
-              ).filter(Boolean).map((item) => (
-                <li
-                  key={item}
-                  className="flex items-center gap-3 rounded-2xl border border-[#e7ddc8] bg-white/70 p-4"
-                >
-                  <BadgeCheck className="h-5 w-5 shrink-0 text-[#a3854e]" />
-                  <span className="font-semibold">{arabicField(item)}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-6 rounded-2xl bg-[#efe7d8] p-5 text-sm leading-relaxed text-[#5c6a62]">
-              الأسعار والمساحات والتوافر بيتغيروا حسب وقت الحجز، لذلك بنأكد آخر
-              Availability وPayment Plan قبل اتخاذ القرار.
-            </p>
+            {ownGuide && developerHasPage && developerBrand && (
+              <p className="mt-10"><a href={`/ar/developers/${developerBrand.slug}`} className="font-bold text-[#a3854e] underline">كل مشاريع {developerBrand.name_ar || developerBrand.name}</a></p>
+            )}
             {visibleFaq.length > 0 && <section className="mt-14" aria-labelledby="project-faq">
               <h2 id="project-faq" className="text-2xl font-extrabold">
-                أسئلة شائعة عن {project.project_name}
+                أسئلة شائعة عن {arabicHeadingName}
               </h2>
               <div className="mt-6 space-y-4">
                 {visibleFaq.map((item) => (
@@ -781,7 +778,7 @@ export default function ProjectPage() {
               <p className="text-sm font-semibold text-[#a3854e]">كل اختيارات الطرح الحالي</p>
               <h2 id="project-unit-options" className="mt-2 text-3xl font-extrabold">اختار وحدتك واحسب القسط</h2>
             </div>
-            <span className="text-sm text-[#5c6a62]">{totalOptionCount} اختيار</span>
+            <span className="text-sm text-[#5c6a62]">{totalOptionCount === 1 ? "اختيار واحد" : totalOptionCount === 2 ? "اختيارين" : totalOptionCount <= 10 ? `${totalOptionCount} اختيارات` : `${totalOptionCount} اختيار`}</span>
           </div>
 
           {(priceRanges.length > 0 || villaUnits.length > 0) && (
@@ -837,7 +834,7 @@ export default function ProjectPage() {
                         <div>
                           <p className="text-xs font-semibold text-[#a3854e]">فيلا / تاون هاوس</p>
                           <h4 className="mt-1 text-lg font-extrabold text-[#14352a]">
-                            {arabicField(unit.unit_type)}
+                            {unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}
                           </h4>
                         </div>
                         <span className="rounded-full bg-[#efe7d8] px-3 py-1 text-xs font-bold text-[#6e522c]">
@@ -895,18 +892,18 @@ export default function ProjectPage() {
                 <summary className="cursor-pointer list-none p-6 [&::-webkit-details-marker]:hidden">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm text-[#8a7a58]">{arabicField(unit.unit_type)}</p>
+                      <p className="text-sm text-[#8a7a58]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p>
                       <h4 className="mt-1 text-xl font-extrabold">
-                        {arabicField(unit.bedrooms_text, "دوبلكس")}
+                        {bedroomsAr(unit.bedrooms_text) || unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}
                       </h4>
                     </div>
                     <span className="rounded-full bg-[#e8f5ed] px-3 py-1 text-xs font-bold text-[#14733c]">متاح</span>
                   </div>
                   <div className="mt-5 flex items-center gap-5 text-sm text-[#5c6a62]">
-                    <span className="inline-flex items-center gap-2">
+                    {bedroomsAr(unit.bedrooms_text) && <span className="inline-flex items-center gap-2">
                       <BedDouble className="h-4 w-4 text-[#a3854e]" />
-                      {arabicField(unit.bedrooms_text)}
-                    </span>
+                      {bedroomsAr(unit.bedrooms_text)}
+                    </span>}
                     <span className="inline-flex items-center gap-2">
                       <Maximize2 className="h-4 w-4 text-[#a3854e]" />
                       {unit.area_sqm} م²
@@ -918,7 +915,7 @@ export default function ProjectPage() {
                     {formatPrice(unit.starting_price)} جنيه
                   </p>
                   {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
-                  <p className="mt-2 text-sm text-[#5c6a62]">{unit.down_payment_text}</p>
+                  <p className="mt-2 text-sm text-[#5c6a62]">{arabicField(String(unit.down_payment_text ?? "").replace(/^\s*(\d+(?:\.\d+)?\s*%)\s*$/, "$1 Down Payment"))}</p>
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                       اعرض المقدم والقسط
                       <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
