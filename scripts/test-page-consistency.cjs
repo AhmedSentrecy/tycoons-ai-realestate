@@ -51,10 +51,16 @@ eq(durationMonths("استلام فوري"), 0, "ready to move");
 
 // Number conflicts: the exact Bloomfields case (meta "420 فدان" vs body "420 أكر (حوالي 405 فدان)").
 eq(landAreaClaims("حوالي 420 أكر (حوالي 405 فدان)").length, 2, "two area claims");
-eq(pageNumberConflicts({ texts: ["حوالي 420 أكر (حوالي 405 فدان)"] }).length, 0, "acre and its feddan conversion agree");
-const areaConflict = pageNumberConflicts({ texts: ["420 فدان في مستقبل سيتي", "حوالي 420 أكر (حوالي 405 فدان)"] });
+const areaConflict = pageNumberConflicts({ texts: ["420 فدان في مستقبل سيتي", "حوالي 405 فدان"] });
 eq(areaConflict.length, 1, "420 feddan vs 405 feddan is a conflict");
 eq(areaConflict[0].kind, "land_area", "conflict kind");
+// Feddan only (Ahmed, Nov 2026): acres are reported and shown as the same number in feddan.
+ok(pageNumberConflicts({ texts: ["حوالي 415 أكر"] }).some((problem) => problem.kind === "acre_unit"), "acre wording is reported");
+eq(pageNumberConflicts({ texts: ["415 فدان", "SODIC 464 Acre"] }).length, 0, "the 464 Acre project name is not a unit");
+const { feddanOnly } = require("../netlify/functions/_page-consistency.cjs");
+eq(feddanOnly("على مساحة حوالي 415 أكر (حوالي 400 فدان)."), "على مساحة حوالي 415 فدان.", "acre with conversion becomes one feddan figure");
+eq(feddanOnly("About 420 acres, an 11 acre plot"), "About 420 feddans, an 11 feddan plot", "English acres become feddans");
+eq(feddanOnly("SODIC 464 Acre"), "SODIC 464 Acre", "project name untouched");
 eq(pageNumberConflicts({ texts: ["أسعارها بتبدأ من 5,845,000 جنيه"], minPrice: 5845000 }).length, 0, "starting price matches inventory");
 const priceConflict = pageNumberConflicts({ texts: ["أسعارها بتبدأ من 5,845,000 جنيه"], minPrice: 6100000 });
 eq(priceConflict[0] && priceConflict[0].kind, "starting_price", "stale starting price is reported");
@@ -92,7 +98,8 @@ ok(!html.includes("آخر تحديث للسعر"), "unit cards carry no price-up
 ok(html.includes("كمبوند بلوم فيلدز المستقبل سيتي من تطوير مصر"), "H1 carries the searched keyword");
 ok(html.includes("Tatweer Misr · المستقبل سيتي"), "hero area in Arabic");
 eq(reported.length, 1, "number conflict reported for the page");
-ok(reported[0].problems.some((problem) => problem.kind === "land_area"), "the 420 feddan vs 405 feddan conflict");
+ok(reported[0].problems.some((problem) => problem.kind === "acre_unit"), "stored acre wording reported");
+ok(!/أكر/.test(html) && html.includes("420 فدان"), "page shows feddan only");
 
 // Arabic names in headings and link text; links skip the /guides/ redirect.
 const { arabicProjectName, embeddedGuidePaths } = require("../netlify/functions/_seo-utils.cjs");

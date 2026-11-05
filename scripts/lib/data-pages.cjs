@@ -9,7 +9,7 @@ const { pageShell } = require("./page-shell.cjs");
 const { buildProjectSchemas } = require("../../netlify/functions/_project-schema.cjs");
 const { unitPath } = require("../../netlify/functions/_unit-url.cjs");
 const { renderSafeMarkdown, priceDateNoteHtml } = require("../../netlify/functions/_article-render.cjs");
-const { topicOf, dropCoveredSections, unlinkSelf, durationMonths, durationAr, pageNumberConflicts } = require("../../netlify/functions/_page-consistency.cjs");
+const { topicOf, dropCoveredSections, unlinkSelf, durationMonths, durationAr, pageNumberConflicts, feddanOnly } = require("../../netlify/functions/_page-consistency.cjs");
 const { publicEditorialMarkdown, developerInfo, arabicProjectName } = require("../../netlify/functions/_seo-utils.cjs");
 // Arabic headings use the searched Arabic name ("كمبوند بلوم فيلدز المستقبل سيتي"), never the Latin name alone.
 const headingName = (project) => arabicProjectName(project.slug) || project.name;
@@ -378,8 +378,9 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
     ? `${project.name} من ${project.developer} في أكتوبر: أسعار من ${formatPrice(minPrice)} إلى ${formatPrice(highPrice)} جنيه في ${totalOptionCount} خيار، والموقع والـmaster plan.`
     : text(project.seo_description) || text(project.description) ||
       `اعرف أسعار ومساحات ${project.name} وخطط السداد والوحدات المتاحة.`;
-  const title = localized?.seo_title || arabicName?.title || legacyTitle;
-  const description = localized?.seo_description || legacyDescription;
+  // Land area in feddan only on every published text (meta included), never acres.
+  const title = feddanOnly(localized?.seo_title || arabicName?.title || legacyTitle);
+  const description = feddanOnly(localized?.seo_description || legacyDescription);
   const storedFaq = localized?.faq?.length ? localized.faq : arrayValue(project.faq);
   // Hand-written questions stay as they are; template ones are replaced by questions computed from the live units.
   const computedFaq = isCuratedFaq(storedFaq) ? [] : buildProjectFaq({ name: project.name, developer: text(project.developer), location: text(project.location) }, units, { ...faqContext, research: project.targeting?.research_faq });
@@ -480,7 +481,8 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
       localizedArticle.replace(/<[^>]+>/g, " "),
       ...faq.flatMap((item) => [item.question, item.answer]),
       ownGuide || !guides[0] ? "" : dropCoveredSections(publicEditorialMarkdown(guides[0].body_markdown || "", true), coveredTopics),
-    ].map((value) => replaceTokens(value, minPrice, minArea, maxArea)),
+    // Stored copy as written (before display fixes), so data that still says acres is reported.
+    ].map((value) => text(value).replaceAll("{{min_price}}", formatPrice(minPrice))),
     minPrice: units.length ? Math.min(...units.map((unit) => numberValue(unit.starting_price)).filter(Boolean)) : 0,
   });
   if (conflicts.length && faqContext.reportConflict) faqContext.reportConflict(project.slug, conflicts);

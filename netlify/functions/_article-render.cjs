@@ -59,7 +59,7 @@ function readableUnitLinks(markdown, unitPaths) {
 }
 
 function renderSafeMarkdown(markdown, options = {}) {
-  const lines = readableUnitLinks(unlinkMissingUnits(String(markdown || ""), options && options.liveUnitIds), options && options.unitPaths).replace(/\r/g, "").split("\n");
+  const lines = require("./_page-consistency.cjs").feddanOnly(readableUnitLinks(unlinkMissingUnits(String(markdown || ""), options && options.liveUnitIds), options && options.unitPaths)).replace(/\r/g, "").split("\n");
   const out = [];
   let list = [];
   const flushList = () => {
