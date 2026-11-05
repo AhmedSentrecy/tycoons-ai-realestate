@@ -492,7 +492,7 @@ export const adminApi = {
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
     call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
   waInbox: (token: string, status: WaInboxStatus) =>
-    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string>; doubts?: Record<string, WaDoubt[]> }>("list", { status }, token, WA_INBOX_API),
+    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string>; doubts?: Record<string, WaDoubt[]>; drafts?: Record<string, WaDraft> }>("list", { status }, token, WA_INBOX_API),
   waInboxSave: (token: string, id: number, values: WaInboxValues) =>
     call<{ item: WaInboxItem }>("save", { id, values }, token, WA_INBOX_API),
   waInboxApprove: (
@@ -515,6 +515,11 @@ export const adminApi = {
   /** Approves the units that are still ready when the server checks again; the others are skipped with the reason. */
   waInboxApproveReady: (token: string, ids: number[]) =>
     call<{ ok: boolean; approved: number; approved_ids: number[]; skipped: { id: number; reason: string }[] }>("approve_ready", { ids }, token, WA_INBOX_API),
+  /** Saves the admin's edits on a new project (every field sent counts as confirmed). */
+  waDraftSave: (token: string, id: string, values: Partial<Record<WaDraftField, string>>, confirm: WaDraftField[] = []) =>
+    call<{ draft: WaDraft }>("draft_save", { id, values, confirm }, token, WA_INBOX_API),
+  waDraftResearch: (token: string, id: string) => call<{ draft: WaDraft }>("draft_research", { id }, token, WA_INBOX_API),
+  waDraftReject: (token: string, id: string) => call<{ ok: boolean }>("draft_reject", { id }, token, WA_INBOX_API),
   waGroupDeveloper: (token: string, groupId: string, developer: string) =>
     call<{ groups: WaGroup[] }>("group_developer", { group_id: groupId, developer }, token, WA_INBOX_API),
   waInboxReject: (token: string, ids: number[]) => call<{ ok: boolean; rejected: number }>("reject", { ids }, token, WA_INBOX_API),
@@ -527,7 +532,8 @@ export type WaInboxStatus = "pending" | "approved" | "rejected";
 /** Why a WhatsApp unit waits in "محتاج مراجعة" instead of "جاهز للموافقة". */
 export type WaDoubt =
   | "no_project" | "no_name" | "dev_unknown" | "dev_conflict" | "suggested_project" | "missing_type" | "missing_area" | "missing_price"
-  | "missing_payment" | "missing_delivery" | "missing_finishing" | "no_area" | "duplicate" | "rejected_before" | "price_jump";
+  | "missing_payment" | "missing_delivery" | "missing_finishing" | "no_area" | "duplicate" | "rejected_before" | "price_jump"
+  | "draft_review" | "draft_researching";
 export const WA_DOUBT_LABELS: Record<WaDoubt, string> = {
   no_project: "المشروع مش على الموقع",
   no_name: "اسم المشروع مش واضح",
@@ -544,12 +550,60 @@ export const WA_DOUBT_LABELS: Record<WaDoubt, string> = {
   duplicate: "مكررة",
   rejected_before: "اترفضت قبل كده",
   price_jump: "السعر مختلف جدًا عن الموقع",
+  draft_review: "بيانات المشروع الجديد محتاجة مراجعة",
+  draft_researching: "بندوّر على المشروع على النت",
 };
 /** Where a detail the WhatsApp message left out was filled from. */
 export type WaFillSource = "unit" | "project" | "units";
 /** The project an unmatched WhatsApp name most likely means (confirmed by the admin). */
-export interface WaProjectSuggestion { project_id: string; name: string; kind: "phase" | "master" | "similar" }
-export const WA_SUGGEST_LABELS: Record<WaProjectSuggestion["kind"], string> = { phase: "نفس المرحلة", master: "المشروع الأم", similar: "اسم قريب" };
+export interface WaProjectSuggestion { project_id: string; name: string; kind: "phase" | "master" | "similar" | "ai" }
+export const WA_SUGGEST_LABELS: Record<WaProjectSuggestion["kind"], string> = { phase: "نفس المرحلة", master: "المشروع الأم", similar: "اسم قريب", ai: "Claude شايفه نفس المشروع" };
+
+/** A project from the WhatsApp groups that is not on the site yet (researched on the web, waiting for «انشر»). */
+export interface WaDraft {
+  id: string;
+  status: "researching" | "ready" | "needs_review" | "published" | "rejected";
+  name: string;
+  name_ar: string | null;
+  developer: string | null;
+  area_group: string | null;
+  sub_area: string | null;
+  location: string | null;
+  description: string | null;
+  down_payment_text: string | null;
+  installments_text: string | null;
+  delivery_text: string | null;
+  finishing: string | null;
+  wa_keys: string[];
+  /** field -> source URLs (2+ different sites = trusted) */
+  sources: Record<string, string[]>;
+  doubts: string[];
+  /** fields the admin typed or confirmed */
+  confirmed: string[];
+  research_error: string | null;
+  researched_at: string | null;
+  project_id: string | null;
+  published_at: string | null;
+}
+export type WaDraftField =
+  | "name" | "name_ar" | "developer" | "area_group" | "sub_area" | "location" | "description"
+  | "down_payment_text" | "installments_text" | "delivery_text" | "finishing";
+export const WA_DRAFT_FIELD_LABELS: Record<WaDraftField, string> = {
+  name: "الاسم", name_ar: "الاسم بالعربي", developer: "المطور", area_group: "المنطقة", sub_area: "المنطقة الفرعية", location: "العنوان",
+  description: "وصف قصير", down_payment_text: "المقدم", installments_text: "التقسيط", delivery_text: "الاستلام", finishing: "التشطيب",
+};
+/** What keeps a new project from «انشر» (codes from wa-inbox research.ts). */
+export function waDraftDoubtLabel(code: string): string {
+  if (code === "not_found") return "مالقيناش المشروع على النت";
+  if (code === "grouping_unsure") return "مش متأكدين إن الأسماء دي مشروع واحد";
+  if (code === "developer_mismatch") return "المطور على النت غير اللي في الجروب";
+  const [kind, ...rest] = code.split("_");
+  const label = WA_DRAFT_FIELD_LABELS[rest.join("_") as WaDraftField] ?? rest.join("_");
+  if (kind === "missing") return `${label}: مالقيناهوش في مصدرين`;
+  if (kind === "weak") return `${label}: مصدر واحد بس`;
+  if (kind === "conflict") return `${label}: المصادر مختلفة`;
+  return code;
+}
 
 /** Usual finishing types (the field still accepts any text). */
 export const FINISHING_OPTIONS = [
@@ -629,6 +683,8 @@ export interface WaInboxItem {
   match_unit_id: string | null;
   /** Main area Claude gave the unit (one of AREA_GROUPS). */
   area_group?: string | null;
+  /** New project (not on the site yet) this unit belongs to. */
+  draft_id?: string | null;
   decided_at: string | null;
   result_unit_id: string | null;
   note: string | null;

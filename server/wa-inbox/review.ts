@@ -82,11 +82,14 @@ export const hasProjectName = (name: unknown) => Boolean(projectKey(name)) && !/
 /** Why a unit needs a human look (Arabic labels live in the admin page). */
 export type Doubt =
   | "no_project" | "no_name" | "dev_unknown" | "dev_conflict" | "suggested_project" | "missing_type" | "missing_area" | "missing_price"
-  | "missing_payment" | "missing_delivery" | "missing_finishing" | "no_area" | "duplicate" | "rejected_before" | "price_jump";
+  | "missing_payment" | "missing_delivery" | "missing_finishing" | "no_area" | "duplicate" | "rejected_before" | "price_jump"
+  | "draft_review" | "draft_researching";
 
 export interface ReviewContext {
-  /** Inbox id -> project the unit is linked to (on the site, or a confirmed draft). */
+  /** The unit is linked to a project on the site. */
   hasProject: (row: Row) => boolean;
+  /** Status of the unit's new-project draft (not on the site yet), or "" when it has none. */
+  draftStatus?: (row: Row) => string;
   /** Inbox id -> a project was only suggested (the admin has not confirmed it). */
   suggested: Set<string>;
   duplicates: Record<string, number[]>;
@@ -117,7 +120,12 @@ export function doubtsFor(row: Row, ctx: ReviewContext): Doubt[] {
   const id = String(row.id);
   const out: Doubt[] = [];
   const linked = ctx.hasProject(row);
-  if (!linked) {
+  const draft = linked ? "" : ctx.draftStatus?.(row) ?? "";
+  if (draft) {
+    // A new project: its units are ready once the project's own facts are (published together).
+    if (draft === "researching") out.push("draft_researching");
+    else if (draft !== "ready") out.push("draft_review");
+  } else if (!linked) {
     if (!hasProjectName(row.project_name)) out.push("no_name");
     else if (ctx.suggested.has(id)) out.push("suggested_project");
     else out.push("no_project");
