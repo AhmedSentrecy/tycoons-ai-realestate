@@ -138,11 +138,11 @@ export function researchPrompt(name: string, developer: string, waNames: string[
     "- description: one or two short Arabic sentences on what the project is (type, size in feddan if stated). No prices, no marketing words.",
     "- down_payment_text and installments_text: the current payment plan (e.g. \"10%\", \"8 years\"); delivery_text: delivery date or period; finishing: finishing type",
     "Each value is the bare fact only, no notes or brackets: developer = the name only (e.g. \"Biography Developments\"); sub_area at most 5 words; location at most 12 words; finishing one of Core & Shell, Semi Finished, Flexi Finished, Fully Finished, Fully Finished with ACs, Furnished.",
-    "Leave a fact empty when you did not find it. Never guess. If two sites disagree on a fact, list it in conflicts (not inside the value).",
+    "Leave a fact empty when you did not find it. Never guess. If sites disagree on a fact, list every value they give in conflicts, each with its URLs (not inside the value).",
     "Do not use tycoons-inv.com as a source.",
     "",
     "Answer with JSON only:",
-    '{"found": true|false, "facts": {"<field>": {"value": "...", "sources": ["https://..."]}}, "conflicts": [{"field": "...", "values": ["...", "..."]}]}',
+    '{"found": true|false, "facts": {"<field>": {"value": "...", "sources": ["https://..."]}}, "conflicts": [{"field": "...", "options": [{"value": "...", "sources": ["https://..."]}]}]}',
   ].filter((line) => line !== "").join("\n");
 }
 
@@ -157,15 +157,24 @@ export function siteOf(url: string): string {
 
 export interface Fact { value: string; sources: string[] }
 export type Facts = Partial<Record<DraftField, Fact>>;
+/** What the web said for a field that is not settled (one site, or sites that disagree): the admin picks. */
+export type Candidates = Partial<Record<DraftField, Fact[]>>;
+
+/** Source URLs that the search really returned (by site; ours never count). */
+function searchedSources(list: unknown, searchedSites: Set<string>): string[] {
+  return [...new Set((Array.isArray(list) ? list : []).map(text)
+    .filter((url) => /^https?:\/\//i.test(url) && !OWN_SITES.has(siteOf(url)) && (!searchedSites.size || searchedSites.has(siteOf(url)))))].slice(0, 6);
+}
 
 /**
  * Keeps a fact only when 2 different sites (that the search really returned, not ours) state it.
  * Answer: the kept facts and the fields that had a value but not enough sources.
  */
-export function verifyFacts(raw: unknown, searched: Set<string>): { facts: Facts; weak: DraftField[]; conflicts: DraftField[]; found: boolean } {
+export function verifyFacts(raw: unknown, searched: Set<string>): { facts: Facts; weak: DraftField[]; conflicts: DraftField[]; found: boolean; candidates: Candidates } {
   const data = (raw && typeof raw === "object" ? raw : {}) as Json;
   const given = (data.facts && typeof data.facts === "object" ? data.facts : {}) as Json;
   const facts: Facts = {};
+  const candidates: Candidates = {};
   const weak: DraftField[] = [];
   const searchedSites = new Set([...searched].map(siteOf).filter(Boolean));
   for (const field of DRAFT_FIELDS) {
@@ -178,12 +187,32 @@ export function verifyFacts(raw: unknown, searched: Set<string>): { facts: Facts
       .filter((url) => /^https?:\/\//i.test(url) && (!searchedSites.size || searchedSites.has(siteOf(url)))))];
     const sites = new Set(sources.map(siteOf).filter((site) => site && !OWN_SITES.has(site)));
     if (sites.size >= 2) facts[field] = { value, sources: sources.slice(0, 6) };
-    else weak.push(field);
+    else {
+      weak.push(field);
+      const kept = searchedSources(sources, searchedSites);
+      if (kept.length) candidates[field] = [{ value, sources: kept }];
+    }
   }
-  const conflicts = [...new Set((Array.isArray(data.conflicts) ? data.conflicts : [])
-    .map((item) => text((item as Json)?.field) as DraftField)
-    .filter((field) => (DRAFT_FIELDS as readonly string[]).includes(field)))];
-  return { facts, weak, conflicts, found: data.found !== false };
+  const conflicts: DraftField[] = [];
+  for (const item of (Array.isArray(data.conflicts) ? data.conflicts : []) as Json[]) {
+    const field = text(item?.field) as DraftField;
+    if (!(DRAFT_FIELDS as readonly string[]).includes(field)) continue;
+    if (!conflicts.includes(field)) conflicts.push(field);
+    // Every value the sites gave, with its URLs (older answers: "values" without URLs, not kept).
+    const options = (Array.isArray(item.options) ? item.options : []) as Json[];
+    for (const option of options) {
+      let value = text(option?.value).slice(0, field === "description" ? 600 : 200);
+      if (field === "area_group") value = AREA_GROUPS.find((area) => area.toLowerCase() === value.toLowerCase()) ?? "";
+      const kept = searchedSources(option?.sources, searchedSites);
+      if (!value || !kept.length) continue;
+      const list = candidates[field] ?? [];
+      const same = list.find((entry) => entry.value.toLowerCase() === value.toLowerCase());
+      if (same) same.sources = [...new Set([...same.sources, ...kept])].slice(0, 6);
+      else list.push({ value, sources: kept });
+      candidates[field] = list.slice(0, 5);
+    }
+  }
+  return { facts, weak, conflicts, found: data.found !== false, candidates };
 }
 
 // ---------- 3. draft doubts ----------
@@ -259,6 +288,16 @@ export function checkedValue(raw: unknown, key: string, searched: Set<string>): 
     .filter((url) => /^https?:\/\//i.test(url) && (!searchedSites.size || searchedSites.has(siteOf(url)))))];
   const sites = new Set(sources.map(siteOf).filter((site) => site && !OWN_SITES.has(site)));
   return sites.size >= 2 ? { value, sources: sources.slice(0, 6) } : null;
+}
+
+/** What the web answered without 2 sites (one site): kept as a suggestion the admin can accept. */
+export function candidateValue(raw: unknown, key: string, searched: Set<string>): Fact | null {
+  const data = (raw && typeof raw === "object" ? raw : {}) as Json;
+  const item = (data[key] && typeof data[key] === "object" ? data[key] : {}) as Json;
+  const value = text(item.value).slice(0, 200);
+  if (!value) return null;
+  const sources = searchedSources(item.sources, new Set([...searched].map(siteOf).filter(Boolean)));
+  return sources.length ? { value, sources } : null;
 }
 
 /** «المطور مش معروف» / «نفس المشروع جه بأكتر من مطور»: who develops this project? */
