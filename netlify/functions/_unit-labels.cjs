@@ -192,11 +192,12 @@ function tidyArabicName(value) {
 }
 
 /** Keywords stored with an English place ("شقق للبيع في Sheikh Zayed"): Arabic area in Arabic phrases. */
-function arabicKeywords(list, { areaAr = "", developer = "", developerAr = "" } = {}) {
+function arabicKeywords(list, { areaAr = "", developer = "", developerAr = "", name = "" } = {}) {
   return (Array.isArray(list) ? list : []).map((value) => {
     let out = text(value);
     if (!/[؀-ۿ]/.test(out)) return out;
-    if (areaAr) out = out.replace(/(للبيع في )[A-Za-z][A-Za-z0-9 ,.'-]*$/, `$1${areaAr}`);
+    // Only a place: "وحدات للبيع في <project name>" keeps the name.
+    if (areaAr) out = out.replace(/(للبيع في )([A-Za-z][A-Za-z0-9 ,.'-]*)$/, (all, lead, tail) => (name && tail.trim().toLowerCase() === text(name).toLowerCase() ? all : `${lead}${areaAr}`));
     if (developer && developerAr && out === `مشروعات ${developer}`) out = `مشروعات ${developerAr}`;
     return out;
   }).filter(Boolean);

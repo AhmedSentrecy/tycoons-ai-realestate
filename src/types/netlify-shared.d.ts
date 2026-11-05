@@ -39,7 +39,7 @@ declare module "*/_unit-labels.cjs" {
   export function unitTypeAr(value: unknown): string;
   export function unitBaseAr(value: unknown): string;
   export function tidyArabicName(value: string): string;
-  export function arabicKeywords(list: string[], names?: { areaAr?: string; developer?: string; developerAr?: string }): string[];
+  export function arabicKeywords(list: string[], names?: { areaAr?: string; developer?: string; developerAr?: string; name?: string }): string[];
   export function defaultHeroLine(nameAr: string, areaAr: string): string;
   export function unitsCountAr(n: number): string;
   export function bedroomsAr(value: unknown): string;

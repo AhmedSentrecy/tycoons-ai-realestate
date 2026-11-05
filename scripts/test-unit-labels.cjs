@@ -46,5 +46,6 @@ eq(tidyArabicName("نيوم أكتوبر السادس من أكتوبر"), "ني
 eq(tidyArabicName("ماونتن فيو آي سيتي التجمع الخامس القاهرة الجديدة"), "ماونتن فيو آي سيتي التجمع الخامس");
 eq(tidyArabicName("ماونتن فيو الساحل الشمالي رأس الحكمة"), "ماونتن فيو الساحل الشمالي رأس الحكمة");
 eq(tidyArabicName("كمبوند ديستريكت 5 التجمع"), "كمبوند ديستريكت 5 التجمع");
+eq(arabicKeywords(["وحدات للبيع في Mountain View iCity October"], { areaAr: "السادس من أكتوبر", name: "Mountain View iCity October" })[0], "وحدات للبيع في Mountain View iCity October");
 eq(arabicKeywords(["شقق للبيع في Sheikh Zayed", "Mountain View iCity October prices 2026", "مشروعات Mountain View"], { areaAr: "السادس من أكتوبر", developer: "Mountain View", developerAr: "ماونتن فيو" }).join("|"), "شقق للبيع في السادس من أكتوبر|Mountain View iCity October prices 2026|مشروعات ماونتن فيو");
 console.log(`Unit label tests passed (${n} checks).`);

@@ -506,7 +506,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
     description,
     canonical,
     image: imageList[0] || "",
-    keywords: arabicKeywords(arrayValue(project.seo_keywords).map(text).filter(Boolean), { areaAr: areaInfo(project.location).ar, developer: project.developer, developerAr: developerInfo(project.developer)?.name_ar || "" }),
+    keywords: arabicKeywords(arrayValue(project.seo_keywords).map(text).filter(Boolean), { areaAr: areaInfo(project.location).ar, developer: project.developer, developerAr: developerInfo(project.developer)?.name_ar || "", name: project.name }),
     schemas,
     body,
     alternates: [{ hreflang: "en", href: `${SITE_URL}/en/projects/${project.slug}` }],
