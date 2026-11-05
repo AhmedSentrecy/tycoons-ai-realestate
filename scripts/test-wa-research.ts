@@ -1,6 +1,6 @@
 // New-project research rules (server/wa-inbox/research.ts). Run: node --import tsx scripts/test-wa-research.ts
 import assert from "node:assert/strict";
-import { draftDoubts, firstJson, groupingPrompt, siteOf, verifyFacts, type DraftState } from "../server/wa-inbox/research.ts";
+import { draftDoubts, firstJson, groupingCheckPrompt, groupingPrompt, siteOf, verifyFacts, verifyGrouping, type DraftState } from "../server/wa-inbox/research.ts";
 
 assert.equal(siteOf("https://www.nawy.com/compound/1"), "nawy.com");
 assert.equal(siteOf("https://ar.propertyfinder.eg/x"), "propertyfinder.eg");
@@ -48,5 +48,28 @@ assert.equal(firstJson("no json"), null);
 
 const prompt = groupingPrompt("Biography Developments", [{ name: "101", count: 44, location: "Mostakbal City" }], [], []);
 assert.ok(prompt.includes("- 101 (44 units, Mostakbal City)"));
+
+// Unsure grouping settled on the web: every name once, every project shown by 2 sites (searched, not ours).
+const names = ["Wujood Residence", "Wuud Residence"];
+const web = new Set(["https://www.nawy.com/w", "https://propertyfinder.eg/w", "https://aqarmap.com.eg/u", "https://tharaa.com/u", "https://tycoons-inv.com/x"]);
+const split = verifyGrouping({ projects: [
+  { name: "Wujood Residence", wa_names: ["Wujood Residence"], sources: ["https://www.nawy.com/w", "https://propertyfinder.eg/w"] },
+  { name: "Wuud", wa_names: ["Wuud Residence"], sources: ["https://aqarmap.com.eg/u", "https://tharaa.com/u"] },
+] }, web, names);
+assert.deepEqual(split?.map((part) => part.wa_names), [["Wujood Residence"], ["Wuud Residence"]]);
+const one = verifyGrouping({ projects: [{ name: "Wujood Residence", wa_names: names, sources: ["https://www.nawy.com/w", "https://aqarmap.com.eg/u"] }] }, web, names);
+assert.equal(one?.length, 1);
+// One site only, our own site, a name left out, a name twice, an unknown name, or nothing: not settled.
+assert.equal(verifyGrouping({ projects: [{ name: "W", wa_names: names, sources: ["https://www.nawy.com/w", "https://nawy.com/w?x=1"] }] }, web, names), null);
+assert.equal(verifyGrouping({ projects: [{ name: "W", wa_names: names, sources: ["https://www.nawy.com/w", "https://tycoons-inv.com/x"] }] }, web, names), null);
+assert.equal(verifyGrouping({ projects: [{ name: "W", wa_names: ["Wujood Residence"], sources: ["https://www.nawy.com/w", "https://aqarmap.com.eg/u"] }] }, web, names), null);
+assert.equal(verifyGrouping({ projects: [
+  { name: "A", wa_names: names, sources: ["https://www.nawy.com/w", "https://aqarmap.com.eg/u"] },
+  { name: "B", wa_names: ["Wuud Residence"], sources: ["https://www.nawy.com/w", "https://aqarmap.com.eg/u"] },
+] }, web, names), null);
+assert.equal(verifyGrouping({ projects: [{ name: "W", wa_names: [...names, "Other"], sources: ["https://www.nawy.com/w", "https://aqarmap.com.eg/u"] }] }, web, names), null);
+assert.equal(verifyGrouping({ projects: [{ name: "W", wa_names: names, sources: ["https://made-up.org/a", "https://other.org/b"] }] }, web, names), null);
+assert.equal(verifyGrouping(null, web, names), null);
+assert.ok(groupingCheckPrompt("Tharaa Developments", names).includes('"Wuud Residence"'));
 
 console.log("wa research rules: ok");

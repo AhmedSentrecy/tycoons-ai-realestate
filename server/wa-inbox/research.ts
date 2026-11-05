@@ -1,5 +1,6 @@
 // Projects that are not on the site yet (pure part, no database / network):
-// 1. grouping: the prompt that asks Claude which WhatsApp names are the same project
+// 1. grouping: the prompt that asks Claude which WhatsApp names are the same project; when Claude is
+//    unsure, each name is searched on the web and the grouping is kept only when 2 sites show it
 // 2. research: the prompt for Claude's web search, and the check that keeps a fact only when
 //    2 different sites (not ours) say it, or the admin confirmed it by hand
 // 3. the draft's doubts (anything missing or doubtful keeps it in «محتاج مراجعة»)
@@ -69,6 +70,53 @@ export function groupingPrompt(developer: string, names: NameCount[], site: Site
     "- If a group is a project already on our site, set site_project_id; if it is one of our drafts, set draft_id. Only when you are sure.",
     "- Every WhatsApp name must appear in exactly one group. Keep each name exactly as written.",
   ].filter((line) => line !== "").join("\n");
+}
+
+// ---------- 1b. unsure grouping: settled on the web, same 2-sites rule ----------
+
+export function groupingCheckPrompt(developer: string, waNames: string[]) {
+  return [
+    `These names were written in the WhatsApp sales group of ${developer || "an Egyptian real-estate developer"}: ${waNames.map((name) => `"${name}"`).join(", ")}.`,
+    "Are they ONE project (spelling variants of the same name) or DIFFERENT projects? Search the web for each name on its own.",
+    "Group the names only by what real web pages (developer site, property portals, news) show, and give for each project the URLs that show it.",
+    "A name you do not find on the web stays alone in its own project, with no sources. Never guess.",
+    "Do not use tycoons-inv.com as a source.",
+    "",
+    "Answer with JSON only:",
+    '{"projects": [{"name": "the official English name", "wa_names": ["names exactly as given above"], "sources": ["https://..."]}]}',
+  ].join("\n");
+}
+
+export interface CheckedGroup { name: string; wa_names: string[] }
+
+/**
+ * The web's answer to an unsure grouping. Settled only when every WhatsApp name is in exactly one project
+ * and every project is shown by 2 different sites (that the search returned, not ours). Otherwise null:
+ * the draft keeps «grouping_unsure» for the admin.
+ */
+export function verifyGrouping(raw: unknown, searched: Set<string>, waNames: string[]): CheckedGroup[] | null {
+  const data = (raw && typeof raw === "object" ? raw : {}) as Json;
+  const projects = Array.isArray(data.projects) ? (data.projects as Json[]) : [];
+  if (!projects.length) return null;
+  const searchedSites = new Set([...searched].map(siteOf).filter(Boolean));
+  const wanted = new Set(waNames);
+  const seen = new Set<string>();
+  const out: CheckedGroup[] = [];
+  for (const project of projects) {
+    const names = (Array.isArray(project.wa_names) ? project.wa_names : []).map(text).filter(Boolean);
+    if (!names.length) continue;
+    for (const name of names) {
+      if (!wanted.has(name) || seen.has(name)) return null;
+      seen.add(name);
+    }
+    const sites = new Set((Array.isArray(project.sources) ? project.sources : []).map(text)
+      .filter((url) => /^https?:\/\//i.test(url))
+      .map(siteOf)
+      .filter((site) => site && !OWN_SITES.has(site) && (!searchedSites.size || searchedSites.has(site))));
+    if (sites.size < 2) return null;
+    out.push({ name: text(project.name).slice(0, 200) || names[0], wa_names: names });
+  }
+  return seen.size === wanted.size ? out : null;
 }
 
 // ---------- 2. research ----------
