@@ -12,7 +12,7 @@ const {
 const { developerGroups, developerKey, isApartmentUnit, APARTMENT_PAGE_AREAS } = require("./_seo-utils.cjs");
 const { indexableUnitIds } = require("./_unit-indexing.cjs");
 const { publishedProjectSlugs } = require("./_project-indexing.cjs");
-const { hasIndexableContent } = require("./_localized-project-content.cjs");
+const { hasOwnWrittenGuide, attachPublishedGuides, isProjectGuideArticle } = require("./_localized-project-content.cjs");
 const { unitPath } = require("./_unit-url.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
@@ -45,7 +45,8 @@ async function fetchRows(table, select, filters = {}) {
 
 async function fetchPublishedArticles() {
   try {
-    return await fetchRows("published_editorial_articles", "slug,language,project_id,published_at,updated_at");
+    // Body and FAQ too: a writing-tool project guide is the project page itself (attachPublishedGuides).
+    return await fetchRows("published_editorial_articles", "slug,language,project_id,target_type,published_at,updated_at,title,meta_title,meta_description,body_markdown,faq");
   } catch (error) {
     // Safe rollout ordering: before the additive migration exists, publish no
     // dynamic article URLs while keeping the established sitemap available.
@@ -64,6 +65,7 @@ exports.handler = async function handler() {
       }),
       fetchPublishedArticles(),
     ]);
+    attachPublishedGuides(projects, articles, new Set(units.map((unit) => String(unit.project_id))));
     const projectsById = new Map(projects.map((project) => [project.id, project]));
     const publishedSlugs = publishedProjectSlugs(projects, units);
     const indexableIds = indexableUnitIds(units);
@@ -106,7 +108,11 @@ exports.handler = async function handler() {
     for (const article of newestByProject.values()) {
       // A project with its own written guide links the article instead of embedding it,
       // so that article keeps its own URL in the sitemap.
-      if (projects.some((project) => project.id === article.project_id && String(project.slug || "").trim() && !hasIndexableContent(project, article.language === "en" ? "en" : "ar"))) embedded.add(`${article.language}:${article.slug}`);
+      if (projects.some((project) => project.id === article.project_id && String(project.slug || "").trim() && !hasOwnWrittenGuide(project, article.language === "en" ? "en" : "ar"))) embedded.add(`${article.language}:${article.slug}`);
+    }
+    // A writing-tool project guide is shown as the project page itself: only that page is listed.
+    for (const article of articles) {
+      if (isProjectGuideArticle(article)) embedded.add(`${article.language}:${article.slug}`);
     }
     for (const article of articles) {
       if (!article.published_at || !article.slug) continue;

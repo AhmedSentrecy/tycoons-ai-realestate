@@ -1,7 +1,7 @@
 "use strict";
 
 const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, countAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr } = require("./_display-text.cjs");
-const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("./_localized-project-content.cjs");
+const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent, hasOwnWrittenGuide, isProjectGuideArticle } = require("./_localized-project-content.cjs");
 // Arabic H1/title for the top projects (audit SEO-07); shared with the static and React pages.
 const PROJECT_NAMES_AR = require("../../src/content/project-names-ar.json").projects;
 const { developerContent } = require("./_developer-content.cjs");
@@ -2481,7 +2481,10 @@ function embeddedGuidePaths(articles, projects, projectIdsWithUnits) {
   for (const [projectId, article] of newest) {
     const project = byId.get(projectId);
     const slug = String(project?.slug || "").trim();
-    if (!slug || hasIndexableContent(project, "ar")) continue;
+    if (!slug) continue;
+    // A writing-tool guide is the project page itself, with or without units.
+    if (isProjectGuideArticle(article)) { paths.set(article.slug, `/projects/${slug}`); continue; }
+    if (hasOwnWrittenGuide(project, "ar")) continue;
     if (projectIdsWithUnits && !projectIdsWithUnits.has(projectId)) continue;
     paths.set(article.slug, `/projects/${slug}`);
   }
@@ -2648,7 +2651,8 @@ function editorialArticleView(article, translation = null, extras = {}) {
   // Only when the caller knows the project page really embeds this guide (extras.projectEmbedsGuide):
   // the guide page loads a short project row, so it cannot tell on its own, and every guide keeps
   // its own URL as canonical (the behaviour live until now).
-  const embeddedInProject = Boolean(extras.projectEmbedsGuide && project && newest && newest.slug === article.slug && !hasIndexableContent(project, lang));
+  // A writing-tool project guide is shown as the project page itself, so that page is its canonical.
+  const embeddedInProject = Boolean(project && isProjectGuideArticle(article)) || Boolean(extras.projectEmbedsGuide && project && newest && newest.slug === article.slug && !hasOwnWrittenGuide(project, lang));
   return {
     lang,
     title: article.meta_title || `${article.title} | Tycoons Investments`,
