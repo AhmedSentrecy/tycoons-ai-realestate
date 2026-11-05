@@ -7,6 +7,7 @@ const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, countAr, priceS
 
 const { pageShell } = require("./page-shell.cjs");
 const { buildProjectSchemas } = require("../../netlify/functions/_project-schema.cjs");
+const { projectFacts, projectFactsHtml, lastPriceUpdate } = require("../../netlify/functions/_project-facts.cjs");
 const { unitPath } = require("../../netlify/functions/_unit-url.cjs");
 const { renderSafeMarkdown, priceDateNoteHtml } = require("../../netlify/functions/_article-render.cjs");
 const { topicOf, dropCoveredSections, unlinkSelf, durationMonths, durationAr, pageNumberConflicts, feddanOnly } = require("../../netlify/functions/_page-consistency.cjs");
@@ -433,10 +434,15 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   const coveredTopics = new Set(ownHeadings.map(topicOf).filter(Boolean));
   if (totalOptionCount) { coveredTopics.add("units"); coveredTopics.add("payment"); }
   const projectPath = `/projects/${project.slug}`;
+  // «في سطور» under the H1 (same builder as the browser): short labelled facts AI answers can quote.
+  const factsHtml = projectFactsHtml(projectFacts({
+    developer: developerInfo(project.developer)?.name_ar || project.developer, developerHref: developerHasPage ? developerPath : "",
+    area: areaInfo(project.location).ar, areaHref: areaInfo(project.location).indexable === false ? "" : areaPath, units,
+  }), `${headingName(project)} في سطور`);
   const embedded = ownGuide ? "" : unlinkSelf(embeddedArticleHtml(guides[0], faqContext.liveUnitIds, totalOptionCount > 0, coveredTopics, faqContext.unitPaths), [projectPath, `/ar${projectPath}`]);
   const body = `<main dir="rtl" class="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
   <header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4"><a href="/" class="font-extrabold">TYCOONS INVESTMENTS</a><span class="flex gap-4 text-sm"><a href="/ar/">دليل المشاريع</a><a href="${areaPath}">${escapeHtml(areaInfo(project.location).ar)}</a>${developerNav}<a href="/en/projects/${escapeHtml(project.slug)}" lang="en" hreflang="en">English</a></span></nav></header>
-  <section class="bg-[#0d1f18] px-5 pb-12 pt-16 text-white"><div class="mx-auto max-w-7xl">${project.logo?.src ? `<span style="display:inline-flex;align-items:center;height:56px;padding:8px 14px;margin-bottom:18px;border-radius:14px;${project.logo.dark ? "border:1px solid rgba(255,255,255,.18)" : "background:#fff"}"><img src="${escapeHtml(project.logo.src)}" alt="${escapeHtml(project.logo.alt)}" height="40" style="height:40px;width:auto;max-width:220px;object-fit:contain" decoding="async"></span>` : ""}<p class="text-sm text-[#d9b87c]">${escapeHtml(project.developer)} · ${escapeHtml(areaInfo(project.location).ar)}</p><h1 class="mt-5 max-w-4xl text-4xl font-extrabold leading-tight sm:text-5xl">${escapeHtml(localized?.h1 ? project.name : (arabicName?.h1 || project.name))}</h1><p class="mt-5 max-w-4xl text-lg text-white/70">${escapeHtml(arabicProse(text(project.hero_text) || description).replaceAll(text(project.location) || "\u0000", areaInfo(project.location).ar))}</p></div></section>
+  <section class="bg-[#0d1f18] px-5 pb-12 pt-16 text-white"><div class="mx-auto max-w-7xl">${project.logo?.src ? `<span style="display:inline-flex;align-items:center;height:56px;padding:8px 14px;margin-bottom:18px;border-radius:14px;${project.logo.dark ? "border:1px solid rgba(255,255,255,.18)" : "background:#fff"}"><img src="${escapeHtml(project.logo.src)}" alt="${escapeHtml(project.logo.alt)}" height="40" style="height:40px;width:auto;max-width:220px;object-fit:contain" decoding="async"></span>` : ""}<p class="text-sm text-[#d9b87c]">${escapeHtml(project.developer)} · ${escapeHtml(areaInfo(project.location).ar)}</p><h1 class="mt-5 max-w-4xl text-4xl font-extrabold leading-tight sm:text-5xl">${escapeHtml(localized?.h1 ? project.name : (arabicName?.h1 || project.name))}</h1><p class="mt-5 max-w-4xl text-lg text-white/70">${escapeHtml(arabicProse(text(project.hero_text) || description).replaceAll(text(project.location) || "\u0000", areaInfo(project.location).ar))}</p>${factsHtml}</div></section>
   ${imageList[0] ? `<section class="bg-[#0d1f18] px-5 pb-12"><img src="${escapeHtml(imageList[0])}" alt="${escapeHtml(project.name)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-contain"></section>` : ""}
   <section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]"><article>
   ${article.length ? linkProjectNames(article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#5c6a62]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join(""), faqContext.projectLinks, project.slug) : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
@@ -452,7 +458,8 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
 
   const schemas = [
     ...buildProjectSchemas({ url: canonical, name: schemaProjectName, projectSlug: project.slug, location: project.location, title, description,
-      images: imageList, modified: project.last_updated_at, units, ranges: priceRanges,
+      // The newest price update, the same date the facts box shows.
+      images: imageList, modified: lastPriceUpdate(units, project.last_updated_at), units, ranges: priceRanges,
       articleSections: localized?.article_sections?.length ? localized.article_sections : storedArticle,
     }),
     {
