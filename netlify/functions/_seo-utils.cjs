@@ -1616,6 +1616,9 @@ function renderProject(projects, slug, lang, article = null) {
       : `Currently listed prices range from ${formatPrice(minPrice, lang)} to ${formatPrice(maxPrice, lang)} across ${units.length} options.`)
     : (ar ? "لا توجد أسعار تفصيلية منشورة حاليًا." : "No detailed prices are currently published.");
   const localizedContent = localizedProjectContent(project,lang);
+  // Written guides say the starting price with a token, filled from the live units here as on the
+  // static pages ("{{min_price}}" -> "5,845,000"), so the copy never goes stale.
+  const fillTokens = (value) => String(value ?? "").replaceAll("{{min_price}}", new Intl.NumberFormat("en-US").format(Math.round(minPrice || 0)));
   // The project carries its own full written guide: don't repeat an older embedded guide,
   // the developer bio, or a "no units" notice under it.
   const ownGuide = hasIndexableContent(project, lang);
@@ -1626,7 +1629,7 @@ function renderProject(projects, slug, lang, article = null) {
     : `${project.name} Prices & Payment Plans 2026${minM ? ` — from EGP ${minM}M` : ""} | Tycoons`;
   const searchContent = PROJECT_SEARCH_CONTENT[slug]?.[lang];
   const contentVars = { project, location, priceSummary, unitCount: units.length };
-  const description = localizedContent?.seo_description || searchContent?.description?.(contentVars) || (ar
+  const description = fillTokens(localizedContent?.seo_description) || searchContent?.description?.(contentVars) || (ar
     ? `${project.name} من ${project.developer} في ${location}. قارن الوحدات المتاحة والأسعار وخطط السداد والاستلام.`
     : `${project.name} by ${project.developer} in ${location}. Compare available units, prices, payment plans and delivery.`);
   // The developer page is only published when one of its projects has units; a project shown
@@ -1642,12 +1645,12 @@ function renderProject(projects, slug, lang, article = null) {
     `Hello Tycoons Investments,\nI am interested in this project:\n\nProject: ${project.name}\nDeveloper: ${project.developer}\nLocation: ${location}\nStarting price: ${formatPrice(projectMinPrice(project), "en")}\nStatus: Available\n\nURL: ${SITE_URL}${path}\n\nPlease send me available options and details.\n\nSource: project_page\nPage: ${SITE_URL}${path}`,
   );
   const extraSections = localizedContent?.article_sections?.length
-    ? renderLocalizedSections(localizedContent.article_sections,{escapeHtml,replaceTokens:(value)=>value})
+    ? renderLocalizedSections(localizedContent.article_sections,{escapeHtml,replaceTokens:fillTokens})
     : (searchContent?.sections?.(contentVars) || [])
     .map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(text)}</p></section>`)
     .join("");
-  const projectFaq = localizedContent?.faq?.length?localizedContent.faq.map((item)=>[item.question,item.answer]):(searchContent?.faq?.(contentVars) || []);
-  const visibleProjectFaq = localizedContent?.article_sections?.length ? [] : projectFaq;
+  const projectFaq = localizedContent?.faq?.length?localizedContent.faq.map((item)=>[fillTokens(item.question),fillTokens(item.answer)]):(searchContent?.faq?.(contentVars) || []);
+  const visibleProjectFaq = localizedContent?.article_sections?.some((section) => /أسئلة شائعة|frequently asked|\bfaq\b/i.test(String(section.heading || ""))) ? [] : projectFaq;
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
   <section class="hero">${logoBadge(projectLogo(project), 40)}<span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(localizedContent?.h1 || (ar && PROJECT_NAMES_AR[project.slug]?.h1) || project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
   ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:contain;background:#0d1f18;border-radius:20px" fetchpriority="high">` : ""}
