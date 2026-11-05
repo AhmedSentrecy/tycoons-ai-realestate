@@ -492,7 +492,7 @@ export const adminApi = {
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
     call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
   waInbox: (token: string, status: WaInboxStatus) =>
-    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string> }>("list", { status }, token, WA_INBOX_API),
+    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string>; doubts?: Record<string, WaDoubt[]> }>("list", { status }, token, WA_INBOX_API),
   waInboxSave: (token: string, id: number, values: WaInboxValues) =>
     call<{ item: WaInboxItem }>("save", { id, values }, token, WA_INBOX_API),
   waInboxApprove: (
@@ -512,6 +512,11 @@ export const adminApi = {
   /** Links the unit (and every pending unit with the same WhatsApp name) to the project and remembers the name. */
   waInboxLink: (token: string, id: number, projectId: string) =>
     call<{ ok: boolean; linked: number; remembered: boolean }>("link_project", { id, project_id: projectId }, token, WA_INBOX_API),
+  /** Approves the units that are still ready when the server checks again; the others are skipped with the reason. */
+  waInboxApproveReady: (token: string, ids: number[]) =>
+    call<{ ok: boolean; approved: number; approved_ids: number[]; skipped: { id: number; reason: string }[] }>("approve_ready", { ids }, token, WA_INBOX_API),
+  waGroupDeveloper: (token: string, groupId: string, developer: string) =>
+    call<{ groups: WaGroup[] }>("group_developer", { group_id: groupId, developer }, token, WA_INBOX_API),
   waInboxReject: (token: string, ids: number[]) => call<{ ok: boolean; rejected: number }>("reject", { ids }, token, WA_INBOX_API),
   waGroups: (token: string) => call<{ groups: WaGroup[] }>("groups", {}, token, WA_INBOX_API),
   waGroupToggle: (token: string, groupId: string, track: boolean) =>
@@ -519,6 +524,27 @@ export const adminApi = {
 };
 
 export type WaInboxStatus = "pending" | "approved" | "rejected";
+/** Why a WhatsApp unit waits in "محتاج مراجعة" instead of "جاهز للموافقة". */
+export type WaDoubt =
+  | "no_project" | "no_name" | "dev_unknown" | "dev_conflict" | "suggested_project" | "missing_type" | "missing_area" | "missing_price"
+  | "missing_payment" | "missing_delivery" | "missing_finishing" | "no_area" | "duplicate" | "rejected_before" | "price_jump";
+export const WA_DOUBT_LABELS: Record<WaDoubt, string> = {
+  no_project: "المشروع مش على الموقع",
+  no_name: "اسم المشروع مش واضح",
+  dev_unknown: "المطور مش معروف",
+  dev_conflict: "نفس المشروع جه بأكتر من مطور",
+  suggested_project: "مشروع مقترح محتاج تأكيد",
+  missing_type: "النوع ناقص",
+  missing_area: "المساحة ناقصة",
+  missing_price: "السعر ناقص",
+  missing_payment: "طريقة الدفع ناقصة",
+  missing_delivery: "الاستلام ناقص",
+  missing_finishing: "التشطيب ناقص",
+  no_area: "المنطقة ناقصة",
+  duplicate: "مكررة",
+  rejected_before: "اترفضت قبل كده",
+  price_jump: "السعر مختلف جدًا عن الموقع",
+};
 /** Where a detail the WhatsApp message left out was filled from. */
 export type WaFillSource = "unit" | "project" | "units";
 /** The project an unmatched WhatsApp name most likely means (confirmed by the admin). */
@@ -612,6 +638,8 @@ export interface WaGroup {
   group_id: string;
   name: string | null;
   track: boolean;
+  /** The group's usual developer (used when a message names none). */
+  developer?: string | null;
   first_seen_at: string;
   last_seen_at: string;
   messages: number;

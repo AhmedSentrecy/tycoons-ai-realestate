@@ -8,6 +8,7 @@ import {
   FINISHING_LABELS,
   WA_FILL_LABELS,
   WA_SUGGEST_LABELS,
+  WA_DOUBT_LABELS,
   type AdminProject,
   type AdminUnit,
   type WaGroup,
@@ -16,6 +17,7 @@ import {
   type WaInboxValues,
   type WaFillSource,
   type WaProjectSuggestion,
+  type WaDoubt,
 } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
 import ProjectForm, { type NewProject } from "./ProjectForm";
@@ -41,6 +43,10 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   const [suggestions, setSuggestions] = useState<Record<string, WaProjectSuggestion>>({});
   const [finishingSuggestions, setFinishingSuggestions] = useState<Record<string, string>>({});
   const [finishingOpen, setFinishingOpen] = useState(false);
+  /** Pending units split in two: everything present and nothing doubtful, or needs a look (with the reasons). */
+  const [doubts, setDoubts] = useState<Record<string, WaDoubt[]>>({});
+  const [view, setView] = useState<"ready" | "review">("ready");
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [counts, setCounts] = useState<Record<WaInboxStatus, number>>({ pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -76,6 +82,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
         setRejectedBefore(result.previously_rejected ?? {});
         setSuggestions(result.suggestions ?? {});
         setFinishingSuggestions(result.finishing_suggestions ?? {});
+        setDoubts(result.doubts ?? {});
         setCounts(result.counts);
         setSelected(new Set());
       })
@@ -88,11 +95,18 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
 
   const projectById = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
   const itemById = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
+  const isReady = (item: WaInboxItem) => (doubts[String(item.id)]?.length ?? 1) === 0;
+  const readyCount = useMemo(() => items.filter((item) => (doubts[String(item.id)]?.length ?? 1) === 0).length, [items, doubts]);
+  // Pending: only the half chosen above ("جاهز للموافقة" / "محتاج مراجعة"); approved/rejected: everything.
+  const visibleItems = useMemo(
+    () => (status === "pending" ? items.filter((item) => ((doubts[String(item.id)]?.length ?? 1) === 0) === (view === "ready")) : items),
+    [items, doubts, status, view],
+  );
 
   /** Right-hand list: one row per project that has WhatsApp units (+ one row for the unmatched ones). */
   const buckets = useMemo(() => {
     const map = new Map<string, WaInboxItem[]>();
-    for (const item of items) {
+    for (const item of visibleItems) {
       const id = item.project_id && projectById.has(item.project_id) ? item.project_id : UNMATCHED;
       map.set(id, [...(map.get(id) ?? []), item]);
     }
@@ -106,7 +120,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
         ),
       )
       .sort((a, b) => Number(b.id === UNMATCHED) - Number(a.id === UNMATCHED) || b.list.length - a.list.length);
-  }, [items, projectById, query]);
+  }, [visibleItems, projectById, query]);
 
   // Keep a valid bucket selected (first one by default, as the units tab keeps a project open).
   const activeBucket = buckets.find((row) => row.id === bucket) ?? buckets[0] ?? null;
@@ -160,6 +174,23 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
       handleError(error);
     } finally {
       setBusyId(null);
+    }
+  };
+
+  /** "وافق على الكل": the server approves only what is still ready and says what it skipped. */
+  const approveReady = async (ids: number[]) => {
+    if (!ids.length) return;
+    if (!window.confirm(`توافق على ${ids.length} وحدة؟ هتنزل على الموقع على طول.`)) return;
+    setBulkBusy(true);
+    try {
+      const result = await adminApi.waInboxApproveReady(token, ids);
+      notify(`اتوافق على ${result.approved} وحدة${result.skipped.length ? ` · ${result.skipped.length} اتسابت للمراجعة` : ""}`);
+      onChanged();
+      reload();
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBulkBusy(false);
     }
   };
 
@@ -241,6 +272,22 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
             اترفض ({counts.rejected})
           </Chip>
         </div>
+        {status === "pending" && (
+          <div className="mt-2 grid grid-cols-2 gap-1.5">
+            <button
+              onClick={() => { setView("ready"); setBucket(""); setSelected(new Set()); }}
+              className={`rounded-2xl px-3 py-2 text-sm font-black ${view === "ready" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700"}`}
+            >
+              جاهز للموافقة ({readyCount})
+            </button>
+            <button
+              onClick={() => { setView("review"); setBucket(""); setSelected(new Set()); }}
+              className={`rounded-2xl px-3 py-2 text-sm font-black ${view === "review" ? "bg-[#0d1f18] text-white" : "bg-[#f1eadc] text-[#0d1f18]"}`}
+            >
+              محتاج مراجعة ({items.length - readyCount})
+            </button>
+          </div>
+        )}
         <input
           type="search"
           value={query}
@@ -311,6 +358,15 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                   className={`${inputClass} w-full sm:w-80`}
                 />
                 {unitQuery.trim() && <span className="text-xs font-bold text-[#5c6a62]">{rows.length} من {bucketRows.length}</span>}
+                {pending && view === "ready" && rows.length > 0 && (
+                  <button
+                    disabled={bulkBusy}
+                    onClick={() => void approveReady(selected.size ? [...selected] : rows.filter(isReady).map((item) => item.id))}
+                    className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-black text-white disabled:opacity-50"
+                  >
+                    {bulkBusy ? "جاري الموافقة…" : selected.size ? `وافق على المختار (${selected.size})` : `وافق على الكل (${rows.length})`}
+                  </button>
+                )}
                 {pending && selected.size > 0 && (
                   <button onClick={() => void reject([...selected])} className="rounded-full bg-red-50 px-4 py-2 text-sm font-black text-red-600">
                     ارفض المختار ({selected.size})
@@ -412,6 +468,10 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                             <div className="mt-1 flex flex-wrap gap-1">
                               {match && <Badge tone="gold">هتحدّث وحدة موجودة</Badge>}
                               {twins.length > 0 && <Badge tone="pending">مكررة ×{twins.length + 1}</Badge>}
+                              {pending && view === "review" &&
+                                (doubts[String(item.id)] ?? [])
+                                  .filter((reason) => reason !== "duplicate" && reason !== "rejected_before")
+                                  .map((reason) => <Badge key={reason} tone="error">{WA_DOUBT_LABELS[reason]}</Badge>)}
                               {rejectedAt && <Badge tone="error">اترفضت قبل كده · {when(rejectedAt)}</Badge>}
                               {item.status === "approved" && <Badge tone="ok">اتوافق</Badge>}
                               {item.status === "rejected" && <Badge tone="muted">اترفض</Badge>}
@@ -556,7 +616,12 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
           }}
         />
       )}
-      {groupsOpen && <GroupsDialog onClose={() => setGroupsOpen(false)} />}
+      {groupsOpen && (
+        <GroupsDialog
+          onClose={() => setGroupsOpen(false)}
+          developers={[...new Set(projects.map((project) => project.developer || "").filter(Boolean))].sort()}
+        />
+      )}
       {finishingOpen && activeProject && (
         <FinishingDialog
           project={activeProject}
@@ -982,7 +1047,7 @@ function EditDialog({
 }
 
 /** On/off per WhatsApp group. Off = the group's messages are skipped (no AI cost, nothing reaches this tab). */
-function GroupsDialog({ onClose }: { onClose: () => void }) {
+function GroupsDialog({ onClose, developers }: { onClose: () => void; developers: string[] }) {
   const { token, handleError } = useAdmin();
   const [groups, setGroups] = useState<WaGroup[] | null>(null);
   const [busy, setBusy] = useState("");
@@ -1009,8 +1074,25 @@ function GroupsDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
+  /** The group's usual developer: used only when a message from it names no developer. */
+  const saveDeveloper = async (group: WaGroup, developer: string) => {
+    if (developer.trim() === (group.developer || "")) return;
+    setBusy(group.group_id);
+    try {
+      const result = await adminApi.waGroupDeveloper(token, group.group_id, developer.trim());
+      setGroups(result.groups);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBusy("");
+    }
+  };
+
   return (
     <Modal title="جروبات الواتساب" onClose={onClose}>
+      <datalist id="wa-group-developers">
+        {developers.map((name) => <option key={name} value={name} />)}
+      </datalist>
       <p className="mb-3 text-sm text-[#5c6a62]">
         أي جروب جديد بيتضاف هنا لوحده وشغال. اقفل أي جروب مش جروب مطور (شات، شخصي…) وهيتم تجاهل رسايله.
       </p>
@@ -1027,6 +1109,14 @@ function GroupsDialog({ onClose }: { onClose: () => void }) {
                 <p className="text-[11px] text-[#5c6a62]">
                   {group.messages} رسالة · آخر رسالة {when(group.last_seen_at)}
                 </p>
+                <input
+                  list="wa-group-developers"
+                  defaultValue={group.developer || ""}
+                  placeholder="مطور الجروب (لو الرسالة مكتبتوش)"
+                  disabled={busy === group.group_id}
+                  onBlur={(event) => void saveDeveloper(group, event.target.value)}
+                  className={`${inputClass} mt-1 py-1 text-xs`}
+                />
               </div>
               <button
                 onClick={() => void toggle(group)}

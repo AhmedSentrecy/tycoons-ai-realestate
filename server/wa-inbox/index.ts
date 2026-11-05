@@ -7,11 +7,12 @@
 //     intake -> stores one extracted unit as "pending" (duplicates of the same message are ignored)
 //     intake_batch -> same for every unit in Claude's answer for one message (units_json)
 // - The admin page (header x-admin-token, same sessions as tycoons-admin):
-//     list, save, approve, reject, groups, group_toggle
+//     list, save, approve, approve_ready, reject, groups, group_toggle, group_developer
 // Approve writes to public.units through admin_apply_ops and logs the change in
 // admin_change_requests, exactly like a manual edit in the units tab.
 // Table: public.wa_unit_inbox, public.wa_groups (see migration.sql). Deploy with verify_jwt = false.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { canonicalDeveloper, developersByProject, doubtsFor, groupNameDeveloper, projectKey, resolveDeveloper, type DeveloperRow, type Doubt } from "./review.ts";
 
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const cors = {
@@ -126,6 +127,25 @@ async function allProjects(): Promise<ProjectRow[]> {
   return (data ?? []) as ProjectRow[];
 }
 
+async function allDevelopers(): Promise<DeveloperRow[]> {
+  const { data, error } = await db.from("developers").select("name,aliases").limit(2000);
+  fail(error);
+  return (data ?? []) as DeveloperRow[];
+}
+
+/**
+ * The usual developer of a WhatsApp group: the one the admin set (wa_groups.developer), else the
+ * developer named in the group's title when the site knows it ("Concrete 🤝 Tai Tycoons" -> Concrete Developments).
+ */
+async function groupDevelopers(developers: DeveloperRow[]): Promise<Map<string, string>> {
+  const { data, error } = await db.from("wa_groups").select("group_id,name,developer").limit(2000);
+  fail(error);
+  return new Map(((data ?? []) as Json[]).map((group) => [
+    text(group.group_id),
+    text(group.developer) || canonicalDeveloper(groupNameDeveloper(group.name), developers),
+  ]));
+}
+
 /** Names that are not a project name (Claude writes them when the message names none). */
 const NO_NAME_KEYS = new Set(["", "needsprojectname", "unknown", "unknownproject", "na", "none"]);
 const aliasKey = (name: unknown) => norm(text(name).split(" @ ")[0]);
@@ -192,6 +212,9 @@ function matchProject(projects: ProjectRow[], name: string, developer: string): 
   const key = norm(name.split(" @ ")[0]);
   if (!key) return null;
   let candidates = projects.filter((project) => norm(project.name) === key);
+  // Same name without "The" or a trailing area ("The 101" == "101", "KOR New Capital" == "KOR").
+  const loose = projectKey(name);
+  if (!candidates.length && loose.length >= 3) candidates = projects.filter((project) => projectKey(project.name) === loose);
   if (!candidates.length) candidates = projects.filter((project) => key.length >= 5 && norm(project.name).startsWith(key));
   if (candidates.length <= 1) return candidates[0] ?? null;
   const dev = norm(developer);
@@ -335,6 +358,10 @@ async function intake(body: Json) {
     if (group && group.track === false) return { stored: false, reason: "group_off" };
     if (!values.source_group && group?.name) values.source_group = group.name;
   }
+  // Developer spelled the site's way; the group's usual developer when the message names none.
+  const developers = await allDevelopers();
+  const groupDev = values.source_group_id ? (await groupDevelopers(developers)).get(text(values.source_group_id)) ?? "" : "";
+  values.developer = resolveDeveloper(values.developer, groupDev, developers).developer || null;
 
   const projects = await allProjects();
   const aliased = (await allAliases()).get(aliasKey(values.project_name));
@@ -401,13 +428,21 @@ async function list(body: Json) {
   const previouslyRejected: Record<string, string> = {};
   const suggestions: Record<string, Suggestion> = {};
   const finishingSuggestions: Record<string, string> = {};
+  const projectAreas = new Set<string>();
   if (status === "pending") {
     // Unmatched units: a name the admin already confirmed links by itself (saved), otherwise the
     // most likely project is suggested for one-click confirmation.
     const unmatched = rows.filter((row) => !text(row.project_id));
     if (unmatched.length) {
-      const [projects, aliases] = await Promise.all([allProjects(), allAliases()]);
+      const [projects, aliases, developers] = await Promise.all([allProjects(), allAliases(), allDevelopers()]);
+      const groupDev = await groupDevelopers(developers);
       for (const row of unmatched) {
+        // Units saved before the group's developer was known: fill it now (only when the message named none).
+        const resolved = resolveDeveloper(row.developer, groupDev.get(text(row.source_group_id)) ?? "", developers);
+        if (resolved.developer && resolved.developer !== text(row.developer)) {
+          const { error: devError } = await db.from("wa_unit_inbox").update({ developer: resolved.developer, updated_at: new Date().toISOString() }).eq("id", Number(row.id)).eq("status", "pending");
+          if (!devError) row.developer = resolved.developer;
+        }
         const aliased = aliases.get(aliasKey(row.project_name));
         const project = aliased ? projects.find((item) => item.id === aliased) : null;
         if (project) {
@@ -426,11 +461,12 @@ async function list(body: Json) {
     if (projectIds.length) {
       const [{ data: units, error: unitsError }, { data: projects, error: projectsError }] = await Promise.all([
         db.from("units").select(`id,project_id,unit_type,area_sqm,availability_status,${FILL_FIELDS.join(",")}`).in("project_id", projectIds).limit(10000),
-        db.from("projects").select("id,down_payment_text,installments_text,delivery_text,finishing").in("id", projectIds),
+        db.from("projects").select("id,down_payment_text,installments_text,delivery_text,finishing,area_group").in("id", projectIds),
       ]);
       fail(unitsError);
       fail(projectsError);
       const projectById = new Map(((projects ?? []) as Json[]).map((project) => [text(project.id), project]));
+      for (const project of projectById.values()) if (text(project.area_group)) projectAreas.add(text(project.id));
       for (const row of rows) {
         if (!text(row.project_id)) continue;
         const own = ((units ?? []) as Json[]).filter((unit) => unit.project_id === row.project_id);
@@ -465,13 +501,29 @@ async function list(body: Json) {
     fail(result.error);
     matches = (result.data ?? []) as Json[];
   }
+  const duplicates = findDuplicates(rows);
+  // Ready = every detail present and nothing doubtful (one click, or all at once); the rest wait in "مراجعة" with the reasons.
+  const doubts: Record<string, Doubt[]> = {};
+  if (status === "pending") {
+    const matchPrice = new Map(matches.map((unit) => [text(unit.id), Number(unit.starting_price) || 0]));
+    const ctx = {
+      hasProject: (row: Json) => Boolean(text(row.project_id)),
+      suggested: new Set(Object.keys(suggestions)),
+      duplicates,
+      rejectedBefore: previouslyRejected,
+      developersByKey: developersByProject(rows),
+      replacedPrice: new Map(rows.filter((row) => matchPrice.get(text(row.match_unit_id))).map((row) => [String(row.id), matchPrice.get(text(row.match_unit_id))!])),
+      hasArea: (row: Json) => (text(row.project_id) ? projectAreas.has(text(row.project_id)) : Boolean(text(row.area_group))),
+    };
+    for (const row of rows) doubts[String(row.id)] = doubtsFor(row, ctx);
+  }
   const counts: Record<string, number> = {};
   for (const key of ["pending", "approved", "rejected"]) {
     const { count } = await db.from("wa_unit_inbox").select("id", { count: "exact", head: true }).eq("status", key);
     counts[key] = count ?? 0;
   }
-  return { items: rows, matches, counts, duplicates: findDuplicates(rows), auto_filled: autoFilled, previously_rejected: previouslyRejected,
-    suggestions, finishing_suggestions: finishingSuggestions };
+  return { items: rows, matches, counts, duplicates, auto_filled: autoFilled, previously_rejected: previouslyRejected,
+    suggestions, finishing_suggestions: finishingSuggestions, doubts };
 }
 
 /**
@@ -599,6 +651,37 @@ async function approve(user: AdminUser, body: Json) {
 }
 
 /**
+ * "وافق على الكل" in "جاهز للموافقة": approves the given units, but only the ones that are still ready
+ * when the server checks again (nothing missing, nothing doubtful). Each one is approved exactly like
+ * a single "وافق" (updates the matched site unit, or adds a new one). Answer: what was approved and what was skipped.
+ */
+async function approveReady(user: AdminUser, body: Json) {
+  const wanted = new Set((Array.isArray(body.ids) ? body.ids : []).map(Number).filter((id) => Number.isSafeInteger(id) && id > 0).slice(0, 300));
+  if (!wanted.size) throw new HttpError(400, "id_required");
+  const current = await list({ status: "pending" });
+  const approved: number[] = [];
+  const skipped: { id: number; reason: string }[] = [];
+  for (const row of current.items) {
+    const id = Number(row.id);
+    if (!wanted.has(id)) continue;
+    wanted.delete(id);
+    const reasons = current.doubts[String(id)] ?? [];
+    if (reasons.length) {
+      skipped.push({ id, reason: reasons.join(",") });
+      continue;
+    }
+    try {
+      await approve(user, { id, values: {}, replace_unit_id: text(row.match_unit_id), availability_status: "available" });
+      approved.push(id);
+    } catch (error) {
+      skipped.push({ id, reason: error instanceof HttpError ? error.code : "approve_failed" });
+    }
+  }
+  for (const id of wanted) skipped.push({ id, reason: "not_pending" });
+  return { ok: true, approved: approved.length, approved_ids: approved, skipped };
+}
+
+/**
  * The admin confirmed (or picked) the project of an unmatched unit: every pending unit with the same
  * WhatsApp name is linked to it, and the name is remembered for the units that come later.
  */
@@ -632,9 +715,19 @@ async function reject(user: AdminUser, body: Json) {
 }
 
 async function groups() {
-  const { data, error } = await db.from("wa_groups").select("group_id,name,track,first_seen_at,last_seen_at,messages").order("last_seen_at", { ascending: false });
+  const { data, error } = await db.from("wa_groups").select("group_id,name,track,developer,first_seen_at,last_seen_at,messages").order("last_seen_at", { ascending: false });
   fail(error);
   return { groups: data ?? [] };
+}
+
+/** The admin sets (or clears) a group's usual developer in "الجروبات". */
+async function groupDeveloper(body: Json) {
+  const groupId = text(body.group_id);
+  if (!groupId) throw new HttpError(400, "group_id_required");
+  const { data, error } = await db.from("wa_groups").update({ developer: text(body.developer).slice(0, 200) || null }).eq("group_id", groupId).select("group_id");
+  fail(error);
+  if (!data?.length) throw new HttpError(404, "group_not_found");
+  return groups();
 }
 
 async function groupToggle(body: Json) {
@@ -672,10 +765,12 @@ Deno.serve(async (req: Request) => {
       case "list": return reply(await list(body));
       case "save": return reply(await save(body, user));
       case "approve": return reply(await approve(user, body));
+      case "approve_ready": return reply(await approveReady(user, body));
       case "reject": return reply(await reject(user, body));
       case "link_project": return reply(await linkProject(user, body));
       case "groups": return reply(await groups());
       case "group_toggle": return reply(await groupToggle(body));
+      case "group_developer": return reply(await groupDeveloper(body));
       default: return reply({ error: "unknown_action" }, 400);
     }
   } catch (error) {
