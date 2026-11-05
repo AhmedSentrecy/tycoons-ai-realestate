@@ -778,7 +778,7 @@ export default function ProjectPage() {
               <p className="text-sm font-semibold text-[#a3854e]">كل اختيارات الطرح الحالي</p>
               <h2 id="project-unit-options" className="mt-2 text-3xl font-extrabold">اختار وحدتك واحسب القسط</h2>
             </div>
-            <span className="text-sm text-[#5c6a62]">{totalOptionCount} اختيار</span>
+            <span className="text-sm text-[#5c6a62]">{totalOptionCount === 1 ? "اختيار واحد" : totalOptionCount === 2 ? "اختيارين" : totalOptionCount <= 10 ? `${totalOptionCount} اختيارات` : `${totalOptionCount} اختيار`}</span>
           </div>
 
           {(priceRanges.length > 0 || villaUnits.length > 0) && (
@@ -915,7 +915,7 @@ export default function ProjectPage() {
                     {formatPrice(unit.starting_price)} جنيه
                   </p>
                   {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
-                  <p className="mt-2 text-sm text-[#5c6a62]">{arabicField(unit.down_payment_text)}</p>
+                  <p className="mt-2 text-sm text-[#5c6a62]">{arabicField(String(unit.down_payment_text ?? "").replace(/^\s*(\d+(?:\.\d+)?\s*%)\s*$/, "$1 Down Payment"))}</p>
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                       اعرض المقدم والقسط
                       <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
