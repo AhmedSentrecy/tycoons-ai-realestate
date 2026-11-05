@@ -1346,6 +1346,13 @@ function DraftEditDialog({ draft, onClose, onSaved }: { draft: WaDraft; onClose:
 }
 
 const MODE_LABELS: Record<WaResearchMode, string> = { intensive: "مكثف", normal: "عادي", off: "متوقف" };
+/** What runs in each mode (shown under the switch). */
+const MODE_HINTS: Record<WaResearchMode, string> = {
+  intensive:
+    "بيدوّر على المشاريع الجديدة على النت كل 15 دقيقة، مشروعين في المرة، لحد 40 في اليوم. والرسايل اللي الفلتر بيرميها بتتسجل للمراجعة من غير ما تروح لـ Claude. وبيرجع «عادي» لوحده في الميعاد اللي تحدده.",
+  normal: "بيدوّر على المشاريع الجديدة كل 6 ساعات، مشروعين في المرة، لحد 8 في اليوم.",
+  off: "مفيش بحث على النت ولا صرف. الوحدات بتفضل توصل من الجروبات وتتربط بالمشاريع المعروفة عادي.",
+};
 
 /** How much Claude spends on new projects (and whether short WhatsApp messages are read too). */
 function ResearchModeBox() {
@@ -1382,9 +1389,13 @@ function ResearchModeBox() {
         البحث عن المشاريع الجديدة: {MODE_LABELS[settings.mode]}
         <span className="ms-2 text-xs font-bold text-[#5c6a62]">النهارده {settings.used_today} من {settings.cap}</span>
       </p>
-      <p className="text-xs text-[#5c6a62]">
-        مكثف: كل 15 دقيقة لحد 40 مشروع في اليوم، والرسايل اللي الفلتر بيسيبها بتتسجل عشان نراجع الفلتر (من غير ما تروح لـ Claude). عادي: كل 6 ساعات لحد 8 مشاريع. متوقف: مفيش بحث خالص، بس الوحدات بتتربط بالمشاريع المعروفة.
-      </p>
+      <ul className="space-y-0.5 text-[11px] leading-5">
+        {(Object.keys(MODE_LABELS) as WaResearchMode[]).map((key) => (
+          <li key={key} className={key === mode ? "font-black text-[#0d1f18]" : "text-[#7a857f]"}>
+            <span className="font-black">{MODE_LABELS[key]}:</span> {MODE_HINTS[key]}
+          </li>
+        ))}
+      </ul>
       <div className="flex flex-wrap items-end gap-2">
         <label className="text-xs font-bold">
           الوضع

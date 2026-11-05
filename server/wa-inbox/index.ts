@@ -14,7 +14,7 @@
 // admin_change_requests, exactly like a manual edit in the units tab.
 // Table: public.wa_unit_inbox, public.wa_groups (see migration.sql). Deploy with verify_jwt = false.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { canonicalDeveloper, developerKey, developersByProject, doubtsFor, groupNameDeveloper, hasProjectName, projectKey, resolveDeveloper, type DeveloperRow, type Doubt } from "./review.ts";
+import { canonicalDeveloper, developerKey, developersByProject, doubtsFor, groupNameDeveloper, hasProjectName, isUnknownDeveloper, projectKey, resolveDeveloper, type DeveloperRow, type Doubt } from "./review.ts";
 import {
   DRAFT_FIELDS, GROUPING_SCHEMA, draftDoubts, firstJson, groupingPrompt, researchPrompt, searchedUrls, verifyFacts,
   type DraftField, type NameCount,
@@ -796,15 +796,18 @@ const MODEL = "claude-sonnet-5-5";
 const GROUP_BUCKETS_PER_RUN = 6;
 const RESEARCH_PER_RUN = 2;
 
+/** Developer key, "" for "Unknown" / "Needs developer name". */
+const knownDevKey = (developer: unknown) => (isUnknownDeveloper(developer) ? "" : developerKey(developer));
+
 /** The open draft this WhatsApp name belongs to (same spelling key, same or unknown developer). */
 async function draftForName(name: string, developer: string): Promise<string | null> {
   const key = projectKey(name);
   if (!key) return null;
   const { data, error } = await db.from("wa_project_drafts").select("id,developer").in("status", ACTIVE_DRAFT).contains("wa_keys", [key]).limit(5);
   fail(error);
-  const dev = developerKey(developer);
+  const dev = knownDevKey(developer);
   const rows = (data ?? []) as Json[];
-  const same = rows.find((row) => !dev || !developerKey(row.developer) || developerKey(row.developer) === dev);
+  const same = rows.find((row) => !dev || !knownDevKey(row.developer) || knownDevKey(row.developer) === dev);
   return same ? text(same.id) : null;
 }
 
@@ -826,7 +829,8 @@ async function askClaude(prompt: string, options: { schema?: Json; search?: numb
     messages: [{ role: "user", content: prompt }],
   };
   if (options.schema) body.output_config = { format: { type: "json_schema", schema: options.schema } };
-  if (options.search) body.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: options.search, user_location: { type: "approximate", country: "EG" } }];
+  // No user_location: the search tool does not accept EG (Egypt is in the prompt instead).
+  if (options.search) body.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: options.search }];
   const content: Json[] = [];
   for (let turn = 0; turn < 4; turn++) {
     const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -858,13 +862,24 @@ async function loosePending(): Promise<Json[]> {
  */
 async function groupNewNames(): Promise<{ buckets: number; drafts_created: number; linked: number }> {
   const rows = await loosePending();
+  // Units saved before the group's developer was known ("Unknown"): the group's developer, else none.
+  const developers = await allDevelopers();
+  const groupDev = await groupDevelopers(developers);
+  for (const row of rows) {
+    if (!isUnknownDeveloper(row.developer)) continue;
+    const resolved = groupDev.get(text(row.source_group_id)) ?? "";
+    if (resolved || text(row.developer)) {
+      fail((await db.from("wa_unit_inbox").update({ developer: resolved || null }).eq("id", Number(row.id)).eq("status", "pending")).error);
+      row.developer = resolved || null;
+    }
+  }
   // Units that a draft already covers (another spelling arrived after the draft was made).
   const { data: open, error: openError } = await db.from("wa_project_drafts").select("id,developer,wa_keys").in("status", ACTIVE_DRAFT).limit(1000);
   fail(openError);
   const draftByKey = (name: unknown, developer: unknown) => {
     const key = projectKey(name);
-    const dev = developerKey(developer);
-    const hit = ((open ?? []) as Json[]).find((draft) => ((draft.wa_keys as string[]) ?? []).includes(key) && (!dev || !developerKey(draft.developer) || developerKey(draft.developer) === dev));
+    const dev = knownDevKey(developer);
+    const hit = ((open ?? []) as Json[]).find((draft) => ((draft.wa_keys as string[]) ?? []).includes(key) && (!dev || !knownDevKey(draft.developer) || knownDevKey(draft.developer) === dev));
     return hit ? text(hit.id) : "";
   };
   let linked = 0;
@@ -879,7 +894,8 @@ async function groupNewNames(): Promise<{ buckets: number; drafts_created: numbe
   const byDeveloper = new Map<string, Json[]>();
   for (const row of rows) {
     if (row.draft_id || row.suggested_project_id) continue;
-    const dev = developerKey(row.developer) || `group:${text(row.source_group_id)}`;
+    // No known developer: one bucket per WhatsApp group (never one big "unknown" bucket).
+    const dev = knownDevKey(row.developer) || `group:${text(row.source_group_id)}`;
     byDeveloper.set(dev, [...(byDeveloper.get(dev) ?? []), row]);
   }
   const projects = await allProjects();
@@ -887,8 +903,8 @@ async function groupNewNames(): Promise<{ buckets: number; drafts_created: numbe
   let buckets = 0;
   for (const list of [...byDeveloper.values()].sort((a, b) => b.length - a.length).slice(0, GROUP_BUCKETS_PER_RUN)) {
     buckets++;
-    const developer = text(list.find((row) => text(row.developer))?.developer);
-    const dev = developerKey(developer);
+    const developer = text(list.find((row) => knownDevKey(row.developer))?.developer);
+    const dev = knownDevKey(developer);
     const names = new Map<string, NameCount>();
     for (const row of list) {
       const name = text(row.project_name);
