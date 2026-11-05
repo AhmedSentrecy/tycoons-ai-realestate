@@ -80,6 +80,14 @@ export function arabicBedsRange(values: string[]): string {
   return `${arabicBeds(String(nums[0]))}–${arabicBeds(String(nums[nums.length - 1]))}`;
 }
 
+/** Arabic count of years: «سنة» / «سنتين» / «3 سنوات» (3–10) / «12 سنة» (11+). */
+export function arabicYears(value: string | number): string {
+  const n = Number(value);
+  if (n === 1) return "سنة";
+  if (n === 2) return "سنتين";
+  return Number.isInteger(n) && n >= 3 && n <= 10 ? `${value} سنوات` : `${value} سنة`;
+}
+
 /** «استلام فوري» / «استلام 2030» / «استلام خلال 3 سنوات» */
 export function arabicDelivery(value: string): string {
   const raw = (value || "").trim();
@@ -89,10 +97,7 @@ export function arabicDelivery(value: string): string {
   if (year) return `استلام ${year[1]}`;
   const years = raw.match(/(\d+(?:\.\d+)?)\s*(?:years?|سن)/i);
   if (years) {
-    const n = Number(years[1]);
-    if (n === 1) return "استلام خلال سنة";
-    if (n === 2) return "استلام خلال سنتين";
-    return `استلام خلال ${years[1]} سنوات`;
+    return `استلام خلال ${arabicYears(years[1])}`;
   }
   if (/سنة|سنوات|سنتين|استلام/.test(raw)) return raw;
   return raw;
@@ -110,7 +115,7 @@ export function arabicInstallments(value: string): string {
   const raw = (value || "").trim();
   if (!raw) return "";
   const years = raw.match(/(\d+(?:\.\d+)?)\s*(?:years?|سن)/i);
-  if (years) return `تقسيط ${years[1]} سنة`;
+  if (years) return `تقسيط ${arabicYears(years[1])}`;
   return raw;
 }
 

@@ -16,6 +16,7 @@ import type { RankedInventoryUnit } from "@/lib/propertySearch";
 import { openUnitWhatsApp } from "@/lib/whatsapp";
 import { unitPath } from "@/lib/unitUrl";
 import DeveloperLogo from "@/components/DeveloperLogo";
+import { arabicField } from "@/lib/arabicFields";
 
 interface Props {
   result: RankedInventoryUnit;
@@ -28,8 +29,9 @@ function formatPrice(value: number): string {
   return `${new Intl.NumberFormat("en-EG", { maximumFractionDigits: 0 }).format(value)} EGP`;
 }
 
+/** Stored values are English («9 years», «Fully Finished»); the Arabic card shows them in Arabic. */
 function detail(value: string): string {
-  return value?.trim() || "غير محدد";
+  return arabicField(value?.trim() || "") || "غير محدد";
 }
 
 export default function SearchResultCard({ result, query, expanded, onToggle }: Props) {
