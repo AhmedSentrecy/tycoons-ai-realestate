@@ -1465,9 +1465,7 @@ function GroupsDialog({ onClose, developers }: { onClose: () => void; developers
   return (
     <Modal title="جروبات الواتساب" onClose={onClose}>
       <ResearchModeBox />
-      <datalist id="wa-group-developers">
-        {developers.map((name) => <option key={name} value={name} />)}
-      </datalist>
+
       <p className="mb-3 text-sm text-[#5c6a62]">
         أي جروب جديد بيتضاف هنا لوحده وشغال. اقفل أي جروب مش جروب مطور (شات، شخصي…) وهيتم تجاهل رسايله.
       </p>
@@ -1484,14 +1482,18 @@ function GroupsDialog({ onClose, developers }: { onClose: () => void; developers
                 <p className="text-[11px] text-[#5c6a62]">
                   {group.messages} رسالة · آخر رسالة {when(group.last_seen_at)}
                 </p>
-                <input
-                  list="wa-group-developers"
-                  defaultValue={group.developer || ""}
-                  placeholder="مطور الجروب (لو الرسالة مكتبتوش)"
-                  disabled={busy === group.group_id}
-                  onBlur={(event) => void saveDeveloper(group, event.target.value)}
-                  className={`${inputClass} mt-1 py-1 text-xs`}
-                />
+                <div className="mt-1 text-xs">
+                  <SearchSelect
+                    options={[...new Set([...(group.developer ? [group.developer] : []), ...developers])].map((name) => ({ value: name, label: name }))}
+                    value={group.developer || ""}
+                    onChange={(value) => void saveDeveloper(group, value)}
+                    placeholder="مطور الجروب (بيتاخد بس لو الرسالة مكتبتش المطور)"
+                    emptyLabel="مفيش مطور للجروب ده"
+                    allowNew
+                    newLabel="مطور جديد"
+                    dir="ltr"
+                  />
+                </div>
               </div>
               <button
                 onClick={() => void toggle(group)}
