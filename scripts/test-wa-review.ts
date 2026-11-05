@@ -1,7 +1,7 @@
 // Rules of the WhatsApp inbox review (server/wa-inbox/review.ts). Run: node --import tsx scripts/test-wa-review.ts
 import assert from "node:assert/strict";
 import {
-  canonicalDeveloper, developersByProject, doubtsFor, groupNameDeveloper, hasProjectName, isUnknownDeveloper, projectKey, resolveDeveloper,
+  canonicalDeveloper, cleanDeveloperName, developersByProject, doubtsFor, groupNameDeveloper, hasProjectName, isUnknownDeveloper, projectKey, resolveDeveloper,
   type ReviewContext, type Row,
 } from "../server/wa-inbox/review.ts";
 
@@ -66,5 +66,13 @@ const rows = [loose, { ...loose, id: 2, developer: "Landmark Sabbour" }];
 assert.deepEqual(doubtsFor(loose, ctx({ developersByKey: developersByProject(rows) })), ["no_project", "dev_conflict"]);
 assert.deepEqual(doubtsFor({ ...loose, project_name: "Needs project name", developer: "Unknown" }, ctx()), ["no_name", "dev_unknown"]);
 assert.deepEqual(doubtsFor(loose, ctx({ suggested: new Set(["1"]) })), ["suggested_project"]);
+
+// Our team's name is never part of a developer's name.
+assert.equal(cleanDeveloperName("Tharaa & Tai"), "Tharaa");
+assert.equal(cleanDeveloperName("Biography - TAI"), "Biography");
+assert.equal(cleanDeveloperName("Maven / Tai"), "Maven");
+assert.equal(cleanDeveloperName("Concrete Developments"), "Concrete Developments");
+assert.equal(resolveDeveloper("Tharaa & Tai", "Tharaa Developments", developers).developer, "Tharaa Developments");
+assert.equal(resolveDeveloper("Tai Tycoons", "", developers).from, "unknown");
 
 console.log("wa review rules: ok");
