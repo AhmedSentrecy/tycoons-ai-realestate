@@ -511,7 +511,7 @@ export default function ProjectPage() {
         { otherProjects: faqProjects, research: researchFaqItems(content?.targeting?.research_faq) },
       );
   const baseFaq = computedFaq.length ? computedFaq : storedFaq;
-  const faq = cleanPublicFaq(isIcityOctober
+  const faq = cleanPublicFaq(isIcityOctober && !localizedArabic?.article_sections.length
     ? [
         ...baseFaq,
         {
@@ -520,7 +520,10 @@ export default function ProjectPage() {
         },
       ]
     : baseFaq);
-  const visibleFaq = localizedArabic?.article_sections.length ? [] : faq;
+  // Same rule as the pre-rendered page: the FAQ stays visible (it backs the FAQPage schema) unless the
+  // guide already has its own FAQ section.
+  const localizedHasFaq = (localizedArabic?.article_sections || []).some((section) => /أسئلة شائعة|frequently asked|\bfaq\b/i.test(section.heading || ""));
+  const visibleFaq = localizedHasFaq ? [] : faq;
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [

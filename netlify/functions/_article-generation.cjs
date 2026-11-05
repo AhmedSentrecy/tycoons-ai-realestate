@@ -419,48 +419,44 @@ function seoDraftRules(language) {
   ];
 }
 
-// "اكتب المقال": the order the pages ranking on Google for project names use, written
-// without prices or numbers (the live price table of our units is shown with every guide).
+// "اكتب المقال" (Nov 2026): one project guide, written like the repo guides of 5 Nov 2026 and shown
+// as the project page's own guide once published (see _localized-project-content.cjs). The rules match
+// the tycoons-project-guides skill; server/tycoons-admin/article-review.mjs checks them in code.
+const GUIDE_HEADINGS = {
+  ar: (name, dev) => [`## موقع ${name} وإزاي توصله`, `## المطور: ${dev}`, "## المخطط العام والتصميم", "## الخدمات والمرافق", `## أنواع الوحدات في ${name}`, `## عيوب ${name}: نقط لازم تعرفها قبل الشراء`, `## ${name} مناسب لمين؟`, "## قبل ما تحجز"],
+  en: (name, dev) => [`## Where is ${name} and how to get there`, `## Developer: ${dev}`, "## Master plan and design", "## Services and amenities", `## Unit types in ${name}`, `## Drawbacks of ${name}: what to know before buying`, `## Who is ${name} for?`, "## Before you book"],
+};
+function developerPath(developer, language) {
+  const slug = String(developer || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-+|-+$/g, "");
+  return slug ? `/${language === "en" ? "en" : "ar"}/developers/${slug}` : "";
+}
 function seoBriefRules(brief, project, language) {
   if (!brief || !brief.keyword) return [];
   const ar = language !== "en";
   const name = project?.name || "";
-  // Arabic headings carry the searched Arabic form ("كمبوند بلوم فيلدز"), not the Latin name
-  // ("عيوب Bloomfields أو ..."), which the Nov 2026 audit flagged on every Arabic guide.
+  // Arabic headings carry the searched Arabic form, never the Latin name alone.
   const headingName = ar && /[\u0600-\u06ff]/.test(brief.keyword) ? brief.keyword : name;
+  const devName = ar ? "<the developer's name in Arabic, e.g. ماونتن فيو، تطوير مصر>" : project?.developer || "";
+  const headings = GUIDE_HEADINGS[ar ? "ar" : "en"](headingName, devName);
+  const variants = [...new Set([...(brief.volumes || []).map((row) => row.keyword), ...(brief.variants || [])])].filter((keyword) => keyword && keyword !== brief.keyword && (ar ? /[\u0600-\u06ff]/.test(keyword) : !/[\u0600-\u06ff]/.test(keyword))).slice(0, 3);
   const outline = (Array.isArray(brief.competitors) ? brief.competitors : []).flatMap((page) => (page.headings || []).map((heading) => heading.text)).slice(0, 60);
-  const sections = ar
-    ? [
-        `opening paragraph (no heading): 2-3 sentences answering what ${name} is, where it is and who develops it, containing the focus keyword`,
-        `## نبذة عن ${brief.keyword}: a short bullet list (developer, location, concept, unit types)`,
-        `## موقع ${headingName} وإزاي توصله: landmarks, roads and nearby areas, described without numbers`,
-        "## the developer and its well-known projects",
-        "## the project concept, master plan and design",
-        `## أنواع الوحدات في ${headingName}: unit types only, and tell the reader the live price table on this page has current prices, payment plans and delivery`,
-        "## services and amenities",
-        "## phases and construction progress, described qualitatively without dates",
-        `## عيوب ${headingName}: نقط لازم تعرفها قبل الشراء: honest trade-offs supported by the facts (distance, area still developing, phases), never invented`,
-        `## ${headingName} مناسب لمين؟`,
-        "## قبل ما تقرر (closing section, as required above)",
-      ]
-    : [
-        `opening paragraph (no heading): 2-3 sentences answering what ${name} is, where it is and who develops it, containing the focus keyword`,
-        `## About ${brief.keyword}: a short bullet list (developer, location, concept, unit types)`,
-        `## ${name} location and access: landmarks, roads and nearby areas, without numbers`,
-        "## the developer and its well-known projects",
-        "## the project concept, master plan and design",
-        `## Unit types in ${name}: types only, and tell the reader the live price table on this page has current prices, payment plans and delivery`,
-        "## services and amenities",
-        "## phases and construction progress, qualitatively without dates",
-        `## ${name} drawbacks and what to check before buying: honest trade-offs supported by the facts, never invented`,
-        `## Who is ${name} for?`,
-        "## Before you decide (closing section, as required above)",
-      ];
+  const [minWords, maxWords] = ar ? [900, 1400] : [600, 1000];
+  const target = Math.min(maxWords, Math.max(minWords, Number(brief.target_words) || minWords + 200));
+  const siblings = (brief.site_projects || []).filter((item) => item && item !== name).slice(0, 12);
   return [
-    `SEO brief from Google data: the focus_keyword is exactly "${brief.keyword}" (${brief.source === "dataforseo" ? "the most searched spelling in Egypt" : brief.source === "google_trends" ? "the most searched spelling in Egypt on Google Trends" : "chosen spelling"}). Use it verbatim as focus_keyword, at the start of the title and meta_title, in meta_description, in the first sentence and in at least two ## headings. Use other spellings naturally once or twice: ${(brief.volumes || []).slice(0, 6).map((row) => row.keyword).filter((keyword) => keyword !== brief.keyword).join(", ") || "none"}.`,
-    `Write a complete guide of at least ${Number(brief.target_words) || 1200} words in body_markdown (the pages ranking first are about that long), in this order: ${sections.join(" | ")}. Skip a section only when the supplied facts have nothing for it; never pad with generic text.`,
-    "This guide is shown next to a live table of our current unit prices, so leave unit_evidence and claim_evidence empty ([]) and link at most a few unit pages by name.",
-    ...(outline.length ? [`The pages ranking first on Google for this keyword cover these headings: ${outline.join(" • ")}. Cover the same buyer questions where the supplied facts allow, in your own words and your own structure. Never copy their wording, and never take prices, numbers or claims from these headings.`] : []),
+    `PROJECT GUIDE. The focus_keyword is exactly "${brief.keyword}" (${brief.source === "dataforseo" ? "the most searched spelling in Egypt" : brief.source === "google_trends" ? "the most searched spelling in Egypt on Google Trends" : "chosen spelling"}). Use it verbatim as focus_keyword and put it: at the start of meta_title, at the start of meta_description, in the first sentence of the body, in the location heading, and in at least one FAQ question. Never stuff it.`,
+    ...(variants.length ? [`Second paragraph of the body: one sentence naming the other ways buyers search for it, e.g. ${ar ? `«اللي بيدوّر على «${variants.join("» أو «")}» غالبًا بيقصد المشروع ده.»` : `"People searching for “${variants.join("” or “")}” usually mean this project."`}, then one sentence on what makes the project distinctive.`] : []),
+    ...(brief.serp_titles?.length ? [`The first Google results for the keyword have these titles: ${brief.serp_titles.join(" • ")}. If most of them are about a different project (for example another phase or project of the same developer), the keyword is ambiguous: keep it out of meta_title and title, use the project's own distinctive name there, and add one sentence in the second paragraph that tells the two projects apart.`] : []),
+    ...(siblings.length ? [`Other projects listed on our site (each has its own page, so never put their names in title, meta_title or headings, and never describe this project with their names): ${siblings.join(", ")}.`] : []),
+    `${ar ? "Write in polite Egyptian colloquial Arabic (عامية مصرية مهذبة), like an experienced Tycoons broker explaining the project to a buyer face to face: short direct sentences, warm and honest, e.g. «المشروع في … وده بيخليه مناسب لـ …». Never Modern Standard Arabic, never stiff or promotional." : "Write plain, natural English for Egyptian and Gulf buyers: short direct sentences, warm and honest, never promotional."}`,
+    `title is the page H1: ${ar ? "<the Arabic searched name> في <area in Arabic> من <developer in Arabic> — <the Latin project name>" : "<project name> in <area> by <developer>"}. meta_title: at most 60 characters, starts with the focus_keyword (unless it is ambiguous), contains 2026, and ends with " | ${name}" when it still fits in 60 characters. meta_description: 120 to 160 characters, starts with the focus_keyword, a direct answer, and its only number is 2026.`,
+    `body_markdown, in exactly this order with exactly these '## ' headings: (1) an opening paragraph with no heading, 2 to 3 sentences answering what the project is, where it is and who develops it (do not write any price: the page adds the starting price from our live inventory to this paragraph); (2) the second paragraph described above; then ${headings.map((heading) => `"${heading}"`).join(", ")}. Location: roads, landmarks and nearby areas, and link the area page. Developer: who they are and their well-known or delivered projects, and link the developer page. Unit types: the types only, and say the live table on this page has current prices, payment plans and delivery. Drawbacks: honest trade-offs supported by the facts, never invented. The closing section: 2 to 3 sentences inviting the reader to confirm the price, payment plan and availability with the Tycoons team. Use '### ' subheadings and short paragraphs; use a '-' list only for a real list.`,
+    `Length: the body (without FAQ) is ${minWords} to ${maxWords} words; aim for about ${target}. Count before answering. Every sentence must carry a fact or useful buyer guidance; never pad or repeat.`,
+    `Numbers: the only numbers allowed anywhere are the land area in ${ar ? "فدان" : "feddan"} (only when public_facts.research_facts states it), road names or numbers (e.g. ${ar ? "محور 26 يوليو، الكيلو 200" : "26th of July Corridor, Km 200"}), distances or driving minutes stated in research_facts, and 2026 in meta_title and meta_description. Never write prices, percentages, payment terms, delivery dates, unit counts or areas in square metres.`,
+    `faq: 6 to 9 real buyer questions with self-contained answers of 1 to 3 sentences, in the same register as the body: ${ar ? "فين بالظبط؟ / مين المطور؟ / مساحته كام فدان؟ (only if research_facts states it) / إيه أنواع الوحدات؟ / إيه عيوبه؟ / مناسب لمين؟ / قريب من إيه؟" : "where exactly? / who is the developer? / how many feddan? (only if research_facts states it) / which unit types? / what are the drawbacks? / who is it for? / what is nearby?"} At least one question contains the focus_keyword. For prices, payment and availability the answer says the table on this page and the Tycoons team have the current details.`,
+    `Never call a commercial or administrative project a ${ar ? "كمبوند" : "compound"}, and call a coastal resort ${ar ? "قرية or منتجع" : "a village or resort"}. Links: only the approved internal URLs below, each with a descriptive label inside a sentence; no external links.`,
+    "Leave unit_evidence and claim_evidence empty ([]).",
+    ...(outline.length ? [`The pages ranking first cover these headings: ${outline.join(" • ")}. Answer the same buyer questions inside the sections above where the supplied facts allow, in your own words. Never copy their wording, and never take prices, numbers or claims from them.`] : []),
   ];
 }
 
@@ -486,9 +482,18 @@ function buildOpenAiRequest(input, projects, units = []) {
     const areas = areaLinks(projects, input.language);
     rules.push(`Only link to these approved internal URLs: ${[...refs.map((ref) => ref.url), ...areas.map((area) => area.url)].join(', ') || 'none'}. Do not create any other links.`);
     if (areas.length) rules.push(`Internal linking: link the project page at least once and the area page at least once (${areas.map((area) => `[${area.label}](${area.url})`).join(', ')}), each with a descriptive label inside a sentence, not as a bare list.`);
-    rules.push("End with a short section titled 'قبل ما تقرر' in Arabic or 'Before you decide' in English: two or three sentences inviting the reader to confirm current prices, payment plans and availability with the Tycoons team. Never mention editors, human review, AI, drafts or verification processes anywhere in the article.");
-    rules.push(...seoDraftRules(input.language));
-    rules.push(...seoBriefRules(input.seoBrief, projects[0], input.language));
+    if (input.seoBrief?.keyword) {
+      // Project guide: its own closing, length, FAQ and numbers rules (seoBriefRules) replace the generic ones.
+      const developerUrl = developerPath(projects[0]?.developer, input.language);
+      if (developerUrl) rules.push(`Also approved: the developer page ${developerUrl}; link it once in the developer section.`);
+      rules.push("Never mention editors, human review, AI, drafts or verification processes anywhere in the article.");
+      rules.push(...seoDraftRules(input.language).filter((rule) => !/^(?:body_markdown:|faq:|SEO\/GEO structure:|meta_title:|key_takeaways:|Put the focus_keyword)/.test(rule)));
+      rules.push("key_takeaways: 3 to 5 short standalone factual sentences (each under 160 characters) an AI assistant can quote: developer, location, concept, unit types, who it suits. Same numbers rule as the body; no advice.");
+      rules.push(...seoBriefRules(input.seoBrief, projects[0], input.language));
+    } else {
+      rules.push("End with a short section titled 'قبل ما تقرر' in Arabic or 'Before you decide' in English: two or three sentences inviting the reader to confirm current prices, payment plans and availability with the Tycoons team. Never mention editors, human review, AI, drafts or verification processes anywhere in the article.");
+      rules.push(...seoDraftRules(input.language));
+    }
   }
   const schema = input.action === 'topics' ? topicSchema() : draftSchema();
   const model = process.env.OPENAI_ARTICLE_MODEL || "gpt-5-mini";

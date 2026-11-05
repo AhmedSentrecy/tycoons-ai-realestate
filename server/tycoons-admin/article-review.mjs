@@ -90,6 +90,62 @@ function stripKnownNames(value, projects) {
 }
 
 /** @returns {{code: string, field: string, severity: 'blocker'|'review', message: string}[]} */
+
+// ---------- project guides (Nov 2026) ----------
+// A guide written by "اكتب المقال" has fixed headings and becomes the project page's own guide
+// (netlify/functions/_localized-project-content.cjs keeps the same markers). Guides follow the
+// tycoons-project-guides rules, checked here so nothing that breaks them can be published.
+const GUIDE_MARKERS = {
+  ar: [/^##\s+المطور:/m, /^##\s+عيوب\s.+نقط لازم تعرفها قبل الشراء/m, /^##\s+قبل ما تحجز/m],
+  en: [/^##\s+Developer:/m, /^##\s+Drawbacks of\s/m, /^##\s+Before you book/m],
+};
+export function isProjectGuide(article) {
+  const lang = article?.language === "en" ? "en" : "ar";
+  const body = String(article?.body_markdown ?? "");
+  return (!article?.target_type || article.target_type === "project") && GUIDE_MARKERS[lang].every((re) => re.test(body));
+}
+// The only numbers a guide may carry: land area in feddan, road numbers, sourced distances or
+// minutes, and the year in the title. Prices, percentages, payment terms and dates stay blocked.
+const GUIDE_NUMBERS = [
+  /\d[\d,.]*\s*(?:فدان|فدادين|feddans?)/giu,
+  /(?:الكيلو|كيلو|Km|KM|km|kilometre|kilometer)\s*\d+/gu,
+  /\d+(?:[.,]\d+)?\s*(?:كم|كيلو(?:متر)?(?:ات)?|km|kilometres?|kilometers?)(?![\p{L}])/giu,
+  /\d+\s*(?:دقيقة|دقايق|دقائق|minutes?|mins?)(?![\p{L}])/giu,
+  /(?:محور|طريق)\s*\d+\s*يوليو|26th of July|\d+(?:st|nd|rd|th)\s+(?:Street|Settlement|of October)/giu,
+  /(?:السادس من أكتوبر|6\s*أكتوبر|6 اكتوبر)/gu,
+  /(?<![\p{N}])2026(?![\p{N}])/gu,
+];
+const stripGuideNumbers = (value) => GUIDE_NUMBERS.reduce((text, re) => text.replace(re, " "), value);
+const normAr = (value) => clean(value).normalize("NFKC").toLocaleLowerCase().replace(/[\u064B-\u0652\u0640]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
+const words = (value) => String(value ?? "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[#*>`_-]/g, " ").split(/\s+/).filter((word) => /\p{L}/u.test(word)).length;
+function guideIssues(article, add) {
+  const lang = article?.language === "en" ? "en" : "ar";
+  const body = String(article?.body_markdown ?? "");
+  const keyword = normAr(article?.focus_keyword);
+  const metaTitle = clean(article?.meta_title, 400);
+  const metaDescription = clean(article?.meta_description, 800);
+  const faq = Array.isArray(article?.faq) ? article.faq.filter((item) => clean(item?.question) && clean(item?.answer)) : [];
+  const [minWords, maxWords] = lang === "en" ? [600, 1000] : [900, 1400];
+  const bodyWords = words(body);
+  if (metaTitle.length > 60) add("guide_meta_title_length", "meta_title", "blocker", `Google title is ${metaTitle.length} characters; keep it at 60 or less so it is never cut.`);
+  if (metaDescription.length < 100 || metaDescription.length > 165) add("guide_meta_description_length", "meta_description", "blocker", `Google description is ${metaDescription.length} characters; keep it between 120 and 160.`);
+  if (bodyWords < minWords) add("guide_too_short", "body_markdown", "blocker", `The guide body has ${bodyWords} words; it needs at least ${minWords}.`);
+  if (bodyWords > maxWords + 150) add("guide_too_long", "body_markdown", "review", `The guide body has ${bodyWords} words; aim for ${minWords}-${maxWords}.`);
+  if (faq.length < 6) add("guide_faq_count", "faq", "blocker", `The guide has ${faq.length} questions; it needs at least 6.`);
+  if (keyword) {
+    const opening = normAr(body.split(/\n\s*\n/).find((part) => part.trim() && !/^#/.test(part.trim())) || "");
+    if (!normAr(metaDescription).includes(keyword)) add("guide_keyword_missing", "meta_description", "blocker", "The Google description must contain the focus keyword.");
+    if (!opening.includes(keyword)) add("guide_keyword_missing", "body_markdown", "blocker", "The opening paragraph must contain the focus keyword.");
+    if (!body.split(/\r?\n/).some((line) => /^##\s/.test(line) && normAr(line).includes(keyword))) add("guide_keyword_heading", "body_markdown", "review", "No section heading contains the focus keyword.");
+    if (!faq.some((item) => normAr(item.question).includes(keyword))) add("guide_keyword_faq", "faq", "review", "No FAQ question contains the focus keyword.");
+    if (!normAr(metaTitle).includes(keyword)) add("guide_keyword_title", "meta_title", "review", "The Google title does not contain the focus keyword (fine only when the keyword means another project).");
+  }
+  const all = FIELDS.map((field) => fieldText(article, field)).join("\n");
+  if (/(?<![\p{L}])(?:[وب]?أكر|[وب]?اكر|acres?)(?![\p{L}])/iu.test(all)) add("guide_acre", "body_markdown", "blocker", "Write land area in feddan only (فدان), never acres.");
+  if (/\]\(\s*(?:https?:)?\/\//i.test(body)) add("guide_external_link", "body_markdown", "blocker", "Remove external links; the guide links only to pages on our site.");
+  if (/نظرة (?:سريعة|عملية|مركزة)|لمحة|دليل مبسّط|ملف مفصّل/.test(all)) add("guide_stock_phrase", "body_markdown", "blocker", "Remove stock phrases such as نظرة سريعة or لمحة.");
+}
+
 export function assessArticleReview(article, sources = {}) {
   const issues = [];
   const add = (code, field, severity, message) => {
@@ -144,6 +200,7 @@ export function assessArticleReview(article, sources = {}) {
   if (groundedProjects.length && !groundedProjects.some((project) => (clean(project.name) && key(combined).includes(key(project.name))) || combined.includes(`](/projects/${project.slug})`))) {
     add("source_grounding_missing", "body_markdown", "blocker", "Explain which sourced project the article describes, using its current name or project link.");
   }
+  const guide = isProjectGuide(article);
   const canonical = new Set(units.filter((unit) => referencedUnits.has(unit.id) && referencedProjects.has(unit.project_id)).flatMap((unit) => canonicalLines(unit, article.language)));
   for (const field of FIELDS) {
     const value = fieldText(article, field);
@@ -177,6 +234,8 @@ export function assessArticleReview(article, sources = {}) {
         return checkReference(path) ? `${conjunction}source reference` : `${conjunction}${token}`;
       });
       numericText = stripKnownNames(numericText, groundedProjects).replace(/^\s*\d+[.)]\s+/, "");
+      // Guides may state sourced feddan, road numbers, distances, minutes and the year (see GUIDE_NUMBERS).
+      if (guide) numericText = stripGuideNumbers(numericText);
       // Unicode numbers include fullwidth, Arabic/Persian, and other numeral
       // scripts. An alternate glyph must not bypass numeric fact validation.
       const numeric = /\p{N}/u.exec(numericText);
@@ -190,6 +249,7 @@ export function assessArticleReview(article, sources = {}) {
       add("qualitative_claim_review", field, "review", "Check qualitative, availability, and commercial wording against the sources. Edit unsupported wording and explicitly acknowledge your review.");
     }
   }
+  if (guide) guideIssues(article, add);
   add("editorial_review_required", "body_markdown", "review", "Review the complete saved article, including title, metadata, prose, and sources, before confirming publication.");
   return issues;
 }

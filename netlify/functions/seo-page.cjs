@@ -19,6 +19,7 @@ const {
   unitPath,
   findUnitByParam,
 } = require("./_seo-utils.cjs");
+const { attachPublishedGuides, isProjectGuideArticle } = require("./_localized-project-content.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
@@ -171,10 +172,15 @@ exports.handler = async function handler(event) {
         const hasCanonicalProject = projectsMeta.some((project) =>
           String(project.slug || "").trim() === slug);
         const projectRow = projectsMeta.find((project) => String(project.slug || "").trim() === slug);
-        const [article] = projectRow?.id
-          ? await fetchRest("published_editorial_articles", { select: "*", project_id: `eq.${projectRow.id}`, language: `eq.${lang}`, order: "published_at.desc", limit: "1" })
+        const recent = projectRow?.id
+          ? await fetchRest("published_editorial_articles", { select: "*", project_id: `eq.${projectRow.id}`, language: `eq.${lang}`, order: "published_at.desc", limit: "5" })
           : [];
-        html = hasCanonicalProject ? renderProject(projects, slug, lang, article || null) : null;
+        // A writing-tool project guide becomes this page's own guide (title, H1, sections, FAQ);
+        // otherwise the newest article is embedded under the page as before.
+        const project = projects.find((item) => item.slug === slug);
+        if (project) attachPublishedGuides([project], recent, project.units?.length ? new Set([String(project.id)]) : new Set());
+        const article = recent.find((item) => !isProjectGuideArticle(item)) || null;
+        html = hasCanonicalProject ? renderProject(projects, slug, lang, article) : null;
       }
       if (type === "unit") {
         // Legacy /units/<uuid> and outdated words 301 to the one readable URL.

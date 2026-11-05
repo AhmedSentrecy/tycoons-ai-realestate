@@ -55,7 +55,8 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   eq(brief.competitors.map((page) => page.domain), ["aqarsky.com", "diarna.net"], "own site and video sites skipped");
   eq(brief.competitors[0].headings[0].text, "عيوب بلوم فيلدز", "competitor headings kept");
   ok(!JSON.stringify(brief).includes("كلمة كلمة"), "competitor text never kept");
-  eq(brief.target_words, 2200, "target = 1.1 × the longest competitor");
+  eq(brief.target_words, 1400, "target = 1.1 × the longest competitor, capped at the Arabic guide maximum (1400)");
+  ok(brief.serp_titles.includes("كمبوند بلوم فيلدز") && brief.variants.length > 0, "SERP titles and spelling variants kept for the writer");
   const en = await seoBrief(project, "en", async () => variantsAnswer);
   eq(en.keyword, "bloomfields", "English article uses the English spelling");
 
@@ -92,7 +93,7 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   eq(fallbackBrief.competitors.map((page) => page.domain), ["diarna.net", "abyatproperty.com"], "own site and video sites skipped");
   eq(fallbackBrief.competitors[1].headings.map((heading) => heading.text), ["عيوب بلوم فيلدز", "خدمات"], "headings from Markdown, links stripped, h1 skipped");
   ok(!JSON.stringify(fallbackBrief).includes("كلمة كلمة"), "competitor text never kept");
-  eq(fallbackBrief.target_words, 1980, "target = 1.1 × the longest competitor");
+  eq(fallbackBrief.target_words, 1400, "target capped at the Arabic guide maximum");
   delete process.env.FIRECRAWL_API_KEY; // the write-flow tests below stay offline too
 
   // Draft rules carry the brief.
@@ -100,9 +101,11 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   const request = buildOpenAiRequest({ action: "draft", language: "ar", targetType: "project", projectId: project.id, topic: brief.keyword, researchFacts: [], seoBrief: brief }, [project], []);
   const system = request.input[0].content;
   ok(system.includes('focus_keyword is exactly "كمبوند بلوم فيلدز"'), "keyword forced");
-  ok(system.includes("at least 2200 words"), "length target");
+  ok(system.includes("900 to 1400 words") && system.includes("aim for about 1400"), "guide length range");
+  ok(system.includes("## المطور:") && system.includes("## قبل ما تحجز") && !system.includes("قبل ما تقرر"), "guide headings, its own closing");
+  ok(system.includes("عامية مصرية مهذبة") && system.includes("at most 60 characters"), "Egyptian broker register, 60-character title");
   ok(system.includes("عيوب بلوم فيلدز") && system.includes("Never copy their wording"), "competitor headings, no copying");
-  ok(system.includes("live price table"), "prices come from the live table");
+  ok(system.includes("live table on this page"), "prices come from the live table");
   eq(request.max_output_tokens, 24000, "room for a long guide");
 
   // The whole write flow: one claim → background → brief + research + draft.
@@ -151,7 +154,7 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   eq(finish.response.seo_brief.keyword, "كمبوند بلوم فيلدز", "brief returned to the admin");
   eq(finish.response.research.facts.length, 1, "research facts returned");
   ok(!finish.response.body_markdown.includes("عينة حديثة"), "frozen unit sample removed (live table instead)");
-  ok(claude.at(-1).system.includes("leave unit_evidence and claim_evidence empty"), "no frozen price lists asked");
+  ok(claude.at(-1).system.includes("Leave unit_evidence and claim_evidence empty"), "no frozen price lists asked");
   ok(finish.response.source_refs.some((ref) => ref.type === "web" && ref.url === "https://tatweermisr.com/bloomfields"), "web source cited");
   ok(claude.some((body) => body.tools) && claude.at(-1).system.includes('focus_keyword is exactly "كمبوند بلوم فيلدز"'), "research then a draft with the brief");
   const parse = require("../netlify/functions/_article-generation.cjs").parseRequest;

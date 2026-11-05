@@ -203,6 +203,15 @@ const SOFT_RESEARCH_ERRORS = new Set(["generation_shape_invalid", "generation_in
 async function write(input, safetyId) {
   const { projects, units } = await loadPublicFacts({ ...input, action: "draft" });
   const brief = await seoBrief(projects[0], input.language, (request) => providerCall(request, 60000, safetyId));
+  // The same developer's other projects on our site: each has its own page, so the guide never
+  // targets their names (no two pages competing for one search).
+  try {
+    const developer = String(projects[0]?.developer || "").trim();
+    const rows = developer ? await fetchJson(`${SUPABASE_URL}/rest/v1/projects?select=name&developer=eq.${encodeURIComponent(developer)}&status=eq.available&limit=40`, { headers: { apikey: SUPABASE_KEY, Accept: "application/json" } }) : [];
+    brief.site_projects = (Array.isArray(rows) ? rows : []).map((row) => String(row?.name || "").trim()).filter((name) => name && name !== projects[0]?.name).slice(0, 20);
+  } catch {
+    brief.site_projects = [];
+  }
   const hints = [...new Set((brief.competitors || []).flatMap((page) => (page.headings || []).map((heading) => heading.text)))].slice(0, 12).join("، ");
   const researchInput = { ...input, action: "research", topic: `${brief.keyword}${hints ? ` — ${input.language === "en" ? "also cover" : "غطّي كمان"}: ${hints}` : ""}`.slice(0, 600) };
   let researched = { facts: [], excluded: [], notes: "" };

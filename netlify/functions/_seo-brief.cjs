@@ -143,7 +143,11 @@ async function seoBrief(project, language, askAi) {
   const variants = parseVariants(await askAi(buildKeywordVariantsRequest(project)).catch(() => null), project);
   const candidates = language === "en" ? variants.en : variants.ar;
   const fallback = candidates[0] || cleanKeyword(project.name);
-  const brief = { keyword: fallback, language, source: "ai", volumes: [], competitors: [], target_words: 1500, notes: [] };
+  // Guide length (Nov 2026): Arabic 900-1400 words, English 600-1000. The first pages for project
+  // names run about 700-1150 words, so a tight, complete guide beats a padded one.
+  const range = language === "en" ? [600, 1000] : [900, 1400];
+  // variants: the other spellings, used once each in the second paragraph (also when no volumes exist).
+  const brief = { keyword: fallback, language, source: "ai", volumes: [], variants: candidates.slice(0, 6), competitors: [], serp_titles: [], target_words: range[0] + 200, notes: [] };
   const dfsOn = dfsConfigured();
   const fcOn = fcConfigured();
   if (!dfsOn) brief.notes.push("dataforseo_not_configured");
@@ -195,6 +199,9 @@ async function seoBrief(project, language, askAi) {
     }
   }
   if (organic) {
+    // Every result title (portals included): the writer checks that the keyword really means this
+    // project (e.g. «ماونتن فيو اكتوبر» mostly returns October Park, not iCity October).
+    brief.serp_titles = organic.map((item) => cleanKeyword(item.title).slice(0, 140)).filter(Boolean).slice(0, 10);
     const top = organic.map((item) => {
       let host = "";
       try { host = new URL(item.url).hostname.replace(/^www\./, "").toLowerCase(); } catch { host = ""; }
@@ -211,9 +218,9 @@ async function seoBrief(project, language, askAi) {
     };
     const pages = await Promise.all(top.map((item) => outline(item.url)));
     brief.competitors = top.map((item, index) => ({ ...item, ...pages[index] }));
-    // Longer than the longest of the first pages (not the median), never under 1,500 words.
+    // A little longer than the longest of the first pages, inside the guide range.
     const longest = Math.max(0, ...brief.competitors.map((item) => item.words).filter((words) => words > 200));
-    brief.target_words = Math.min(2500, Math.max(1500, Math.round(longest * 1.1)));
+    if (longest) brief.target_words = Math.min(range[1], Math.max(range[0], Math.round(longest * 1.1)));
   }
   return brief;
 }

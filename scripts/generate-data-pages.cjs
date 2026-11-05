@@ -8,7 +8,7 @@ const { projectAliases } = require("./lib/project-aliases.cjs");
 const { indexableUnitIds } = require("../netlify/functions/_unit-indexing.cjs");
 const { unitPath } = require("../netlify/functions/_unit-url.cjs");
 const { projectsFromUnits } = require("../src/lib/projectFaq.ts");
-const { hasIndexableContent } = require("../netlify/functions/_localized-project-content.cjs");
+const { hasOwnWrittenGuide, attachPublishedGuides, guideArticleSlug, localizedProjectContent } = require("../netlify/functions/_localized-project-content.cjs");
 
 const root = path.resolve(__dirname, "..");
 const dist = path.join(root, "dist");
@@ -78,6 +78,14 @@ async function main() {
   } catch (error) {
     console.warn(`Guides skipped: ${error.message}`);
   }
+  // A published project guide from the writing tool becomes the project page's own guide.
+  attachPublishedGuides(normalizedProjects, guides, new Set([...unitsByProject.keys()].map(String)));
+  // The browser reads the same guide as the pre-rendered page (see loadProjectPage).
+  for (const project of normalizedProjects) {
+    if (!project.targeting?._published_guide || repoGuides[project.slug] || !/^[a-z0-9-]+$/.test(project.slug)) continue;
+    const ar = localizedProjectContent(project, "ar");
+    if (ar) await writePage(`project-content/${project.slug}.json`, JSON.stringify({ ar, en: localizedProjectContent(project, "en") || undefined }));
+  }
   const guidesByProject = new Map();
   for (const guide of guides) {
     if (!guide.project_id) continue;
@@ -98,7 +106,11 @@ async function main() {
   for (const [projectId, list] of guidesByProject) {
     const project = projectById.get(projectId);
     const newest = list.find((guide) => guide.language === "ar" && /^[a-z0-9-]+$/.test(String(guide.slug || "")));
-    if (!project || !newest || !(unitsByProject.get(projectId) || []).length || hasIndexableContent(project, "ar")) continue;
+    if (!project) continue;
+    // The article the page's own guide was built from always lives on the project page only.
+    const ownSlug = guideArticleSlug(project, "ar");
+    if (ownSlug) { embeddedGuideRedirects.set(ownSlug, `/projects/${project.slug}`); continue; }
+    if (!newest || !(unitsByProject.get(projectId) || []).length || hasOwnWrittenGuide(project, "ar")) continue;
     embeddedGuideRedirects.set(newest.slug, `/projects/${project.slug}`);
   }
   let guideCount = 0;
@@ -107,6 +119,7 @@ async function main() {
     // Redirected to its project page (see embeddedGuideRedirects): no second copy is built.
     if (guide.language === "ar" && embeddedGuideRedirects.has(guide.slug)) continue;
     const project = guide.project_id ? projectById.get(guide.project_id) : null;
+    if (guide.language === "en" && project && guideArticleSlug(project, "en") === guide.slug) continue;
     const related = (guidesByProject.get(guide.project_id) || []).filter((item) => item.language === guide.language);
     const translation = guide.translation_key ? guides.find((item) =>
       item.slug && item.translation_key === guide.translation_key && item.language !== guide.language && item.published_at && item.reviewed_at) : null;
@@ -189,6 +202,11 @@ async function main() {
       `/guides/${slug}/ ${projectPath} 301!`,
       `/guides/${slug} ${projectPath} 301!`,
     ]),
+    // English project guides from the writing tool are the English project page's own guide.
+    ...normalizedProjects.flatMap((project) => {
+      const enSlug = guideArticleSlug(project, "en");
+      return enSlug && /^[a-z0-9-]+$/.test(enSlug) ? [`/en/guides/${enSlug}/ /en/projects/${project.slug} 301!`, `/en/guides/${enSlug} /en/projects/${project.slug} 301!`] : [];
+    }),
   ];
   await fs.writeFile(path.join(dist, "_redirects"), `${redirects.join("\n")}\n`, "utf8");
 
