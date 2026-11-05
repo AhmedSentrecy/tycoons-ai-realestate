@@ -157,6 +157,18 @@ function priceRanges(value: unknown): ProjectPriceRange[] {
   });
 }
 
+async function loadRepoGuide(slug: string): Promise<Record<string, unknown> | null> {
+  if (!/^[a-z0-9-]+$/.test(slug)) return null;
+  try {
+    const response = await fetch(`/project-content/${slug}.json`, { headers: { Accept: "application/json" } });
+    if (!response.ok || !(response.headers.get("content-type") || "").includes("json")) return null;
+    const body = objectValue(await response.json());
+    return Object.keys(objectValue(body.ar)).length ? body : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function loadProjectPage(slug: string): Promise<ProjectPageContent | null> {
   const columns = [
     "name",
@@ -185,6 +197,8 @@ export async function loadProjectPage(slug: string): Promise<ProjectPageContent 
     status: "eq.available",
     limit: "1",
   });
+  // The repo guide for this project (written at build time), when one exists; it wins over the DB copy.
+  const repoGuide = loadRepoGuide(slug);
   const response = await fetch(`${SUPABASE_URL}/rest/v1/projects?${params}`, {
     headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Accept: "application/json" },
   });
@@ -207,7 +221,7 @@ export async function loadProjectPage(slug: string): Promise<ProjectPageContent 
     highlights: stringArray(row.highlights),
     seo_keywords: stringArray(row.seo_keywords),
     targeting,
-    localized_content: localizedContent(targeting.localized_content),
+    localized_content: localizedContent((await repoGuide) ?? targeting.localized_content),
     price_ranges: priceRanges(targeting.price_ranges),
     image_url: text(row.image_url),
     gallery_urls: text(row.gallery_urls),
