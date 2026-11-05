@@ -1,3 +1,4 @@
+import { arabicField } from "@/lib/arabicFields";
 import type { InventoryUnit } from "@/lib/inventory";
 import type { RankedInventoryUnit } from "@/lib/propertySearch";
 
@@ -80,12 +81,9 @@ export function arabicBedsRange(values: string[]): string {
   return `${arabicBeds(String(nums[0]))}–${arabicBeds(String(nums[nums.length - 1]))}`;
 }
 
-/** Arabic count of years: «سنة» / «سنتين» / «3 سنوات» (3–10) / «12 سنة» (11+). */
+/** Arabic count of years, same wording as the project pages: «سنة» / «سنتين ونص» / «3 سنوات» / «12 سنة». */
 export function arabicYears(value: string | number): string {
-  const n = Number(value);
-  if (n === 1) return "سنة";
-  if (n === 2) return "سنتين";
-  return Number.isInteger(n) && n >= 3 && n <= 10 ? `${value} سنوات` : `${value} سنة`;
+  return arabicField(`${value} years`);
 }
 
 /** «استلام فوري» / «استلام 2030» / «استلام خلال 3 سنوات» */
