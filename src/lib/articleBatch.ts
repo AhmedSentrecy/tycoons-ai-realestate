@@ -96,3 +96,50 @@ export async function runArticleBatch(
   }
   return saved;
 }
+
+export interface PublishResult { language: BatchLanguage; articleId?: string; published: boolean; error?: string }
+
+/**
+ * «انشر» on a new WhatsApp project: the site's writing tool writes the Arabic article, then the English one
+ * (linked as its translation). Each is published right away when the server's review passes (the admin
+ * pressed «انشر» for exactly this); otherwise it stays a draft in «مقالات ناقصة» with the reasons.
+ */
+export async function writeAndPublishProjectArticles(
+  token: string,
+  projectId: string,
+  onStep: (language: BatchLanguage, step: BatchStep, waitSeconds?: number) => void,
+): Promise<PublishResult[]> {
+  const results: PublishResult[] = [];
+  let arabicId: string | undefined;
+  for (const language of ["ar", "en"] as const) {
+    const target = { language, target_type: "project" as const, project_id: projectId, area_name: null };
+    try {
+      onStep(language, "write");
+      const draft = await withLimit(() => adminApi.articleWrite(token, `write:${crypto.randomUUID()}`, target), (seconds) => onStep(language, "write", seconds), () => false);
+      onStep(language, "save");
+      const values: ArticleValues = {
+        ...target,
+        title: draft.title, slug: draft.slug, excerpt: draft.excerpt, body_markdown: draft.body_markdown,
+        meta_title: draft.meta_title, meta_description: draft.meta_description, source_refs: draft.source_refs,
+        focus_keyword: draft.focus_keyword ?? "",
+        key_takeaways: Array.isArray(draft.key_takeaways) ? draft.key_takeaways : [],
+        faq: Array.isArray(draft.faq) ? draft.faq : [],
+        hero_image_url: null,
+        review_issues: draft.review_issues ?? [],
+      };
+      const { article } = await adminApi.articleSave(token, null, values, null, language === "en" ? arabicId : undefined);
+      try {
+        const { article: live } = await adminApi.articlePublish(token, article.id, article.revision, article.content_hash);
+        if (language === "ar") arabicId = live.id;
+        results.push({ language, articleId: live.id, published: true });
+      } catch (error) {
+        results.push({ language, articleId: article.id, published: false, error: error instanceof AdminApiError ? error.code : "publish_failed" });
+      }
+      onStep(language, "done");
+    } catch (error) {
+      results.push({ language, published: false, error: error instanceof AdminApiError ? error.code : error instanceof Error ? error.message : "failed" });
+      onStep(language, "failed");
+    }
+  }
+  return results;
+}

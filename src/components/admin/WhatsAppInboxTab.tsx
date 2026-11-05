@@ -26,6 +26,7 @@ import {
   type WaProjectSuggestion,
   type WaDoubt,
 } from "../../lib/adminApi";
+import { writeAndPublishProjectArticles, type BatchLanguage, type BatchStep, type PublishResult } from "../../lib/articleBatch";
 import { useAdmin } from "./AdminContext";
 import ProjectForm, { type NewProject } from "./ProjectForm";
 import { FinishingSelect, SearchSelect } from "./SearchSelect";
@@ -58,6 +59,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   const [bulkBusy, setBulkBusy] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, WaDraft>>({});
   const [draftEditing, setDraftEditing] = useState<WaDraft | null>(null);
+  const [publishing, setPublishing] = useState<WaDraft | null>(null);
   const [counts, setCounts] = useState<Record<WaInboxStatus, number>>({ pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -399,6 +401,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                 <DraftPanel
                   draft={activeDraft}
                   onEdit={() => setDraftEditing(activeDraft)}
+                  onPublish={() => setPublishing(activeDraft)}
                   onChanged={(next) => {
                     if (next) setDrafts((current) => ({ ...current, [next.id]: next }));
                     reload();
@@ -645,6 +648,20 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
             notify(message);
             onChanged();
             reload();
+          }}
+        />
+      )}
+      {publishing && (
+        <PublishDialog
+          draft={publishing}
+          readyUnits={items.filter((item) => item.draft_id === publishing.id && isReady(item)).length}
+          allUnits={items.filter((item) => item.draft_id === publishing.id).length}
+          onClose={(changed) => {
+            setPublishing(null);
+            if (changed) {
+              onChanged();
+              reload();
+            }
           }}
         />
       )}
@@ -1094,7 +1111,7 @@ const DRAFT_FIELD_ORDER: WaDraftField[] = [
 ];
 
 /** A new project's facts from the web: trusted (2+ sites or confirmed), weak (one site: «أكّد») or missing. */
-function DraftPanel({ draft, onEdit, onChanged }: { draft: WaDraft; onEdit: () => void; onChanged: (draft: WaDraft | null) => void }) {
+function DraftPanel({ draft, onEdit, onPublish, onChanged }: { draft: WaDraft; onEdit: () => void; onPublish: () => void; onChanged: (draft: WaDraft | null) => void }) {
   const { token, notify, handleError } = useAdmin();
   const [busy, setBusy] = useState("");
   const run = async (key: string, task: () => Promise<WaDraft | null>, done: string) => {
@@ -1118,6 +1135,11 @@ function DraftPanel({ draft, onEdit, onChanged }: { draft: WaDraft; onEdit: () =
         </Badge>
         {draft.doubts.map((code) => <Badge key={code} tone="error">{waDraftDoubtLabel(code)}</Badge>)}
         <span className="me-auto" />
+        {draft.status === "ready" && (
+          <button onClick={onPublish} className="rounded-full bg-emerald-600 px-5 py-1.5 text-sm font-black text-white">
+            انشر المشروع
+          </button>
+        )}
         <button onClick={onEdit} className="rounded-full bg-[#0d1f18] px-4 py-1.5 text-xs font-black text-white">تعديل بيانات المشروع</button>
         <button
           disabled={Boolean(busy)}
@@ -1172,6 +1194,104 @@ function DraftPanel({ draft, onEdit, onChanged }: { draft: WaDraft; onEdit: () =
         })}
       </dl>
     </div>
+  );
+}
+
+const STEP_TEXT: Record<BatchStep, string> = {
+  waiting: "مستني", write: "بيكتب المقال…", save: "بيحفظ ويشيّك…", done: "خلص", failed: "وقف", skipped: "اتساب",
+};
+
+/**
+ * «انشر المشروع»: the project goes on the site with its ready units, then the site's writing tool writes the
+ * Arabic and English articles; each is published when the server's review passes, else it stays a draft.
+ */
+function PublishDialog({ draft, readyUnits, allUnits, onClose }: { draft: WaDraft; readyUnits: number; allUnits: number; onClose: (changed: boolean) => void }) {
+  const { token, handleError } = useAdmin();
+  const [phase, setPhase] = useState<"confirm" | "project" | "articles" | "done">("confirm");
+  const [summary, setSummary] = useState("");
+  const [steps, setSteps] = useState<Record<BatchLanguage, string>>({ ar: "مستني", en: "مستني" });
+  const [results, setResults] = useState<PublishResult[]>([]);
+  const running = phase === "project" || phase === "articles";
+
+  useEffect(() => {
+    if (!running) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [running]);
+
+  const start = async () => {
+    setPhase("project");
+    let projectId = "";
+    try {
+      const result = await adminApi.waPublishDraft(token, draft.id);
+      projectId = result.project_id;
+      setSummary(
+        `${result.created ? "اتعمل المشروع على الموقع" : "المشروع كان موجود على الموقع، والوحدات اتضافت عليه"} · اتوافق على ${result.approved} وحدة` +
+          (result.left_for_review ? ` · ${result.left_for_review} وحدة فضلت في «محتاج مراجعة»` : ""),
+      );
+      if (!result.created) return setPhase("done");
+    } catch (error) {
+      handleError(error);
+      return setPhase("confirm");
+    }
+    setPhase("articles");
+    const done = await writeAndPublishProjectArticles(token, projectId, (language, step, wait) =>
+      setSteps((current) => ({ ...current, [language]: wait ? `مستني حد الطلبات (${wait} ث)` : STEP_TEXT[step] })),
+    );
+    setResults(done);
+    setPhase("done");
+  };
+
+  return (
+    <Modal title={`انشر «${draft.name}»`} onClose={() => !running && onClose(phase === "done")}>
+      {phase === "confirm" ? (
+        <div className="space-y-2 text-sm">
+          <p className="font-black">اللي هيحصل:</p>
+          <ul className="list-disc space-y-1 ps-5 text-[#3d4a43]">
+            <li>المشروع هيتعمل على الموقع ببياناته اللي فوق ({draft.developer} · {[draft.sub_area, draft.area_group].filter(Boolean).join("، ")}).</li>
+            <li>{readyUnits} وحدة جاهزة من {allUnits} هتتوافق وتنزل معاه. الباقي يفضل في «محتاج مراجعة» تحت نفس المشروع.</li>
+            <li>أداة الكتابة هتكتب المقال عربي وبعده إنجليزي (حوالي 5–10 دقايق)، وكل مقال بيتنشر لوحده لو عدّى التشييك. لو ما عدّاش بيفضل مسودة في «مقالات ناقصة».</li>
+          </ul>
+          <p className="text-xs text-[#5c6a62]">سيب الصفحة مفتوحة لحد ما يخلص.</p>
+          <div className="flex justify-end gap-2 pt-2">
+            <button onClick={() => onClose(false)} className="rounded-full bg-[#f1eadc] px-4 py-2 text-sm font-black">إلغاء</button>
+            <button onClick={() => void start()} className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-black text-white">انشر</button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3 text-sm">
+          <p className="font-bold">{phase === "project" ? "بيعمل المشروع ويوافق على الوحدات…" : summary}</p>
+          {phase !== "project" && results.length === 0 && phase === "articles" && (
+            <ul className="space-y-1">
+              <li>المقال العربي: {steps.ar}</li>
+              <li>المقال الإنجليزي: {steps.en}</li>
+            </ul>
+          )}
+          {results.length > 0 && (
+            <ul className="space-y-1">
+              {results.map((result) => (
+                <li key={result.language} className="flex flex-wrap items-center gap-2">
+                  <span>{result.language === "ar" ? "المقال العربي" : "المقال الإنجليزي"}:</span>
+                  {result.published ? (
+                    <Badge tone="ok">اتنشر</Badge>
+                  ) : result.articleId ? (
+                    <Badge tone="pending">مسودة: ما عدّاش التشييك ({result.error})، راجعه في «المقالات»</Badge>
+                  ) : (
+                    <Badge tone="error">ما اتكتبش ({result.error})</Badge>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+          {phase === "done" && (
+            <div className="flex justify-end">
+              <button onClick={() => onClose(true)} className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white">قفل</button>
+            </div>
+          )}
+        </div>
+      )}
+    </Modal>
   );
 }
 

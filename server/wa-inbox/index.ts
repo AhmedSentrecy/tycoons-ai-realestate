@@ -7,7 +7,9 @@
 //     intake -> stores one extracted unit as "pending" (duplicates of the same message are ignored)
 //     intake_batch -> same for every unit in Claude's answer for one message (units_json)
 // - The admin page (header x-admin-token, same sessions as tycoons-admin):
-//     list, save, approve, approve_ready, reject, groups, group_toggle, group_developer
+//     list, save, approve, approve_ready, reject, groups, group_toggle, group_developer,
+//     draft_save, draft_reject, draft_research, publish_draft
+// pg_cron (x-intake-key): research_run -> groups new WhatsApp names and researches new projects
 // Approve writes to public.units through admin_apply_ops and logs the change in
 // admin_change_requests, exactly like a manual edit in the units tab.
 // Table: public.wa_unit_inbox, public.wa_groups (see migration.sql). Deploy with verify_jwt = false.
@@ -1107,6 +1109,105 @@ async function draftResearch(body: Json) {
   return { result: await researchDraft(draft), draft: await loadDraft(body.id) };
 }
 
+// ---------- «انشر»: a new project goes on the site ----------
+
+const slugify = (value: unknown) =>
+  text(value).toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+
+async function uniqueSlug(base: string) {
+  const root = base || "project";
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const candidate = attempt ? `${root}-${attempt + 1}` : root;
+    const { data } = await db.from("projects").select("id").eq("slug", candidate).limit(1);
+    if (!data?.length) return candidate;
+  }
+  return `${root}-${Date.now().toString(36)}`;
+}
+
+/** The developer's name as public.developers writes it; a developer the site does not know yet is added (same as the admin's new project form). */
+async function siteDeveloper(name: string): Promise<string> {
+  const developers = await allDevelopers();
+  const known = canonicalDeveloper(name, developers);
+  if (known) return known;
+  const key = slugify(name);
+  const bySlug = (await db.from("developers").select("name").eq("slug", key).maybeSingle()).data;
+  if (bySlug?.name) return text(bySlug.name);
+  fail((await db.from("developers").insert({ slug: key, name, aliases: [name] })).error);
+  return name;
+}
+
+/**
+ * «انشر» on a ready new project: creates the project on the site (same fields and texts as the admin's
+ * new-project form), links every pending unit of it, and approves the units that are ready (the others
+ * stay in «محتاج مراجعة» under the project). The article is written next by the admin page with the
+ * site's writing tool. If the project already exists on the site (same name and developer), the units
+ * join it and nothing new is created.
+ */
+async function publishDraft(user: AdminUser, body: Json) {
+  const draft = await loadDraft(body.id);
+  if (text(draft.status) !== "ready") throw new HttpError(409, "draft_not_ready");
+  const name = text(draft.name).slice(0, 200);
+  const developer = await siteDeveloper(text(draft.developer));
+  const areaGroup = text(draft.area_group);
+  const subArea = text(draft.sub_area).slice(0, 120) || null;
+  const location = text(draft.location).slice(0, 200) || (subArea ? `${subArea}, ${areaGroup}` : areaGroup);
+  const now = new Date().toISOString();
+
+  let projectId = "";
+  let slug = "";
+  let created = false;
+  const { data: twins } = await db.from("projects").select("id,slug").ilike("name", name).ilike("developer", developer).limit(1);
+  if (twins?.length) {
+    projectId = text(twins[0].id);
+    slug = text(twins[0].slug);
+  } else {
+    slug = await uniqueSlug(`${slugify(name)}--${slugify(developer)}`);
+    const year = new Date().getFullYear();
+    const row: Json = {
+      name, developer, location, area_group: areaGroup, sub_area: subArea,
+      finishing: text(draft.finishing).slice(0, 300) || null,
+      slug, status: "available",
+      description: text(draft.description) || `${name} من ${developer} في ${location}. تعرض الصفحة أحدث الوحدات والأسعار المسجلة لدى Tycoons مع ضرورة تأكيد التوفر وقت الطلب.`,
+      hero_text: `اعرف أسعار ومساحات ${name} وخطط السداد والوحدات المتاحة في ${location}.`,
+      seo_title: `${name} | الأسعار وخطط السداد ${year}`,
+      seo_description: `تعرف على أسعار ${name} في ${year}، الوحدات والمساحات المتاحة، المقدم وخطط السداد والاستلام. مشروع من ${developer} في ${location}.`,
+    };
+    const ops: Json[] = [{ op: "project_create", values: row }];
+    const { data: result, error } = await db.rpc("admin_apply_ops", { ops });
+    if (error) throw new HttpError(409, `apply_failed:${error.message}`);
+    projectId = text(((result as Json)?.created_ids as unknown[] | undefined)?.[0]);
+    created = true;
+    // Payment plan and delivery are project-level texts too (only the trusted ones).
+    const sources = (draft.sources ?? {}) as Record<string, unknown>;
+    const confirmed = new Set(((draft.confirmed as string[]) ?? []).map(text));
+    const plan: Json = {};
+    for (const field of ["down_payment_text", "installments_text", "delivery_text"]) {
+      if (text(draft[field]) && (confirmed.has(field) || (Array.isArray(sources[field]) && (sources[field] as unknown[]).length >= 2))) plan[field] = text(draft[field]);
+    }
+    if (Object.keys(plan).length) ops.push({ op: "project_update", id: projectId, values: plan });
+    if (Object.keys(plan).length) fail((await db.rpc("admin_apply_ops", { ops: [ops[1]] })).error);
+    await db.from("admin_change_requests").insert({
+      entity: "project", action: "create", target_id: projectId, project_id: projectId,
+      summary: `مشروع جديد من واتساب: ${name} — ${developer} (${location})`,
+      ops, before: null, created_by: user.id, status: "approved", reviewed_by: user.id, reviewed_at: now, result,
+    }).then(() => undefined, () => undefined);
+  }
+
+  fail((await db.from("wa_project_drafts").update({ status: "published", project_id: projectId, published_at: now, decided_by: user.id, updated_at: now }).eq("id", text(draft.id))).error);
+  // The WhatsApp spellings now point at the site project (later units link by themselves).
+  const { data: spellings } = await db.from("wa_unit_inbox").select("project_name").eq("draft_id", text(draft.id)).limit(2000);
+  for (const spelling of new Set(((spellings ?? []) as Json[]).map((row) => text(row.project_name)).filter(Boolean))) {
+    await rememberAlias(spelling, projectId, user.id).catch(() => false);
+  }
+  const { data: units, error: unitsError } = await db.from("wa_unit_inbox")
+    .update({ project_id: projectId, project_name: name, developer, updated_at: now })
+    .eq("draft_id", text(draft.id)).eq("status", "pending").select("id");
+  fail(unitsError);
+  const ids = ((units ?? []) as Json[]).map((row) => Number(row.id));
+  const approval = ids.length ? await approveReady(user, { ids }) : { approved: 0, skipped: [] };
+  return { ok: true, project_id: projectId, slug, created, linked: ids.length, approved: approval.approved, left_for_review: approval.skipped.length };
+}
+
 /** Make sends form fields (application/x-www-form-urlencoded); the admin page sends JSON. */
 async function readBody(req: Request): Promise<Json> {
   const type = req.headers.get("content-type") || "";
@@ -1154,6 +1255,7 @@ Deno.serve(async (req: Request) => {
       case "draft_research": return reply(await draftResearch(body));
       case "research_settings": return reply(await researchSettings());
       case "research_settings_save": return reply(await researchSettingsSave(body));
+      case "publish_draft": return reply(await publishDraft(user, body));
       default: return reply({ error: "unknown_action" }, 400);
     }
   } catch (error) {
