@@ -523,6 +523,9 @@ export const adminApi = {
   waResearchSettings: (token: string) => call<WaResearchSettings>("research_settings", {}, token, WA_INBOX_API),
   waResearchSettingsSave: (token: string, mode: WaResearchMode, dailyCap: number | null, intensiveUntil: string) =>
     call<WaResearchSettings>("research_settings_save", { mode, daily_cap: dailyCap, intensive_until: intensiveUntil }, token, WA_INBOX_API),
+  /** Creates the project on the site, links its WhatsApp units and approves the ready ones. */
+  waPublishDraft: (token: string, id: string) =>
+    call<{ ok: boolean; project_id: string; slug: string; created: boolean; linked: number; approved: number; left_for_review: number }>("publish_draft", { id }, token, WA_INBOX_API),
   waGroupDeveloper: (token: string, groupId: string, developer: string) =>
     call<{ groups: WaGroup[] }>("group_developer", { group_id: groupId, developer }, token, WA_INBOX_API),
   waInboxReject: (token: string, ids: number[]) => call<{ ok: boolean; rejected: number }>("reject", { ids }, token, WA_INBOX_API),
