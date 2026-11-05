@@ -30,7 +30,7 @@ for (const [slug, locales] of Object.entries(projects)) {
     if (!page) continue;
     const tag = `${slug}/${lang}`;
     ok(page.h1 && page.h1.length <= 120, `${tag}: h1`);
-    ok(page.seo_title && page.seo_title.length <= 65, `${tag}: seo_title ≤ 65 chars (${(page.seo_title || "").length})`);
+    ok(page.seo_title && page.seo_title.length <= 60, `${tag}: seo_title ≤ 60 chars, so fitTitle never cuts it (${(page.seo_title || "").length})`);
     ok(page.seo_description && page.seo_description.length >= 100 && page.seo_description.length <= 165, `${tag}: seo_description 100–165 chars (${(page.seo_description || "").length})`);
     const sections = page.article_sections || [];
     ok(sections.length >= 6, `${tag}: at least 6 sections`);
