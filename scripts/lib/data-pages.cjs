@@ -415,6 +415,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   if (localizedArticle) article = { length: 1, map: () => ({ join: () => localizedArticle }) };
   const schemaProjectName = project.name;
   const ownGuide = hasIndexableContent(project, "ar");
+  const sourceName = project.name;
   if (localized?.h1) project = { ...project, name: localized.h1 };
   // A written guide that has no FAQ section of its own shows its FAQ under it (the FAQPage
   // schema must match questions the visitor can see).
@@ -506,7 +507,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
     description,
     canonical,
     image: imageList[0] || "",
-    keywords: arabicKeywords(arrayValue(project.seo_keywords).map(text).filter(Boolean), { areaAr: areaInfo(project.location).ar, developer: project.developer, developerAr: developerInfo(project.developer)?.name_ar || "", name: project.name }),
+    keywords: arabicKeywords(arrayValue(project.seo_keywords).map(text).filter(Boolean), { areaAr: areaInfo(project.location).ar, developer: project.developer, developerAr: developerInfo(project.developer)?.name_ar || "", name: sourceName }),
     schemas,
     body,
     alternates: [{ hreflang: "en", href: `${SITE_URL}/en/projects/${project.slug}` }],
