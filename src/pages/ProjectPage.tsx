@@ -341,13 +341,15 @@ export default function ProjectPage() {
   }, [localizedArabic]);
 
   useEffect(() => {
-    if (loading || contentLoading || project || !content) return;
+    // A failed or empty inventory load (a slow fetch during Googlebot's render, say) is not proof the
+    // project has no units: keep the pre-rendered head, which already has the right robots value.
+    if (loading || contentLoading || project || !content || error || !units.length) return;
     const title = (ownGuide && localizedArabic?.seo_title) || content.seo_title || `${content.name} | Tycoons Investments`;
     document.title = fitTitle(title);
     setMeta('meta[name="description"]', "content", (ownGuide && localizedArabic?.seo_description) || content.seo_description || `تفاصيل مشروع ${content.name} من ${content.developer}. تواصل معنا لتأكيد آخر الوحدات المتاحة.`);
     setMeta('link[rel="canonical"]', "href", `${SITE_URL}/projects/${slug}`);
     setMeta('meta[name="robots"]', "content", ownGuide ? "index,follow" : "noindex,follow");
-  }, [content, contentLoading, loading, localizedArabic, ownGuide, project, slug]);
+  }, [content, contentLoading, error, loading, localizedArabic, ownGuide, project, slug, units.length]);
 
   useEffect(() => {
     if (!project) return;
