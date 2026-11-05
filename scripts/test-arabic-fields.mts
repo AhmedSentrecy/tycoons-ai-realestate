@@ -14,7 +14,7 @@ for (const stored of ["Delivery in 4.5 years", "Delivery within 3 months", "With
 }
 assert.equal(arabicField("3 Bedrooms"), "3 غرف نوم"); checks += 1;
 // Search cards: 3–10 years are «سنوات», 11+ «سنة».
-for (const [stored, shown] of [["9 years", "تقسيط 9 سنوات"], ["12 years", "تقسيط 12 سنة"], ["2 years", "تقسيط سنتين"], ["1 year", "تقسيط سنة"]]) {
+for (const [stored, shown] of [["9 years", "تقسيط 9 سنوات"], ["12 years", "تقسيط 12 سنة"], ["2 years", "تقسيط سنتين"], ["1 year", "تقسيط سنة"], ["2.5 years", "تقسيط سنتين ونص"], ["1.5 years", "تقسيط سنة ونص"]]) {
   assert.equal(arabicInstallments(stored), shown); checks += 1;
 }
 assert.equal(arabicDelivery("Delivery in 4 years"), "استلام خلال 4 سنوات"); checks += 1;
