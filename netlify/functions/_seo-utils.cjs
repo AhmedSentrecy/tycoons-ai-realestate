@@ -2496,9 +2496,10 @@ function embeddedGuidePaths(articles, projects, projectIdsWithUnits) {
 function arabicProjectName(slug) {
   const entry = PROJECT_NAMES_AR[String(slug || "")];
   if (!entry) return "";
+  const { tidyArabicName } = require("./_unit-labels.cjs");
   const fromTitle = String(entry.title || "").split(/\s+20\d\d|\s+—\s+/)[0].trim();
-  if (fromTitle) return fromTitle;
-  return String(entry.h1 || "").split(/\s+—\s+/)[0].trim();
+  if (fromTitle) return tidyArabicName(fromTitle);
+  return tidyArabicName(String(entry.h1 || "").split(/\s+—\s+/)[0].trim());
 }
 
 function editorialGuidePath(article) {

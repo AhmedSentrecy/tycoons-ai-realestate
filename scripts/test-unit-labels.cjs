@@ -2,7 +2,7 @@
 // Arabic unit labels on project pages (audit 5 Nov 2026): "Typical شقة", "1.0", "Offices",
 // "iCity October - Lake House", "فيرست رو" (Arabic words wherever Arabic has one).
 const assert = require("node:assert/strict");
-const { unitTypeAr, unitBaseAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, unitsCountAr } = require("../netlify/functions/_unit-labels.cjs");
+const { tidyArabicName, arabicKeywords, unitTypeAr, unitBaseAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, unitsCountAr } = require("../netlify/functions/_unit-labels.cjs");
 let n = 0;
 const eq = (a, b) => { assert.equal(a, b); n += 1; };
 eq(unitTypeAr("Typical Apartment"), "شقة في دور متكرر");
@@ -41,4 +41,10 @@ const hero = arabicHeroLine("مشروع DISTRICT 5 في South New Cairo, New Cai
 eq(hero, "مشروع ديستريكت 5 في القاهرة الجديدة والتجمع.");
 eq(hasLatinWords(hero), false);
 eq(hasLatinWords("بنأكد آخر Availability"), true);
+eq(tidyArabicName("ماونتن فيو آي سيتي أكتوبر السادس من أكتوبر"), "ماونتن فيو آي سيتي أكتوبر");
+eq(tidyArabicName("نيوم أكتوبر السادس من أكتوبر"), "نيوم أكتوبر");
+eq(tidyArabicName("ماونتن فيو آي سيتي التجمع الخامس القاهرة الجديدة"), "ماونتن فيو آي سيتي التجمع الخامس");
+eq(tidyArabicName("ماونتن فيو الساحل الشمالي رأس الحكمة"), "ماونتن فيو الساحل الشمالي رأس الحكمة");
+eq(tidyArabicName("كمبوند ديستريكت 5 التجمع"), "كمبوند ديستريكت 5 التجمع");
+eq(arabicKeywords(["شقق للبيع في Sheikh Zayed", "Mountain View iCity October prices 2026", "مشروعات Mountain View"], { areaAr: "السادس من أكتوبر", developer: "Mountain View", developerAr: "ماونتن فيو" }).join("|"), "شقق للبيع في السادس من أكتوبر|Mountain View iCity October prices 2026|مشروعات ماونتن فيو");
 console.log(`Unit label tests passed (${n} checks).`);

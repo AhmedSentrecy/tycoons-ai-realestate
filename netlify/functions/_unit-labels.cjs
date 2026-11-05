@@ -168,6 +168,40 @@ function hasLatinWords(value, allowed = []) {
   return /[A-Za-z]{3,}/.test(out);
 }
 
+// The same area said twice in a searched name ("… آي سيتي أكتوبر السادس من أكتوبر",
+// "… التجمع الخامس القاهرة الجديدة"): keep the first. Different places ("الساحل الشمالي رأس الحكمة") stay.
+const AREA_GROUPS = [
+  ["السادس من أكتوبر", "6 أكتوبر", "أكتوبر"],
+  ["التجمع الخامس", "القاهرة الجديدة", "التجمع"],
+];
+/** Arabic project name without the area repeated. */
+function tidyArabicName(value) {
+  let out = text(value);
+  for (const group of AREA_GROUPS) {
+    const hits = group.map((phrase) => ({ phrase, at: out.indexOf(phrase) })).filter((hit) => hit.at >= 0).sort((a, b) => a.at - b.at);
+    if (hits.length < 2) continue;
+    // Drop every later phrase of the group that does not overlap the first one.
+    const first = hits[0];
+    for (const hit of hits.slice(1)) {
+      if (hit.at >= first.at && hit.at < first.at + first.phrase.length) continue;
+      out = out.slice(0, hit.at) + out.slice(hit.at + hit.phrase.length);
+    }
+    out = out.replace(/\s+/g, " ").trim();
+  }
+  return out;
+}
+
+/** Keywords stored with an English place ("شقق للبيع في Sheikh Zayed"): Arabic area in Arabic phrases. */
+function arabicKeywords(list, { areaAr = "", developer = "", developerAr = "" } = {}) {
+  return (Array.isArray(list) ? list : []).map((value) => {
+    let out = text(value);
+    if (!/[؀-ۿ]/.test(out)) return out;
+    if (areaAr) out = out.replace(/(للبيع في )[A-Za-z][A-Za-z0-9 ,.'-]*$/, `$1${areaAr}`);
+    if (developer && developerAr && out === `مشروعات ${developer}`) out = `مشروعات ${developerAr}`;
+    return out;
+  }).filter(Boolean);
+}
+
 /** Arabic count of units: 1 -> "وحدة واحدة", 2 -> "وحدتين", 3..10 -> "3 وحدات", 11+ -> "11 وحدة". */
 function unitsCountAr(n) {
   const value = Math.round(Number(n) || 0);
@@ -177,4 +211,4 @@ function unitsCountAr(n) {
   return `${value} وحدة`;
 }
 
-module.exports = { unitTypeAr, unitBaseAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, unitsCountAr };
+module.exports = { tidyArabicName, arabicKeywords, unitTypeAr, unitBaseAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, unitsCountAr };

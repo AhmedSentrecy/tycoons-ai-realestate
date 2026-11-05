@@ -33,7 +33,7 @@ import { areaFor } from "@/lib/unitContent";
 
 import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
 import { projectFacts, lastPriceUpdate } from "../../netlify/functions/_project-facts.cjs";
-import { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords } from "../../netlify/functions/_unit-labels.cjs";
+import { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, tidyArabicName } from "../../netlify/functions/_unit-labels.cjs";
 import { yearsAr } from "@/lib/arabicFields";
 import ProjectFacts from "@/components/ProjectFacts";
 import PageStructuredData from "@/components/PageStructuredData";
@@ -299,7 +299,7 @@ export default function ProjectPage() {
   );
   const project = projectUnits[0];
   // Arabic searched name for headings, the same rule as the pre-rendered page (arabicProjectName).
-  const arabicHeadingName = (PROJECT_NAMES_AR[slug]?.title || "").split(/\s+20\d\d|\s+—\s+/)[0].trim() || (PROJECT_NAMES_AR[slug]?.h1 || "").split(/\s+—\s+/)[0].trim() || project?.project_name || "";
+  const arabicHeadingName = tidyArabicName((PROJECT_NAMES_AR[slug]?.title || "").split(/\s+20\d\d|\s+—\s+/)[0].trim() || (PROJECT_NAMES_AR[slug]?.h1 || "").split(/\s+—\s+/)[0].trim()) || project?.project_name || "";
   const developerBrand = useDeveloper(project?.developer ?? "");
   // Hero line in Arabic: stored copy with the English names swapped; if English is still left,
   // the plain Arabic sentence instead (same rule as the pre-rendered page).
