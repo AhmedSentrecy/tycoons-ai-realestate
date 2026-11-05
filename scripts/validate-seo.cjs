@@ -200,10 +200,13 @@ assert.match(zayedAr, /<title>كمبوندات الشيخ زايد 2026 — ال
 assert.match(zayedAr, /زايد الجديدة/);
 assert.match(areaGuide("sheikh-zayed", "Sheikh Zayed", "en"), /Old Sheikh Zayed vs New Zayed/);
 for (const html of [newCairoAr, northCoastAr, zayedAr]) assert.match(html, /"@type":"FAQPage"/);
-assert.match(icity, /أسعار Mountain View iCity October/);
+// The repo guide (content/project-articles.source.json) now owns this page: its title and H1 win.
+assert.match(icity, /<title>ماونتن فيو آي سيتي أكتوبر 2026/);
+assert.match(icity, /<h1[^>]*>[^<]*آي سيتي أكتوبر/);
+assert.doesNotMatch(icity, /\{\{min_price\}\}/);
 assert.doesNotMatch(icity, /October أكتوبر/);
 assert.match(icity, /6th of October/);
-assert.match(icity, /master plan/);
+assert.match(icity, /نادي الرماية/); // landmark from the repo guide body
 assert.match(icity, /"@type":"FAQPage"/);
 assert.match(methodology, /منهجية البيانات والحسابات/);
 assert.match(about, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/about">/);

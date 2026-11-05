@@ -414,7 +414,10 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   const schemaProjectName = project.name;
   const ownGuide = hasIndexableContent(project, "ar");
   if (localized?.h1) project = { ...project, name: localized.h1 };
-  const visibleFaq = localizedArticle ? [] : faq;
+  // A written guide that has no FAQ section of its own shows its FAQ under it (the FAQPage
+  // schema must match questions the visitor can see).
+  const localizedHasFaq = (localized?.article_sections || []).some((section) => /أسئلة شائعة|frequently asked|\bfaq\b/i.test(String(section.heading || "")));
+  const visibleFaq = localizedArticle && localizedHasFaq ? [] : faq;
   const developerPath = `/ar/developers/${slugify(project.developer)}`;
   // The developer page is only published when one of its projects has units. A project shown
   // through its written guide alone must not link a developer page that 404s (audit SEO-05:
