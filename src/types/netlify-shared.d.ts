@@ -26,3 +26,11 @@ declare module "*netlify/functions/_project-schema.cjs" {
   export function buildProjectSchemas(input: ProjectSchemaInput): Record<string, unknown>[];
   export function hasEditorialContent(sections: unknown): boolean;
 }
+
+declare module "*/_project-facts.cjs" {
+  export interface ProjectFactInput { developer?: string; developerHref?: string; area?: string; areaHref?: string; units?: Array<{ unit_type?: string; starting_price?: number | string | null; last_updated_at?: string | null }> }
+  export function projectFacts(input: ProjectFactInput): Array<{ label: string; value: string; href?: string; datetime?: string }>;
+  export function projectFactsHtml(facts: Array<{ label: string; value: string; href?: string; datetime?: string }>, title: string): string;
+  export function lastPriceUpdate(units: Array<{ last_updated_at?: string | null }>, fallback?: string | null): string;
+  export function arabicType(value: string): string;
+}

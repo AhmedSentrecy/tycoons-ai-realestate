@@ -33,6 +33,8 @@ import { arabicField } from "@/lib/arabicFields";
 import { areaFor } from "@/lib/unitContent";
 
 import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
+import { projectFacts, lastPriceUpdate } from "../../netlify/functions/_project-facts.cjs";
+import ProjectFacts from "@/components/ProjectFacts";
 import PageStructuredData from "@/components/PageStructuredData";
 import { unitPath } from "@/lib/unitUrl";
 import { fitTitle } from "@/lib/fitTitle";
@@ -295,6 +297,8 @@ export default function ProjectPage() {
     [slug, units],
   );
   const project = projectUnits[0];
+  // Arabic searched name for headings, the same rule as the pre-rendered page (arabicProjectName).
+  const arabicHeadingName = (PROJECT_NAMES_AR[slug]?.title || "").split(/\s+20\d\d|\s+—\s+/)[0].trim() || (PROJECT_NAMES_AR[slug]?.h1 || "").split(/\s+—\s+/)[0].trim() || project?.project_name || "";
   const developerBrand = useDeveloper(project?.developer ?? "");
   // Ids of units that still have a page (null while loading, so no guide link is dropped early).
   const liveUnitIds = useMemo(() => (loading || !units.length ? null : new Set(units.map((unit) => unit.id))), [loading, units]);
@@ -530,7 +534,8 @@ export default function ProjectPage() {
       ...buildProjectSchemas({ url: pageUrl, name: project.project_name, projectSlug: slug, location: project.location,
         title: localizedArabic?.seo_title || content?.seo_title || project.project_name,
         description: localizedArabic?.seo_description || content?.seo_description || project.description,
-        images, modified: content?.last_updated_at || project.last_updated_at,
+        // The newest price update, the same date the facts box shows.
+        images, modified: lastPriceUpdate(projectUnits, content?.last_updated_at || project.last_updated_at),
         units: projectUnits, ranges: priceRanges,
         articleSections: localizedArabic?.article_sections.length ? localizedArabic.article_sections : content?.article_sections,
       }),
@@ -599,6 +604,16 @@ export default function ProjectPage() {
               <p className="mt-5 text-lg font-light text-white/70">
                 {content?.hero_text || project.description}
               </p>
+              <ProjectFacts
+                title={`${arabicHeadingName} في سطور`}
+                facts={projectFacts({
+                  developer: developerBrand?.name_ar || project.developer,
+                  developerHref: developerHasPage ? `/ar/developers/${slugify(project.developer)}` : "",
+                  area: areaFor(project.location).ar,
+                  areaHref: areaFor(project.location).indexable ? `/ar/areas/${areaFor(project.location).slug}` : "",
+                  units: projectUnits,
+                })}
+              />
             </div>
             <a
               href={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`}
