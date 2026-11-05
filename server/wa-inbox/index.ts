@@ -358,6 +358,10 @@ async function intake(body: Json) {
   values.sender = text(body.sender).slice(0, 300) || null;
   values.message_id = text(body.message_id).slice(0, 300) || null;
   if (!values.unit_type && !values.project_name) return { stored: false, reason: "empty" };
+  // What Claude read, before any matching or the admin's edits (for the reading review).
+  values.original = Object.fromEntries(
+    [...TEXT_FIELDS, "area_sqm", "starting_price", "area_group"].map((field) => [field, values[field] ?? null]).filter(([, value]) => value !== null),
+  );
   // Groups switched off in the admin are ignored even if Make still sends them.
   if (values.source_group_id) {
     const { data: group } = await db.from("wa_groups").select("track,name").eq("group_id", values.source_group_id).maybeSingle();

@@ -47,6 +47,8 @@ alter table public.wa_project_drafts enable row level security;
 alter table public.wa_unit_inbox add column if not exists draft_id uuid references public.wa_project_drafts(id) on delete set null;
 -- A site project Claude thinks this name means (the admin confirms it, like the rule-based suggestions).
 alter table public.wa_unit_inbox add column if not exists suggested_project_id uuid references public.projects(id) on delete set null;
+-- What Claude read from the message, kept as it was (the admin's edits change the row, not this).
+alter table public.wa_unit_inbox add column if not exists original jsonb;
 create index if not exists wa_unit_inbox_draft_idx on public.wa_unit_inbox (draft_id) where draft_id is not null;
 
 -- Spending mode (changeable in /admin → «الجروبات»): «مكثف» until Monday 9 Nov 2026 08:00 Cairo, then «عادي» by itself.

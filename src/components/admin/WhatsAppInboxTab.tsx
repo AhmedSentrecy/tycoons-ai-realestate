@@ -1263,7 +1263,7 @@ function ResearchModeBox() {
         <span className="ms-2 text-xs font-bold text-[#5c6a62]">النهارده {settings.used_today} من {settings.cap}</span>
       </p>
       <p className="text-xs text-[#5c6a62]">
-        مكثف: كل 15 دقيقة لحد 40 مشروع في اليوم، والرسايل القصيرة بتتقري كمان. عادي: كل 6 ساعات لحد 8 مشاريع. متوقف: مفيش بحث خالص، بس الوحدات بتتربط بالمشاريع المعروفة.
+        مكثف: كل 15 دقيقة لحد 40 مشروع في اليوم، والرسايل اللي الفلتر بيسيبها بتتسجل عشان نراجع الفلتر (من غير ما تروح لـ Claude). عادي: كل 6 ساعات لحد 8 مشاريع. متوقف: مفيش بحث خالص، بس الوحدات بتتربط بالمشاريع المعروفة.
       </p>
       <div className="flex flex-wrap items-end gap-2">
         <label className="text-xs font-bold">

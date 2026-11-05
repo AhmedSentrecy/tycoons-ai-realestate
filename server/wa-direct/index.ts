@@ -54,12 +54,15 @@ function mediaKind(mime: string, fileName: string): Kind {
   return "other";
 }
 
-/** «مكثف» in the admin (until its end date): short group messages are read too (more data in the first days). */
+/**
+ * «مكثف» in the admin (until its end date): group messages the filter skips are written to wa_message_log
+ * (status skipped_<reason>) without going to Claude, so the filter can be checked against them later.
+ */
 function intensive(s: Record<string, string>) {
   return s.wa_research_mode === "intensive" && (!s.wa_intensive_until || Date.parse(s.wa_intensive_until) > Date.now());
 }
 
-function passesFilter(event: Json, wide = false): { ok: boolean; reason: string; kind: Kind } {
+function passesFilter(event: Json): { ok: boolean; reason: string; kind: Kind } {
   const payload = (event.payload ?? {}) as Json;
   const media = (payload.media ?? {}) as Json;
   const mime = text(media.mimetype).toLowerCase();
@@ -74,7 +77,6 @@ function passesFilter(event: Json, wide = false): { ok: boolean; reason: string;
   if (body.length >= 10 && /[0-9٠-٩]/.test(body)) return { ok: true, reason: "text_with_number", kind: "text" };
   if (body.length >= 40) return { ok: true, reason: "long_text", kind: "text" };
   if (KEYWORDS.test(body)) return { ok: true, reason: "keyword", kind: "text" };
-  if (wide && body.length >= 4) return { ok: true, reason: "intensive_short", kind: "text" };
   return { ok: false, reason: "short_chat", kind: "text" };
 }
 
@@ -157,6 +159,21 @@ async function askClaude(content: unknown[]): Promise<Json> {
 async function logUpdate(id: number | null, values: Json) {
   if (!id) return;
   await db.from("wa_message_log").update({ ...values, updated_at: new Date().toISOString() }).eq("id", id);
+}
+
+/** A group message the filter skipped, kept for the filter review (no Claude call, no cost). */
+async function logSkipped(event: Json, reason: string) {
+  const payload = (event.payload ?? {}) as Json;
+  const info = ((payload._data as Json | undefined)?.Info ?? {}) as Json;
+  const media = (payload.media ?? {}) as Json;
+  await db.from("wa_message_log").insert({
+    message_id: text(payload.id) || text(info.ID) || null,
+    group_id: text(payload.from),
+    sender: text(info.PushName) || text(payload.notifyName) || text(payload.participant),
+    kind: text(media.mimetype) ? "other" : "text",
+    body: text(payload.body).slice(0, 4000),
+    status: `skipped_${reason}`,
+  }).then(() => undefined, () => undefined);
 }
 
 // ---------- 2-5. background work for one message ----------
@@ -243,8 +260,11 @@ Deno.serve(async (req: Request) => {
     const key = new URL(req.url).searchParams.get("key") || "";
     if (!timingSafeEqual(key, s.wa_inbox_key || "")) return reply({ error: "key_invalid" }, 401);
     const event = ((await req.json().catch(() => ({}))) ?? {}) as Json;
-    const check = passesFilter(event, intensive(s));
-    if (!check.ok) return reply({ skipped: check.reason });
+    const check = passesFilter(event);
+    if (!check.ok) {
+      if (intensive(s) && (check.reason === "short_chat" || check.reason === "voice_video_sticker")) await logSkipped(event, check.reason);
+      return reply({ skipped: check.reason });
+    }
     // Answer WAHA now; the slow part (download, Claude, intake) keeps running in the background.
     // deno-lint-ignore no-explicit-any
     const runtime = (globalThis as any).EdgeRuntime;
