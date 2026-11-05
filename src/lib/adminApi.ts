@@ -571,7 +571,7 @@ export const WA_DOUBT_LABELS: Record<WaDoubt, string> = {
   draft_researching: "بندوّر على المشروع على النت",
 };
 /** Where a detail the WhatsApp message left out was filled from. */
-export type WaFillSource = "unit" | "project" | "units";
+export type WaFillSource = "unit" | "project" | "units" | "web";
 /** The project an unmatched WhatsApp name most likely means (confirmed by the admin). */
 export interface WaProjectSuggestion { project_id: string; name: string; kind: "phase" | "master" | "similar" | "ai" }
 export const WA_SUGGEST_LABELS: Record<WaProjectSuggestion["kind"], string> = { phase: "نفس المرحلة", master: "المشروع الأم", similar: "اسم قريب", ai: "Claude شايفه نفس المشروع" };
@@ -631,7 +631,7 @@ export const FINISHING_LABELS: Record<string, string> = {
   "Fully Finished": "تشطيب كامل", "Fully Finished with ACs": "تشطيب كامل + تكييفات", Furnished: "مفروش",
 };
 
-export const WA_FILL_LABELS: Record<WaFillSource, string> = { unit: "من الوحدة الحالية", project: "من بيانات المشروع", units: "من وحدات المشروع" };
+export const WA_FILL_LABELS: Record<WaFillSource, string> = { unit: "من الوحدة الحالية", project: "من بيانات المشروع", units: "من وحدات المشروع", web: "من النت (مصدرين)" };
 
 /** The 9 main areas: projects.area_group, the WhatsApp intake and the area dropdowns all use this list. */
 export const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"] as const;

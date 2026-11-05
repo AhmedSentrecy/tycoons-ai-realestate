@@ -1,14 +1,18 @@
 // Projects that are not on the site yet (pure part, no database / network):
-// 1. grouping: the prompt that asks Claude which WhatsApp names are the same project
+// 1. grouping: the prompt that asks Claude which WhatsApp names are the same project; when Claude is
+//    unsure, each name is searched on the web and the grouping is kept only when 2 sites show it
 // 2. research: the prompt for Claude's web search, and the check that keeps a fact only when
 //    2 different sites (not ours) say it, or the admin confirmed it by hand
 // 3. the draft's doubts (anything missing or doubtful keeps it in «محتاج مراجعة»)
+// 4. unit doubts about the project or the developer, settled on the web the same way before the admin sees them
 // Used by index.ts and scripts/test-wa-research.ts.
 
 import { developerKey } from "./review.ts";
 
 type Json = Record<string, unknown>;
 const text = (value: unknown) => (typeof value === "string" ? value.trim() : value == null ? "" : String(value).trim());
+
+const OWN_SITES = new Set(["tycoons-inv.com", "tycoons-inv.de"]);
 
 /** The 9 main areas (same list as projects.area_group). */
 export const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"];
@@ -71,6 +75,53 @@ export function groupingPrompt(developer: string, names: NameCount[], site: Site
   ].filter((line) => line !== "").join("\n");
 }
 
+// ---------- 1b. unsure grouping: settled on the web, same 2-sites rule ----------
+
+export function groupingCheckPrompt(developer: string, waNames: string[]) {
+  return [
+    `These names were written in the WhatsApp sales group of ${developer || "an Egyptian real-estate developer"}: ${waNames.map((name) => `"${name}"`).join(", ")}.`,
+    "Are they ONE project (spelling variants of the same name) or DIFFERENT projects? Search the web for each name on its own.",
+    "Group the names only by what real web pages (developer site, property portals, news) show, and give for each project the URLs that show it.",
+    "A name you do not find on the web stays alone in its own project, with no sources. Never guess.",
+    "Do not use tycoons-inv.com as a source.",
+    "",
+    "Answer with JSON only:",
+    '{"projects": [{"name": "the official English name", "wa_names": ["names exactly as given above"], "sources": ["https://..."]}]}',
+  ].join("\n");
+}
+
+export interface CheckedGroup { name: string; wa_names: string[] }
+
+/**
+ * The web's answer to an unsure grouping. Settled only when every WhatsApp name is in exactly one project
+ * and every project is shown by 2 different sites (that the search returned, not ours). Otherwise null:
+ * the draft keeps «grouping_unsure» for the admin.
+ */
+export function verifyGrouping(raw: unknown, searched: Set<string>, waNames: string[]): CheckedGroup[] | null {
+  const data = (raw && typeof raw === "object" ? raw : {}) as Json;
+  const projects = Array.isArray(data.projects) ? (data.projects as Json[]) : [];
+  if (!projects.length) return null;
+  const searchedSites = new Set([...searched].map(siteOf).filter(Boolean));
+  const wanted = new Set(waNames);
+  const seen = new Set<string>();
+  const out: CheckedGroup[] = [];
+  for (const project of projects) {
+    const names = (Array.isArray(project.wa_names) ? project.wa_names : []).map(text).filter(Boolean);
+    if (!names.length) continue;
+    for (const name of names) {
+      if (!wanted.has(name) || seen.has(name)) return null;
+      seen.add(name);
+    }
+    const sites = new Set((Array.isArray(project.sources) ? project.sources : []).map(text)
+      .filter((url) => /^https?:\/\//i.test(url))
+      .map(siteOf)
+      .filter((site) => site && !OWN_SITES.has(site) && (!searchedSites.size || searchedSites.has(site))));
+    if (sites.size < 2) return null;
+    out.push({ name: text(project.name).slice(0, 200) || names[0], wa_names: names });
+  }
+  return seen.size === wanted.size ? out : null;
+}
+
 // ---------- 2. research ----------
 
 export function researchPrompt(name: string, developer: string, waNames: string[], hints: string[]) {
@@ -103,7 +154,6 @@ export function siteOf(url: string): string {
     return "";
   }
 }
-const OWN_SITES = new Set(["tycoons-inv.com", "tycoons-inv.de"]);
 
 export interface Fact { value: string; sources: string[] }
 export type Facts = Partial<Record<DraftField, Fact>>;
@@ -169,7 +219,8 @@ export function draftDoubts(state: DraftState): DraftDoubt[] {
   for (const field of state.conflicts) if (!state.confirmed.includes(field)) out.push(`conflict_${field}`);
   const wa = developerKey(state.waDeveloper);
   const found = developerKey(state.values.developer);
-  if (wa && found && wa !== found && !wa.includes(found) && !found.includes(wa) && !state.confirmed.includes("developer")) out.push("developer_mismatch");
+  // The WhatsApp developer differs from the web's: the web wins when 2 sites state it, else the admin decides.
+  if (wa && found && wa !== found && !wa.includes(found) && !found.includes(wa) && !state.confirmed.includes("developer") && !state.verified.includes("developer")) out.push("developer_mismatch");
   return out;
 }
 
@@ -193,4 +244,56 @@ export function firstJson(value: string): unknown {
   } catch {
     return null;
   }
+}
+
+// ---------- 4. unit doubts settled on the web ----------
+
+/** One value the web answered, kept only when 2 different sites (searched, not ours) state it. */
+export function checkedValue(raw: unknown, key: string, searched: Set<string>): Fact | null {
+  const data = (raw && typeof raw === "object" ? raw : {}) as Json;
+  const item = (data[key] && typeof data[key] === "object" ? data[key] : {}) as Json;
+  const value = text(item.value).slice(0, 200);
+  if (!value) return null;
+  const searchedSites = new Set([...searched].map(siteOf).filter(Boolean));
+  const sources = [...new Set((Array.isArray(item.sources) ? item.sources : []).map(text)
+    .filter((url) => /^https?:\/\//i.test(url) && (!searchedSites.size || searchedSites.has(siteOf(url)))))];
+  const sites = new Set(sources.map(siteOf).filter((site) => site && !OWN_SITES.has(site)));
+  return sites.size >= 2 ? { value, sources: sources.slice(0, 6) } : null;
+}
+
+/** «المطور مش معروف» / «نفس المشروع جه بأكتر من مطور»: who develops this project? */
+export function developerCheckPrompt(projectName: string, hints: string[]) {
+  return [
+    `Who is the developer of the Egyptian real-estate project "${projectName}"? Search the web.`,
+    hints.length ? `Hints from WhatsApp (not proof): ${hints.join(" | ")}` : "",
+    "Answer only from real web pages (developer site, property portals, news) and give the URLs that state it. The developer's name only, no notes. Never guess; leave it empty when not found.",
+    "Do not use tycoons-inv.com as a source.",
+    "",
+    "Answer with JSON only:",
+    '{"developer": {"value": "...", "sources": ["https://..."]}}',
+  ].filter((line) => line !== "").join("\n");
+}
+
+/** «اسم المشروع مش واضح»: which of this developer's projects do these units belong to? */
+export function projectCheckPrompt(developer: string, units: string[], messageText: string) {
+  return [
+    `A WhatsApp message from the sales group of ${developer} (Egyptian real-estate developer) offers these units but does not name the project:`,
+    ...units.map((unit) => `- ${unit}`),
+    messageText ? `Message text: ${messageText.slice(0, 800)}` : "",
+    "",
+    `Search the web for ${developer}'s projects and find the one these units belong to (location, unit types, sizes, delivery, payment plan).`,
+    "Answer only when the details clearly point to one project, with the URLs that show that project with matching details. Never guess; leave it empty when not clear.",
+    "Do not use tycoons-inv.com as a source.",
+    "",
+    "Answer with JSON only:",
+    '{"project": {"value": "the project\'s usual English name", "sources": ["https://..."]}}',
+  ].filter((line) => line !== "").join("\n");
+}
+
+/** One line per unit for projectCheckPrompt. */
+export function unitSummary(row: Json): string {
+  const parts = [text(row.unit_type), text(row.bedrooms_text) && `${text(row.bedrooms_text)} bedrooms`, Number(row.area_sqm) > 0 && `${Number(row.area_sqm)} m2`,
+    Number(row.starting_price) > 0 && `${Number(row.starting_price)} EGP`, text(row.location), text(row.delivery_text) && `delivery ${text(row.delivery_text)}`,
+    text(row.down_payment_text) && `${text(row.down_payment_text)} down`, text(row.installments_text)];
+  return parts.filter(Boolean).join(", ");
 }

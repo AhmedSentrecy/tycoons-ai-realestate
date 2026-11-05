@@ -39,6 +39,12 @@ export function groupNameDeveloper(groupName: unknown): string {
   return parts.find((part) => part && !/\b(tai|tycoons?|taycoons?|tyccons)\b/i.test(part) && !/^tai\b/i.test(part)) ?? "";
 }
 
+/** Our own team's name added to a developer ("Tharaa & Tai" -> "Tharaa", "Biography - TAI" -> "Biography"). */
+export function cleanDeveloperName(raw: unknown): string {
+  const value = text(raw);
+  return /\b(tai|tycoons?|taycoons?|tyccons)\b/i.test(value) ? groupNameDeveloper(value) : value;
+}
+
 /**
  * The developer a unit is saved with:
  * 1. the developer Claude read, when it is a known developer (spelled the site's way)
@@ -48,7 +54,12 @@ export function groupNameDeveloper(groupName: unknown): string {
  * developer the message names.
  */
 export function resolveDeveloper(raw: unknown, groupDeveloper: string, developers: DeveloperRow[]): { developer: string; from: "message" | "group" | "unknown" } {
-  if (!isUnknownDeveloper(raw)) return { developer: canonicalDeveloper(raw, developers) || text(raw), from: "message" };
+  const cleaned = cleanDeveloperName(raw);
+  if (!isUnknownDeveloper(cleaned)) {
+    // The group's developer as the admin spelled it ("Tharaa" -> "Tharaa Developments").
+    if (groupDeveloper && developerKey(groupDeveloper) === developerKey(cleaned)) return { developer: groupDeveloper, from: "message" };
+    return { developer: canonicalDeveloper(cleaned, developers) || cleaned, from: "message" };
+  }
   if (groupDeveloper) return { developer: groupDeveloper, from: "group" };
   return { developer: "", from: "unknown" };
 }

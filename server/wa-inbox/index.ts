@@ -14,9 +14,9 @@
 // admin_change_requests, exactly like a manual edit in the units tab.
 // Table: public.wa_unit_inbox, public.wa_groups (see migration.sql). Deploy with verify_jwt = false.
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { canonicalDeveloper, developerKey, developersByProject, doubtsFor, groupNameDeveloper, hasProjectName, isUnknownDeveloper, projectKey, resolveDeveloper, type DeveloperRow, type Doubt } from "./review.ts";
+import { canonicalDeveloper, cleanDeveloperName, developerKey, developersByProject, doubtsFor, groupNameDeveloper, hasProjectName, isUnknownDeveloper, projectKey, resolveDeveloper, type DeveloperRow, type Doubt } from "./review.ts";
 import {
-  DRAFT_FIELDS, GROUPING_SCHEMA, draftDoubts, firstJson, groupingPrompt, researchPrompt, searchedUrls, verifyFacts,
+  DRAFT_FIELDS, GROUPING_SCHEMA, checkedValue, developerCheckPrompt, draftDoubts, firstJson, groupingCheckPrompt, groupingPrompt, projectCheckPrompt, researchPrompt, searchedUrls, unitSummary, verifyFacts, verifyGrouping,
   type DraftField, type NameCount,
 } from "./research.ts";
 
@@ -36,7 +36,7 @@ const APPROVE_STATUSES = ["available", "new_launch"];
 const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"];
 const MAX_GALLERY = 60;
 const INBOX_COLUMNS =
-  "id,created_at,updated_at,status,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,description,image_url,source_group,source_group_id,sender,message_id,match_unit_id,decided_at,result_unit_id,note,area_group,draft_id,suggested_project_id";
+  "id,created_at,updated_at,status,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,description,image_url,source_group,source_group_id,sender,message_id,match_unit_id,decided_at,result_unit_id,note,area_group,draft_id,suggested_project_id,web_filled";
 const DRAFT_COLUMNS =
   "id,created_at,updated_at,status,name,name_ar,developer,area_group,sub_area,location,description,down_payment_text,installments_text,delivery_text,finishing,wa_keys,sources,doubts,confirmed,research_error,researched_at,project_id,published_at";
 const UNIT_COLUMNS =
@@ -263,7 +263,7 @@ function bestUnit(units: Json[], unitType: string, area: number | null): string 
 /** Unit details a WhatsApp message often leaves out. */
 const FILL_FIELDS = ["down_payment_text", "installments_text", "delivery_text", "finishing"] as const;
 const PROJECT_FILL_FIELDS = new Set(["down_payment_text", "installments_text", "delivery_text", "finishing"]);
-type FillSource = "unit" | "project" | "units";
+type FillSource = "unit" | "project" | "units" | "web";
 
 /** Most frequent non-empty value of one field (ties: the first seen). */
 function mostCommon(units: Json[], field: string): string {
@@ -540,6 +540,14 @@ async function list(body: Json) {
       }
     }
   }
+  // Details the web filled (2 sites) for a project's missing facts: shown as «من النت».
+  for (const row of rows) {
+    const web = (row.web_filled ?? {}) as Record<string, unknown>;
+    for (const field of Object.keys(web)) {
+      if (!text(row[field])) continue;
+      autoFilled[String(row.id)] = { ...(autoFilled[String(row.id)] ?? {}), [field]: "web" };
+    }
+  }
   const duplicates = findDuplicates(rows);
   // Ready = every detail present and nothing doubtful (one click, or all at once); the rest wait in "مراجعة" with the reasons.
   const doubts: Record<string, Doubt[]> = {};
@@ -795,6 +803,10 @@ const ACTIVE_DRAFT = ["researching", "ready", "needs_review"];
 const MODEL = "claude-sonnet-5-5";
 const GROUP_BUCKETS_PER_RUN = 6;
 const RESEARCH_PER_RUN = 2;
+/** Web checks of unsure groupings per run (new names first, then older drafts still marked unsure). */
+const GROUP_CHECKS_PER_RUN = 3;
+/** Web checks of unit doubts (developer, project name, a site project's missing facts) per run. */
+const UNIT_CHECKS_PER_RUN = 4;
 
 /** Developer key, "" for "Unknown" / "Needs developer name". */
 const knownDevKey = (developer: unknown) => (isUnknownDeveloper(developer) ? "" : developerKey(developer));
@@ -848,6 +860,20 @@ async function askClaude(prompt: string, options: { schema?: Json; search?: numb
   return { text: textOut, searched: searchedUrls(content) };
 }
 
+/**
+ * Claude was unsure the names are one project: each name is searched on the web. The answer is used only
+ * when 2 different sites show every project (verifyGrouping); otherwise null and the admin decides.
+ */
+async function checkGroupingOnWeb(developer: string, waNames: string[]) {
+  try {
+    const reply = await askClaude(groupingCheckPrompt(developer, waNames), { search: 5, maxTokens: 6000 });
+    return verifyGrouping(firstJson(reply.text), reply.searched, waNames);
+  } catch (error) {
+    console.error("wa grouping check failed", developer, error);
+    return null;
+  }
+}
+
 /** Pending units without a site project and without a draft, that have a project name. */
 async function loosePending(): Promise<Json[]> {
   const { data, error } = await db.from("wa_unit_inbox").select(INBOX_COLUMNS).eq("status", "pending").is("project_id", null).is("draft_id", null).limit(3000);
@@ -860,7 +886,7 @@ async function loosePending(): Promise<Json[]> {
  * project becomes a suggestion (the admin confirms it); a group that is a draft joins it; the rest
  * becomes a new draft waiting for research.
  */
-async function groupNewNames(): Promise<{ buckets: number; drafts_created: number; linked: number }> {
+async function groupNewNames(): Promise<{ buckets: number; drafts_created: number; linked: number; web_checks: number }> {
   const rows = await loosePending();
   // Units saved before the group's developer was known ("Unknown"): the group's developer, else none.
   const developers = await allDevelopers();
@@ -901,6 +927,7 @@ async function groupNewNames(): Promise<{ buckets: number; drafts_created: numbe
   const projects = await allProjects();
   let created = 0;
   let buckets = 0;
+  let checks = 0;
   for (const list of [...byDeveloper.values()].sort((a, b) => b.length - a.length).slice(0, GROUP_BUCKETS_PER_RUN)) {
     buckets++;
     const developer = text(list.find((row) => knownDevKey(row.developer))?.developer);
@@ -923,7 +950,22 @@ async function groupNewNames(): Promise<{ buckets: number; drafts_created: numbe
       console.error("wa grouping failed", developer, error);
       continue;
     }
+    // Unsure groups of 2+ names: the web decides (one project or several); undecided ones stay unsure.
+    const groups: Json[] = [];
     for (const group of (Array.isArray(answer.projects) ? answer.projects : []) as Json[]) {
+      const waNames = (Array.isArray(group.wa_names) ? group.wa_names : []).map(text).filter((name) => names.has(name));
+      if (group.sure === false && waNames.length >= 2 && checks < GROUP_CHECKS_PER_RUN) {
+        checks++;
+        const settled = await checkGroupingOnWeb(developer, waNames);
+        if (settled) {
+          for (const part of settled) groups.push({ name: part.name, wa_names: part.wa_names, site_project_id: "", draft_id: "", sure: true, web_checked: true });
+          continue;
+        }
+        group.web_checked = true;
+      }
+      groups.push(group);
+    }
+    for (const group of groups) {
       const waNames = (Array.isArray(group.wa_names) ? group.wa_names : []).map(text).filter((name) => names.has(name));
       if (!waNames.length) continue;
       const ids = list.filter((row) => waNames.includes(text(row.project_name))).map((row) => Number(row.id));
@@ -942,6 +984,7 @@ async function groupNewNames(): Promise<{ buckets: number; drafts_created: numbe
         const { data: draft, error } = await db.from("wa_project_drafts").insert({
           name: text(group.name).slice(0, 200) || waNames[0], developer: developer || null, wa_keys: keys, status: "researching",
           doubts: group.sure === false ? ["grouping_unsure"] : [],
+          grouping_checked_at: group.web_checked ? new Date().toISOString() : null,
         }).select("id").single();
         fail(error);
         draftId = text(draft.id);
@@ -950,7 +993,189 @@ async function groupNewNames(): Promise<{ buckets: number; drafts_created: numbe
       fail((await db.from("wa_unit_inbox").update({ draft_id: draftId }).in("id", ids).eq("status", "pending")).error);
     }
   }
-  return { buckets, drafts_created: created, linked };
+  return { buckets, drafts_created: created, linked, web_checks: checks };
+}
+
+/**
+ * Drafts still marked «grouping_unsure» that the web never checked (made before this check, or over the
+ * run's limit): each is checked once. One project -> the doubt goes. Several -> the draft keeps the first
+ * project, each other one becomes its own draft with its units, and the kept draft is researched again.
+ */
+async function recheckUnsureDrafts(limit: number) {
+  if (limit <= 0) return 0;
+  const { data, error } = await db.from("wa_project_drafts").select(DRAFT_COLUMNS).in("status", ACTIVE_DRAFT)
+    .contains("doubts", ["grouping_unsure"]).is("grouping_checked_at", null).order("created_at", { ascending: true }).limit(limit);
+  fail(error);
+  let done = 0;
+  for (const draft of (data ?? []) as Json[]) {
+    const id = text(draft.id);
+    const now = new Date().toISOString();
+    const { data: units } = await db.from("wa_unit_inbox").select("id,project_name").eq("draft_id", id).eq("status", "pending").limit(500);
+    const list = (units ?? []) as Json[];
+    const waNames = [...new Set(list.map((row) => text(row.project_name)).filter(Boolean))];
+    done++;
+    const settled = waNames.length >= 2 ? await checkGroupingOnWeb(text(draft.developer), waNames) : null;
+    if (!settled) {
+      fail((await db.from("wa_project_drafts").update({ grouping_checked_at: now }).eq("id", id)).error);
+      continue;
+    }
+    const nameKey = projectKey(draft.name);
+    const keep = settled.find((part) => part.wa_names.some((name) => projectKey(name) === nameKey)) ?? settled[0];
+    const doubts = ((draft.doubts as string[]) ?? []).filter((doubt) => doubt !== "grouping_unsure");
+    const split = settled.length > 1;
+    const keepKeys = [...new Set([...keep.wa_names, keep.name].map(projectKey).filter(Boolean))];
+    // Already researched and not split: its status is worked out again without the grouping doubt.
+    const after = !split && text(draft.status) !== "researching" ? draftState({ ...draft, doubts }, { groupingSure: true }) : null;
+    fail((await db.from("wa_project_drafts").update({
+      grouping_checked_at: now, doubts: after ? after.doubts : doubts, updated_at: now,
+      ...(after ? { status: after.status } : {}),
+      ...(split ? { wa_keys: keepKeys, status: "researching" } : {}),
+    }).eq("id", id)).error);
+    for (const part of settled) {
+      if (part === keep) continue;
+      const { data: created, error: createError } = await db.from("wa_project_drafts").insert({
+        name: part.name, developer: draft.developer || null, status: "researching", grouping_checked_at: now,
+        wa_keys: [...new Set([...part.wa_names, part.name].map(projectKey).filter(Boolean))],
+      }).select("id").single();
+      fail(createError);
+      const ids = list.filter((row) => part.wa_names.includes(text(row.project_name))).map((row) => Number(row.id));
+      if (ids.length) fail((await db.from("wa_unit_inbox").update({ draft_id: text(created.id) }).in("id", ids).eq("status", "pending")).error);
+    }
+  }
+  return done;
+}
+
+/**
+ * Unit doubts about the project or the developer, settled on the web (2 sites) before the admin sees them.
+ * Each unit is checked once (web_checked_at); what the web cannot settle stays a doubt for the admin.
+ * 1. developer unknown, or one project under several developers -> who develops the project
+ * 2. no project name -> which of the developer's projects (the group's developer, without «Tai Tycoons»)
+ * 3. a site project's unit still missing down payment / installments / delivery / finishing -> the project's facts
+ */
+async function resolveUnitDoubts(limit: number): Promise<{ checks: number; developers: number; projects: number; filled: number }> {
+  const result = { checks: 0, developers: 0, projects: 0, filled: 0 };
+  if (limit <= 0) return result;
+  const { data, error } = await db.from("wa_unit_inbox").select(`${INBOX_COLUMNS},web_checked_at`).eq("status", "pending").is("web_checked_at", null).limit(3000);
+  fail(error);
+  const rows = (data ?? []) as Json[];
+  if (!rows.length) return result;
+  const developers = await allDevelopers();
+  const groupDev = await groupDevelopers(developers);
+  const projects = await allProjects();
+  const now = new Date().toISOString();
+  const markChecked = async (ids: number[]) => {
+    if (ids.length) fail((await db.from("wa_unit_inbox").update({ web_checked_at: now }).in("id", ids)).error);
+  };
+  const loose = rows.filter((row) => !text(row.project_id) && !text(row.draft_id));
+  const devHint = (row: Json) => {
+    const own = isUnknownDeveloper(row.developer) ? "" : cleanDeveloperName(row.developer);
+    return own || groupDev.get(text(row.source_group_id)) || cleanDeveloperName(groupNameDeveloper(row.source_group));
+  };
+
+  // 1. who develops the project (one search per project name)
+  const devsByKey = developersByProject(loose);
+  const needDev = new Map<string, Json[]>();
+  for (const row of loose) {
+    if (!hasProjectName(row.project_name)) continue;
+    const key = projectKey(row.project_name);
+    if (isUnknownDeveloper(row.developer) || (devsByKey.get(key)?.size ?? 0) > 1) needDev.set(key, [...(needDev.get(key) ?? []), row]);
+  }
+  for (const list of needDev.values()) {
+    if (result.checks >= limit) break;
+    result.checks++;
+    const hints = [...new Set(list.map(devHint).concat(list.map((row) => text(row.location))).filter(Boolean))].slice(0, 4);
+    try {
+      const reply = await askClaude(developerCheckPrompt(text(list[0].project_name), hints), { search: 4, maxTokens: 4000 });
+      const found = checkedValue(firstJson(reply.text), "developer", reply.searched);
+      if (found) {
+        const name = cleanDeveloperName(found.value);
+        const known = canonicalDeveloper(name, developers) || [...groupDev.values()].find((dev) => developerKey(dev) === developerKey(name)) || name;
+        fail((await db.from("wa_unit_inbox").update({ developer: known }).in("id", list.map((row) => Number(row.id))).eq("status", "pending")).error);
+        result.developers += list.length;
+      }
+    } catch (error) {
+      console.error("wa developer check failed", list[0].project_name, error);
+    }
+    await markChecked(list.map((row) => Number(row.id)));
+  }
+
+  // 2. which project (one search per WhatsApp message)
+  const needName = new Map<string, Json[]>();
+  for (const row of loose) {
+    if (hasProjectName(row.project_name)) continue;
+    const key = text(row.message_id) || `id:${text(row.id)}`;
+    needName.set(key, [...(needName.get(key) ?? []), row]);
+  }
+  for (const list of needName.values()) {
+    if (result.checks >= limit) break;
+    const developer = devHint(list[0]);
+    if (!developer) {
+      await markChecked(list.map((row) => Number(row.id))); // nothing to search with: the admin decides
+      continue;
+    }
+    result.checks++;
+    let body = "";
+    if (text(list[0].message_id)) {
+      const { data: log } = await db.from("wa_message_log").select("body").eq("message_id", text(list[0].message_id)).maybeSingle();
+      body = text(log?.body);
+    }
+    try {
+      const reply = await askClaude(projectCheckPrompt(developer, list.slice(0, 8).map(unitSummary), body), { search: 5, maxTokens: 5000 });
+      const found = checkedValue(firstJson(reply.text), "project", reply.searched);
+      if (found) {
+        const site = matchProject(projects, found.value, developer);
+        const values: Json = { project_name: site?.name ?? found.value };
+        if (site) values.project_id = site.id;
+        if (isUnknownDeveloper(list[0].developer)) values.developer = canonicalDeveloper(developer, developers) || developer;
+        fail((await db.from("wa_unit_inbox").update(values).in("id", list.map((row) => Number(row.id))).eq("status", "pending")).error);
+        result.projects += list.length;
+      }
+    } catch (error) {
+      console.error("wa project check failed", developer, error);
+    }
+    await markChecked(list.map((row) => Number(row.id)));
+  }
+
+  // 3. a site project's missing facts (one search per project)
+  const linked = rows.filter((row) => text(row.project_id) && FILL_FIELDS.some((field) => !text(row[field])));
+  if (linked.length && result.checks < limit) {
+    const ids = [...new Set(linked.map((row) => text(row.project_id)))];
+    const { data: projectRows, error: projectError } = await db.from("projects").select("id,name,developer,down_payment_text,installments_text,delivery_text,finishing").in("id", ids);
+    fail(projectError);
+    for (const project of (projectRows ?? []) as Json[]) {
+      const list = linked.filter((row) => text(row.project_id) === text(project.id));
+      // What the project already has fills the units on the admin page (fillGaps): search only the rest.
+      const missing = FILL_FIELDS.filter((field) => !text(project[field]) && list.some((row) => !text(row[field])));
+      if (!missing.length) {
+        await markChecked(list.map((row) => Number(row.id)));
+        continue;
+      }
+      if (result.checks >= limit) break;
+      result.checks++;
+      try {
+        const reply = await askClaude(researchPrompt(text(project.name), text(project.developer), [text(project.name)], []), { search: 5, maxTokens: 6000 });
+        const checked = verifyFacts(firstJson(reply.text), reply.searched);
+        for (const row of list) {
+          const values: Json = {};
+          const web: Record<string, string[]> = { ...((row.web_filled ?? {}) as Record<string, string[]>) };
+          for (const field of missing) {
+            const fact = checked.facts[field];
+            if (!fact || text(row[field])) continue;
+            values[field] = fact.value;
+            web[field] = fact.sources;
+          }
+          if (Object.keys(values).length) {
+            fail((await db.from("wa_unit_inbox").update({ ...values, web_filled: web }).eq("id", Number(row.id)).eq("status", "pending")).error);
+            result.filled++;
+          }
+        }
+      } catch (error) {
+        console.error("wa project facts check failed", project.name, error);
+      }
+      await markChecked(list.map((row) => Number(row.id)));
+    }
+  }
+  return result;
 }
 
 /** Recomputes a draft's doubts and status from its values, sources and the admin's confirmations. */
@@ -970,7 +1195,8 @@ function draftState(draft: Json, extra: { weak?: DraftField[]; conflicts?: Draft
     waDeveloper: text(draft.wa_developer),
   });
   // Found under another developer by the research: stays until the admin confirms the developer.
-  if (previous.has("developer_mismatch") && !doubts.includes("developer_mismatch") && !((draft.confirmed as string[]) ?? []).includes("developer") && !text(draft.wa_developer)) doubts.push("developer_mismatch");
+  const webDeveloper = Array.isArray(sources.developer) && (sources.developer as unknown[]).length >= 2;
+  if (previous.has("developer_mismatch") && !doubts.includes("developer_mismatch") && !((draft.confirmed as string[]) ?? []).includes("developer") && !webDeveloper && !text(draft.wa_developer)) doubts.push("developer_mismatch");
   return { doubts, status: doubts.length ? "needs_review" : "ready" };
 }
 
@@ -1067,12 +1293,15 @@ async function researchRun() {
   const left = Math.max(0, settings.cap - settings.used_today);
   if (!left) return { skipped: "daily_cap", mode: settings.mode, cap: settings.cap };
   await setSetting("wa_research_last_run", new Date().toISOString());
+  // Developer and project name first, so the grouping below already sees them.
+  const units = await resolveUnitDoubts(UNIT_CHECKS_PER_RUN);
   const grouped = await groupNewNames();
+  const rechecked = await recheckUnsureDrafts(GROUP_CHECKS_PER_RUN - grouped.web_checks);
   const { data, error } = await db.from("wa_project_drafts").select(DRAFT_COLUMNS).eq("status", "researching").order("created_at", { ascending: true }).limit(Math.min(RESEARCH_PER_RUN, left));
   fail(error);
   const researched = [];
   for (const draft of (data ?? []) as Json[]) researched.push(await researchDraft(draft));
-  return { mode: settings.mode, ...grouped, researched };
+  return { mode: settings.mode, units, ...grouped, rechecked, researched };
 }
 
 async function loadDraft(id: unknown) {
