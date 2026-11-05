@@ -9,6 +9,13 @@ import {
   WA_FILL_LABELS,
   WA_SUGGEST_LABELS,
   WA_DOUBT_LABELS,
+  WA_DRAFT_FIELD_LABELS,
+  AREA_GROUPS,
+  waDraftDoubtLabel,
+  type WaDraft,
+  type WaDraftField,
+  type WaResearchMode,
+  type WaResearchSettings,
   type AdminProject,
   type AdminUnit,
   type WaGroup,
@@ -26,6 +33,8 @@ import { Badge, Chip, EmptyState, inputClass, Modal } from "./ui";
 
 /** Bucket for units whose project name did not match any project on the site. */
 const UNMATCHED = "__unmatched__";
+/** Bucket id of a new project (not on the site yet): "draft:<id>". */
+const DRAFT = "draft:";
 
 /**
  * "وحدات واتساب": units Claude read from the WhatsApp developer groups wait here.
@@ -47,6 +56,8 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   const [doubts, setDoubts] = useState<Record<string, WaDoubt[]>>({});
   const [view, setView] = useState<"ready" | "review">("ready");
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, WaDraft>>({});
+  const [draftEditing, setDraftEditing] = useState<WaDraft | null>(null);
   const [counts, setCounts] = useState<Record<WaInboxStatus, number>>({ pending: 0, approved: 0, rejected: 0 });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -83,6 +94,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
         setSuggestions(result.suggestions ?? {});
         setFinishingSuggestions(result.finishing_suggestions ?? {});
         setDoubts(result.doubts ?? {});
+        setDrafts(result.drafts ?? {});
         setCounts(result.counts);
         setSelected(new Set());
       })
@@ -107,24 +119,26 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   const buckets = useMemo(() => {
     const map = new Map<string, WaInboxItem[]>();
     for (const item of visibleItems) {
-      const id = item.project_id && projectById.has(item.project_id) ? item.project_id : UNMATCHED;
+      const id =
+        item.project_id && projectById.has(item.project_id) ? item.project_id : item.draft_id && drafts[item.draft_id] ? `${DRAFT}${item.draft_id}` : UNMATCHED;
       map.set(id, [...(map.get(id) ?? []), item]);
     }
     const needle = query.trim().toLowerCase();
     return [...map.entries()]
-      .map(([id, list]) => ({ id, list, project: projectById.get(id) ?? null }))
-      .filter(({ project, list }) =>
+      .map(([id, list]) => ({ id, list, project: projectById.get(id) ?? null, draft: id.startsWith(DRAFT) ? drafts[id.slice(DRAFT.length)] ?? null : null }))
+      .filter(({ project, draft, list }) =>
         !needle ||
-        [project?.name, project?.developer, project?.area_group, ...list.map((item) => `${item.project_name} ${item.source_group}`)].some((value) =>
+        [project?.name, project?.developer, project?.area_group, draft?.name, draft?.developer, draft?.area_group, ...list.map((item) => `${item.project_name} ${item.source_group}`)].some((value) =>
           String(value || "").toLowerCase().includes(needle),
         ),
       )
       .sort((a, b) => Number(b.id === UNMATCHED) - Number(a.id === UNMATCHED) || b.list.length - a.list.length);
-  }, [visibleItems, projectById, query]);
+  }, [visibleItems, projectById, query, drafts]);
 
   // Keep a valid bucket selected (first one by default, as the units tab keeps a project open).
   const activeBucket = buckets.find((row) => row.id === bucket) ?? buckets[0] ?? null;
   const activeProject = activeBucket?.project ?? null;
+  const activeDraft = activeBucket?.draft ?? null;
   // Unmatched units with a suggested project first (one click each).
   const bucketRows = useMemo(() => {
     const list = activeBucket?.list ?? [];
@@ -299,7 +313,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
           {loading && <p className="p-4 text-center text-sm font-bold text-[#5c6a62]">جاري التحميل…</p>}
           {!loading && !buckets.length && <p className="p-4 text-center text-sm font-bold text-[#5c6a62]">مفيش وحدات هنا</p>}
           {!loading &&
-            buckets.map(({ id, list, project }) => {
+            buckets.map(({ id, list, project, draft }) => {
               const active = id === activeBucket?.id;
               const image = project ? mediaImages(project)[0] : "";
               const dupes = list.filter((item) => duplicates[String(item.id)]?.length).length;
@@ -314,15 +328,21 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                 >
                   {id === UNMATCHED ? (
                     <span className="grid h-12 w-16 shrink-0 place-items-center rounded-lg bg-red-50 text-[10px] font-black text-red-600">مش متطابقة</span>
+                  ) : draft ? (
+                    <span className="grid h-12 w-16 shrink-0 place-items-center rounded-lg bg-emerald-50 text-[10px] font-black text-emerald-700">مشروع جديد</span>
                   ) : image ? (
                     <img src={image} alt="" loading="lazy" className="h-12 w-16 shrink-0 rounded-lg object-cover" />
                   ) : (
                     <span className="grid h-12 w-16 shrink-0 place-items-center rounded-lg bg-[#f1eadc] text-[10px] font-black text-[#5c6a62]">بدون صور</span>
                   )}
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-black">{project ? project.name : "مشاريع مش موجودة على الموقع"}</span>
+                    <span className="block truncate text-sm font-black">{project ? project.name : draft ? draft.name : "مشاريع مش موجودة على الموقع"}</span>
                     <span className={`block truncate text-xs ${active ? "text-white/70" : "text-[#5c6a62]"}`}>
-                      {project ? `${project.developer || "—"} · ${project.area_group || project.location || "—"}` : "اختار المشروع أو اعمله جديد"}
+                      {project
+                        ? `${project.developer || "—"} · ${project.area_group || project.location || "—"}`
+                        : draft
+                          ? `${draft.developer || "—"} · ${draft.status === "researching" ? "بندوّر عليه على النت" : draft.area_group || "—"}`
+                          : "اختار المشروع أو اعمله جديد"}
                       {dupes ? ` · ${dupes} مكررة` : ""}
                     </span>
                   </span>
@@ -343,11 +363,13 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                   → رجوع
                 </button>
                 <div className="me-auto min-w-0">
-                  <h2 className="truncate text-xl font-black">{activeProject ? activeProject.name : "وحدات مشروعها مش موجود على الموقع"}</h2>
+                  <h2 className="truncate text-xl font-black">{activeProject ? activeProject.name : activeDraft ? activeDraft.name : "وحدات مشروعها مش موجود على الموقع"}</h2>
                   <p className="text-xs text-[#5c6a62]">
                     {activeProject
                       ? `${activeProject.developer || "—"} · ${[activeProject.sub_area, activeProject.area_group].filter(Boolean).join(", ") || activeProject.location || "—"} · ${siteUnits.length} وحدة على الموقع`
-                      : "دوس «تعديل» على كل وحدة واختار مشروعها، أو اعمل المشروع جديد من نفس الشاشة."}
+                      : activeDraft
+                        ? "مشروع جديد مش على الموقع لسه. بياناته من النت تحت، ووحداته بتنزل معاه لما تنشره."
+                        : "دوس «تعديل» على كل وحدة واختار مشروعها، أو اعمل المشروع جديد من نفس الشاشة."}
                   </p>
                 </div>
                 <input
@@ -358,7 +380,7 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                   className={`${inputClass} w-full sm:w-80`}
                 />
                 {unitQuery.trim() && <span className="text-xs font-bold text-[#5c6a62]">{rows.length} من {bucketRows.length}</span>}
-                {pending && view === "ready" && rows.length > 0 && (
+                {pending && view === "ready" && rows.length > 0 && !activeDraft && (
                   <button
                     disabled={bulkBusy}
                     onClick={() => void approveReady(selected.size ? [...selected] : rows.filter(isReady).map((item) => item.id))}
@@ -373,6 +395,16 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                   </button>
                 )}
               </div>
+              {activeDraft && pending && (
+                <DraftPanel
+                  draft={activeDraft}
+                  onEdit={() => setDraftEditing(activeDraft)}
+                  onChanged={(next) => {
+                    if (next) setDrafts((current) => ({ ...current, [next.id]: next }));
+                    reload();
+                  }}
+                />
+              )}
               {activeProject && pending && (
                 <FinishingBar
                   current={activeProject.finishing || ""}
@@ -612,6 +644,16 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
             setEditing(null);
             notify(message);
             onChanged();
+            reload();
+          }}
+        />
+      )}
+      {draftEditing && (
+        <DraftEditDialog
+          draft={draftEditing}
+          onClose={() => setDraftEditing(null)}
+          onSaved={() => {
+            setDraftEditing(null);
             reload();
           }}
         />
@@ -1047,6 +1089,207 @@ function EditDialog({
 }
 
 /** On/off per WhatsApp group. Off = the group's messages are skipped (no AI cost, nothing reaches this tab). */
+const DRAFT_FIELD_ORDER: WaDraftField[] = [
+  "name", "name_ar", "developer", "area_group", "sub_area", "location", "down_payment_text", "installments_text", "delivery_text", "finishing", "description",
+];
+
+/** A new project's facts from the web: trusted (2+ sites or confirmed), weak (one site: «أكّد») or missing. */
+function DraftPanel({ draft, onEdit, onChanged }: { draft: WaDraft; onEdit: () => void; onChanged: (draft: WaDraft | null) => void }) {
+  const { token, notify, handleError } = useAdmin();
+  const [busy, setBusy] = useState("");
+  const run = async (key: string, task: () => Promise<WaDraft | null>, done: string) => {
+    setBusy(key);
+    try {
+      const next = await task();
+      notify(done);
+      onChanged(next);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBusy("");
+    }
+  };
+  const trusted = (field: WaDraftField) => draft.confirmed.includes(field) || (draft.sources[field]?.length ?? 0) >= 2;
+  return (
+    <div className="space-y-3 border-b border-[#efe7d8] bg-[#fbf8f2] p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={draft.status === "ready" ? "ok" : draft.status === "researching" ? "pending" : "error"}>
+          {draft.status === "ready" ? "بيانات المشروع كاملة" : draft.status === "researching" ? "بندوّر عليه على النت" : "محتاج مراجعة"}
+        </Badge>
+        {draft.doubts.map((code) => <Badge key={code} tone="error">{waDraftDoubtLabel(code)}</Badge>)}
+        <span className="me-auto" />
+        <button onClick={onEdit} className="rounded-full bg-[#0d1f18] px-4 py-1.5 text-xs font-black text-white">تعديل بيانات المشروع</button>
+        <button
+          disabled={Boolean(busy)}
+          onClick={() => void run("research", async () => (await adminApi.waDraftResearch(token, draft.id)).draft, "اتعمل بحث جديد")}
+          className="rounded-full border border-[#d8c9ab] px-4 py-1.5 text-xs font-black disabled:opacity-50"
+        >
+          {busy === "research" ? "بيدوّر… (دقيقة أو اتنين)" : "ابحث تاني"}
+        </button>
+        <button
+          disabled={Boolean(busy)}
+          onClick={() => {
+            if (!window.confirm(`«${draft.name}» مش مشروع حقيقي؟ وحداته هترجع «مش متطابقة».`)) return;
+            void run("reject", async () => { await adminApi.waDraftReject(token, draft.id); return null; }, "اتشال المشروع");
+          }}
+          className="rounded-full bg-red-50 px-4 py-1.5 text-xs font-black text-red-600 disabled:opacity-50"
+        >
+          مش مشروع حقيقي
+        </button>
+      </div>
+      {draft.research_error && <p className="text-xs font-bold text-red-600">البحث وقف: {draft.research_error}</p>}
+      <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
+        {DRAFT_FIELD_ORDER.map((field) => {
+          const value = draft[field];
+          const sources = draft.sources[field] ?? [];
+          return (
+            <div key={field} className={`flex items-start gap-2 ${field === "description" ? "sm:col-span-2" : ""}`}>
+              <dt className="w-28 shrink-0 text-xs font-bold text-[#5c6a62]">{WA_DRAFT_FIELD_LABELS[field]}</dt>
+              <dd className="min-w-0 flex-1">
+                {value ? <span className="font-bold">{value}</span> : <span className="text-[#9aa49e]">—</span>}
+                {draft.confirmed.includes(field) && <span className="ms-1 text-[11px] font-black text-emerald-700">✓ إنت أكدته</span>}
+                {!draft.confirmed.includes(field) && sources.length > 0 && (
+                  <span className="ms-1 text-[11px]">
+                    {sources.slice(0, 3).map((url, index) => (
+                      <a key={url} href={url} target="_blank" rel="noreferrer" className="me-1 text-[#8a6d2f] underline">
+                        مصدر {index + 1}
+                      </a>
+                    ))}
+                  </span>
+                )}
+                {value && !trusted(field) && (
+                  <button
+                    disabled={Boolean(busy)}
+                    onClick={() => void run(field, async () => (await adminApi.waDraftSave(token, draft.id, {}, [field])).draft, `اتأكد: ${WA_DRAFT_FIELD_LABELS[field]}`)}
+                    className="ms-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-black text-emerald-700"
+                  >
+                    أكّد
+                  </button>
+                )}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
+    </div>
+  );
+}
+
+/** Edit a new project's facts; every field changed here counts as confirmed by the admin. */
+function DraftEditDialog({ draft, onClose, onSaved }: { draft: WaDraft; onClose: () => void; onSaved: () => void }) {
+  const { token, notify, handleError } = useAdmin();
+  const [values, setValues] = useState<Record<WaDraftField, string>>(
+    () => Object.fromEntries(DRAFT_FIELD_ORDER.map((field) => [field, draft[field] ?? ""])) as Record<WaDraftField, string>,
+  );
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    const changed = Object.fromEntries(DRAFT_FIELD_ORDER.filter((field) => values[field].trim() !== (draft[field] ?? "")).map((field) => [field, values[field].trim()]));
+    if (!Object.keys(changed).length) return onClose();
+    setSaving(true);
+    try {
+      await adminApi.waDraftSave(token, draft.id, changed);
+      notify("اتحفظت بيانات المشروع");
+      onSaved();
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Modal title={`بيانات «${draft.name}»`} onClose={onClose} wide>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {DRAFT_FIELD_ORDER.map((field) => (
+          <label key={field} className={`block text-sm font-bold ${field === "description" ? "sm:col-span-2" : ""}`}>
+            {WA_DRAFT_FIELD_LABELS[field]}
+            {field === "area_group" ? (
+              <select value={values[field]} onChange={(event) => setValues({ ...values, [field]: event.target.value })} className={`${inputClass} mt-1`}>
+                <option value="">—</option>
+                {AREA_GROUPS.map((area) => <option key={area} value={area}>{area}</option>)}
+              </select>
+            ) : field === "description" ? (
+              <textarea rows={3} value={values[field]} onChange={(event) => setValues({ ...values, [field]: event.target.value })} className={`${inputClass} mt-1`} />
+            ) : (
+              <input value={values[field]} onChange={(event) => setValues({ ...values, [field]: event.target.value })} className={`${inputClass} mt-1`} />
+            )}
+          </label>
+        ))}
+      </div>
+      <div className="mt-4 flex justify-end gap-2">
+        <button onClick={onClose} className="rounded-full bg-[#f1eadc] px-4 py-2 text-sm font-black">إلغاء</button>
+        <button disabled={saving} onClick={() => void save()} className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-50">
+          {saving ? "بيحفظ…" : "احفظ"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+const MODE_LABELS: Record<WaResearchMode, string> = { intensive: "مكثف", normal: "عادي", off: "متوقف" };
+
+/** How much Claude spends on new projects (and whether short WhatsApp messages are read too). */
+function ResearchModeBox() {
+  const { token, notify, handleError } = useAdmin();
+  const [settings, setSettings] = useState<WaResearchSettings | null>(null);
+  const [mode, setMode] = useState<WaResearchMode>("normal");
+  const [cap, setCap] = useState("");
+  const [until, setUntil] = useState("");
+  const [saving, setSaving] = useState(false);
+  const load = (next: WaResearchSettings) => {
+    setSettings(next);
+    setMode(next.chosen);
+    setCap(String(next.cap || ""));
+    setUntil(next.until ? next.until.slice(0, 16) : "");
+  };
+  useEffect(() => {
+    adminApi.waResearchSettings(token).then(load).catch(handleError);
+  }, [token, handleError]);
+  const save = async () => {
+    setSaving(true);
+    try {
+      load(await adminApi.waResearchSettingsSave(token, mode, cap ? Number(cap) : null, until ? new Date(until).toISOString() : ""));
+      notify("اتحفظ وضع البحث");
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setSaving(false);
+    }
+  };
+  if (!settings) return null;
+  return (
+    <div className="mb-4 space-y-2 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-3 text-sm">
+      <p className="font-black">
+        البحث عن المشاريع الجديدة: {MODE_LABELS[settings.mode]}
+        <span className="ms-2 text-xs font-bold text-[#5c6a62]">النهارده {settings.used_today} من {settings.cap}</span>
+      </p>
+      <p className="text-xs text-[#5c6a62]">
+        مكثف: كل 15 دقيقة لحد 40 مشروع في اليوم، والرسايل اللي الفلتر بيسيبها بتتسجل عشان نراجع الفلتر (من غير ما تروح لـ Claude). عادي: كل 6 ساعات لحد 8 مشاريع. متوقف: مفيش بحث خالص، بس الوحدات بتتربط بالمشاريع المعروفة.
+      </p>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="text-xs font-bold">
+          الوضع
+          <select value={mode} onChange={(event) => setMode(event.target.value as WaResearchMode)} className={`${inputClass} mt-1 py-1`}>
+            {(Object.keys(MODE_LABELS) as WaResearchMode[]).map((key) => <option key={key} value={key}>{MODE_LABELS[key]}</option>)}
+          </select>
+        </label>
+        <label className="text-xs font-bold">
+          حد أقصى في اليوم
+          <input type="number" min={1} max={200} value={cap} onChange={(event) => setCap(event.target.value)} className={`${inputClass} mt-1 w-24 py-1`} />
+        </label>
+        {mode === "intensive" && (
+          <label className="text-xs font-bold">
+            المكثف لحد (وبعدها عادي لوحده)
+            <input type="datetime-local" value={until} onChange={(event) => setUntil(event.target.value)} className={`${inputClass} mt-1 py-1`} />
+          </label>
+        )}
+        <button disabled={saving} onClick={() => void save()} className="rounded-full bg-[#0d1f18] px-4 py-1.5 text-xs font-black text-white disabled:opacity-50">
+          {saving ? "بيحفظ…" : "احفظ"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function GroupsDialog({ onClose, developers }: { onClose: () => void; developers: string[] }) {
   const { token, handleError } = useAdmin();
   const [groups, setGroups] = useState<WaGroup[] | null>(null);
@@ -1090,6 +1333,7 @@ function GroupsDialog({ onClose, developers }: { onClose: () => void; developers
 
   return (
     <Modal title="جروبات الواتساب" onClose={onClose}>
+      <ResearchModeBox />
       <datalist id="wa-group-developers">
         {developers.map((name) => <option key={name} value={name} />)}
       </datalist>

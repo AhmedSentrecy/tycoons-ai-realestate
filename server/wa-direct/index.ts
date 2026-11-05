@@ -36,7 +36,7 @@ function timingSafeEqual(a: string, b: string) {
 let settingsCache: Record<string, string> | null = null;
 async function settings() {
   if (settingsCache) return settingsCache;
-  const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", ["wa_inbox_key", "wa_waha_base_url", "wa_waha_key", "anthropic_api_key"]);
+  const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", ["wa_inbox_key", "wa_waha_base_url", "wa_waha_key", "anthropic_api_key", "wa_research_mode", "wa_intensive_until"]);
   if (error) throw new Error("settings_unavailable");
   settingsCache = Object.fromEntries((data ?? []).map((row) => [row.key, text(row.value)]));
   return settingsCache;
@@ -52,6 +52,14 @@ function mediaKind(mime: string, fileName: string): Kind {
   if (mime === "application/pdf" || name.endsWith(".pdf")) return "pdf";
   if (/spreadsheet|ms-excel|csv|opendocument\.spreadsheet/.test(mime) || /\.(xlsx|xlsm|xls|csv|ods)$/.test(name)) return "sheet";
   return "other";
+}
+
+/**
+ * «مكثف» in the admin (until its end date): group messages the filter skips are written to wa_message_log
+ * (status skipped_<reason>) without going to Claude, so the filter can be checked against them later.
+ */
+function intensive(s: Record<string, string>) {
+  return s.wa_research_mode === "intensive" && (!s.wa_intensive_until || Date.parse(s.wa_intensive_until) > Date.now());
 }
 
 function passesFilter(event: Json): { ok: boolean; reason: string; kind: Kind } {
@@ -153,6 +161,21 @@ async function logUpdate(id: number | null, values: Json) {
   await db.from("wa_message_log").update({ ...values, updated_at: new Date().toISOString() }).eq("id", id);
 }
 
+/** A group message the filter skipped, kept for the filter review (no Claude call, no cost). */
+async function logSkipped(event: Json, reason: string) {
+  const payload = (event.payload ?? {}) as Json;
+  const info = ((payload._data as Json | undefined)?.Info ?? {}) as Json;
+  const media = (payload.media ?? {}) as Json;
+  await db.from("wa_message_log").insert({
+    message_id: text(payload.id) || text(info.ID) || null,
+    group_id: text(payload.from),
+    sender: text(info.PushName) || text(payload.notifyName) || text(payload.participant),
+    kind: text(media.mimetype) ? "other" : "text",
+    body: text(payload.body).slice(0, 4000),
+    status: `skipped_${reason}`,
+  }).then(() => undefined, () => undefined);
+}
+
 // ---------- 2-5. background work for one message ----------
 
 async function processMessage(event: Json, kind: Kind) {
@@ -238,7 +261,10 @@ Deno.serve(async (req: Request) => {
     if (!timingSafeEqual(key, s.wa_inbox_key || "")) return reply({ error: "key_invalid" }, 401);
     const event = ((await req.json().catch(() => ({}))) ?? {}) as Json;
     const check = passesFilter(event);
-    if (!check.ok) return reply({ skipped: check.reason });
+    if (!check.ok) {
+      if (intensive(s) && (check.reason === "short_chat" || check.reason === "voice_video_sticker")) await logSkipped(event, check.reason);
+      return reply({ skipped: check.reason });
+    }
     // Answer WAHA now; the slow part (download, Claude, intake) keeps running in the background.
     // deno-lint-ignore no-explicit-any
     const runtime = (globalThis as any).EdgeRuntime;
