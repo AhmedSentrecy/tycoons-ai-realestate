@@ -56,6 +56,42 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   const en = await seoBrief(project, "en", async () => variantsAnswer);
   eq(en.keyword, "bloomfields", "English article uses the English spelling");
 
+  // DataForSEO out of balance (40200): each step falls back to Firecrawl (Trends, Search, Scrape).
+  process.env.FIRECRAWL_API_KEY = "fc-test";
+  const fcCalls = [];
+  global.fetch = async (url, options) => {
+    const target = new URL(String(url));
+    if (target.hostname === "api.dataforseo.com") return { ok: true, json: async () => ({ status_code: 20000, tasks: [{ status_code: 40200, status_message: "Payment Required." }] }) };
+    const body = JSON.parse(options.body);
+    fcCalls.push({ path: target.pathname, body, auth: options.headers.Authorization });
+    if (target.pathname === "/v2/scrape" && body.alexandria) {
+      const keywords = body.alexandria.options.keywords;
+      return { ok: true, json: async () => ({ success: true, data: { alexandria: [{ data: { keywords, points: [
+        { values: keywords.map((keyword) => (keyword === "كمبوند بلوم فيلدز" ? 40 : 10)) },
+        { values: keywords.map((keyword) => (keyword === "كمبوند بلوم فيلدز" ? 60 : 5)) },
+      ] } }] } }) };
+    }
+    if (target.pathname === "/v2/search") return { ok: true, json: async () => ({ success: true, data: { web: [
+      { url: "https://tycoons-inv.com/projects/bloomfields", title: "us" },
+      { url: "https://diarna.net/p", title: "بلوم فيلدز" },
+      { url: "https://www.youtube.com/watch?v=1", title: "video" },
+      { url: "https://abyatproperty.com/p", title: "عيوب" },
+    ] } }) };
+    if (target.pathname === "/v2/scrape") return { ok: true, json: async () => ({ success: true, data: { markdown: `# عنوان\n## ${body.url.includes("abyat") ? "عيوب بلوم فيلدز" : "موقع بلوم فيلدز"}\n${"كلمة ".repeat(1800)}\n### [خدمات](https://x.com)` } }) };
+    throw new Error(`unexpected ${url}`);
+  };
+  const fallbackBrief = await seoBrief(project, "ar", async () => variantsAnswer);
+  eq(fallbackBrief.keyword, "كمبوند بلوم فيلدز", "Google Trends picks the most searched Arabic spelling");
+  eq(fallbackBrief.source, "google_trends", "source says Trends");
+  ok(fallbackBrief.notes.some((note) => note.startsWith("search_volume_failed: 40200")) && fallbackBrief.notes.includes("serp_from_firecrawl"), "notes say why and what replaced it");
+  ok(fcCalls.every((call) => call.auth === "Bearer fc-test"), "Firecrawl key sent");
+  eq(fcCalls.find((call) => call.path === "/v2/search").body.query, "كمبوند بلوم فيلدز", "search for the chosen keyword");
+  eq(fallbackBrief.competitors.map((page) => page.domain), ["diarna.net", "abyatproperty.com"], "own site and video sites skipped");
+  eq(fallbackBrief.competitors[1].headings.map((heading) => heading.text), ["عيوب بلوم فيلدز", "خدمات"], "headings from Markdown, links stripped, h1 skipped");
+  ok(!JSON.stringify(fallbackBrief).includes("كلمة كلمة"), "competitor text never kept");
+  eq(fallbackBrief.target_words, 1980, "target = 1.1 × the longest competitor");
+  delete process.env.FIRECRAWL_API_KEY;
+
   // Draft rules carry the brief.
   const { buildOpenAiRequest } = require("../netlify/functions/_article-generation.cjs");
   const request = buildOpenAiRequest({ action: "draft", language: "ar", targetType: "project", projectId: project.id, topic: brief.keyword, researchFacts: [], seoBrief: brief }, [project], []);
