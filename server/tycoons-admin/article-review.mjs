@@ -118,7 +118,7 @@ const GUIDE_NUMBERS = [
 const stripGuideNumbers = (value) => GUIDE_NUMBERS.reduce((text, re) => text.replace(re, " "), value);
 const normAr = (value) => clean(value).normalize("NFKC").toLocaleLowerCase().replace(/[\u064B-\u0652\u0640]/g, "").replace(/[أإآ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي");
 const words = (value) => String(value ?? "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[#*>`_-]/g, " ").split(/\s+/).filter((word) => /\p{L}/u.test(word)).length;
-function guideIssues(article, add) {
+function guideIssues(article, add, names = []) {
   const lang = article?.language === "en" ? "en" : "ar";
   const body = String(article?.body_markdown ?? "");
   const keyword = normAr(article?.focus_keyword);
@@ -147,6 +147,20 @@ function guideIssues(article, add) {
   // Tycoons voice (5 Nov 2026): no hype, no pressure, no promised returns.
   const hype = /(?:أقوى|أفضل|اقوى|افضل) مشروع(?:ات)? (?:في|ف) مصر|فرص[ةه] (?:متتعوضش|لا تعوض|لا تتعوض|ما تتعوضش)|(?:الحق|إلحق|الحقوا) (?:قبل|احجز)|آخر (?:الوحدات|وحدات)|لوكيشن مرعب|الحصان (?:الأسود|الاسود|الكسبان)|عائد مضمون|ربح مضمون|مضمون ١٠٠|best project in egypt|once[- ]in[- ]a[- ]lifetime|guaranteed (?:return|profit)|last (?:few )?units|hurry/iu.exec(all);
   if (hype) add("guide_hype", "body_markdown", "blocker", `Remove hype or pressure wording: “${hype[0]}”. Say what the project offers and who it suits instead.`);
+  // Arabic guides read fully in Arabic (audit 5 Nov 2026, District 5: "Availability وPayment Plan",
+  // "South New Cairo"). Project and developer names stay Latin; place names and sales terms never do.
+  if (lang === "ar") {
+    let prose = all.replace(/\]\([^)]*\)/g, "]");
+    // Project and developer names stay as written, even when they hold a place name (iCity New Cairo).
+    for (const name of names.map((value) => clean(value)).filter((value) => value.length > 2).sort((a, b) => b.length - a.length)) prose = prose.split(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi")).join(" ");
+    // Sales terms never appear in English; a place name may be part of a longer project name, so it is a review note.
+    const term = /\b(?:availability|payment plans?|down ?payments?|installments?|delivery|ready to move|typical|garden apartment|bedrooms?|compound)\b/i.exec(prose);
+    if (term) add("guide_english_mix", "body_markdown", "blocker", `Write “${term[0]}” in Arabic; only project and developer names stay in Latin letters.`);
+    const place = /\b(?:new cairo|fifth settlement|sheikh zayed|north coast|sahel|6th of october|october city|ain sokhna|sokhna|new capital|administrative capital|mostakbal city)\b/i.exec(prose);
+    if (place) add("guide_english_place", "body_markdown", "review", `Write “${place[0]}” in Arabic unless it is part of the project's name.`);
+    const heading = body.split(/\r?\n/).find((line) => /^##\s/.test(line) && !/[؀-ۿ]/.test(line));
+    if (heading) add("guide_heading_latin", "body_markdown", "review", `Heading “${heading.replace(/^#+\s*/, "")}” has no Arabic; write the searched Arabic name in it.`);
+  }
 }
 
 export function assessArticleReview(article, sources = {}) {
@@ -252,7 +266,7 @@ export function assessArticleReview(article, sources = {}) {
       add("qualitative_claim_review", field, "review", "Check qualitative, availability, and commercial wording against the sources. Edit unsupported wording and explicitly acknowledge your review.");
     }
   }
-  if (guide) guideIssues(article, add);
+  if (guide) guideIssues(article, add, projects.flatMap((project) => [project.name, project.project_name, project.developer]));
   add("editorial_review_required", "body_markdown", "review", "Review the complete saved article, including title, metadata, prose, and sources, before confirming publication.");
   return issues;
 }
