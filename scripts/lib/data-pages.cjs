@@ -9,7 +9,7 @@ const { pageShell } = require("./page-shell.cjs");
 const { buildProjectSchemas } = require("../../netlify/functions/_project-schema.cjs");
 const { projectFacts, projectFactsHtml, lastPriceUpdate } = require("../../netlify/functions/_project-facts.cjs");
 const { unitPath } = require("../../netlify/functions/_unit-url.cjs");
-const { unitTypeAr, bedroomsAr, arabicHeroLine, hasLatinWords } = require("../../netlify/functions/_unit-labels.cjs");
+const { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords } = require("../../netlify/functions/_unit-labels.cjs");
 const { renderSafeMarkdown, priceDateNoteHtml } = require("../../netlify/functions/_article-render.cjs");
 const { topicOf, dropCoveredSections, unlinkSelf, durationMonths, durationAr, pageNumberConflicts, feddanOnly } = require("../../netlify/functions/_page-consistency.cjs");
 const { publicEditorialMarkdown, developerInfo, arabicProjectName } = require("../../netlify/functions/_seo-utils.cjs");
@@ -429,7 +429,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   const developerNav = developerHasPage ? `<a href="${developerPath}">${escapeHtml(developerAr)}</a>` : `<span>${escapeHtml(developerAr)}</span>`;
   // Hero line in Arabic (same rule as the browser page): English names swapped, else the plain sentence.
   const heroSwapped = arabicHeroLine(arabicProse(text(project.hero_text) || description), { name: project.name, nameAr: headingName(project), location: text(project.location), areaAr: areaInfo(project.location).ar, developer: project.developer, developerAr });
-  const heroLine = heroSwapped && !hasLatinWords(heroSwapped) ? heroSwapped : `اعرف أسعار ومساحات ${headingName(project)} وخطط السداد والوحدات المتاحة في ${areaInfo(project.location).ar}.`;
+  const heroLine = heroSwapped && !hasLatinWords(heroSwapped) ? heroSwapped : defaultHeroLine(headingName(project), areaInfo(project.location).ar);
   const areaPath = `/ar/areas/${areaSlug(project.location)}`;
   // Topics the page already answers above the embedded guide: its own sections, the FAQ and
   // the live unit table. The guide's sections on the same topics are left out (one answer per fact).

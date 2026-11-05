@@ -24,7 +24,7 @@ const exactTranslations: Record<string, string> = {
 // before and after the page loads.
 const MONTHS_AR: Record<string, string> = { jan: "يناير", feb: "فبراير", mar: "مارس", apr: "أبريل", may: "مايو", jun: "يونيو", jul: "يوليو", aug: "أغسطس", sep: "سبتمبر", oct: "أكتوبر", nov: "نوفمبر", dec: "ديسمبر" };
 
-function yearsAr(n: string) {
+export function yearsAr(n: string) {
   const value = Number(n);
   if (value === 1) return "سنة";
   if (value === 1.5) return "سنة ونص";
@@ -56,6 +56,16 @@ export function arabicField(value: unknown, fallback = "") {
     .replace(/\b(?:immediate delivery|ready to move)\b/gi, "استلام فوري")
     .replace(/\bvaries\s+by\s+phase\b/gi, "حسب المرحلة")
     .replace(/\(\s*constructed\s*\)/gi, "(مبني)")
+    .replace(/\brest\s+over\s+(\d+(?:\.\d+)?)\s*(?:years?|y)\s*(?:equal\s+)?(?:installments?)?/gi, (_, n: string) => `والباقي على ${yearsAr(n)} أقساط متساوية`)
+    .replace(/\binstallments?\s+over\s+/gi, "تقسيط على ")
+    .replace(/\bfirst\s+installment\b/gi, "أول قسط")
+    .replace(/\bsecond\s+installment\b/gi, "تاني قسط")
+    .replace(/\bsecond\b/gi, "تاني")
+    .replace(/\bon\s+delivery\b/gi, "عند الاستلام")
+    .replace(/\bon\s+contract(?:ing)?\b/gi, "عند التعاقد")
+    .replace(/\bequal\s+installments?\b/gi, "أقساط متساوية")
+    .replace(/\bmaintenance\b/gi, "صيانة")
+    .replace(/\bcash\b/gi, "كاش")
     .replace(/(\d+(?:\.\d+)?)\s*%\s*(?:down\s*payment|dp)\b/gi, "مقدم $1%")
     .replace(/\bdown\s*payment\b/gi, "مقدم")
     .replace(/\b(20\d\d)-(\d\d)-\d\d\b/g, (_, y: string, m: string) => `${Object.values(MONTHS_AR)[Number(m) - 1] || m} ${y}`)

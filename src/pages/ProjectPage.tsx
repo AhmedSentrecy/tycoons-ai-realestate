@@ -33,7 +33,8 @@ import { areaFor } from "@/lib/unitContent";
 
 import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
 import { projectFacts, lastPriceUpdate } from "../../netlify/functions/_project-facts.cjs";
-import { unitTypeAr, bedroomsAr, arabicHeroLine, hasLatinWords } from "../../netlify/functions/_unit-labels.cjs";
+import { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords } from "../../netlify/functions/_unit-labels.cjs";
+import { yearsAr } from "@/lib/arabicFields";
 import ProjectFacts from "@/components/ProjectFacts";
 import PageStructuredData from "@/components/PageStructuredData";
 import { unitPath } from "@/lib/unitUrl";
@@ -82,7 +83,7 @@ function parseConfirmedPaymentPlan(downText: string, installmentsText: string): 
 
 function isVillaLike(unit: InventoryUnit) {
   const value = `${unit.unit_type || ""} ${unit.bedrooms_text || ""}`;
-  return /villa|townhouse|town house|twin house|standalone|فيلا|تاون\s*هاوس|توين\s*هاوس/i.test(value);
+  return /villa|townhouse|town\s*house|townhome|twin\s*house|twinhome|standalone|فيلا|تاون\s*هاوس|توين\s*هاوس/i.test(value);
 }
 
 function FinancingDetails({
@@ -129,7 +130,7 @@ function FinancingDetails({
         </p>
       </div>
       <div>
-        <p className="text-xs text-[#7b877f]">القسط الشهري على {plan.years} سنوات</p>
+        <p className="text-xs text-[#7b877f]">القسط الشهري على {yearsAr(String(plan.years))}</p>
         <p className="mt-1 font-extrabold text-[#8a6630]">
           {startsFrom ? "يبدأ من " : ""}{formatPrice(monthlyInstallment)} جنيه تقريبًا
         </p>
@@ -311,7 +312,7 @@ export default function ProjectPage() {
     });
     return swapped && !hasLatinWords(swapped)
       ? swapped
-      : `اعرف أسعار ومساحات ${arabicHeadingName} وخطط السداد والوحدات المتاحة في ${areaAr}.`;
+      : defaultHeroLine(arabicHeadingName, areaAr);
   })();
   // Ids of units that still have a page (null while loading, so no guide link is dropped early).
   const liveUnitIds = useMemo(() => (loading || !units.length ? null : new Set(units.map((unit) => unit.id))), [loading, units]);
@@ -763,7 +764,7 @@ export default function ProjectPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Maximize2 className="h-5 w-5 text-[#d9b87c]" />
-                  مساحات من {minArea} إلى {maxArea} م²
+                  {minArea === maxArea ? `المساحة ${minArea} م²` : `مساحات من ${minArea} إلى ${maxArea} م²`}
                 </div>
               </div>
             </div>
@@ -803,7 +804,7 @@ export default function ProjectPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold text-[#a3854e]">فيلا / تاون هاوس</p>
-                          <h4 className="mt-1 text-lg font-extrabold text-[#14352a]">{range.unit_type}</h4>
+                          <h4 className="mt-1 text-lg font-extrabold text-[#14352a]">{unitTypeAr(range.unit_type) || range.unit_type}</h4>
                         </div>
                         <span className="rounded-full bg-[#efe7d8] px-3 py-1 text-xs font-bold text-[#6e522c]">{range.area_sqm} م²</span>
                       </div>
@@ -832,20 +833,20 @@ export default function ProjectPage() {
                     <summary className="cursor-pointer list-none p-5 [&::-webkit-details-marker]:hidden">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-semibold text-[#a3854e]">فيلا / تاون هاوس</p>
+                          <p className="text-xs font-semibold text-[#a3854e]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p>
                           <h4 className="mt-1 text-lg font-extrabold text-[#14352a]">
-                            {unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}
+                            {bedroomsAr(unit.bedrooms_text) || unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}
                           </h4>
+                          <p className="mt-1 text-sm text-[#5c6a62]">{unit.area_sqm} م²</p>
                         </div>
-                        <span className="rounded-full bg-[#efe7d8] px-3 py-1 text-xs font-bold text-[#6e522c]">
-                          {unit.area_sqm} م²
-                        </span>
+                        <span className="rounded-full bg-[#e8f5ed] px-3 py-1 text-xs font-bold text-[#14733c]">متاح</span>
                       </div>
                       <p className="mt-5 text-xs text-[#7b877f]">يبدأ من</p>
                       <p className="mt-1 text-xl font-extrabold text-[#14352a]">
                         {formatPrice(unit.starting_price)} جنيه
                       </p>
                       {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
+                      {unit.down_payment_text ? <p className="mt-2 text-sm text-[#5c6a62]">{arabicField(String(unit.down_payment_text).replace(/^\s*(\d+(?:\.\d+)?\s*%)\s*$/, "$1 Down Payment"))}</p> : null}
                       <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                         اعرض المقدم والقسط
                         <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
@@ -876,9 +877,9 @@ export default function ProjectPage() {
           {otherUnits.length > 0 && <section className="mt-12" aria-labelledby="other-unit-options">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                <p className="text-sm font-semibold text-[#a3854e]">اختيارات سكنية متنوعة</p>
+                {otherUnits.length > 1 && otherUnits.every((unit) => !/office|clinic|retail|admin|shop|pharmacy|bank|f&b|showroom|مكتب|عيادة|محل/i.test(unit.unit_type || "")) && <p className="text-sm font-semibold text-[#a3854e]">اختيارات سكنية متنوعة</p>}
                 <h3 id="other-unit-options" className="mt-2 text-2xl font-extrabold">
-                  {villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : "الوحدات المتاحة"}
+                  {villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : otherUnits.length === 1 ? "الوحدة المتاحة" : "الوحدات المتاحة"}
                 </h3>
               </div>
               <p className="text-sm text-[#5c6a62]">اضغط على الوحدة لعرض المقدم والقسط الشهري</p>

@@ -158,6 +158,10 @@ function guideIssues(article, add, names = []) {
     if (term) add("guide_english_mix", "body_markdown", "blocker", `Write “${term[0]}” in Arabic; only project and developer names stay in Latin letters.`);
     const place = /\b(?:new cairo|fifth settlement|sheikh zayed|north coast|sahel|6th of october|october city|ain sokhna|sokhna|new capital|administrative capital|mostakbal city)\b/i.exec(prose);
     if (place) add("guide_english_place", "body_markdown", "review", `Write “${place[0]}” in Arabic unless it is part of the project's name.`);
+    // English words in Arabic letters, when Arabic has the word (Ahmed, 5 Nov 2026: «صف أول» not «فيرست رو»).
+    const arabized = /(?:فيرست\s*رو|تيبيكال|سي\s*فيو|فول\s*فيو|لاجون\s*فيو|بول\s*فيو|ميدل|كورنر|داون\s*بيمنت|بيمنت\s*بلان|ديليفري|أفايلابيليتي|افايلابيليتي|ريسيل|ريسيل)/.exec(prose);
+    if (arabized) add("guide_arabized_english", "body_markdown", "blocker", `Write “${arabized[0]}” as an Arabic word (صف أول، دور متكرر، إطلالة على البحر، وسط، طرفي، مقدم، خطة سداد، استلام، إعادة بيع).`);
+    if (/جاردن/.test(prose)) add("guide_arabized_english", "body_markdown", "review", "Write «جاردن» as «حديقة» unless it is part of a project name.");
     const heading = body.split(/\r?\n/).find((line) => /^##\s/.test(line) && !/[؀-ۿ]/.test(line));
     if (heading) add("guide_heading_latin", "body_markdown", "review", `Heading “${heading.replace(/^#+\s*/, "")}” has no Arabic; write the searched Arabic name in it.`);
   }
