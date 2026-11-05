@@ -73,18 +73,28 @@ function durationAr(months) {
   return `${Number.isInteger(years) ? years : years.toFixed(1).replace(/\.0$/, "")} سنين`;
 }
 
-// The land area is stated in feddan (فدان) and sometimes in acres (أكر). 1 feddan = 4200.83 m²,
-// 1 acre = 4046.86 m². Collects every area claim in a text, converted to feddan.
+// Land area is written in feddan only (Ahmed, Nov 2026): never acres or أكر, and an acre figure
+// from a source is written as the same number in feddan, without converting it.
+// "464 Acre" (capital A, singular) is SODIC's project name and is left as it is.
 const FEDDAN_PER_ACRE = 4046.86 / 4200.83;
+const NUM = "(\\d[\\d.,]*)";
+function feddanOnly(text) {
+  return String(text == null ? "" : text)
+    .replace(new RegExp(`${NUM}\\s*(?:أكر|اكر)\\s*\\(\\s*(?:حوالي|تقريبًا|تقريبا)?\\s*\\d[\\d.,]*\\s*(?:فدان|فدادين)\\s*\\)`, "g"), "$1 فدان")
+    .replace(new RegExp(`${NUM}\\s*(?:أكر|اكر)(?![\\u0600-\\u06ff])`, "g"), "$1 فدان")
+    .replace(new RegExp(`${NUM}\\s*[Aa]cres\\b`, "g"), "$1 feddans")
+    .replace(new RegExp(`${NUM}\\s*acre\\b`, "g"), "$1 feddan");
+}
 function landAreaClaims(text) {
   const claims = [];
   const value = String(text || "").replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/(\d),(\d{3})/g, "$1$2");
-  const pattern = /(\d+(?:\.\d+)?)\s*(فدان|فدادين|feddans?|أكر|اكر|acres?)/gi;
+  // "Acre" with a capital A and no plural is SODIC's project name ("464 Acre"), not a unit.
+  const pattern = /(\d+(?:\.\d+)?)\s*(فدان|فدادين|feddans?|أكر|اكر|acres|Acres|acre\b)/g;
   let match;
   while ((match = pattern.exec(value))) {
     const amount = Number(match[1]);
     const acre = /أكر|اكر|acre/i.test(match[2]);
-    claims.push({ raw: match[0], feddan: acre ? amount * FEDDAN_PER_ACRE : amount, unit: acre ? "acre" : "feddan" });
+    claims.push({ raw: match[0], feddan: amount, unit: acre ? "acre" : "feddan" });
   }
   return claims;
 }
@@ -95,10 +105,9 @@ function pageNumberConflicts({ texts = [], minPrice = 0 } = {}) {
   const all = texts.map((item) => String(item || "")).join("\n");
   const problems = [];
   const areas = landAreaClaims(all);
-  // Converted acre -> feddan figures round; a stated feddan figure must match the others within 1%.
-  const feddanStated = [...new Set(areas.filter((claim) => claim.unit === "feddan").map((claim) => claim.feddan))];
-  const converted = areas.filter((claim) => claim.unit === "acre").map((claim) => claim.feddan);
-  const values = [...feddanStated, ...converted];
+  const acres = areas.filter((claim) => claim.unit === "acre");
+  if (acres.length) problems.push({ kind: "acre_unit", values: [...new Set(acres.map((claim) => claim.raw))] });
+  const values = [...new Set(areas.map((claim) => claim.feddan))];
   if (values.length > 1) {
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -113,4 +122,4 @@ function pageNumberConflicts({ texts = [], minPrice = 0 } = {}) {
   return problems;
 }
 
-module.exports = { topicOf, dropCoveredSections, unlinkSelf, durationMonths, durationAr, landAreaClaims, pageNumberConflicts, FEDDAN_PER_ACRE };
+module.exports = { topicOf, dropCoveredSections, unlinkSelf, durationMonths, durationAr, landAreaClaims, pageNumberConflicts, feddanOnly, FEDDAN_PER_ACRE };

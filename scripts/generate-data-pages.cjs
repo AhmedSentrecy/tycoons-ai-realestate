@@ -190,7 +190,9 @@ async function main() {
     for (const problem of problems) {
       console.warn(problem.kind === "land_area"
         ? `Number conflict on /projects/${slug}: land area stated as ${problem.values.join(" / ")}. Keep one value in the project's texts.`
-        : `Number conflict on /projects/${slug}: copy says the price starts from ${problem.values.join(" / ")} but the inventory minimum is ${problem.expected}.`);
+        : problem.kind === "acre_unit"
+          ? `Unit on /projects/${slug}: land area written in acres (${problem.values.join(" / ")}). Write it in feddan (فدان).`
+          : `Number conflict on /projects/${slug}: copy says the price starts from ${problem.values.join(" / ")} but the inventory minimum is ${problem.expected}.`);
     }
   }
   console.log(

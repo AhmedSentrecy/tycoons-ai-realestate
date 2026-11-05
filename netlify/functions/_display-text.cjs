@@ -116,7 +116,8 @@ function arabicDisplay(value) {
 
 // Arabic prose stored with a stray English word.
 function arabicProse(value) {
-  return String(value == null ? "" : value).replace(/\bavailability\b/gi, "التوفر");
+  // Land area in feddan only, never acres (see _page-consistency.cjs).
+  return require("./_page-consistency.cjs").feddanOnly(String(value == null ? "" : value).replace(/\bavailability\b/gi, "التوفر"));
 }
 
 // Whole buildings, offices, shops and clinics: excluded from "highest price" stats on
