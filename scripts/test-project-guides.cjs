@@ -85,6 +85,7 @@ ok(hasIndexableContent({ ...projects[0], slug: "brand-new" }, "ar"), "a full pub
   ok(codes(review({ body_markdown: body.replace("كلم فريق Tycoons.", "ده أقوى مشروع في مصر والحق قبل ما يخلص.") })).includes("guide_hype"), "hype and pressure wording are blocked (Tycoons voice)");
   ok(codes(review({ body_markdown: body.replace("كلم فريق Tycoons.", "بنأكد آخر Availability وPayment Plan.") })).includes("guide_english_mix"), "English sales terms are blocked in Arabic guides");
   ok(!codes(review({ body_markdown: body })).includes("guide_english_mix"), "project and developer names in Latin are fine");
+  ok(codes(review({ body_markdown: body.replace("كلم فريق Tycoons.", "عندنا فيرست رو وتيبيكال.") })).includes("guide_arabized_english"), "English words in Arabic letters are blocked (صف أول, not فيرست رو)");
   const { buildOpenAiRequest } = require("../netlify/functions/_article-generation.cjs");
   const prompt = buildOpenAiRequest({ action: "draft", language: "ar", targetType: "project", projectId: "p1", topic: "x", researchFacts: [], seoBrief: { keyword: "ماونتن فيو التجمع", source: "ai", competitors: [] } }, [{ id: "p1", name: "Mountain View iCity", developer: "Mountain View", location: "New Cairo", slug: "mv" }], []).input[0].content;
   ok(prompt.includes("VOICE:") && prompt.includes("تعالى أقولك") && prompt.includes("drawbacks before the advantages"), "the writing tool gets the Tycoons voice");

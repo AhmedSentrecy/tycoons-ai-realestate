@@ -9,6 +9,7 @@ const TYPE_MAP = {
   "commercial unit": "وحدة تجارية", cabin: "كابينة", loft: "لوفت", ivilla: "آي فيلا", "i-villa": "آي فيلا",
 };
 const text = (value) => String(value ?? "").trim();
+const { unitBaseAr, unitsCountAr } = require("./_unit-labels.cjs");
 function arabicType(value) {
   const key = text(value).toLowerCase();
   if (!key) return "";
@@ -37,11 +38,11 @@ function projectFacts(input) {
   const facts = [];
   if (text(input?.developer)) facts.push({ label: "المطور", value: text(input.developer), ...(input.developerHref ? { href: input.developerHref } : {}) });
   if (text(input?.area)) facts.push({ label: "المنطقة", value: text(input.area), ...(input.areaHref ? { href: input.areaHref } : {}) });
-  const types = [...new Set(units.map((unit) => arabicType(unit?.unit_type)).filter(Boolean))];
+  const types = [...new Set(units.map((unit) => unitBaseAr(unit?.unit_type) || arabicType(unit?.unit_type)).filter(Boolean))];
   if (types.length) facts.push({ label: "أنواع الوحدات المتاحة", value: types.slice(0, 6).join("، ") });
   const prices = units.map((unit) => price(unit?.starting_price)).filter(Boolean);
   if (prices.length) facts.push({ label: "الأسعار تبدأ من", value: `${new Intl.NumberFormat("en-US").format(Math.round(Math.min(...prices)))} جنيه` });
-  if (units.length) facts.push({ label: "الوحدات المتاحة عندنا", value: `${units.length} ${units.length === 1 ? "وحدة" : units.length === 2 ? "وحدتين" : units.length <= 10 ? "وحدات" : "وحدة"}` });
+  if (units.length) facts.push({ label: "الوحدات المتاحة عندنا", value: unitsCountAr(units.length) });
   const updated = lastPriceUpdate(units);
   if (updated) facts.push({ label: "آخر تحديث للأسعار", value: arDate(updated), datetime: updated.slice(0, 10) });
   return facts;

@@ -77,6 +77,7 @@ function arabicDisplay(value) {
   let out = stripInternalNotes(value);
   if (!out) return "";
   out = out
+    .replace(/\bon\s+delivery\b/gi, "عند الاستلام")
     .replace(/^\s*delivery\s*:\s*/i, "الاستلام: ")
     // "Delivery in 4.5 years", "Delivery within 6 months", "Within 2 years", "Delivery in 2027".
     .replace(/\b(?:delivery\s+)?(?:in|within)\s+(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*(?:years?|y)\b/gi, (_, a, b) => `الاستلام خلال ${a} لـ ${b} سنين`)
@@ -87,6 +88,12 @@ function arabicDisplay(value) {
     .replace(/\bvaries\s+by\s+phase\b/gi, "حسب المرحلة")
     .replace(/\(\s*constructed\s*\)/gi, "(مبني)")
     .replace(/\bdelivery\b\s*/gi, "استلام ")
+    .replace(/\brest\s+over\s+(\d+(?:\.\d+)?)\s*(?:years?|y)\s*(?:equal\s+)?(?:installments?)?/gi, (_, n) => `والباقي على ${yearsAr(n)} أقساط متساوية`)
+    .replace(/\bfirst\s+installment\b/gi, "أول قسط")
+    .replace(/\bsecond\s+installment\b/gi, "تاني قسط")
+    .replace(/\bsecond\b/gi, "تاني")
+    .replace(/\bequal\s+installments?\b/gi, "أقساط متساوية")
+    .replace(/\bmaintenance\b/gi, "صيانة")
     .replace(/\binstallments?\s+over\s+/gi, "تقسيط على ")
     .replace(/\bup\s+to\s+/gi, "حتى ")
     .replace(/(\d+(?:\.\d+)?)\s*%\s*(?:down\s*payment|dp)\b/gi, "مقدم $1%")

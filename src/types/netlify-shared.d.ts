@@ -37,6 +37,9 @@ declare module "*/_project-facts.cjs" {
 
 declare module "*/_unit-labels.cjs" {
   export function unitTypeAr(value: unknown): string;
+  export function unitBaseAr(value: unknown): string;
+  export function defaultHeroLine(nameAr: string, areaAr: string): string;
+  export function unitsCountAr(n: number): string;
   export function bedroomsAr(value: unknown): string;
   export function arabicHeroLine(value: unknown, names?: { name?: string; nameAr?: string; location?: string; areaAr?: string; developer?: string; developerAr?: string }): string;
   export function hasLatinWords(value: unknown, allowed?: string[]): boolean;
