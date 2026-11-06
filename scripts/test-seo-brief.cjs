@@ -114,6 +114,8 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   const lock = "11111111-2222-3333-4444-555555555555";
   const admin = [];
   const claude = [];
+  // The system prompt is sent as a cached text block; its text is what the rules check.
+  const systemText = (body) => (Array.isArray(body.system) ? body.system.map((block) => block.text).join("") : String(body.system || ""));
   let background = null;
   const draft = { focus_keyword: "كمبوند بلوم فيلدز", title: "كمبوند بلوم فيلدز: الموقع والمطور", slug: "bloomfields-guide", excerpt: "كمبوند بلوم فيلدز من تطوير مصر في مستقبل سيتي.", meta_title: "كمبوند بلوم فيلدز | دليل المشتري", meta_description: "كمبوند بلوم فيلدز في مستقبل سيتي من تطوير مصر.", key_takeaways: ["أ", "ب", "ج"], body_markdown: `كمبوند بلوم فيلدز مشروع من [Bloomfields](/projects/bloomfields).\n\n## نبذة عن كمبوند بلوم فيلدز\n\nنص.\n\n## قبل ما تقرر\n\nكلمنا.\n\n## عينة حديثة من الوحدات المتاحة\n- [Apartment](/units/u1): 76 م² — x.`, faq: [{ question: "س", answer: "ج" }, { question: "س2", answer: "ج2" }, { question: "س3", answer: "ج3" }], comparison_project_ids: [], unit_evidence: [], claim_evidence: [] };
   global.fetch = async (url, options = {}) => {
@@ -154,9 +156,9 @@ const variantsAnswer = { output_text: JSON.stringify({ ar: ["بلوم فيلدز
   eq(finish.response.seo_brief.keyword, "كمبوند بلوم فيلدز", "brief returned to the admin");
   eq(finish.response.research.facts.length, 1, "research facts returned");
   ok(!finish.response.body_markdown.includes("عينة حديثة"), "frozen unit sample removed (live table instead)");
-  ok(claude.at(-1).system.includes("Leave unit_evidence and claim_evidence empty"), "no frozen price lists asked");
+  ok(systemText(claude.at(-1)).includes("Leave unit_evidence and claim_evidence empty"), "no frozen price lists asked");
   ok(finish.response.source_refs.some((ref) => ref.type === "web" && ref.url === "https://tatweermisr.com/bloomfields"), "web source cited");
-  ok(claude.some((body) => body.tools) && claude.at(-1).system.includes('focus_keyword is exactly "كمبوند بلوم فيلدز"'), "research then a draft with the brief");
+  ok(claude.some((body) => body.tools) && systemText(claude.at(-1)).includes('focus_keyword is exactly "كمبوند بلوم فيلدز"'), "research then a draft with the brief");
   const parse = require("../netlify/functions/_article-generation.cjs").parseRequest;
   assert.throws(() => parse({ body: JSON.stringify({ action: "write", language: "ar", target_type: "area", area_name: "x" }) }), /project_required/); checks += 1;
 

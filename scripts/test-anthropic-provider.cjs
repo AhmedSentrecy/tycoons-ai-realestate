@@ -7,6 +7,8 @@ const { buildOpenAiRequest, buildResearchRequest, parseOpenAiOutput } = require(
 let checks = 0;
 const ok = (value, message) => { assert.ok(value, message); checks += 1; };
 const eq = (a, b, message) => { assert.deepEqual(a, b, message); checks += 1; };
+// The system prompt is sent as one cached text block (prompt caching).
+const systemText = (body) => (Array.isArray(body.system) ? body.system.map((block) => block.text).join("") : String(body.system || ""));
 const headers = (map = {}) => ({ get: (name) => map[name.toLowerCase()] ?? null });
 const reply = (body, status = 200, head = {}) => ({ ok: status < 400, status, headers: headers(head), json: async () => body });
 
@@ -46,12 +48,22 @@ function walk(node, visit) {
   eq(calls[0].body.model, "claude-sonnet-5-5", "default model Sonnet 5.5");
   eq(calls[0].body.output_config.format.type, "json_schema", "json schema output");
   ok(!calls[0].body.tools, "no tools on drafts");
-  ok(calls[0].body.system.includes("Use only the supplied public facts"), "system rules kept");
+  ok(systemText(calls[0].body).includes("Use only the supplied public facts"), "system rules kept");
+  eq(calls[0].body.system.length, 1, "system sent as one block");
+  eq(calls[0].body.system[0].cache_control, { type: "ephemeral" }, "system prompt marked for prompt caching");
   ok(calls[0].body.messages[0].content.includes("BEGIN_UNTRUSTED_PUBLIC_FACTS"), "facts sent as user content");
   walk(calls[0].body.output_config.format.schema, (node) => ok(!("maxItems" in node), "draft schema sanitized"));
   eq(draftPayload.status, "completed", "completed");
   eq(draftPayload.output_text, '{"hello":"world"}', "text passed through");
   eq(draftPayload.usage.total_tokens, 150, "usage summed");
+
+  // 2b. Prompt caching: tokens read from / written to the cache still count as input in the usage log.
+  const draftFetch = global.fetch;
+  global.fetch = async () => reply({ id: "msg_c", model: "claude-sonnet-5-5", stop_reason: "end_turn", usage: { input_tokens: 10, cache_read_input_tokens: 900, cache_creation_input_tokens: 0, output_tokens: 50 }, content: [{ type: "text", text: '{"hello":"world"}' }] });
+  const cachedPayload = await claudeResponses(buildOpenAiRequest(draftInput, [project], []), 60000);
+  eq(cachedPayload.usage.input_tokens, 910, "cached input tokens counted");
+  eq(cachedPayload.usage.cache_read_input_tokens, 900, "cache reads reported");
+  global.fetch = draftFetch;
 
   process.env.ANTHROPIC_ARTICLE_MODEL = "claude-opus-5-5";
   calls = [];
@@ -81,7 +93,7 @@ function walk(node, visit) {
   eq(calls[0].body.tools[0].max_uses, 8, "max searches kept");
   eq(calls[0].body.tools[0].user_location, { type: "approximate", country: "EG" }, "Egypt location");
   ok(!calls[0].body.output_config, "no structured output with web search (citations)");
-  ok(calls[0].body.system.includes("reply with one JSON object only"), "JSON asked in text");
+  ok(systemText(calls[0].body).includes("reply with one JSON object only"), "JSON asked in text");
   eq(calls[1].body.messages.at(-1).role, "assistant", "paused turn sent back");
   const parsedFacts = JSON.parse(researchPayload.output_text);
   eq(parsedFacts.facts[0].sources.map((source) => source.url), ["https://roya.com/telal-east/", "https://news.eg/a"], "only searched URLs kept (www/trailing slash tolerant)");

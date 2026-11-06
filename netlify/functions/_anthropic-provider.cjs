@@ -104,13 +104,27 @@ function claudeFailure(response, data) {
   });
 }
 
+/**
+ * Prompt caching: the article rules (system prompt) repeat on every call, including the follow-up calls of
+ * one web-search turn, so they are marked for caching. Re-reads cost about 10% of the normal input price.
+ * Prompts shorter than Claude's minimum are simply not cached (no error, no extra cost).
+ */
+function withCachedSystem(body) {
+  if (typeof body.system !== "string" || !body.system) return body;
+  return { ...body, system: [{ type: "text", text: body.system, cache_control: { type: "ephemeral" } }] };
+}
+
+/** All input tokens of a call: new ones + the ones read from or written to the prompt cache. */
+const allInputTokens = (usage) =>
+  (Number(usage?.input_tokens) || 0) + (Number(usage?.cache_read_input_tokens) || 0) + (Number(usage?.cache_creation_input_tokens) || 0);
+
 async function callClaude(body, timeoutMs) {
   let response;
   try {
     response = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: { "x-api-key": process.env.ANTHROPIC_API_KEY, "anthropic-version": ANTHROPIC_VERSION, "content-type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(withCachedSystem(body)),
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {
@@ -178,7 +192,7 @@ function keepSearchedSources(value, urls) {
 function responsesPayload(message, text, extra = {}) {
   const stop = message?.stop_reason;
   const usage = message?.usage || {};
-  const inputTokens = (Number(usage.input_tokens) || 0) + (Number(extra.inputTokens) || 0);
+  const inputTokens = allInputTokens(usage) + (Number(extra.inputTokens) || 0);
   const outputTokens = (Number(usage.output_tokens) || 0) + (Number(extra.outputTokens) || 0);
   const payload = {
     id: String(message?.id || ""),
@@ -188,7 +202,14 @@ function responsesPayload(message, text, extra = {}) {
     ...(stop === "max_tokens" ? { incomplete_details: { reason: "max_output_tokens" } } : {}),
     output: [{ type: "message", content: stop === "refusal" ? [{ type: "refusal", refusal: "refused" }] : [{ type: "output_text", text }] }],
     output_text: stop === "refusal" ? "" : text,
-    usage: { input_tokens: inputTokens, output_tokens: outputTokens, total_tokens: inputTokens + outputTokens, web_searches: Number(usage.server_tool_use?.web_search_requests) || 0 },
+    usage: {
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: inputTokens + outputTokens,
+      cache_read_input_tokens: Number(usage.cache_read_input_tokens) || 0,
+      cache_creation_input_tokens: Number(usage.cache_creation_input_tokens) || 0,
+      web_searches: Number(usage.server_tool_use?.web_search_requests) || 0,
+    },
   };
   return payload;
 }
@@ -236,7 +257,7 @@ async function claudeResponses(request, timeoutMs = 60000) {
       messages: [{ role: "user", content: text }],
       output_config: { format: { type: "json_schema", schema: claudeSchema(request.text.format.schema) } },
     }, left());
-    extra = { inputTokens: fix.usage?.input_tokens, outputTokens: fix.usage?.output_tokens };
+    extra = { inputTokens: allInputTokens(fix.usage), outputTokens: fix.usage?.output_tokens };
     if (fix.stop_reason !== "end_turn") return responsesPayload(fix, "", extra);
     value = extractJson(fix.content?.filter((block) => block?.type === "text").map((block) => block.text).join(""));
   }
@@ -244,4 +265,4 @@ async function claudeResponses(request, timeoutMs = 60000) {
   return responsesPayload(message, text, extra);
 }
 
-module.exports = { claudeResponses, claudeSchema, toClaudeRequest, extractJson, keepSearchedSources, normalizeUrl, DEFAULT_MODEL };
+module.exports = { claudeResponses, claudeSchema, toClaudeRequest, withCachedSystem, extractJson, keepSearchedSources, normalizeUrl, DEFAULT_MODEL };

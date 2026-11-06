@@ -140,7 +140,9 @@ async function askClaude(content: unknown[]): Promise<Json> {
     body: JSON.stringify({
       model: MODEL,
       max_tokens: 16000,
-      system: SYSTEM_PROMPT,
+      // Prompt caching: the long Tycoons rules are the same for every WhatsApp message, so Claude keeps
+      // them for a few minutes and re-reads them at about 10% of the normal input price.
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       output_config: { format: { type: "json_schema", schema: UNITS_SCHEMA } },
       messages: [{ role: "user", content }],
     }),
