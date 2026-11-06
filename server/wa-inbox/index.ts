@@ -1331,24 +1331,55 @@ async function researchSettingsSave(body: Json) {
 
 /** Most units approved in one run (the rest go in the next run). */
 const AUTO_APPROVE_PER_RUN = 100;
-const AUTO_KEYS = ["wa_auto_approve", "wa_auto_approve_last_run", "wa_auto_approve_last_count"];
+const AUTO_KEYS = ["wa_auto_approve", "wa_auto_approve_last_run", "wa_auto_approve_last_count", "wa_photo_check"];
+/** Sonnet 5.5 list price, USD per million tokens (platform.claude.com, Nov 2026): input, output. */
+const PHOTO_PRICE_PER_MTOK = { input: 2, output: 10 };
 
 async function autoApproveState() {
   const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", AUTO_KEYS);
   fail(error);
   const get = (key: string) => text(((data ?? []) as Json[]).find((row) => row.key === key)?.value);
-  return { on: get("wa_auto_approve") !== "off", last_run: get("wa_auto_approve_last_run") || null, last_approved: Number(get("wa_auto_approve_last_count")) || 0 };
+  return {
+    on: get("wa_auto_approve") !== "off",
+    last_run: get("wa_auto_approve_last_run") || null,
+    last_approved: Number(get("wa_auto_approve_last_count")) || 0,
+    photo_check: get("wa_photo_check") !== "off",
+    photo_usage: await photoUsage(),
+  };
 }
 
+/** What the photo checks cost: today (Cairo day) and since the start. */
+async function photoUsage() {
+  const { data, error } = await db.from("wa_photo_check_usage").select("created_at,input_tokens,output_tokens").order("created_at", { ascending: false }).limit(20000);
+  fail(error);
+  const today = new Date(Date.now() + 2 * 3600_000).toISOString().slice(0, 10);
+  const sum = { checks: 0, input_tokens: 0, output_tokens: 0 };
+  const day = { checks: 0, input_tokens: 0, output_tokens: 0 };
+  for (const row of (data ?? []) as Json[]) {
+    const input = Number(row.input_tokens) || 0;
+    const output = Number(row.output_tokens) || 0;
+    sum.checks += 1; sum.input_tokens += input; sum.output_tokens += output;
+    if (new Date(Date.parse(text(row.created_at)) + 2 * 3600_000).toISOString().slice(0, 10) === today) {
+      day.checks += 1; day.input_tokens += input; day.output_tokens += output;
+    }
+  }
+  const usd = (part: typeof sum) => Math.round(((part.input_tokens * PHOTO_PRICE_PER_MTOK.input + part.output_tokens * PHOTO_PRICE_PER_MTOK.output) / 1_000_000) * 100) / 100;
+  return { today: { ...day, usd: usd(day) }, total: { ...sum, usd: usd(sum) } };
+}
+
+/** The admin's switches: «النزول التلقائي» (on) and «تشييك الصور» (photo_check). */
 async function autoApproveSave(body: Json) {
-  if (typeof body.on !== "boolean") throw new HttpError(400, "on_required");
-  await setSetting("wa_auto_approve", body.on ? "on" : "off");
+  if (typeof body.on !== "boolean" && typeof body.photo_check !== "boolean") throw new HttpError(400, "on_required");
+  if (typeof body.on === "boolean") await setSetting("wa_auto_approve", body.on ? "on" : "off");
+  if (typeof body.photo_check === "boolean") await setSetting("wa_photo_check", body.photo_check ? "on" : "off");
   return autoApproveState();
 }
 
 async function autoApproveRun() {
   const state = await autoApproveState();
   if (!state.on) return { skipped: "off" };
+  // «تشييك الصور» stopped: nothing goes on the site by itself (only what the admin approves by hand).
+  if (!state.photo_check) return { skipped: "photo_check_off" };
   // Approved in the owner's name (the approvals history shows «واتساب تلقائي»).
   const { data: owner, error: ownerError } = await db.from("admin_users").select("id,role,display_name").eq("role", "owner").eq("active", true)
     .order("created_at", { ascending: true }).limit(1).maybeSingle();
@@ -1454,6 +1485,18 @@ async function currentPhotoChecks(rows: Json[]) {
  * Tycoons' WhatsApp = "phone". A failed call is "error" and is tried again in the next run.
  */
 async function checkProjectPhotos(project: Json, urls: string[]): Promise<{ status: string; reason: string | null; bad_urls: string[] }> {
+  const result = await askPhotoCheck(project, urls);
+  // Every call is counted, even a failed one (it may still have been billed).
+  await db.from("wa_photo_check_usage").insert({
+    project_id: text(project.id) || null, status: result.status, photos: Math.min(urls.length, PHOTOS_PER_CHECK),
+    input_tokens: result.input_tokens, output_tokens: result.output_tokens,
+  }).then(() => undefined, (error) => console.error("photo usage log failed", error));
+  return { status: result.status, reason: result.reason, bad_urls: result.bad_urls };
+}
+
+async function askPhotoCheck(project: Json, urls: string[]): Promise<{ status: string; reason: string | null; bad_urls: string[]; input_tokens: number; output_tokens: number }> {
+  let input_tokens = 0;
+  let output_tokens = 0;
   const sent = urls.slice(0, PHOTOS_PER_CHECK);
   const content: Json[] = [{
     type: "text",
@@ -1495,16 +1538,19 @@ async function checkProjectPhotos(project: Json, urls: string[]): Promise<{ stat
       signal: AbortSignal.timeout(90_000),
     });
     const data = (await response.json().catch(() => ({}))) as Json;
+    const usage = (data.usage ?? {}) as Json;
+    input_tokens = (Number(usage.input_tokens) || 0) + (Number(usage.cache_read_input_tokens) || 0) + (Number(usage.cache_creation_input_tokens) || 0);
+    output_tokens = Number(usage.output_tokens) || 0;
     if (!response.ok) throw new Error(`claude_${response.status}:${text((data.error as Json | undefined)?.message).slice(0, 200)}`);
     const block = ((data.content as Json[]) ?? []).find((item) => item.type === "text");
     const answer = JSON.parse(text(block?.text) || "{}") as Json;
     const verdict = text(answer.verdict);
     if (!["match", "mismatch", "phone"].includes(verdict)) throw new Error("photo_check_bad_answer");
     const bad = (Array.isArray(answer.bad_photos) ? answer.bad_photos : []).map(Number).filter((n) => n >= 1 && n <= sent.length).map((n) => sent[n - 1]);
-    return { status: verdict === "match" ? "ok" : verdict, reason: verdict === "match" ? null : text(answer.reason).slice(0, 300) || null, bad_urls: verdict === "match" ? [] : bad };
+    return { status: verdict === "match" ? "ok" : verdict, reason: verdict === "match" ? null : text(answer.reason).slice(0, 300) || null, bad_urls: verdict === "match" ? [] : bad, input_tokens, output_tokens };
   } catch (error) {
     console.error("photo check failed", text(project.name), error);
-    return { status: "error", reason: String((error as Error)?.message || error).slice(0, 300), bad_urls: [] };
+    return { status: "error", reason: String((error as Error)?.message || error).slice(0, 300), bad_urls: [], input_tokens, output_tokens };
   }
 }
 

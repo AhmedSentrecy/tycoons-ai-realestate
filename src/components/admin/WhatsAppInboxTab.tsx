@@ -243,8 +243,25 @@ export default function WhatsAppInboxTab({
       return;
     setAutoBusy(true);
     try {
-      setAutoApprove(await adminApi.waAutoApproveSave(token, next));
+      setAutoApprove(await adminApi.waAutoApproveSave(token, { on: next }));
       notify(next ? "النزول التلقائي اشتغل" : "النزول التلقائي وقف");
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
+  /** «تشييك الصور» on/off: off = Claude checks no photos and nothing goes on the site by itself. */
+  const togglePhotoCheck = async () => {
+    if (!autoApprove) return;
+    const next = !autoApprove.photo_check;
+    if (!window.confirm(next ? "تشغّل تشييك الصور؟ Claude هيشيّك على صور المشاريع، والوحدات اللي صورها عدّت هتنزل لوحدها." : "توقف تشييك الصور؟ مفيش وحدات هتنزل لوحدها، هتنزل بس لما توافق عليها بإيدك."))
+      return;
+    setAutoBusy(true);
+    try {
+      setAutoApprove(await adminApi.waAutoApproveSave(token, { photo_check: next }));
+      notify(next ? "تشييك الصور اشتغل" : "تشييك الصور وقف");
     } catch (error) {
       handleError(error);
     } finally {
@@ -385,11 +402,31 @@ export default function WhatsAppInboxTab({
                 {autoApprove.on ? "وقّفه" : "شغّله"}
               </button>
             </div>
+            <div className="mt-1.5 flex items-center gap-2">
+              <span className="me-auto font-black">
+                تشييك الصور:{" "}
+                <span className={autoApprove.photo_check ? "text-emerald-700" : "text-red-600"}>{autoApprove.photo_check ? "شغال" : "متوقف"}</span>
+              </span>
+              <button
+                disabled={autoBusy}
+                onClick={() => void togglePhotoCheck()}
+                className="rounded-full border border-[#d8c9ab] px-3 py-1 font-black disabled:opacity-50"
+              >
+                {autoApprove.photo_check ? "وقّفه" : "شغّله"}
+              </button>
+            </div>
             <p className="mt-1 leading-5 text-[#5c6a62]">
-              {autoApprove.on
-                ? "كل 15 دقيقة الوحدات الجاهزة بتنزل على الموقع لوحدها، ماعدا اللي مشروعها مالوش صور ووحدات المشاريع الجديدة (بتنزل بـ «انشر»)."
-                : "الوحدات الجاهزة مستنية موافقتك."}
+              {!autoApprove.on
+                ? "الوحدات الجاهزة مستنية موافقتك."
+                : !autoApprove.photo_check
+                  ? "تشييك الصور متوقف، فمفيش وحدات بتنزل لوحدها. بتنزل بس لما توافق عليها بإيدك."
+                  : "كل 15 دقيقة Claude بيشيّك على صور المشاريع (تبع المشروع ومفيهاش رقم غير رقمنا)، والوحدات الجاهزة اللي صور مشروعها عدّت بتنزل لوحدها. ماعدا اللي مشروعها مالوش صور ووحدات المشاريع الجديدة (بتنزل بـ «انشر»)."}
               {autoApprove.last_run ? ` آخر مرة ${when(autoApprove.last_run)}: نزلت ${autoApprove.last_approved} وحدة.` : ""}
+            </p>
+            <p className="mt-1 leading-5 text-[#5c6a62]">
+              تكلفة تشييك الصور: النهارده ${autoApprove.photo_usage.today.usd.toFixed(2)} ({autoApprove.photo_usage.today.checks} مشروع) · من الأول $
+              {autoApprove.photo_usage.total.usd.toFixed(2)} ({autoApprove.photo_usage.total.checks} مشروع،{" "}
+              {Math.round((autoApprove.photo_usage.total.input_tokens + autoApprove.photo_usage.total.output_tokens) / 1000).toLocaleString("en")} ألف توكن)
             </p>
           </div>
         )}

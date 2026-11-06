@@ -524,7 +524,8 @@ export const adminApi = {
   waResearchSettingsSave: (token: string, mode: WaResearchMode, dailyCap: number | null, intensiveUntil: string) =>
     call<WaResearchSettings>("research_settings_save", { mode, daily_cap: dailyCap, intensive_until: intensiveUntil }, token, WA_INBOX_API),
   /** Turns the automatic approval of ready WhatsApp units on or off. */
-  waAutoApproveSave: (token: string, on: boolean) => call<WaAutoApprove>("auto_approve_save", { on }, token, WA_INBOX_API),
+  /** The two switches: «النزول التلقائي» (on) and «تشييك الصور» (photo_check). */
+  waAutoApproveSave: (token: string, values: { on?: boolean; photo_check?: boolean }) => call<WaAutoApprove>("auto_approve_save", values, token, WA_INBOX_API),
   /** «الصور صح»: the project's current photos are fine even though Claude flagged them. */
   waPhotoConfirm: (token: string, projectId: string) => call<{ ok: boolean }>("photo_confirm", { project_id: projectId }, token, WA_INBOX_API),
   /** Creates the project on the site, links its WhatsApp units and approves the ready ones. */
@@ -544,6 +545,16 @@ export interface WaAutoApprove {
   on: boolean;
   last_run: string | null;
   last_approved: number;
+  /** «تشييك الصور»: off = nothing goes on the site by itself, only what the admin approves by hand. */
+  photo_check: boolean;
+  /** What the photo checks cost (Sonnet 5.5 list price). */
+  photo_usage: { today: WaPhotoUsage; total: WaPhotoUsage };
+}
+export interface WaPhotoUsage {
+  checks: number;
+  input_tokens: number;
+  output_tokens: number;
+  usd: number;
 }
 /**
  * Claude's check of a project's current photos before its units go on the site by themselves:
