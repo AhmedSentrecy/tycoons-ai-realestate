@@ -466,7 +466,7 @@ export default function WhatsAppInboxTab({
               </ul>
             )}
             <p className="mt-1.5 leading-5 text-amber-800">
-              بندوّر على صور كل مشروع في موقع المطور الرسمي (مشروع كل 15 دقيقة)، وClaude بيشيّكها، وبتظهرلك هنا كاقتراح. أول ما تضيف الصور أو ترفعها، وحداته الجاهزة هتنزل لوحدها في المرة الجاية.
+              بندوّر على صور كل مشروع في موقع المطور الأول وبعده مواقع العقارات (مشروع كل 15 دقيقة)، وClaude بيشيّكها، وبتظهرلك هنا كاقتراح. أول ما تضيف الصور أو ترفعها، وحداته الجاهزة هتنزل لوحدها في المرة الجاية.
             </p>
           </div>
         )}
@@ -1836,7 +1836,7 @@ function PhotoGapRow({
       {pending ? (
         <div className="mt-2">
           <p className="font-bold text-emerald-700">
-            صور مقترحة من موقع المطور ({suggestion.urls.length})
+            صور مقترحة من النت ({suggestion.urls.length})
             {suggestion.source_page && (
               <a href={suggestion.source_page} target="_blank" rel="noreferrer" className="ms-1 underline">
                 الصفحة
