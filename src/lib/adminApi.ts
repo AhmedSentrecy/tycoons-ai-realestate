@@ -492,7 +492,7 @@ export const adminApi = {
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
     call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
   waInbox: (token: string, status: WaInboxStatus) =>
-    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string>; doubts?: Record<string, WaDoubt[]>; drafts?: Record<string, WaDraft>; no_photos?: Record<string, true>; photo_gaps?: WaPhotoGap[]; photo_checks?: Record<string, WaPhotoCheck>; auto_approve?: WaAutoApprove }>("list", { status }, token, WA_INBOX_API),
+    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string>; doubts?: Record<string, WaDoubt[]>; drafts?: Record<string, WaDraft>; no_photos?: Record<string, true>; photo_gaps?: WaPhotoGap[]; photo_checks?: Record<string, WaPhotoCheck>; photo_suggestions?: Record<string, WaPhotoSuggestion>; auto_approve?: WaAutoApprove }>("list", { status }, token, WA_INBOX_API),
   waInboxSave: (token: string, id: number, values: WaInboxValues) =>
     call<{ item: WaInboxItem }>("save", { id, values }, token, WA_INBOX_API),
   waInboxApprove: (
@@ -526,6 +526,11 @@ export const adminApi = {
   /** Turns the automatic approval of ready WhatsApp units on or off. */
   /** The two switches: «النزول التلقائي» (on) and «تشييك الصور» (photo_check). */
   waAutoApproveSave: (token: string, values: { on?: boolean; photo_check?: boolean }) => call<WaAutoApprove>("auto_approve_save", values, token, WA_INBOX_API),
+  /** «دوّر على صور»: searches the developer's official website now for the project's photos. */
+  waPhotoSuggest: (token: string, projectId: string) => call<{ suggestion: WaPhotoSuggestion }>("photo_suggest", { project_id: projectId }, token, WA_INBOX_API),
+  /** «ضيف الصور»: the picked suggested photos become the project's photos. */
+  waPhotoSuggestApprove: (token: string, id: number, urls: string[]) => call<{ ok: boolean; added: number }>("photo_suggest_approve", { id, urls }, token, WA_INBOX_API),
+  waPhotoSuggestReject: (token: string, id: number) => call<{ ok: boolean }>("photo_suggest_reject", { id }, token, WA_INBOX_API),
   /** «الصور صح»: the project's current photos are fine even though Claude flagged them. */
   waPhotoConfirm: (token: string, projectId: string) => call<{ ok: boolean }>("photo_confirm", { project_id: projectId }, token, WA_INBOX_API),
   /** Creates the project on the site, links its WhatsApp units and approves the ready ones. */
@@ -548,7 +553,7 @@ export interface WaAutoApprove {
   /** «تشييك الصور»: off = nothing goes on the site by itself, only what the admin approves by hand. */
   photo_check: boolean;
   /** What the photo checks cost (Sonnet 5.5 list price). */
-  photo_usage: { today: WaPhotoUsage; total: WaPhotoUsage };
+  photo_usage: { today: WaPhotoUsage; total: WaPhotoUsage; firecrawl_credits: number };
 }
 export interface WaPhotoUsage {
   checks: number;
@@ -565,6 +570,17 @@ export interface WaPhotoCheck {
   reason: string | null;
   bad_urls: string[];
   checked_at: string;
+}
+/** Photos found on the developer's official website for a project with no photos (latest search). */
+export interface WaPhotoSuggestion {
+  id: number;
+  project_id: string;
+  created_at: string;
+  status: "pending" | "none" | "error" | "approved" | "rejected";
+  source_page: string | null;
+  urls: string[];
+  reason: string | null;
+  firecrawl_credits: number;
 }
 /** A site project with no photos, and how many ready WhatsApp units wait for its photos. */
 export interface WaPhotoGap {

@@ -28,6 +28,7 @@ import {
   type WaAutoApprove,
   type WaPhotoGap,
   type WaPhotoCheck,
+  type WaPhotoSuggestion,
 } from "../../lib/adminApi";
 import { writeAndPublishProjectArticles, type BatchLanguage, type BatchStep, type PublishResult } from "../../lib/articleBatch";
 import { useAdmin } from "./AdminContext";
@@ -77,6 +78,8 @@ export default function WhatsAppInboxTab({
   /** Claude's check of each project's current photos (no entry = not checked yet). */
   const [photoChecks, setPhotoChecks] = useState<Record<string, WaPhotoCheck>>({});
   const [photoFlagsOpen, setPhotoFlagsOpen] = useState(true);
+  /** Latest photo search on the developer's website for each project with no photos. */
+  const [photoSuggestions, setPhotoSuggestions] = useState<Record<string, WaPhotoSuggestion>>({});
   const [autoApprove, setAutoApprove] = useState<WaAutoApprove | null>(null);
   const [autoBusy, setAutoBusy] = useState(false);
   const [draftEditing, setDraftEditing] = useState<WaDraft | null>(null);
@@ -121,6 +124,7 @@ export default function WhatsAppInboxTab({
         setNoPhotos(result.no_photos ?? {});
         setPhotoGaps(result.photo_gaps ?? []);
         setPhotoChecks(result.photo_checks ?? {});
+        setPhotoSuggestions(result.photo_suggestions ?? {});
         if (result.auto_approve) setAutoApprove(result.auto_approve);
         setCounts(result.counts);
         setSelected(new Set());
@@ -427,6 +431,7 @@ export default function WhatsAppInboxTab({
               تكلفة تشييك الصور: النهارده ${autoApprove.photo_usage.today.usd.toFixed(2)} ({autoApprove.photo_usage.today.checks} مشروع) · من الأول $
               {autoApprove.photo_usage.total.usd.toFixed(2)} ({autoApprove.photo_usage.total.checks} مشروع،{" "}
               {Math.round((autoApprove.photo_usage.total.input_tokens + autoApprove.photo_usage.total.output_tokens) / 1000).toLocaleString("en")} ألف توكن)
+              {autoApprove.photo_usage.firecrawl_credits ? ` · Firecrawl: ${autoApprove.photo_usage.firecrawl_credits} credit` : ""}
             </p>
           </div>
         )}
@@ -441,33 +446,28 @@ export default function WhatsAppInboxTab({
             {photoGapsOpen && (
               <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto">
                 {photoGaps.map((gap) => (
-                  <li key={gap.project_id} className="flex items-center gap-2 rounded-xl bg-white p-2">
-                    <span className="min-w-0 me-auto">
-                      <span className="block truncate font-black">{gap.name}</span>
-                      <span className="block truncate text-[#5c6a62]">
-                        {gap.developer || "—"} · {gap.waiting} وحدة جاهزة
-                      </span>
-                    </span>
-                    <button
-                      onClick={() => {
-                        setView("ready");
-                        setBucket(gap.project_id);
-                        setSelected(new Set());
-                      }}
-                      className="rounded-full bg-[#f1eadc] px-2.5 py-1 font-black"
-                    >
-                      الوحدات
-                    </button>
-                    {onOpenPhotos && (
-                      <button onClick={() => onOpenPhotos(gap.project_id)} className="rounded-full bg-[#0d1f18] px-2.5 py-1 font-black text-white">
-                        ارفع صور
-                      </button>
-                    )}
-                  </li>
+                  <PhotoGapRow
+                    key={gap.project_id}
+                    gap={gap}
+                    suggestion={photoSuggestions[gap.project_id] ?? null}
+                    onUnits={() => {
+                      setView("ready");
+                      setBucket(gap.project_id);
+                      setSelected(new Set());
+                    }}
+                    onOpenPhotos={onOpenPhotos ? () => onOpenPhotos(gap.project_id) : undefined}
+                    onSuggestion={(next) => setPhotoSuggestions((current) => ({ ...current, [gap.project_id]: next }))}
+                    onAdded={() => {
+                      onChanged();
+                      reload();
+                    }}
+                  />
                 ))}
               </ul>
             )}
-            <p className="mt-1.5 leading-5 text-amber-800">أول ما ترفع صور المشروع، وحداته الجاهزة هتنزل لوحدها في المرة الجاية.</p>
+            <p className="mt-1.5 leading-5 text-amber-800">
+              بندوّر على صور كل مشروع في موقع المطور الرسمي (مشروع كل 15 دقيقة)، وClaude بيشيّكها، وبتظهرلك هنا كاقتراح. أول ما تضيف الصور أو ترفعها، وحداته الجاهزة هتنزل لوحدها في المرة الجاية.
+            </p>
           </div>
         )}
         {status === "pending" && photoFlags.length > 0 && (
@@ -1748,4 +1748,153 @@ function searchText(value: string) {
     .replace(/ة/g, "ه")
     .replace(/ى/g, "ي")
     .replace(/,/g, "");
+}
+
+/**
+ * One project with no photos in «مشاريع ناقصها صور»: its suggested photos from the developer's website
+ * (pick, then «ضيف»), or the result of the last search with «دوّر تاني».
+ */
+function PhotoGapRow({
+  gap,
+  suggestion,
+  onUnits,
+  onOpenPhotos,
+  onSuggestion,
+  onAdded,
+}: {
+  gap: WaPhotoGap;
+  suggestion: WaPhotoSuggestion | null;
+  onUnits: () => void;
+  onOpenPhotos?: () => void;
+  onSuggestion: (next: WaPhotoSuggestion) => void;
+  onAdded: () => void;
+}) {
+  const { token, notify, handleError } = useAdmin();
+  const [busy, setBusy] = useState(false);
+  const [dropped, setDropped] = useState<Set<string>>(new Set());
+  const pending = suggestion?.status === "pending";
+  const picked = pending ? suggestion.urls.filter((url) => !dropped.has(url)) : [];
+
+  const search = async () => {
+    setBusy(true);
+    try {
+      const result = await adminApi.waPhotoSuggest(token, gap.project_id);
+      onSuggestion(result.suggestion);
+      setDropped(new Set());
+      notify(result.suggestion.status === "pending" ? `لقينا ${result.suggestion.urls.length} صورة لـ ${gap.name}` : `ما لقيناش صور لـ ${gap.name}`);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const add = async () => {
+    if (!suggestion || !picked.length) return;
+    if (!window.confirm(`تضيف ${picked.length} صورة لـ ${gap.name}؟ هتظهر على الموقع، ووحداته الجاهزة هتنزل لوحدها في المرة الجاية.`)) return;
+    setBusy(true);
+    try {
+      const result = await adminApi.waPhotoSuggestApprove(token, suggestion.id, picked);
+      notify(`اتضافت ${result.added} صورة لـ ${gap.name}`);
+      onAdded();
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const reject = async () => {
+    if (!suggestion || !window.confirm(`ترفض صور ${gap.name} المقترحة؟`)) return;
+    setBusy(true);
+    try {
+      await adminApi.waPhotoSuggestReject(token, suggestion.id);
+      onSuggestion({ ...suggestion, status: "rejected" });
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <li className="rounded-xl bg-white p-2">
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 me-auto">
+          <span className="block truncate font-black">{gap.name}</span>
+          <span className="block truncate text-[#5c6a62]">
+            {gap.developer || "—"} · {gap.waiting} وحدة جاهزة
+          </span>
+        </span>
+        <button onClick={onUnits} className="rounded-full bg-[#f1eadc] px-2.5 py-1 font-black">
+          الوحدات
+        </button>
+        {onOpenPhotos && (
+          <button onClick={onOpenPhotos} className="rounded-full bg-[#0d1f18] px-2.5 py-1 font-black text-white">
+            ارفع صور
+          </button>
+        )}
+      </div>
+      {pending ? (
+        <div className="mt-2">
+          <p className="font-bold text-emerald-700">
+            صور مقترحة من موقع المطور ({suggestion.urls.length})
+            {suggestion.source_page && (
+              <a href={suggestion.source_page} target="_blank" rel="noreferrer" className="ms-1 underline">
+                الصفحة
+              </a>
+            )}
+            <span className="ms-1 font-normal text-[#5c6a62]">· دوس على صورة عشان تشيلها</span>
+          </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {suggestion.urls.map((url, index) => {
+              const off = dropped.has(url);
+              return (
+                <button
+                  key={url}
+                  onClick={() =>
+                    setDropped((current) => {
+                      const next = new Set(current);
+                      if (next.has(url)) next.delete(url);
+                      else next.add(url);
+                      return next;
+                    })
+                  }
+                  className={`relative h-14 w-20 overflow-hidden rounded-lg ring-2 ${off ? "opacity-30 ring-transparent" : "ring-emerald-500"}`}
+                  title={off ? "مش هتتضاف" : index === 0 ? "الغلاف" : "هتتضاف"}
+                >
+                  <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  {!off && picked[0] === url && <span className="absolute bottom-0 right-0 rounded-tl bg-emerald-600 px-1 text-[9px] font-black text-white">غلاف</span>}
+                </button>
+              );
+            })}
+          </div>
+          {suggestion.reason && <p className="mt-1 text-[#5c6a62]">اتشالت صور: {suggestion.reason}</p>}
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            <button disabled={busy || !picked.length} onClick={() => void add()} className="rounded-full bg-emerald-600 px-3 py-1 font-black text-white disabled:opacity-50">
+              {busy ? "…" : `ضيف المختار (${picked.length})`}
+            </button>
+            <button disabled={busy} onClick={() => void reject()} className="rounded-full bg-red-50 px-3 py-1 font-black text-red-600 disabled:opacity-50">
+              ارفض
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1.5 flex flex-wrap items-center gap-1">
+          <span className="me-auto text-[#5c6a62]">
+            {!suggestion
+              ? "لسه ما دوّرناش على صوره"
+              : suggestion.status === "none"
+                ? `ما لقيناش صور: ${suggestion.reason || "—"}`
+                : suggestion.status === "error"
+                  ? "البحث ما اشتغلش، هنجرّب تاني بكرة"
+                  : suggestion.status === "rejected"
+                    ? "رفضت الصور المقترحة"
+                    : "الصور اتضافت"}
+          </span>
+          <button disabled={busy} onClick={() => void search()} className="rounded-full border border-[#d8c9ab] px-2.5 py-1 font-black disabled:opacity-50">
+            {busy ? "بيدوّر… (حوالي دقيقة)" : suggestion ? "دوّر تاني" : "دوّر دلوقتي"}
+          </button>
+        </div>
+      )}
+    </li>
+  );
 }

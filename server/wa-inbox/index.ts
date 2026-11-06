@@ -8,6 +8,7 @@
 //     intake_batch -> same for every unit in Claude's answer for one message (units_json)
 // - The admin page (header x-admin-token, same sessions as tycoons-admin):
 //     list, save, approve, approve_ready, reject, groups, group_toggle, group_developer, auto_approve_save, photo_confirm,
+//     photo_suggest, photo_suggest_approve, photo_suggest_reject,
 //     draft_save, draft_reject, draft_research, publish_draft
 // pg_cron (x-intake-key): research_run -> groups new WhatsApp names and researches new projects
 // Approve writes to public.units through admin_apply_ops and logs the change in
@@ -605,6 +606,7 @@ async function list(body: Json) {
   return { items: rows, matches, counts, duplicates, auto_filled: autoFilled, previously_rejected: previouslyRejected,
     suggestions, finishing_suggestions: finishingSuggestions, doubts, drafts,
     no_photos: noPhotos, photo_gaps: photoGaps, photo_checks: status === "pending" ? await currentPhotoChecks(rows) : {},
+    photo_suggestions: status === "pending" ? Object.fromEntries(await latestSuggestions(photoGaps.map((gap) => gap.project_id))) : {},
     auto_approve: status === "pending" ? await autoApproveState() : undefined };
 }
 
@@ -1350,7 +1352,7 @@ async function autoApproveState() {
 
 /** What the photo checks cost: today (Cairo day) and since the start. */
 async function photoUsage() {
-  const { data, error } = await db.from("wa_photo_check_usage").select("created_at,input_tokens,output_tokens").order("created_at", { ascending: false }).limit(20000);
+  const { data, error } = await db.from("wa_photo_check_usage").select("created_at,status,input_tokens,output_tokens").order("created_at", { ascending: false }).limit(20000);
   fail(error);
   const today = new Date(Date.now() + 2 * 3600_000).toISOString().slice(0, 10);
   const sum = { checks: 0, input_tokens: 0, output_tokens: 0 };
@@ -1358,13 +1360,18 @@ async function photoUsage() {
   for (const row of (data ?? []) as Json[]) {
     const input = Number(row.input_tokens) || 0;
     const output = Number(row.output_tokens) || 0;
-    sum.checks += 1; sum.input_tokens += input; sum.output_tokens += output;
+    // «checks» = projects whose photos were checked; photo searches («suggest») count in the tokens only.
+    const check = text(row.status) === "suggest" ? 0 : 1;
+    sum.checks += check; sum.input_tokens += input; sum.output_tokens += output;
     if (new Date(Date.parse(text(row.created_at)) + 2 * 3600_000).toISOString().slice(0, 10) === today) {
-      day.checks += 1; day.input_tokens += input; day.output_tokens += output;
+      day.checks += check; day.input_tokens += input; day.output_tokens += output;
     }
   }
+  const { data: credits, error: creditsError } = await db.from("wa_photo_suggestions").select("firecrawl_credits").limit(20000);
+  fail(creditsError);
+  const firecrawlCredits = ((credits ?? []) as Json[]).reduce((total, row) => total + (Number(row.firecrawl_credits) || 0), 0);
   const usd = (part: typeof sum) => Math.round(((part.input_tokens * PHOTO_PRICE_PER_MTOK.input + part.output_tokens * PHOTO_PRICE_PER_MTOK.output) / 1_000_000) * 100) / 100;
-  return { today: { ...day, usd: usd(day) }, total: { ...sum, usd: usd(sum) } };
+  return { today: { ...day, usd: usd(day) }, total: { ...sum, usd: usd(sum) }, firecrawl_credits: firecrawlCredits };
 }
 
 /** The admin's switches: «النزول التلقائي» (on) and «تشييك الصور» (photo_check). */
@@ -1567,6 +1574,270 @@ async function photoConfirm(user: AdminUser, body: Json) {
   return { ok: true };
 }
 
+// ---------- photo suggestions (projects with no photos) ----------
+//
+// For a site project with ready WhatsApp units and no photos: Firecrawl finds the project's page on the
+// developer's official website (never a broker or listing site), Claude keeps only photos of the project
+// with no phone number except Tycoons' WhatsApp and no other company's logo or watermark, and the kept
+// photos are copied to Storage as a suggestion. Nothing changes on the site until the admin adds them.
+
+/** Projects searched in one run (the others in the next runs). */
+const PHOTO_SUGGEST_PER_RUN = 1;
+/** Most photos suggested for one project. */
+const MAX_SUGGESTED = 10;
+const FIRECRAWL_URL = "https://api.firecrawl.dev/v2";
+const STORAGE_BUCKET = "property-images";
+/** Broker and listing sites: their photos carry their numbers and logos, and are not the developer's. */
+const NOT_OFFICIAL = /(nawy|propertyfinder|aqarmap|bayut|dubizzle|olx|facebook|instagram|youtube|tiktok|linkedin|twitter|x\.com|wikipedia|cooing|realestate-eg|egyptpropertyfinder|sakneen|bnbme|homzmart|almal|elwatannews|youm7|masrawy|google)/i;
+
+const SUGGESTION_COLUMNS = "id,project_id,created_at,status,source_page,urls,reason,firecrawl_credits";
+
+async function firecrawl(path: string, body: Json, timeoutMs = 60_000): Promise<{ data: Json; credits: number }> {
+  const key = Deno.env.get("FIRECRAWL_API_KEY");
+  if (!key) throw new Error("FIRECRAWL_API_KEY_missing");
+  const response = await fetch(`${FIRECRAWL_URL}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const data = (await response.json().catch(() => ({}))) as Json;
+  if (!response.ok || data.success === false) throw new Error(`firecrawl_${response.status}:${text(data.error).slice(0, 160)}`);
+  return { data: (data.data ?? {}) as Json, credits: Number(data.creditsUsed) || 0 };
+}
+
+/** One Claude call (text and images) answering JSON with the schema; tokens go to wa_photo_check_usage. */
+async function claudeJson(projectId: string, content: Json[], schema: Json, maxTokens = 1500): Promise<Json> {
+  const key = await claudeKey();
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, output_config: { format: { type: "json_schema", schema } }, messages: [{ role: "user", content }] }),
+    signal: AbortSignal.timeout(90_000),
+  });
+  const data = (await response.json().catch(() => ({}))) as Json;
+  const usage = (data.usage ?? {}) as Json;
+  await db.from("wa_photo_check_usage").insert({
+    project_id: projectId, status: "suggest", photos: content.filter((block) => block.type === "image").length,
+    input_tokens: (Number(usage.input_tokens) || 0) + (Number(usage.cache_read_input_tokens) || 0) + (Number(usage.cache_creation_input_tokens) || 0),
+    output_tokens: Number(usage.output_tokens) || 0,
+  }).then(() => undefined, (error) => console.error("photo usage log failed", error));
+  if (!response.ok) throw new Error(`claude_${response.status}:${text((data.error as Json | undefined)?.message).slice(0, 160)}`);
+  const block = ((data.content as Json[]) ?? []).find((item) => item.type === "text");
+  return JSON.parse(text(block?.text) || "{}") as Json;
+}
+
+/** Downloads a photo for checking: real photos only (jpeg / png / webp, 40 KB to 5 MB). */
+async function downloadPhoto(url: string): Promise<{ bytes: Uint8Array; type: string } | null> {
+  try {
+    const response = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (TycoonsBot photo check)" }, signal: AbortSignal.timeout(20_000) });
+    if (!response.ok) return null;
+    const type = text(response.headers.get("content-type")).split(";")[0].toLowerCase();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(type)) return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    return bytes.length >= 40_000 && bytes.length <= 5_000_000 ? { bytes, type } : null;
+  } catch {
+    return null;
+  }
+}
+
+function toBase64(bytes: Uint8Array) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
+
+const slugPart = (value: unknown) => text(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+
+/** Searches, checks and stores the suggestion for one project. Answer: the new wa_photo_suggestions row. */
+async function suggestPhotos(projectId: string): Promise<Json> {
+  const { data: project, error } = await db.from("projects").select("id,name,slug,developer,location,area_group").eq("id", projectId).maybeSingle();
+  fail(error);
+  if (!project) throw new HttpError(404, "project_not_found");
+  let credits = 0;
+  const save = async (values: Json) => {
+    const { data, error: saveError } = await db.from("wa_photo_suggestions").insert({ project_id: projectId, firecrawl_credits: credits, ...values }).select(SUGGESTION_COLUMNS).single();
+    fail(saveError);
+    return data as Json;
+  };
+  try {
+    // 1. The developer's official website (Claude picks it among the search results, never a broker or listing site).
+    const search = await firecrawl("/search", { query: `${text(project.name)} ${text(project.developer)} official website`, limit: 8, sources: ["web"] });
+    credits += search.credits;
+    const results = ((search.data.web as Json[]) ?? []).map((item) => ({ url: text(item.url), title: text(item.title) }))
+      .filter((item) => /^https:\/\//i.test(item.url) && !NOT_OFFICIAL.test(item.url));
+    if (!results.length) return await save({ status: "none", reason: "ما لقيناش موقع رسمي للمطور في البحث" });
+    const pick = await claudeJson(projectId, [{
+      type: "text",
+      text: [
+        `Project: ${text(project.name)} | Developer: ${text(project.developer)} | Location: ${text(project.location) || text(project.area_group)} (Egypt)`,
+        "Which search result is on the developer's own official website (any page of it)? Never a broker, listing, news or social site.",
+        "Answer the result number, or 0 when none is clearly the developer's own website.",
+        ...results.map((item, index) => `${index + 1}. ${item.url} — ${item.title}`),
+      ].join("\n"),
+    }], { type: "object", additionalProperties: false, required: ["result"], properties: { result: { type: "integer" } } }, 200);
+    const official = results[Number(pick.result) - 1]?.url;
+    if (!official) return await save({ status: "none", reason: "ما لقيناش موقع المطور الرسمي" });
+    const domain = new URL(official).hostname.replace(/^www\./, "");
+
+    // 2. The project's pages on that website, then their photos (Firecrawl renders them, so lazy photos are found too).
+    const onSite = await firecrawl("/search", { query: `site:${domain} ${text(project.name)}`, limit: 5, sources: ["web"] });
+    credits += onSite.credits;
+    const pages = [...new Set([...((onSite.data.web as Json[]) ?? []).map((item) => text(item.url)), official])]
+      .filter((url) => /^https:\/\//i.test(url) && !/\.pdf(\?|$)/i.test(url) && new URL(url).hostname.replace(/^www\./, "") === domain)
+      .slice(0, 2);
+    if (!pages.length) return await save({ status: "none", source_page: official, reason: "ما لقيناش صفحة للمشروع على موقع المطور" });
+    const page = pages[0];
+    const found: string[] = [];
+    for (const url of pages) {
+      const scraped = await firecrawl("/scrape", { url, formats: ["images"], onlyMainContent: false, waitFor: 3000 }, 90_000).catch(() => null);
+      if (!scraped) continue;
+      credits += scraped.credits || Number(((scraped.data.metadata ?? {}) as Json).creditsUsed) || 1;
+      found.push(text(((scraped.data.metadata ?? {}) as Json).ogImage), ...((scraped.data.images as unknown[]) ?? []).map(text));
+    }
+    const candidates = [...new Set(found)]
+      .filter((url) => /^https:\/\//i.test(url) && !/\.(svg|gif|ico)(\?|$)|logo|icon|sprite|favicon|avatar|flag|whatsapp|facebook|instagram/i.test(url))
+      .slice(0, 30);
+    const photos: { url: string; bytes: Uint8Array; type: string }[] = [];
+    for (const url of candidates) {
+      if (photos.length >= 12) break;
+      const photo = await downloadPhoto(url);
+      if (photo) photos.push({ url, ...photo });
+    }
+    if (!photos.length) return await save({ status: "none", source_page: page, reason: "صفحة المطور مفيهاش صور ينفع نستخدمها" });
+
+    // 3. Claude keeps only photos of this project, with no other phone number, logo or watermark.
+    const content: Json[] = [{
+      type: "text",
+      text: [
+        "These photos come from the developer's official page of a real-estate project. Pick the ones the Tycoons Investments website (Egypt) may show for this project.",
+        `Project: ${text(project.name)} | Developer: ${text(project.developer)} | Location: ${text(project.location) || text(project.area_group)} | Page: ${page}`,
+        "Keep a photo only when ALL of these hold:",
+        "- it shows this project: buildings, renders, aerial views, amenities, interiors, landscape or the master plan;",
+        `- it shows no phone number, hotline or WhatsApp number at all, except Tycoons' WhatsApp ${TYCOONS_WHATSAPP};`,
+        "- it shows no logo or watermark of a broker or of any company other than this developer (the developer's own logo is fine);",
+        "- it is not a logo, icon, banner made mostly of text, map screenshot, person portrait, or another project's photo.",
+        "keep = the numbers of the photos to keep, best cover first. reason = one short Egyptian Arabic sentence for the admin about what was dropped (empty if nothing).",
+      ].join("\n"),
+    }];
+    photos.forEach((photo, index) => {
+      content.push({ type: "text", text: `Photo ${index + 1}:` });
+      content.push({ type: "image", source: { type: "base64", media_type: photo.type, data: toBase64(photo.bytes) } });
+    });
+    const answer = await claudeJson(projectId, content, {
+      type: "object", additionalProperties: false, required: ["keep", "reason"],
+      properties: { keep: { type: "array", items: { type: "integer" } }, reason: { type: "string" } },
+    });
+    const kept = [...new Set(((answer.keep as unknown[]) ?? []).map(Number))].filter((n) => n >= 1 && n <= photos.length).slice(0, MAX_SUGGESTED).map((n) => photos[n - 1]);
+    if (!kept.length) return await save({ status: "none", source_page: page, reason: text(answer.reason).slice(0, 300) || "ولا صورة عدّت التشييك" });
+
+    // 4. Copied to our Storage, so the site never depends on the developer's website.
+    const folder = `${slugPart(project.developer) || "developer"}/${slugPart(text(project.slug).split("--")[0] || project.name) || "project"}/suggested`;
+    const stored: string[] = [];
+    const originals: string[] = [];
+    for (const [index, photo] of kept.entries()) {
+      const ext = photo.type === "image/png" ? "png" : photo.type === "image/webp" ? "webp" : "jpg";
+      const path = `${folder}/${Date.now().toString(36)}-${index + 1}.${ext}`;
+      const { error: uploadError } = await db.storage.from(STORAGE_BUCKET).upload(path, photo.bytes, { contentType: photo.type, cacheControl: "31536000", upsert: false });
+      if (uploadError) continue;
+      stored.push(db.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl);
+      originals.push(photo.url);
+    }
+    if (!stored.length) return await save({ status: "error", source_page: page, reason: "storage_upload_failed" });
+    return await save({ status: "pending", source_page: page, urls: stored, original_urls: originals, reason: text(answer.reason).slice(0, 300) || null });
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
+    console.error("photo suggest failed", text(project.name), error);
+    return await save({ status: "error", reason: String((error as Error)?.message || error).slice(0, 300) });
+  }
+}
+
+/** Latest suggestion of each project. */
+async function latestSuggestions(projectIds: string[]) {
+  const out = new Map<string, Json>();
+  if (!projectIds.length) return out;
+  const { data, error } = await db.from("wa_photo_suggestions").select(SUGGESTION_COLUMNS).in("project_id", projectIds).order("created_at", { ascending: false }).limit(500);
+  fail(error);
+  for (const row of (data ?? []) as Json[]) if (!out.has(text(row.project_id))) out.set(text(row.project_id), row);
+  return out;
+}
+
+/**
+ * pg_cron: projects with ready units and no photos that were never searched get a search (2 per run).
+ * A failed search is tried again after a day; «none» and decided ones only with «دوّر تاني».
+ */
+async function photoSuggestRun(gaps: string[]) {
+  if (!gaps.length || !Deno.env.get("FIRECRAWL_API_KEY")) return { searched: 0 };
+  const latest = await latestSuggestions(gaps);
+  const todo = gaps.filter((id) => {
+    const row = latest.get(id);
+    return !row || (text(row.status) === "error" && Date.now() - Date.parse(text(row.created_at)) > 86_400_000);
+  }).slice(0, PHOTO_SUGGEST_PER_RUN);
+  for (const id of todo) await suggestPhotos(id).catch((error) => console.error("photo suggest", id, error));
+  return { searched: todo.length };
+}
+
+/** Cron step: only while «النزول التلقائي» and «تشييك الصور» are on (both mean the admin accepts the cost). */
+async function photoSuggestCron() {
+  const state = await autoApproveState();
+  if (!state.on || !state.photo_check) return { skipped: "off" };
+  const current = await list({ status: "pending" });
+  return photoSuggestRun(current.photo_gaps.map((gap) => gap.project_id));
+}
+
+/** «دوّر على صور»: searches now for one project (the admin's button). */
+async function photoSuggest(body: Json) {
+  const projectId = text(body.project_id);
+  if (!/^[0-9a-f-]{36}$/i.test(projectId)) throw new HttpError(400, "project_id_invalid");
+  if (!Deno.env.get("FIRECRAWL_API_KEY")) throw new HttpError(503, "firecrawl_key_missing");
+  return { suggestion: await suggestPhotos(projectId) };
+}
+
+/**
+ * «ضيف الصور»: the picked suggested photos become the project's photos (cover first), through the same
+ * admin_apply_ops "media" change as the photos tab, logged in admin_change_requests. They passed the
+ * photo check, so the project's ready units go on the site in the next run.
+ */
+async function photoSuggestApprove(user: AdminUser, body: Json) {
+  const { data: row, error } = await db.from("wa_photo_suggestions").select("id,project_id,status,urls").eq("id", Number(body.id)).maybeSingle();
+  fail(error);
+  if (!row) throw new HttpError(404, "suggestion_not_found");
+  if (text(row.status) !== "pending") throw new HttpError(409, "already_decided");
+  const offered = new Set(((row.urls as string[]) ?? []).map(text));
+  const picked = [...new Set((Array.isArray(body.urls) ? body.urls : [...offered]).map(text))].filter((url) => offered.has(url));
+  if (!picked.length) throw new HttpError(400, "no_photos_picked");
+  const projectId = text(row.project_id);
+  const { data: project, error: projectError } = await db.from("projects").select("id,name,image_url,gallery_urls").eq("id", projectId).maybeSingle();
+  fail(projectError);
+  if (!project) throw new HttpError(404, "project_not_found");
+  // Photos the project got in the meantime stay; the suggested ones are added after them.
+  const existing = [text(project.image_url), ...text(project.gallery_urls).split(",").map((url) => url.trim())].filter(Boolean);
+  const all = [...new Set([...existing, ...picked])].slice(0, MAX_GALLERY);
+  const values = { image_url: all[0], gallery_urls: all.join(", ") };
+  const ops = [{ op: "media", entity: "project", id: projectId, values }];
+  const { data: result, error: applyError } = await db.rpc("admin_apply_ops", { ops });
+  if (applyError) throw new HttpError(409, `apply_failed:${applyError.message}`);
+  const now = new Date().toISOString();
+  await db.from("admin_change_requests").insert({
+    entity: "project", action: "media", target_id: projectId, project_id: projectId,
+    summary: `صور ${text(project.name)} من موقع المطور (${picked.length} صورة)`,
+    ops, before: { image_url: project.image_url ?? null, gallery_urls: project.gallery_urls ?? null },
+    created_by: user.id, status: "approved", reviewed_by: user.id, reviewed_at: now, result,
+  }).then(() => undefined, () => undefined);
+  fail((await db.from("wa_photo_suggestions").update({ status: "approved", decided_at: now, decided_by: user.id }).eq("id", Number(row.id))).error);
+  fail((await db.from("wa_photo_checks").upsert({
+    project_id: projectId, photos_key: all.join(","), status: "confirmed", reason: null, bad_urls: [], checked_at: now, confirmed_by: user.id,
+  })).error);
+  return { ok: true, added: picked.length };
+}
+
+async function photoSuggestReject(user: AdminUser, body: Json) {
+  const { error } = await db.from("wa_photo_suggestions").update({ status: "rejected", decided_at: new Date().toISOString(), decided_by: user.id })
+    .eq("id", Number(body.id)).eq("status", "pending");
+  fail(error);
+  return { ok: true };
+}
+
 /** pg_cron every 15 minutes (and «ابحث تاني»): group new names, then research a few drafts, within the mode's limits. */
 async function researchRun() {
   const settings = await researchSettings();
@@ -1760,6 +2031,8 @@ Deno.serve(async (req: Request) => {
       // Ready units first (no AI cost, runs in every mode), then the research.
       const job = autoApproveRun()
         .catch((error) => console.error("auto_approve", error))
+        .then(() => photoSuggestCron())
+        .catch((error) => console.error("photo_suggest", error))
         .then(() => researchRun())
         .catch((error) => console.error("research_run", error));
       if (runtime?.waitUntil) runtime.waitUntil(job);
@@ -1789,6 +2062,9 @@ Deno.serve(async (req: Request) => {
       case "research_settings_save": return reply(await researchSettingsSave(body));
       case "auto_approve_save": return reply(await autoApproveSave(body));
       case "photo_confirm": return reply(await photoConfirm(user, body));
+      case "photo_suggest": return reply(await photoSuggest(body));
+      case "photo_suggest_approve": return reply(await photoSuggestApprove(user, body));
+      case "photo_suggest_reject": return reply(await photoSuggestReject(user, body));
       case "publish_draft": return reply(await publishDraft(user, body));
       default: return reply({ error: "unknown_action" }, 400);
     }
