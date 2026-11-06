@@ -462,7 +462,16 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
               onCreateProject={() => setProjectFormOpen(true)}
             />
           )}
-          {tab === "wainbox" && <WhatsAppInboxTab projects={projects} onChanged={refresh} />}
+          {tab === "wainbox" && (
+            <WhatsAppInboxTab
+              projects={projects}
+              onChanged={refresh}
+              onOpenPhotos={(projectId) => {
+                setSelectedId(projectId);
+                setTab("media");
+              }}
+            />
+          )}
           {tab === "launches" && <HomepageLaunchesTab projects={projects} />}
           {tab === "articles" && <ArticlesTab projects={projects} focusProjectId={articleFocus} onFocusHandled={() => setArticleFocus(null)} />}
           {tab === "faq" && <ProjectFaqTab projects={projects} />}

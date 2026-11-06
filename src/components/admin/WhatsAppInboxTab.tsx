@@ -25,6 +25,9 @@ import {
   type WaFillSource,
   type WaProjectSuggestion,
   type WaDoubt,
+  type WaAutoApprove,
+  type WaPhotoGap,
+  type WaPhotoCheck,
 } from "../../lib/adminApi";
 import { writeAndPublishProjectArticles, type BatchLanguage, type BatchStep, type PublishResult } from "../../lib/articleBatch";
 import { useAdmin } from "./AdminContext";
@@ -42,7 +45,16 @@ const DRAFT = "draft:";
  * Same layout as the units tab: projects on the right, that project's WhatsApp units on the left,
  * with the units already on the site underneath to compare. Nothing shows on the site until "وافق".
  */
-export default function WhatsAppInboxTab({ projects, onChanged }: { projects: AdminProject[]; onChanged: () => void }) {
+export default function WhatsAppInboxTab({
+  projects,
+  onChanged,
+  onOpenPhotos,
+}: {
+  projects: AdminProject[];
+  onChanged: () => void;
+  /** Opens the photos tab on that project. */
+  onOpenPhotos?: (projectId: string) => void;
+}) {
   const { token, notify, handleError } = useAdmin();
   const [status, setStatus] = useState<WaInboxStatus>("pending");
   const [items, setItems] = useState<WaInboxItem[]>([]);
@@ -58,6 +70,15 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
   const [view, setView] = useState<"ready" | "review">("ready");
   const [bulkBusy, setBulkBusy] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, WaDraft>>({});
+  /** Ready units that would have no photo on the site: they wait for the project's photos (no automatic approval). */
+  const [noPhotos, setNoPhotos] = useState<Record<string, true>>({});
+  const [photoGaps, setPhotoGaps] = useState<WaPhotoGap[]>([]);
+  const [photoGapsOpen, setPhotoGapsOpen] = useState(false);
+  /** Claude's check of each project's current photos (no entry = not checked yet). */
+  const [photoChecks, setPhotoChecks] = useState<Record<string, WaPhotoCheck>>({});
+  const [photoFlagsOpen, setPhotoFlagsOpen] = useState(true);
+  const [autoApprove, setAutoApprove] = useState<WaAutoApprove | null>(null);
+  const [autoBusy, setAutoBusy] = useState(false);
   const [draftEditing, setDraftEditing] = useState<WaDraft | null>(null);
   const [publishing, setPublishing] = useState<WaDraft | null>(null);
   const [counts, setCounts] = useState<Record<WaInboxStatus, number>>({ pending: 0, approved: 0, rejected: 0 });
@@ -97,6 +118,10 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
         setFinishingSuggestions(result.finishing_suggestions ?? {});
         setDoubts(result.doubts ?? {});
         setDrafts(result.drafts ?? {});
+        setNoPhotos(result.no_photos ?? {});
+        setPhotoGaps(result.photo_gaps ?? []);
+        setPhotoChecks(result.photo_checks ?? {});
+        if (result.auto_approve) setAutoApprove(result.auto_approve);
         setCounts(result.counts);
         setSelected(new Set());
       })
@@ -210,6 +235,47 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
     }
   };
 
+  /** «النزول التلقائي» on/off: ready units go on the site by themselves every 15 minutes. */
+  const toggleAutoApprove = async () => {
+    if (!autoApprove) return;
+    const next = !autoApprove.on;
+    if (!window.confirm(next ? "تشغّل النزول التلقائي؟ الوحدات الجاهزة هتنزل على الموقع لوحدها كل 15 دقيقة." : "توقف النزول التلقائي؟ الوحدات هتستنى موافقتك."))
+      return;
+    setAutoBusy(true);
+    try {
+      setAutoApprove(await adminApi.waAutoApproveSave(token, next));
+      notify(next ? "النزول التلقائي اشتغل" : "النزول التلقائي وقف");
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
+  /** Projects whose photos Claude flagged, with how many ready units wait for them. */
+  const photoFlags = useMemo(() => {
+    const waiting = new Map<string, number>();
+    for (const item of items) {
+      if (!item.project_id || !isReady(item) || noPhotos[String(item.id)]) continue;
+      if (["mismatch", "phone", "error"].includes(photoChecks[item.project_id]?.status ?? "")) waiting.set(item.project_id, (waiting.get(item.project_id) ?? 0) + 1);
+    }
+    return [...waiting.entries()]
+      .map(([projectId, count]) => ({ projectId, count, project: projectById.get(projectId) ?? null, check: photoChecks[projectId] }))
+      .sort((a, b) => b.count - a.count);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, doubts, noPhotos, photoChecks, projectById]);
+
+  const confirmPhotos = async (projectId: string, name: string) => {
+    if (!window.confirm(`صور ${name} صح؟ وحداته الجاهزة هتنزل لوحدها في المرة الجاية.`)) return;
+    try {
+      await adminApi.waPhotoConfirm(token, projectId);
+      notify(`اتأكدت صور ${name}`);
+      reload();
+    } catch (error) {
+      handleError(error);
+    }
+  };
+
   /** Confirms the suggested (or picked) project: every unit with the same WhatsApp name goes with it. */
   const linkProject = async (item: WaInboxItem, projectId: string, projectName: string) => {
     setBusyId(item.id);
@@ -302,6 +368,125 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
             >
               محتاج مراجعة ({items.length - readyCount})
             </button>
+          </div>
+        )}
+        {status === "pending" && autoApprove && (
+          <div className="mt-2 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-2.5 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="me-auto font-black">
+                النزول التلقائي:{" "}
+                <span className={autoApprove.on ? "text-emerald-700" : "text-red-600"}>{autoApprove.on ? "شغال" : "متوقف"}</span>
+              </span>
+              <button
+                disabled={autoBusy}
+                onClick={() => void toggleAutoApprove()}
+                className="rounded-full border border-[#d8c9ab] px-3 py-1 font-black disabled:opacity-50"
+              >
+                {autoApprove.on ? "وقّفه" : "شغّله"}
+              </button>
+            </div>
+            <p className="mt-1 leading-5 text-[#5c6a62]">
+              {autoApprove.on
+                ? "كل 15 دقيقة الوحدات الجاهزة بتنزل على الموقع لوحدها، ماعدا اللي مشروعها مالوش صور ووحدات المشاريع الجديدة (بتنزل بـ «انشر»)."
+                : "الوحدات الجاهزة مستنية موافقتك."}
+              {autoApprove.last_run ? ` آخر مرة ${when(autoApprove.last_run)}: نزلت ${autoApprove.last_approved} وحدة.` : ""}
+            </p>
+          </div>
+        )}
+        {status === "pending" && photoGaps.length > 0 && (
+          <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-2.5 text-xs">
+            <button onClick={() => setPhotoGapsOpen((open) => !open)} className="flex w-full items-center gap-2 text-right font-black text-amber-800">
+              <span className="me-auto">
+                مشاريع ناقصها صور ({photoGaps.length}) · {photoGaps.reduce((sum, gap) => sum + gap.waiting, 0)} وحدة جاهزة مستنياها
+              </span>
+              <span>{photoGapsOpen ? "▲" : "▼"}</span>
+            </button>
+            {photoGapsOpen && (
+              <ul className="mt-2 max-h-64 space-y-1 overflow-y-auto">
+                {photoGaps.map((gap) => (
+                  <li key={gap.project_id} className="flex items-center gap-2 rounded-xl bg-white p-2">
+                    <span className="min-w-0 me-auto">
+                      <span className="block truncate font-black">{gap.name}</span>
+                      <span className="block truncate text-[#5c6a62]">
+                        {gap.developer || "—"} · {gap.waiting} وحدة جاهزة
+                      </span>
+                    </span>
+                    <button
+                      onClick={() => {
+                        setView("ready");
+                        setBucket(gap.project_id);
+                        setSelected(new Set());
+                      }}
+                      className="rounded-full bg-[#f1eadc] px-2.5 py-1 font-black"
+                    >
+                      الوحدات
+                    </button>
+                    {onOpenPhotos && (
+                      <button onClick={() => onOpenPhotos(gap.project_id)} className="rounded-full bg-[#0d1f18] px-2.5 py-1 font-black text-white">
+                        ارفع صور
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-1.5 leading-5 text-amber-800">أول ما ترفع صور المشروع، وحداته الجاهزة هتنزل لوحدها في المرة الجاية.</p>
+          </div>
+        )}
+        {status === "pending" && photoFlags.length > 0 && (
+          <div className="mt-2 rounded-2xl border border-red-200 bg-red-50 p-2.5 text-xs">
+            <button onClick={() => setPhotoFlagsOpen((open) => !open)} className="flex w-full items-center gap-2 text-right font-black text-red-700">
+              <span className="me-auto">
+                صور محتاجة مراجعة ({photoFlags.length}) · {photoFlags.reduce((sum, flag) => sum + flag.count, 0)} وحدة جاهزة مستنياها
+              </span>
+              <span>{photoFlagsOpen ? "▲" : "▼"}</span>
+            </button>
+            {photoFlagsOpen && (
+              <ul className="mt-2 max-h-80 space-y-1 overflow-y-auto">
+                {photoFlags.map(({ projectId, count, project, check }) => (
+                  <li key={projectId} className="rounded-xl bg-white p-2">
+                    <span className="block truncate font-black">{project?.name || "—"}</span>
+                    <span className="block text-red-700">
+                      {check?.status === "phone" ? "عليها رقم تليفون تاني" : check?.status === "mismatch" ? "Claude شايفها مش صور المشروع ده" : "ما قدرناش نشيّك على الصور، هنجرّب تاني"}
+                      {check?.reason && check.status !== "error" ? `: ${check.reason}` : ""}
+                    </span>
+                    {check && check.bad_urls.length > 0 && (
+                      <span className="mt-1 flex flex-wrap gap-1">
+                        {check.bad_urls.map((url) => (
+                          <a key={url} href={url} target="_blank" rel="noreferrer">
+                            <img src={url} alt="" loading="lazy" className="h-12 w-16 rounded-lg object-cover ring-2 ring-red-300" />
+                          </a>
+                        ))}
+                      </span>
+                    )}
+                    <span className="mt-1.5 flex flex-wrap items-center gap-1">
+                      <span className="me-auto text-[#5c6a62]">{count} وحدة جاهزة</span>
+                      <button
+                        onClick={() => {
+                          setView("ready");
+                          setBucket(projectId);
+                          setSelected(new Set());
+                        }}
+                        className="rounded-full bg-[#f1eadc] px-2.5 py-1 font-black"
+                      >
+                        الوحدات
+                      </button>
+                      {onOpenPhotos && (
+                        <button onClick={() => onOpenPhotos(projectId)} className="rounded-full bg-[#0d1f18] px-2.5 py-1 font-black text-white">
+                          غيّر الصور
+                        </button>
+                      )}
+                      {check?.status !== "error" && (
+                        <button onClick={() => void confirmPhotos(projectId, project?.name || "المشروع")} className="rounded-full bg-emerald-600 px-2.5 py-1 font-black text-white">
+                          الصور صح
+                        </button>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-1.5 leading-5 text-red-700">لما تغيّر الصور، Claude هيشيّك عليها تاني لوحده.</p>
           </div>
         )}
         <input
@@ -508,6 +693,13 @@ export default function WhatsAppInboxTab({ projects, onChanged }: { projects: Ad
                                   .filter((reason) => reason !== "duplicate" && reason !== "rejected_before")
                                   .map((reason) => <Badge key={reason} tone="error">{WA_DOUBT_LABELS[reason]}</Badge>)}
                               {rejectedAt && <Badge tone="error">اترفضت قبل كده · {when(rejectedAt)}</Badge>}
+                              {pending && noPhotos[String(item.id)] && <Badge tone="pending">المشروع مالوش صور · مش هتنزل لوحدها</Badge>}
+                              {pending && !noPhotos[String(item.id)] && item.project_id && isReady(item) && (() => {
+                                const check = photoChecks[item.project_id];
+                                if (check?.status === "phone") return <Badge tone="error">صور المشروع عليها رقم تاني · مش هتنزل لوحدها</Badge>;
+                                if (check?.status === "mismatch") return <Badge tone="error">صور المشروع محتاجة مراجعة · مش هتنزل لوحدها</Badge>;
+                                return null;
+                              })()}
                               {item.status === "approved" && <Badge tone="ok">اتوافق</Badge>}
                               {item.status === "rejected" && <Badge tone="muted">اترفض</Badge>}
                             </div>
