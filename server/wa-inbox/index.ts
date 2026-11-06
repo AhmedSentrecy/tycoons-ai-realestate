@@ -1576,10 +1576,11 @@ async function photoConfirm(user: AdminUser, body: Json) {
 
 // ---------- photo suggestions (projects with no photos) ----------
 //
-// For a site project with ready WhatsApp units and no photos: Firecrawl finds the project's page on the
-// developer's official website (never a broker or listing site), Claude keeps only photos of the project
-// with no phone number except Tycoons' WhatsApp and no other company's logo or watermark, and the kept
-// photos are copied to Storage as a suggestion. Nothing changes on the site until the admin adds them.
+// For a site project with ready WhatsApp units and no photos: Firecrawl finds the project's pages on the
+// developer's official website first, then on property and broker sites. Claude keeps only photos of the
+// project with no phone number except Tycoons' WhatsApp and no logo, watermark, website address, QR code or
+// price text of any other company, and the kept photos are copied to Storage as a suggestion.
+// Nothing changes on the site until the admin adds them.
 
 /** Projects searched in one run (the others in the next runs). */
 const PHOTO_SUGGEST_PER_RUN = 1;
@@ -1587,8 +1588,12 @@ const PHOTO_SUGGEST_PER_RUN = 1;
 const MAX_SUGGESTED = 10;
 const FIRECRAWL_URL = "https://api.firecrawl.dev/v2";
 const STORAGE_BUCKET = "property-images";
-/** Broker and listing sites: their photos carry their numbers and logos, and are not the developer's. */
-const NOT_OFFICIAL = /(nawy|propertyfinder|aqarmap|bayut|dubizzle|olx|facebook|instagram|youtube|tiktok|linkedin|twitter|x\.com|wikipedia|cooing|realestate-eg|egyptpropertyfinder|sakneen|bnbme|homzmart|almal|elwatannews|youm7|masrawy|google)/i;
+/** Social, video and reference sites: no usable project photos there. */
+const NOT_USABLE = /(facebook|instagram|youtube|tiktok|linkedin|twitter|x\.com|wikipedia|google|pinterest|threads\.net)/i;
+/** Broker and property-site pages scraped besides the developer's own pages. */
+const OTHER_PAGES = 2;
+/** «none» results older than this were found by the first version (developer's site only): searched again. */
+const PHOTO_SEARCH_SINCE = "2026-11-07T00:00:00Z";
 
 const SUGGESTION_COLUMNS = "id,project_id,created_at,status,source_page,urls,reason,firecrawl_credits";
 
@@ -1661,32 +1666,39 @@ async function suggestPhotos(projectId: string): Promise<Json> {
     return data as Json;
   };
   try {
-    // 1. The developer's official website (Claude picks it among the search results, never a broker or listing site).
-    const search = await firecrawl("/search", { query: `${text(project.name)} ${text(project.developer)} official website`, limit: 8, sources: ["web"] });
+    // 1. Pages about the project. The developer's official website comes first (Claude picks it).
+    const search = await firecrawl("/search", { query: `${text(project.name)} ${text(project.developer)} ${text(project.area_group) || "Egypt"}`, limit: 10, sources: ["web"] });
     credits += search.credits;
     const results = ((search.data.web as Json[]) ?? []).map((item) => ({ url: text(item.url), title: text(item.title) }))
-      .filter((item) => /^https:\/\//i.test(item.url) && !NOT_OFFICIAL.test(item.url));
-    if (!results.length) return await save({ status: "none", reason: "ما لقيناش موقع رسمي للمطور في البحث" });
+      .filter((item) => /^https:\/\//i.test(item.url) && !NOT_USABLE.test(item.url) && !/\.pdf(\?|$)/i.test(item.url));
+    if (!results.length) return await save({ status: "none", reason: "ما لقيناش صفحات عن المشروع في البحث" });
     const pick = await claudeJson(projectId, [{
       type: "text",
       text: [
         `Project: ${text(project.name)} | Developer: ${text(project.developer)} | Location: ${text(project.location) || text(project.area_group)} (Egypt)`,
-        "Which search result is on the developer's own official website (any page of it)? Never a broker, listing, news or social site.",
-        "Answer the result number, or 0 when none is clearly the developer's own website.",
+        "Which search result is on the developer's own official website (any page of it)? Broker, listing and news sites do not count.",
+        "relevant = the numbers of the other results that are clearly about THIS project (broker or property pages), best first.",
+        "Answer official = the result number, or 0 when none is the developer's own website.",
         ...results.map((item, index) => `${index + 1}. ${item.url} — ${item.title}`),
       ].join("\n"),
-    }], { type: "object", additionalProperties: false, required: ["result"], properties: { result: { type: "integer" } } }, 200);
-    const official = results[Number(pick.result) - 1]?.url;
-    if (!official) return await save({ status: "none", reason: "ما لقيناش موقع المطور الرسمي" });
-    const domain = new URL(official).hostname.replace(/^www\./, "");
-
-    // 2. The project's pages on that website, then their photos (Firecrawl renders them, so lazy photos are found too).
-    const onSite = await firecrawl("/search", { query: `site:${domain} ${text(project.name)}`, limit: 5, sources: ["web"] });
-    credits += onSite.credits;
-    const pages = [...new Set([...((onSite.data.web as Json[]) ?? []).map((item) => text(item.url)), official])]
-      .filter((url) => /^https:\/\//i.test(url) && !/\.pdf(\?|$)/i.test(url) && new URL(url).hostname.replace(/^www\./, "") === domain)
-      .slice(0, 2);
-    if (!pages.length) return await save({ status: "none", source_page: official, reason: "ما لقيناش صفحة للمشروع على موقع المطور" });
+    }], {
+      type: "object", additionalProperties: false, required: ["official", "relevant"],
+      properties: { official: { type: "integer" }, relevant: { type: "array", items: { type: "integer" } } },
+    }, 300);
+    const official = results[Number(pick.official) - 1]?.url ?? "";
+    const pages: string[] = [];
+    if (official) {
+      const domain = new URL(official).hostname.replace(/^www\./, "");
+      const onSite = await firecrawl("/search", { query: `site:${domain} ${text(project.name)}`, limit: 5, sources: ["web"] });
+      credits += onSite.credits;
+      pages.push(...[...new Set([...((onSite.data.web as Json[]) ?? []).map((item) => text(item.url)), official])]
+        .filter((url) => /^https:\/\//i.test(url) && !/\.pdf(\?|$)/i.test(url) && new URL(url).hostname.replace(/^www\./, "") === domain)
+        .slice(0, 2));
+    }
+    // 2. Broker and property pages about the project too (their photos go through the same strict check).
+    const others = ((pick.relevant as unknown[]) ?? []).map((n) => results[Number(n) - 1]?.url).filter((url): url is string => Boolean(url) && url !== official);
+    pages.push(...others.filter((url) => !pages.includes(url)).slice(0, OTHER_PAGES));
+    if (!pages.length) return await save({ status: "none", reason: "ما لقيناش صفحات عن المشروع ده بالتحديد" });
     const page = pages[0];
     const found: string[] = [];
     for (const url of pages) {
@@ -1697,25 +1709,25 @@ async function suggestPhotos(projectId: string): Promise<Json> {
     }
     const candidates = [...new Set(found)]
       .filter((url) => /^https:\/\//i.test(url) && !/\.(svg|gif|ico)(\?|$)|logo|icon|sprite|favicon|avatar|flag|whatsapp|facebook|instagram/i.test(url))
-      .slice(0, 30);
+      .slice(0, 40);
     const photos: { url: string; bytes: Uint8Array; type: string }[] = [];
     for (const url of candidates) {
-      if (photos.length >= 12) break;
+      if (photos.length >= 16) break;
       const photo = await downloadPhoto(url);
       if (photo) photos.push({ url, ...photo });
     }
-    if (!photos.length) return await save({ status: "none", source_page: page, reason: "صفحة المطور مفيهاش صور ينفع نستخدمها" });
+    if (!photos.length) return await save({ status: "none", source_page: page, reason: "الصفحات اللي لقيناها مفيهاش صور ينفع نستخدمها" });
 
     // 3. Claude keeps only photos of this project, with no other phone number, logo or watermark.
     const content: Json[] = [{
       type: "text",
       text: [
-        "These photos come from the developer's official page of a real-estate project. Pick the ones the Tycoons Investments website (Egypt) may show for this project.",
+        "These photos come from web pages about a real-estate project (the developer's website first, then property and broker sites). Pick the ones the Tycoons Investments website (Egypt) may show for this project.",
         `Project: ${text(project.name)} | Developer: ${text(project.developer)} | Location: ${text(project.location) || text(project.area_group)} | Page: ${page}`,
         "Keep a photo only when ALL of these hold:",
         "- it shows this project: buildings, renders, aerial views, amenities, interiors, landscape or the master plan;",
         `- it shows no phone number, hotline or WhatsApp number at all, except Tycoons' WhatsApp ${TYCOONS_WHATSAPP};`,
-        "- it shows no logo or watermark of a broker or of any company other than this developer (the developer's own logo is fine);",
+        "- it shows no logo, watermark (even faint or in a corner), website address, QR code, price or payment text of a broker or of any company other than this developer (the developer's own logo is fine);",
         "- it is not a logo, icon, banner made mostly of text, map screenshot, person portrait, or another project's photo.",
         "keep = the numbers of the photos to keep, best cover first. reason = one short Egyptian Arabic sentence for the admin about what was dropped (empty if nothing).",
       ].join("\n"),
@@ -1771,7 +1783,8 @@ async function photoSuggestRun(gaps: string[]) {
   const latest = await latestSuggestions(gaps);
   const todo = gaps.filter((id) => {
     const row = latest.get(id);
-    return !row || (text(row.status) === "error" && Date.now() - Date.parse(text(row.created_at)) > 86_400_000);
+    return !row || (text(row.status) === "error" && Date.now() - Date.parse(text(row.created_at)) > 86_400_000) ||
+      (text(row.status) === "none" && Date.parse(text(row.created_at)) < Date.parse(PHOTO_SEARCH_SINCE));
   }).slice(0, PHOTO_SUGGEST_PER_RUN);
   for (const id of todo) await suggestPhotos(id).catch((error) => console.error("photo suggest", id, error));
   return { searched: todo.length };
@@ -1820,7 +1833,7 @@ async function photoSuggestApprove(user: AdminUser, body: Json) {
   const now = new Date().toISOString();
   await db.from("admin_change_requests").insert({
     entity: "project", action: "media", target_id: projectId, project_id: projectId,
-    summary: `صور ${text(project.name)} من موقع المطور (${picked.length} صورة)`,
+    summary: `صور ${text(project.name)} من النت (${picked.length} صورة)`,
     ops, before: { image_url: project.image_url ?? null, gallery_urls: project.gallery_urls ?? null },
     created_by: user.id, status: "approved", reviewed_by: user.id, reviewed_at: now, result,
   }).then(() => undefined, () => undefined);
