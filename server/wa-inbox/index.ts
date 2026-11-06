@@ -7,7 +7,7 @@
 //     intake -> stores one extracted unit as "pending" (duplicates of the same message are ignored)
 //     intake_batch -> same for every unit in Claude's answer for one message (units_json)
 // - The admin page (header x-admin-token, same sessions as tycoons-admin):
-//     list, save, approve, approve_ready, reject, groups, group_toggle, group_developer,
+//     list, save, approve, approve_ready, reject, groups, group_toggle, group_developer, auto_approve_save, photo_confirm,
 //     draft_save, draft_reject, draft_research, publish_draft
 // pg_cron (x-intake-key): research_run -> groups new WhatsApp names and researches new projects
 // Approve writes to public.units through admin_apply_ops and logs the change in
@@ -444,6 +444,8 @@ async function list(body: Json) {
   const suggestions: Record<string, Suggestion> = {};
   const finishingSuggestions: Record<string, string> = {};
   const projectAreas = new Set<string>();
+  /** Site projects that have at least one photo (a unit without its own photos shows the project's). */
+  const projectPhotos = new Set<string>();
   if (status === "pending") {
     // Unmatched units: a name the admin already confirmed links by itself (saved), otherwise the
     // most likely project is suggested for one-click confirmation.
@@ -479,12 +481,13 @@ async function list(body: Json) {
     if (projectIds.length) {
       const [{ data: units, error: unitsError }, { data: projects, error: projectsError }] = await Promise.all([
         db.from("units").select(`id,project_id,unit_type,area_sqm,availability_status,${FILL_FIELDS.join(",")}`).in("project_id", projectIds).limit(10000),
-        db.from("projects").select("id,down_payment_text,installments_text,delivery_text,finishing,area_group").in("id", projectIds),
+        db.from("projects").select("id,down_payment_text,installments_text,delivery_text,finishing,area_group,image_url,gallery_urls").in("id", projectIds),
       ]);
       fail(unitsError);
       fail(projectsError);
       const projectById = new Map(((projects ?? []) as Json[]).map((project) => [text(project.id), project]));
       for (const project of projectById.values()) if (text(project.area_group)) projectAreas.add(text(project.id));
+      for (const project of projectById.values()) if (hasPhotos(project)) projectPhotos.add(text(project.id));
       for (const row of rows) {
         if (!text(row.project_id)) continue;
         const own = ((units ?? []) as Json[]).filter((unit) => unit.project_id === row.project_id);
@@ -566,13 +569,48 @@ async function list(body: Json) {
     };
     for (const row of rows) doubts[String(row.id)] = doubtsFor(row, ctx);
   }
+  // Ready units that would go on the site with no photo at all: the project has none and the site unit
+  // they update has none. They are not approved automatically; the admin sees which projects need photos.
+  const noPhotos: Record<string, true> = {};
+  const photoGaps: { project_id: string; name: string; developer: string; waiting: number }[] = [];
+  if (status === "pending") {
+    const unitsWithPhotos = new Set<string>();
+    const matchIds = [...new Set(rows.map((row) => text(row.match_unit_id)).filter(Boolean))];
+    for (let start = 0; start < matchIds.length; start += 200) {
+      const { data: photoRows, error: photoError } = await db.from("units").select("id,image_url,gallery_urls").in("id", matchIds.slice(start, start + 200));
+      fail(photoError);
+      for (const unit of (photoRows ?? []) as Json[]) if (hasPhotos(unit)) unitsWithPhotos.add(text(unit.id));
+    }
+    const gaps = new Map<string, number>();
+    for (const row of rows) {
+      const projectId = text(row.project_id);
+      if (!projectId || projectPhotos.has(projectId) || unitsWithPhotos.has(text(row.match_unit_id))) continue;
+      noPhotos[String(row.id)] = true;
+      if (!(doubts[String(row.id)] ?? []).length) gaps.set(projectId, (gaps.get(projectId) ?? 0) + 1);
+    }
+    if (gaps.size) {
+      const { data: gapProjects, error: gapError } = await db.from("projects").select("id,name,developer").in("id", [...gaps.keys()]);
+      fail(gapError);
+      for (const project of (gapProjects ?? []) as Json[]) {
+        photoGaps.push({ project_id: text(project.id), name: text(project.name), developer: text(project.developer), waiting: gaps.get(text(project.id)) ?? 0 });
+      }
+      photoGaps.sort((a, b) => b.waiting - a.waiting || a.name.localeCompare(b.name));
+    }
+  }
   const counts: Record<string, number> = {};
   for (const key of ["pending", "approved", "rejected"]) {
     const { count } = await db.from("wa_unit_inbox").select("id", { count: "exact", head: true }).eq("status", key);
     counts[key] = count ?? 0;
   }
   return { items: rows, matches, counts, duplicates, auto_filled: autoFilled, previously_rejected: previouslyRejected,
-    suggestions, finishing_suggestions: finishingSuggestions, doubts, drafts };
+    suggestions, finishing_suggestions: finishingSuggestions, doubts, drafts,
+    no_photos: noPhotos, photo_gaps: photoGaps, photo_checks: status === "pending" ? await currentPhotoChecks(rows) : {},
+    auto_approve: status === "pending" ? await autoApproveState() : undefined };
+}
+
+/** A project or unit has a photo when its cover or its gallery holds at least one URL. */
+function hasPhotos(row: Json) {
+  return Boolean(text(row.image_url) || text(row.gallery_urls).split(",").some((url) => url.trim()));
 }
 
 /**
@@ -691,7 +729,7 @@ async function approve(user: AdminUser, body: Json) {
   const now = new Date().toISOString();
   await db.from("admin_change_requests").insert({
     entity: "unit", action, target_id: replaceId || null, project_id: project.id,
-    summary: `واتساب (${text(saved.source_group) || "جروب"}): ${action === "update" ? "تحديث" : "وحدة جديدة"} ${label}`,
+    summary: `واتساب${body.auto === true ? " تلقائي" : ""} (${text(saved.source_group) || "جروب"}): ${action === "update" ? "تحديث" : "وحدة جديدة"} ${label}`,
     ops, before, created_by: user.id, status: "approved", reviewed_by: user.id, reviewed_at: now, result,
   }).then(() => undefined, () => undefined);
   const unitId = replaceId || text(((result as Json)?.created_ids as unknown[] | undefined)?.[0]);
@@ -1284,6 +1322,205 @@ async function researchSettingsSave(body: Json) {
   return researchSettings();
 }
 
+// ---------- automatic approval ----------
+//
+// Every 15 minutes (same pg_cron as the research): units in «جاهز للموافقة» go on the site by themselves,
+// exactly like «وافق» (update the matched site unit, or add a new one). Left for the admin: units of a
+// new project (they go with «انشر»), units with any doubt, units that would have no photo at all, and
+// units whose project photos Claude flagged (another project, or a phone number other than Tycoons' WhatsApp).
+
+/** Most units approved in one run (the rest go in the next run). */
+const AUTO_APPROVE_PER_RUN = 100;
+const AUTO_KEYS = ["wa_auto_approve", "wa_auto_approve_last_run", "wa_auto_approve_last_count"];
+
+async function autoApproveState() {
+  const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", AUTO_KEYS);
+  fail(error);
+  const get = (key: string) => text(((data ?? []) as Json[]).find((row) => row.key === key)?.value);
+  return { on: get("wa_auto_approve") !== "off", last_run: get("wa_auto_approve_last_run") || null, last_approved: Number(get("wa_auto_approve_last_count")) || 0 };
+}
+
+async function autoApproveSave(body: Json) {
+  if (typeof body.on !== "boolean") throw new HttpError(400, "on_required");
+  await setSetting("wa_auto_approve", body.on ? "on" : "off");
+  return autoApproveState();
+}
+
+async function autoApproveRun() {
+  const state = await autoApproveState();
+  if (!state.on) return { skipped: "off" };
+  // Approved in the owner's name (the approvals history shows «واتساب تلقائي»).
+  const { data: owner, error: ownerError } = await db.from("admin_users").select("id,role,display_name").eq("role", "owner").eq("active", true)
+    .order("created_at", { ascending: true }).limit(1).maybeSingle();
+  fail(ownerError);
+  if (!owner) return { skipped: "no_owner" };
+  const current = await list({ status: "pending" });
+  const ready = current.items.filter((row) => {
+    const id = String(row.id);
+    return text(row.project_id) && !(current.doubts[id] ?? []).length && !current.no_photos[id];
+  });
+  // Units go on the site only when their project's photos passed Claude's check (or the admin confirmed them).
+  const byProject = new Map<string, Json[]>();
+  for (const row of ready) byProject.set(text(row.project_id), [...(byProject.get(text(row.project_id)) ?? []), row]);
+  const photos = await projectPhotos([...byProject.keys()]);
+  const checks = await storedPhotoChecks([...byProject.keys()]);
+  const toCheck = [...byProject.keys()].filter((id) => {
+    const urls = photos.get(id) ?? [];
+    const check = checks.get(id);
+    return urls.length && (!check || text(check.photos_key) !== urls.join(",") || text(check.status) === "error");
+  }).slice(0, PHOTO_CHECKS_PER_RUN);
+  if (toCheck.length) {
+    const { data: projectRows, error: projectError } = await db.from("projects").select("id,name,developer,location,area_group").in("id", toCheck);
+    fail(projectError);
+    const results = await Promise.all(((projectRows ?? []) as Json[]).map(async (project) => {
+      const urls = photos.get(text(project.id)) ?? [];
+      const result = await checkProjectPhotos(project, urls);
+      const row = { project_id: text(project.id), photos_key: urls.join(","), ...result, checked_at: new Date().toISOString(), confirmed_by: null };
+      fail((await db.from("wa_photo_checks").upsert(row)).error);
+      return row;
+    }));
+    for (const row of results) checks.set(row.project_id, row as unknown as Json);
+  }
+  let approved = 0;
+  const failed: { id: number; reason: string }[] = [];
+  for (const [projectId, rows] of byProject) {
+    const urls = photos.get(projectId) ?? [];
+    const check = checks.get(projectId);
+    // No project photos: these units keep the photos they already have on the site (no_photos is false).
+    const passed = !urls.length || (check && text(check.photos_key) === urls.join(",") && ["ok", "confirmed"].includes(text(check.status)));
+    if (!passed) continue;
+    for (const row of rows) {
+      if (approved >= AUTO_APPROVE_PER_RUN) break;
+      try {
+        await approve(owner as AdminUser, { id: row.id, values: {}, replace_unit_id: text(row.match_unit_id), availability_status: "available", auto: true });
+        approved += 1;
+      } catch (error) {
+        failed.push({ id: Number(row.id), reason: error instanceof HttpError ? error.code : "approve_failed" });
+      }
+    }
+  }
+  await setSetting("wa_auto_approve_last_run", new Date().toISOString());
+  await setSetting("wa_auto_approve_last_count", String(approved));
+  if (failed.length) console.error("wa auto approve skipped", JSON.stringify(failed.slice(0, 20)));
+  return { approved, photo_checks: toCheck.length, failed: failed.length };
+}
+
+// ---------- photo check (before the automatic approval) ----------
+
+/** Projects whose photos Claude checks in one run (the others in the next runs). */
+const PHOTO_CHECKS_PER_RUN = 6;
+/** Photos sent to Claude per project (cover first). */
+const PHOTOS_PER_CHECK = 8;
+/** The only phone number allowed on a photo: the site's WhatsApp (src/lib/whatsapp.ts). */
+const TYCOONS_WHATSAPP = "01110100025";
+
+/** Cover + gallery of each project, in order, without repeats. */
+async function projectPhotos(projectIds: string[]) {
+  const out = new Map<string, string[]>();
+  if (!projectIds.length) return out;
+  const { data, error } = await db.from("projects").select("id,image_url,gallery_urls").in("id", projectIds);
+  fail(error);
+  for (const project of (data ?? []) as Json[]) {
+    const urls = [text(project.image_url), ...text(project.gallery_urls).split(",").map((url) => url.trim())].filter(Boolean);
+    out.set(text(project.id), [...new Set(urls)]);
+  }
+  return out;
+}
+
+async function storedPhotoChecks(projectIds: string[]) {
+  const out = new Map<string, Json>();
+  if (!projectIds.length) return out;
+  const { data, error } = await db.from("wa_photo_checks").select("project_id,photos_key,status,reason,bad_urls,checked_at").in("project_id", projectIds);
+  fail(error);
+  for (const row of (data ?? []) as Json[]) out.set(text(row.project_id), row);
+  return out;
+}
+
+/** For the admin page: the check of each pending unit's project, only when it is about the photos the project has now. */
+async function currentPhotoChecks(rows: Json[]) {
+  const ids = [...new Set(rows.map((row) => text(row.project_id)).filter(Boolean))];
+  const [photos, checks] = await Promise.all([projectPhotos(ids), storedPhotoChecks(ids)]);
+  const out: Record<string, Json> = {};
+  for (const [id, check] of checks) {
+    if (text(check.photos_key) !== (photos.get(id) ?? []).join(",")) continue;
+    out[id] = { status: check.status, reason: check.reason, bad_urls: check.bad_urls ?? [], checked_at: check.checked_at };
+  }
+  return out;
+}
+
+/**
+ * Claude looks at the project's photos: another project's name or logo, a place that does not fit the
+ * location, or something that is not a real-estate photo = "mismatch"; a phone number other than
+ * Tycoons' WhatsApp = "phone". A failed call is "error" and is tried again in the next run.
+ */
+async function checkProjectPhotos(project: Json, urls: string[]): Promise<{ status: string; reason: string | null; bad_urls: string[] }> {
+  const sent = urls.slice(0, PHOTOS_PER_CHECK);
+  const content: Json[] = [{
+    type: "text",
+    text: [
+      "You check the photos of a real-estate project on the Tycoons Investments website (Egypt) before its units go live automatically.",
+      `Project: ${text(project.name)} | Developer: ${text(project.developer) || "unknown"} | Location: ${text(project.location) || "unknown"} | Area: ${text(project.area_group) || "unknown"}`,
+      `${sent.length} photos follow, numbered from 1. Answer with one verdict:`,
+      `- "phone": a photo shows any phone number, hotline (e.g. 16xxx, 19xxx) or WhatsApp number other than Tycoons' WhatsApp ${TYCOONS_WHATSAPP} (also written 01110100025, +20 111 010 0025, 201110100025).`,
+      "- \"mismatch\": clear evidence a photo is not this project: a visible name or logo of another project or another developer, a setting that contradicts the location (for example an open sea beach for an inland city such as New Cairo, Mostakbal City, New Capital, Sheikh Zayed or October; lagoons and pools are fine), or not a real-estate photo at all (chat screenshot, price list only, unrelated picture).",
+      "- \"match\": nothing above. Renders and generic photos are fine: never reject only because you cannot recognise the exact building.",
+      "If both phone and mismatch apply, answer phone. bad_photos = the numbers of the photos that caused it (empty for match).",
+      "reason = one short sentence in Egyptian Arabic for the admin, naming what you saw (empty for match).",
+    ].join("\n"),
+  }];
+  sent.forEach((url, index) => {
+    content.push({ type: "text", text: `Photo ${index + 1}:` });
+    content.push({ type: "image", source: { type: "url", url } });
+  });
+  try {
+    const key = await claudeKey();
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1500,
+        output_config: { format: { type: "json_schema", schema: {
+          type: "object",
+          additionalProperties: false,
+          required: ["verdict", "reason", "bad_photos"],
+          properties: {
+            verdict: { type: "string", enum: ["match", "mismatch", "phone"] },
+            reason: { type: "string" },
+            bad_photos: { type: "array", items: { type: "integer" } },
+          },
+        } } },
+        messages: [{ role: "user", content }],
+      }),
+      signal: AbortSignal.timeout(90_000),
+    });
+    const data = (await response.json().catch(() => ({}))) as Json;
+    if (!response.ok) throw new Error(`claude_${response.status}:${text((data.error as Json | undefined)?.message).slice(0, 200)}`);
+    const block = ((data.content as Json[]) ?? []).find((item) => item.type === "text");
+    const answer = JSON.parse(text(block?.text) || "{}") as Json;
+    const verdict = text(answer.verdict);
+    if (!["match", "mismatch", "phone"].includes(verdict)) throw new Error("photo_check_bad_answer");
+    const bad = (Array.isArray(answer.bad_photos) ? answer.bad_photos : []).map(Number).filter((n) => n >= 1 && n <= sent.length).map((n) => sent[n - 1]);
+    return { status: verdict === "match" ? "ok" : verdict, reason: verdict === "match" ? null : text(answer.reason).slice(0, 300) || null, bad_urls: verdict === "match" ? [] : bad };
+  } catch (error) {
+    console.error("photo check failed", text(project.name), error);
+    return { status: "error", reason: String((error as Error)?.message || error).slice(0, 300), bad_urls: [] };
+  }
+}
+
+/** «الصور صح»: the admin says the project's current photos are fine; its ready units go on the site in the next run. */
+async function photoConfirm(user: AdminUser, body: Json) {
+  const projectId = text(body.project_id);
+  if (!/^[0-9a-f-]{36}$/i.test(projectId)) throw new HttpError(400, "project_id_invalid");
+  const urls = (await projectPhotos([projectId])).get(projectId);
+  if (!urls) throw new HttpError(404, "project_not_found");
+  if (!urls.length) throw new HttpError(400, "project_has_no_photos");
+  fail((await db.from("wa_photo_checks").upsert({
+    project_id: projectId, photos_key: urls.join(","), status: "confirmed", reason: null, bad_urls: [], checked_at: new Date().toISOString(), confirmed_by: user.id,
+  })).error);
+  return { ok: true };
+}
+
 /** pg_cron every 15 minutes (and «ابحث تاني»): group new names, then research a few drafts, within the mode's limits. */
 async function researchRun() {
   const settings = await researchSettings();
@@ -1474,7 +1711,11 @@ Deno.serve(async (req: Request) => {
       // Answer pg_cron now; grouping and research keep running in the background.
       // deno-lint-ignore no-explicit-any
       const runtime = (globalThis as any).EdgeRuntime;
-      const job = researchRun().catch((error) => console.error("research_run", error));
+      // Ready units first (no AI cost, runs in every mode), then the research.
+      const job = autoApproveRun()
+        .catch((error) => console.error("auto_approve", error))
+        .then(() => researchRun())
+        .catch((error) => console.error("research_run", error));
       if (runtime?.waitUntil) runtime.waitUntil(job);
       else await job;
       return reply({ accepted: true });
@@ -1500,6 +1741,8 @@ Deno.serve(async (req: Request) => {
       case "draft_research": return reply(await draftResearch(body));
       case "research_settings": return reply(await researchSettings());
       case "research_settings_save": return reply(await researchSettingsSave(body));
+      case "auto_approve_save": return reply(await autoApproveSave(body));
+      case "photo_confirm": return reply(await photoConfirm(user, body));
       case "publish_draft": return reply(await publishDraft(user, body));
       default: return reply({ error: "unknown_action" }, 400);
     }

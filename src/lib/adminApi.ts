@@ -492,7 +492,7 @@ export const adminApi = {
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
     call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
   waInbox: (token: string, status: WaInboxStatus) =>
-    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string>; doubts?: Record<string, WaDoubt[]>; drafts?: Record<string, WaDraft> }>("list", { status }, token, WA_INBOX_API),
+    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string>; doubts?: Record<string, WaDoubt[]>; drafts?: Record<string, WaDraft>; no_photos?: Record<string, true>; photo_gaps?: WaPhotoGap[]; photo_checks?: Record<string, WaPhotoCheck>; auto_approve?: WaAutoApprove }>("list", { status }, token, WA_INBOX_API),
   waInboxSave: (token: string, id: number, values: WaInboxValues) =>
     call<{ item: WaInboxItem }>("save", { id, values }, token, WA_INBOX_API),
   waInboxApprove: (
@@ -523,6 +523,10 @@ export const adminApi = {
   waResearchSettings: (token: string) => call<WaResearchSettings>("research_settings", {}, token, WA_INBOX_API),
   waResearchSettingsSave: (token: string, mode: WaResearchMode, dailyCap: number | null, intensiveUntil: string) =>
     call<WaResearchSettings>("research_settings_save", { mode, daily_cap: dailyCap, intensive_until: intensiveUntil }, token, WA_INBOX_API),
+  /** Turns the automatic approval of ready WhatsApp units on or off. */
+  waAutoApproveSave: (token: string, on: boolean) => call<WaAutoApprove>("auto_approve_save", { on }, token, WA_INBOX_API),
+  /** «الصور صح»: the project's current photos are fine even though Claude flagged them. */
+  waPhotoConfirm: (token: string, projectId: string) => call<{ ok: boolean }>("photo_confirm", { project_id: projectId }, token, WA_INBOX_API),
   /** Creates the project on the site, links its WhatsApp units and approves the ready ones. */
   waPublishDraft: (token: string, id: string) =>
     call<{ ok: boolean; project_id: string; slug: string; created: boolean; linked: number; approved: number; left_for_review: number }>("publish_draft", { id }, token, WA_INBOX_API),
@@ -535,6 +539,29 @@ export const adminApi = {
 };
 
 export type WaInboxStatus = "pending" | "approved" | "rejected";
+/** Ready WhatsApp units go on the site by themselves every 15 minutes (except units that would have no photo). */
+export interface WaAutoApprove {
+  on: boolean;
+  last_run: string | null;
+  last_approved: number;
+}
+/**
+ * Claude's check of a project's current photos before its units go on the site by themselves:
+ * ok / confirmed (the admin) pass; mismatch (not this project), phone (another phone number) and error wait.
+ */
+export interface WaPhotoCheck {
+  status: "ok" | "mismatch" | "phone" | "confirmed" | "error";
+  reason: string | null;
+  bad_urls: string[];
+  checked_at: string;
+}
+/** A site project with no photos, and how many ready WhatsApp units wait for its photos. */
+export interface WaPhotoGap {
+  project_id: string;
+  name: string;
+  developer: string;
+  waiting: number;
+}
 /** How much Claude researches new projects: «مكثف» (every 15 min, 40/day), «عادي» (every 6 h, 8/day), «متوقف». */
 export type WaResearchMode = "intensive" | "normal" | "off";
 export interface WaResearchSettings {
