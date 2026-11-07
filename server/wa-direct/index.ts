@@ -130,7 +130,14 @@ function sheetToCsv(bytes: Uint8Array, fileName: string) {
   return out.length > MAX_SHEET_CHARS ? `${out.slice(0, MAX_SHEET_CHARS)}\n[sheet cut here: too long]` : out;
 }
 
-async function askClaude(content: unknown[]): Promise<Json> {
+/**
+ * Big messages (a sheet, or text over LONG_TEXT characters) are read without long thinking: thinking counts
+ * toward max_tokens, and on big messages it used them all before Claude wrote the units (claude_bad_json:
+ * max_tokens). The Supabase free plan stops a function after 150 seconds, so max_tokens cannot simply grow.
+ */
+const LONG_TEXT = 1500;
+
+async function askClaude(content: unknown[], big = false): Promise<Json> {
   const s = await settings();
   const key = Deno.env.get("ANTHROPIC_API_KEY") || s.anthropic_api_key;
   if (!key) throw new Error("ANTHROPIC_API_KEY_missing");
@@ -143,12 +150,15 @@ async function askClaude(content: unknown[]): Promise<Json> {
       // Prompt caching: the long Tycoons rules are the same for every WhatsApp message, so Claude keeps
       // them for a few minutes and re-reads them at about 10% of the normal input price.
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-      output_config: { format: { type: "json_schema", schema: UNITS_SCHEMA } },
+      output_config: { format: { type: "json_schema", schema: UNITS_SCHEMA }, ...(big ? { effort: "medium" } : {}) },
+      ...(big ? { thinking: { type: "between_tools" } } : {}),
       messages: [{ role: "user", content }],
     }),
     signal: AbortSignal.timeout(130_000),
   });
   const data = (await response.json().catch(() => ({}))) as Json;
+  // Safety net: if the API refuses the big-message settings, read it the normal way.
+  if (!response.ok && big && response.status === 400) return askClaude(content, false);
   if (!response.ok) throw new Error(`claude_${response.status}:${text((data.error as Json | undefined)?.message).slice(0, 300)}`);
   const block = ((data.content as Json[]) ?? []).find((item) => item.type === "text");
   try {
@@ -231,7 +241,7 @@ async function processMessage(event: Json, kind: Kind) {
       content.push({ type: "text", text: `Excel sheet "${fileName}" as CSV:\n\n${csv}` });
     }
 
-    const result = await askClaude(content);
+    const result = await askClaude(content, kind === "sheet" || body.length > LONG_TEXT);
     const units = Array.isArray(result.units) ? (result.units as Json[]) : [];
     if (seenKey) {
       await db.from("wa_sheet_seen").upsert({ group_id: groupId, file_key: seenKey, group_name: groupName, file_name: fileName, last_processed: new Date().toISOString() });

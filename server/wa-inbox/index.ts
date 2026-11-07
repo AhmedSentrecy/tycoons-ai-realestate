@@ -1405,7 +1405,9 @@ async function autoApproveRun() {
   const toCheck = [...byProject.keys()].filter((id) => {
     const urls = photos.get(id) ?? [];
     const check = checks.get(id);
-    return urls.length && (!check || text(check.photos_key) !== urls.join(",") || text(check.status) === "error");
+    // A failed check is tried again after 6 hours (not every run: a broken photo link would fail every time).
+    return urls.length && (!check || text(check.photos_key) !== urls.join(",") ||
+      (text(check.status) === "error" && Date.now() - Date.parse(text(check.checked_at)) > 6 * 3600_000));
   }).slice(0, PHOTO_CHECKS_PER_RUN);
   if (toCheck.length) {
     const { data: projectRows, error: projectError } = await db.from("projects").select("id,name,developer,location,area_group").in("id", toCheck);
@@ -1489,22 +1491,51 @@ async function currentPhotoChecks(rows: Json[]) {
 /**
  * Claude looks at the project's photos: another project's name or logo, a place that does not fit the
  * location, or something that is not a real-estate photo = "mismatch"; a phone number other than
- * Tycoons' WhatsApp = "phone". A failed call is "error" and is tried again in the next run.
+ * Tycoons' WhatsApp = "phone". The photos are downloaded here first and sent to Claude as files, so a
+ * broken photo link is skipped instead of failing the whole check. A failed check is "error" and is tried
+ * again after 6 hours.
  */
 async function checkProjectPhotos(project: Json, urls: string[]): Promise<{ status: string; reason: string | null; bad_urls: string[] }> {
   const result = await askPhotoCheck(project, urls);
   // Every call is counted, even a failed one (it may still have been billed).
   await db.from("wa_photo_check_usage").insert({
-    project_id: text(project.id) || null, status: result.status, photos: Math.min(urls.length, PHOTOS_PER_CHECK),
+    project_id: text(project.id) || null, status: result.status, photos: result.photos,
     input_tokens: result.input_tokens, output_tokens: result.output_tokens,
   }).then(() => undefined, (error) => console.error("photo usage log failed", error));
   return { status: result.status, reason: result.reason, bad_urls: result.bad_urls };
 }
 
-async function askPhotoCheck(project: Json, urls: string[]): Promise<{ status: string; reason: string | null; bad_urls: string[]; input_tokens: number; output_tokens: number }> {
+/** One project photo for the check: jpeg / png / webp / gif up to 5 MB (Claude's limit), or null. */
+async function downloadForCheck(url: string): Promise<{ type: string; data: string } | null> {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+    if (!response.ok) return null;
+    const type = text(response.headers.get("content-type")).split(";")[0].toLowerCase();
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(type)) return null;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (!bytes.length || bytes.length > 5_000_000) return null;
+    let binary = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return { type, data: btoa(binary) };
+  } catch {
+    return null;
+  }
+}
+
+async function askPhotoCheck(project: Json, urls: string[]): Promise<{ status: string; reason: string | null; bad_urls: string[]; input_tokens: number; output_tokens: number; photos: number }> {
   let input_tokens = 0;
   let output_tokens = 0;
-  const sent = urls.slice(0, PHOTOS_PER_CHECK);
+  // The first photos that open (a broken link is skipped, the next photo takes its place).
+  const sent: string[] = [];
+  const files: { type: string; data: string }[] = [];
+  for (const url of urls) {
+    if (sent.length >= PHOTOS_PER_CHECK) break;
+    const file = await downloadForCheck(url);
+    if (!file) continue;
+    sent.push(url);
+    files.push(file);
+  }
+  if (!sent.length) return { status: "error", reason: "صور المشروع مش بتفتح (اللينكات بايظة)", bad_urls: [], input_tokens, output_tokens, photos: 0 };
   const content: Json[] = [{
     type: "text",
     text: [
@@ -1518,9 +1549,9 @@ async function askPhotoCheck(project: Json, urls: string[]): Promise<{ status: s
       "reason = one short sentence in Egyptian Arabic for the admin, naming what you saw (empty for match).",
     ].join("\n"),
   }];
-  sent.forEach((url, index) => {
+  files.forEach((file, index) => {
     content.push({ type: "text", text: `Photo ${index + 1}:` });
-    content.push({ type: "image", source: { type: "url", url } });
+    content.push({ type: "image", source: { type: "base64", media_type: file.type, data: file.data } });
   });
   try {
     const key = await claudeKey();
@@ -1554,10 +1585,10 @@ async function askPhotoCheck(project: Json, urls: string[]): Promise<{ status: s
     const verdict = text(answer.verdict);
     if (!["match", "mismatch", "phone"].includes(verdict)) throw new Error("photo_check_bad_answer");
     const bad = (Array.isArray(answer.bad_photos) ? answer.bad_photos : []).map(Number).filter((n) => n >= 1 && n <= sent.length).map((n) => sent[n - 1]);
-    return { status: verdict === "match" ? "ok" : verdict, reason: verdict === "match" ? null : text(answer.reason).slice(0, 300) || null, bad_urls: verdict === "match" ? [] : bad, input_tokens, output_tokens };
+    return { status: verdict === "match" ? "ok" : verdict, reason: verdict === "match" ? null : text(answer.reason).slice(0, 300) || null, bad_urls: verdict === "match" ? [] : bad, input_tokens, output_tokens, photos: sent.length };
   } catch (error) {
     console.error("photo check failed", text(project.name), error);
-    return { status: "error", reason: String((error as Error)?.message || error).slice(0, 300), bad_urls: [], input_tokens, output_tokens };
+    return { status: "error", reason: String((error as Error)?.message || error).slice(0, 300), bad_urls: [], input_tokens, output_tokens, photos: sent.length };
   }
 }
 
@@ -1591,7 +1622,9 @@ const STORAGE_BUCKET = "property-images";
 /** Social, video and reference sites: no usable project photos there. */
 const NOT_USABLE = /(facebook|instagram|youtube|tiktok|linkedin|twitter|x\.com|wikipedia|google|pinterest|threads\.net)/i;
 /** Broker and property-site pages scraped besides the developer's own pages. */
-const OTHER_PAGES = 2;
+const OTHER_PAGES = 4;
+/** Photos downloaded and shown to Claude per project (the best 10 at most are suggested). */
+const PHOTOS_TO_FILTER = 24;
 /** «none» results older than this were found by the first version (developer's site only): searched again. */
 const PHOTO_SEARCH_SINCE = "2026-11-07T00:00:00Z";
 
@@ -1667,9 +1700,15 @@ async function suggestPhotos(projectId: string): Promise<Json> {
   };
   try {
     // 1. Pages about the project. The developer's official website comes first (Claude picks it).
-    const search = await firecrawl("/search", { query: `${text(project.name)} ${text(project.developer)} ${text(project.area_group) || "Egypt"}`, limit: 10, sources: ["web"] });
-    credits += search.credits;
-    const results = ((search.data.web as Json[]) ?? []).map((item) => ({ url: text(item.url), title: text(item.title) }))
+    // Two searches (English and Arabic) so more property and broker sites come up.
+    const [search, searchAr] = await Promise.all([
+      firecrawl("/search", { query: `${text(project.name)} ${text(project.developer)} ${text(project.area_group) || "Egypt"}`, limit: 10, sources: ["web"] }),
+      firecrawl("/search", { query: `كمبوند ${text(project.name)} ${text(project.developer)} صور`, limit: 10, sources: ["web"] }).catch(() => ({ data: {} as Json, credits: 0 })),
+    ]);
+    credits += search.credits + searchAr.credits;
+    const results = [...((search.data.web as Json[]) ?? []), ...((searchAr.data.web as Json[]) ?? [])]
+      .map((item) => ({ url: text(item.url), title: text(item.title) }))
+      .filter((item, index, all) => all.findIndex((other) => other.url === item.url) === index)
       .filter((item) => /^https:\/\//i.test(item.url) && !NOT_USABLE.test(item.url) && !/\.pdf(\?|$)/i.test(item.url));
     if (!results.length) return await save({ status: "none", reason: "ما لقيناش صفحات عن المشروع في البحث" });
     const pick = await claudeJson(projectId, [{
@@ -1700,21 +1739,25 @@ async function suggestPhotos(projectId: string): Promise<Json> {
     pages.push(...others.filter((url) => !pages.includes(url)).slice(0, OTHER_PAGES));
     if (!pages.length) return await save({ status: "none", reason: "ما لقيناش صفحات عن المشروع ده بالتحديد" });
     const page = pages[0];
+    // All pages at once (the Supabase free plan stops a function after 150 seconds). Official pages stay first.
     const found: string[] = [];
-    for (const url of pages) {
-      const scraped = await firecrawl("/scrape", { url, formats: ["images"], onlyMainContent: false, waitFor: 3000 }, 90_000).catch(() => null);
+    const scrapes = await Promise.all(pages.map((url) => firecrawl("/scrape", { url, formats: ["images"], onlyMainContent: false, waitFor: 3000 }, 45_000).catch(() => null)));
+    for (const scraped of scrapes) {
       if (!scraped) continue;
       credits += scraped.credits || Number(((scraped.data.metadata ?? {}) as Json).creditsUsed) || 1;
       found.push(text(((scraped.data.metadata ?? {}) as Json).ogImage), ...((scraped.data.images as unknown[]) ?? []).map(text));
     }
     const candidates = [...new Set(found)]
       .filter((url) => /^https:\/\//i.test(url) && !/\.(svg|gif|ico)(\?|$)|logo|icon|sprite|favicon|avatar|flag|whatsapp|facebook|instagram/i.test(url))
-      .slice(0, 40);
+      .slice(0, 60);
     const photos: { url: string; bytes: Uint8Array; type: string }[] = [];
-    for (const url of candidates) {
-      if (photos.length >= 16) break;
-      const photo = await downloadPhoto(url);
-      if (photo) photos.push({ url, ...photo });
+    // Downloaded 12 at a time, in order, until PHOTOS_TO_FILTER real photos are in hand.
+    for (let start = 0; start < candidates.length && photos.length < PHOTOS_TO_FILTER; start += 12) {
+      const batch = candidates.slice(start, start + 12);
+      const downloads = await Promise.all(batch.map((url) => downloadPhoto(url)));
+      downloads.forEach((photo, index) => {
+        if (photo && photos.length < PHOTOS_TO_FILTER) photos.push({ url: batch[index], ...photo });
+      });
     }
     if (!photos.length) return await save({ status: "none", source_page: page, reason: "الصفحات اللي لقيناها مفيهاش صور ينفع نستخدمها" });
 
