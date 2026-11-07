@@ -288,6 +288,20 @@ export default function WhatsAppInboxTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, doubts, noPhotos, photoChecks, projectById]);
 
+  const [recheckBusy, setRecheckBusy] = useState<string | null>(null);
+  const recheckPhotos = async (projectId: string, name: string) => {
+    setRecheckBusy(projectId);
+    try {
+      const result = await adminApi.waPhotoRecheck(token, projectId);
+      setPhotoChecks((current) => ({ ...current, [projectId]: result.check }));
+      notify(["ok", "confirmed"].includes(result.check.status) ? `صور ${name} عدّت، وحداته هتنزل في الدورة الجاية` : `صور ${name} لسه محتاجة مراجعة`);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setRecheckBusy(null);
+    }
+  };
+
   const confirmPhotos = async (projectId: string, name: string) => {
     if (!window.confirm(`صور ${name} صح؟ وحداته الجاهزة هتنزل لوحدها في المرة الجاية.`)) return;
     try {
@@ -489,6 +503,16 @@ export default function WhatsAppInboxTab({
                       {check?.status === "phone" ? "عليها رقم تليفون تاني" : check?.status === "mismatch" ? "Claude شايفها مش صور المشروع ده" : "ما قدرناش نشيّك على الصور، هنجرّب تاني"}
                       {check?.reason && check.status !== "error" ? `: ${check.reason}` : ""}
                     </span>
+                    {check?.stale && (
+                      <span className="mt-1 block rounded-lg bg-amber-50 px-2 py-1 font-bold text-amber-800">
+                        غيّرت الصور، ومستنية تشييك جديد (في الدورة الجاية أو بـ «شيّك دلوقتي»).
+                        {(check.bad_still_there ?? []).length > 0
+                          ? ` الصورة اللي عليها المشكلة لسه موجودة (${(check.bad_still_there ?? []).length}).`
+                          : check.bad_urls.length > 0
+                            ? " الصورة اللي عليها المشكلة اتشالت."
+                            : ""}
+                      </span>
+                    )}
                     {check && check.bad_urls.length > 0 && (
                       <span className="mt-1 flex flex-wrap gap-1">
                         {check.bad_urls.map((url, index) => (
@@ -515,6 +539,13 @@ export default function WhatsAppInboxTab({
                           غيّر الصور
                         </button>
                       )}
+                      <button
+                        disabled={recheckBusy === projectId}
+                        onClick={() => void recheckPhotos(projectId, project?.name || "المشروع")}
+                        className="rounded-full border border-[#d8c9ab] bg-white px-2.5 py-1 font-black disabled:opacity-50"
+                      >
+                        {recheckBusy === projectId ? "بيشيّك…" : "شيّك دلوقتي"}
+                      </button>
                       {check?.status !== "error" && (
                         <button onClick={() => void confirmPhotos(projectId, project?.name || "المشروع")} className="rounded-full bg-emerald-600 px-2.5 py-1 font-black text-white">
                           الصور صح
