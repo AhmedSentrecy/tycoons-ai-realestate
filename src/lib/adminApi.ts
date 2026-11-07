@@ -670,6 +670,11 @@ export const WA_DRAFT_FIELD_LABELS: Record<WaDraftField, string> = {
   description: "وصف قصير", down_payment_text: "المقدم", installments_text: "التقسيط", delivery_text: "الاستلام", finishing: "التشطيب",
 };
 /** What keeps a new project from «انشر» (codes from wa-inbox research.ts). */
+/** Doubts that stop a new project (name, developer, main area, or not a project): same rule as the server. */
+export function waDraftDoubtBlocks(code: string): boolean {
+  return ["not_found", "grouping_unsure", "developer_mismatch"].includes(code) || /_(name|developer|area_group)$/.test(code);
+}
+
 export function waDraftDoubtLabel(code: string): string {
   if (code === "not_found") return "مالقيناش المشروع على النت";
   if (code === "grouping_unsure") return "مش متأكدين إن الأسماء دي مشروع واحد";
