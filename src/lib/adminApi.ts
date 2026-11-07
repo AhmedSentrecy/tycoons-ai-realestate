@@ -531,6 +531,8 @@ export const adminApi = {
   /** «ضيف الصور»: the picked suggested photos become the project's photos. */
   waPhotoSuggestApprove: (token: string, id: number, urls: string[]) => call<{ ok: boolean; added: number }>("photo_suggest_approve", { id, urls }, token, WA_INBOX_API),
   waPhotoSuggestReject: (token: string, id: number) => call<{ ok: boolean }>("photo_suggest_reject", { id }, token, WA_INBOX_API),
+  /** «شيّك دلوقتي»: Claude checks the project's current photos now. */
+  waPhotoRecheck: (token: string, projectId: string) => call<{ check: WaPhotoCheck }>("photo_recheck", { project_id: projectId }, token, WA_INBOX_API),
   /** «الصور صح»: the project's current photos are fine even though Claude flagged them. */
   waPhotoConfirm: (token: string, projectId: string) => call<{ ok: boolean }>("photo_confirm", { project_id: projectId }, token, WA_INBOX_API),
   /** Creates the project on the site, links its WhatsApp units and approves the ready ones. */
@@ -570,6 +572,10 @@ export interface WaPhotoCheck {
   reason: string | null;
   bad_urls: string[];
   checked_at: string;
+  /** The project's photos changed since this check (a new check comes in the next run). */
+  stale?: boolean;
+  /** The flagged photos the project still has. */
+  bad_still_there?: string[];
 }
 /** Photos found on the developer's official website for a project with no photos (latest search). */
 export interface WaPhotoSuggestion {

@@ -78,6 +78,8 @@ export default function WhatsAppInboxTab({
   /** Claude's check of each project's current photos (no entry = not checked yet). */
   const [photoChecks, setPhotoChecks] = useState<Record<string, WaPhotoCheck>>({});
   const [photoFlagsOpen, setPhotoFlagsOpen] = useState(true);
+  /** Flagged photos open in the big viewer. */
+  const [flagView, setFlagView] = useState<{ title: string; urls: string[]; index: number } | null>(null);
   /** Latest photo search on the developer's website for each project with no photos. */
   const [photoSuggestions, setPhotoSuggestions] = useState<Record<string, WaPhotoSuggestion>>({});
   const [autoApprove, setAutoApprove] = useState<WaAutoApprove | null>(null);
@@ -286,6 +288,20 @@ export default function WhatsAppInboxTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, doubts, noPhotos, photoChecks, projectById]);
 
+  const [recheckBusy, setRecheckBusy] = useState<string | null>(null);
+  const recheckPhotos = async (projectId: string, name: string) => {
+    setRecheckBusy(projectId);
+    try {
+      const result = await adminApi.waPhotoRecheck(token, projectId);
+      setPhotoChecks((current) => ({ ...current, [projectId]: result.check }));
+      notify(["ok", "confirmed"].includes(result.check.status) ? `صور ${name} عدّت، وحداته هتنزل في الدورة الجاية` : `صور ${name} لسه محتاجة مراجعة`);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setRecheckBusy(null);
+    }
+  };
+
   const confirmPhotos = async (projectId: string, name: string) => {
     if (!window.confirm(`صور ${name} صح؟ وحداته الجاهزة هتنزل لوحدها في المرة الجاية.`)) return;
     try {
@@ -487,12 +503,22 @@ export default function WhatsAppInboxTab({
                       {check?.status === "phone" ? "عليها رقم تليفون تاني" : check?.status === "mismatch" ? "Claude شايفها مش صور المشروع ده" : "ما قدرناش نشيّك على الصور، هنجرّب تاني"}
                       {check?.reason && check.status !== "error" ? `: ${check.reason}` : ""}
                     </span>
+                    {check?.stale && (
+                      <span className="mt-1 block rounded-lg bg-amber-50 px-2 py-1 font-bold text-amber-800">
+                        غيّرت الصور، ومستنية تشييك جديد (في الدورة الجاية أو بـ «شيّك دلوقتي»).
+                        {(check.bad_still_there ?? []).length > 0
+                          ? ` الصورة اللي عليها المشكلة لسه موجودة (${(check.bad_still_there ?? []).length}).`
+                          : check.bad_urls.length > 0
+                            ? " الصورة اللي عليها المشكلة اتشالت."
+                            : ""}
+                      </span>
+                    )}
                     {check && check.bad_urls.length > 0 && (
                       <span className="mt-1 flex flex-wrap gap-1">
-                        {check.bad_urls.map((url) => (
-                          <a key={url} href={url} target="_blank" rel="noreferrer">
-                            <img src={url} alt="" loading="lazy" className="h-12 w-16 rounded-lg object-cover ring-2 ring-red-300" />
-                          </a>
+                        {check.bad_urls.map((url, index) => (
+                          <button key={url} onClick={() => setFlagView({ title: project?.name || "صور المشروع", urls: check.bad_urls, index })} title="كبّر الصورة">
+                            <img src={url} alt="" loading="lazy" className="h-14 w-20 rounded-lg object-cover ring-2 ring-red-300" />
+                          </button>
                         ))}
                       </span>
                     )}
@@ -513,6 +539,13 @@ export default function WhatsAppInboxTab({
                           غيّر الصور
                         </button>
                       )}
+                      <button
+                        disabled={recheckBusy === projectId}
+                        onClick={() => void recheckPhotos(projectId, project?.name || "المشروع")}
+                        className="rounded-full border border-[#d8c9ab] bg-white px-2.5 py-1 font-black disabled:opacity-50"
+                      >
+                        {recheckBusy === projectId ? "بيشيّك…" : "شيّك دلوقتي"}
+                      </button>
                       {check?.status !== "error" && (
                         <button onClick={() => void confirmPhotos(projectId, project?.name || "المشروع")} className="rounded-full bg-emerald-600 px-2.5 py-1 font-black text-white">
                           الصور صح
@@ -524,6 +557,15 @@ export default function WhatsAppInboxTab({
               </ul>
             )}
             <p className="mt-1.5 leading-5 text-red-700">لما تغيّر الصور، Claude هيشيّك عليها تاني لوحده.</p>
+            {flagView && (
+              <PhotoViewer
+                title={flagView.title}
+                urls={flagView.urls}
+                index={flagView.index}
+                onIndex={(index) => setFlagView({ ...flagView, index })}
+                onClose={() => setFlagView(null)}
+              />
+            )}
           </div>
         )}
         <input
@@ -1772,6 +1814,15 @@ function PhotoGapRow({
   const { token, notify, handleError } = useAdmin();
   const [busy, setBusy] = useState(false);
   const [dropped, setDropped] = useState<Set<string>>(new Set());
+  /** Photo open in the big viewer (index in suggestion.urls), or null. */
+  const [viewing, setViewing] = useState<number | null>(null);
+  const toggleDrop = (url: string) =>
+    setDropped((current) => {
+      const next = new Set(current);
+      if (next.has(url)) next.delete(url);
+      else next.add(url);
+      return next;
+    });
   const pending = suggestion?.status === "pending";
   const picked = pending ? suggestion.urls.filter((url) => !dropped.has(url)) : [];
 
@@ -1842,28 +1893,25 @@ function PhotoGapRow({
                 الصفحة
               </a>
             )}
-            <span className="ms-1 font-normal text-[#5c6a62]">· دوس على صورة عشان تشيلها</span>
+            <span className="ms-1 font-normal text-[#5c6a62]">· دوس على الصورة تكبر، و✕ تشيلها</span>
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
             {suggestion.urls.map((url, index) => {
               const off = dropped.has(url);
               return (
-                <button
-                  key={url}
-                  onClick={() =>
-                    setDropped((current) => {
-                      const next = new Set(current);
-                      if (next.has(url)) next.delete(url);
-                      else next.add(url);
-                      return next;
-                    })
-                  }
-                  className={`relative h-14 w-20 overflow-hidden rounded-lg ring-2 ${off ? "opacity-30 ring-transparent" : "ring-emerald-500"}`}
-                  title={off ? "مش هتتضاف" : index === 0 ? "الغلاف" : "هتتضاف"}
-                >
-                  <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                <span key={url} className={`relative h-16 w-24 overflow-hidden rounded-lg ring-2 ${off ? "ring-transparent" : "ring-emerald-500"}`}>
+                  <button onClick={() => setViewing(index)} className="block h-full w-full" title="كبّر الصورة">
+                    <img src={url} alt="" loading="lazy" className={`h-full w-full object-cover ${off ? "opacity-30" : ""}`} />
+                  </button>
+                  <button
+                    onClick={() => toggleDrop(url)}
+                    className={`absolute left-0.5 top-0.5 grid h-5 w-5 place-items-center rounded-full text-[11px] font-black text-white ${off ? "bg-emerald-600" : "bg-red-600"}`}
+                    title={off ? "رجّعها" : "شيلها"}
+                  >
+                    {off ? "↺" : "✕"}
+                  </button>
                   {!off && picked[0] === url && <span className="absolute bottom-0 right-0 rounded-tl bg-emerald-600 px-1 text-[9px] font-black text-white">غلاف</span>}
-                </button>
+                </span>
               );
             })}
           </div>
@@ -1895,6 +1943,117 @@ function PhotoGapRow({
           </button>
         </div>
       )}
+      {pending && viewing !== null && (
+        <PhotoViewer
+          title={gap.name}
+          urls={suggestion.urls}
+          index={viewing}
+          onIndex={setViewing}
+          onClose={() => setViewing(null)}
+          isOff={(url) => dropped.has(url)}
+          onToggle={toggleDrop}
+        />
+      )}
     </li>
+  );
+}
+
+/**
+ * Big photo viewer: the photo fills the screen (dark background), ← → or the arrows go to the next photo,
+ * Esc or ✕ closes, a click on the photo shows it at full size (scroll to read small text).
+ * With onToggle, «شيلها / رجّعها» decides the photo right here.
+ */
+function PhotoViewer({
+  title,
+  urls,
+  index,
+  onIndex,
+  onClose,
+  isOff,
+  onToggle,
+}: {
+  title: string;
+  urls: string[];
+  index: number;
+  onIndex: (index: number) => void;
+  onClose: () => void;
+  isOff?: (url: string) => boolean;
+  onToggle?: (url: string) => void;
+}) {
+  const [full, setFull] = useState(false);
+  const url = urls[index];
+  const go = (step: number) => {
+    setFull(false);
+    onIndex((index + step + urls.length) % urls.length);
+  };
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+      // The admin is right-to-left: ← is the next photo, → the previous one.
+      if (event.key === "ArrowLeft") go(1);
+      if (event.key === "ArrowRight") go(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  if (!url) return null;
+  const off = isOff?.(url) ?? false;
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/90 text-white" onClick={onClose}>
+      <div className="flex items-center gap-2 p-3 text-sm" onClick={(event) => event.stopPropagation()}>
+        <span className="me-auto truncate font-black">
+          {title} · صورة {index + 1} من {urls.length}
+          {off && <span className="ms-2 rounded-full bg-red-600 px-2 py-0.5 text-xs">مش هتتضاف</span>}
+          <span className="block text-xs font-normal text-white/70">دوس على الصورة تكبر لحجمها الحقيقي</span>
+        </span>
+        {onToggle && (
+          <button onClick={() => onToggle(url)} className={`rounded-full px-3 py-1.5 font-black ${off ? "bg-emerald-600" : "bg-red-600"}`}>
+            {off ? "رجّعها" : "شيلها"}
+          </button>
+        )}
+        <a href={url} target="_blank" rel="noreferrer" className="rounded-full bg-white/15 px-3 py-1.5 font-black">
+          افتحها في تابة
+        </a>
+        <button onClick={onClose} className="rounded-full bg-white/15 px-3 py-1.5 font-black" title="اقفل (Esc)">
+          ✕
+        </button>
+      </div>
+      <div className={`relative min-h-0 flex-1 ${full ? "overflow-auto" : "grid place-items-center overflow-hidden"} px-1 pb-4 sm:px-12`}>
+        <img
+          src={url}
+          alt=""
+          onClick={(event) => {
+            event.stopPropagation();
+            setFull((value) => !value);
+          }}
+          className={full ? "max-w-none cursor-zoom-out" : `max-h-full max-w-full cursor-zoom-in object-contain ${off ? "opacity-40" : ""}`}
+          title={full ? "صغّرها" : "كبّرها للحجم الحقيقي"}
+        />
+      </div>
+      {urls.length > 1 && (
+        <>
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              go(-1);
+            }}
+            className="fixed right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/20 text-2xl font-black"
+            title="اللي قبلها"
+          >
+            ›
+          </button>
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              go(1);
+            }}
+            className="fixed left-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/20 text-2xl font-black"
+            title="اللي بعدها"
+          >
+            ‹
+          </button>
+        </>
+      )}
+    </div>
   );
 }

@@ -8,7 +8,7 @@
 //     intake_batch -> same for every unit in Claude's answer for one message (units_json)
 // - The admin page (header x-admin-token, same sessions as tycoons-admin):
 //     list, save, approve, approve_ready, reject, groups, group_toggle, group_developer, auto_approve_save, photo_confirm,
-//     photo_suggest, photo_suggest_approve, photo_suggest_reject,
+//     photo_suggest, photo_suggest_approve, photo_suggest_reject, photo_recheck,
 //     draft_save, draft_reject, draft_research, publish_draft
 // pg_cron (x-intake-key): research_run -> groups new WhatsApp names and researches new projects
 // Approve writes to public.units through admin_apply_ops and logs the change in
@@ -1476,16 +1476,42 @@ async function storedPhotoChecks(projectIds: string[]) {
   return out;
 }
 
-/** For the admin page: the check of each pending unit's project, only when it is about the photos the project has now. */
+/**
+ * For the admin page: the last check of each pending unit's project. stale = the photos changed since
+ * (a new check comes in the next run, or with «شيّك دلوقتي»); a flagged project stays listed until then.
+ * bad_still_there = the flagged photos the project still has.
+ */
 async function currentPhotoChecks(rows: Json[]) {
   const ids = [...new Set(rows.map((row) => text(row.project_id)).filter(Boolean))];
   const [photos, checks] = await Promise.all([projectPhotos(ids), storedPhotoChecks(ids)]);
   const out: Record<string, Json> = {};
   for (const [id, check] of checks) {
-    if (text(check.photos_key) !== (photos.get(id) ?? []).join(",")) continue;
-    out[id] = { status: check.status, reason: check.reason, bad_urls: check.bad_urls ?? [], checked_at: check.checked_at };
+    const now = photos.get(id) ?? [];
+    const stale = text(check.photos_key) !== now.join(",");
+    // A passed check about old photos says nothing about the new ones: only flagged checks are kept.
+    if (stale && ["ok", "confirmed"].includes(text(check.status))) continue;
+    const bad = ((check.bad_urls as string[]) ?? []).map(text);
+    out[id] = {
+      status: check.status, reason: check.reason, bad_urls: bad, checked_at: check.checked_at,
+      stale, bad_still_there: bad.filter((url) => now.includes(url)),
+    };
   }
   return out;
+}
+
+/** «شيّك دلوقتي»: checks the project's current photos now (after the admin changed them). */
+async function photoRecheck(body: Json) {
+  const projectId = text(body.project_id);
+  if (!/^[0-9a-f-]{36}$/i.test(projectId)) throw new HttpError(400, "project_id_invalid");
+  const urls = (await projectPhotos([projectId])).get(projectId);
+  if (!urls) throw new HttpError(404, "project_not_found");
+  if (!urls.length) throw new HttpError(400, "project_has_no_photos");
+  const { data: project, error } = await db.from("projects").select("id,name,developer,location,area_group").eq("id", projectId).maybeSingle();
+  fail(error);
+  const result = await checkProjectPhotos(project as Json, urls);
+  const row = { project_id: projectId, photos_key: urls.join(","), ...result, checked_at: new Date().toISOString(), confirmed_by: null };
+  fail((await db.from("wa_photo_checks").upsert(row)).error);
+  return { check: { status: row.status, reason: row.reason, bad_urls: row.bad_urls, checked_at: row.checked_at, stale: false, bad_still_there: row.bad_urls } };
 }
 
 /**
@@ -2118,6 +2144,7 @@ Deno.serve(async (req: Request) => {
       case "research_settings_save": return reply(await researchSettingsSave(body));
       case "auto_approve_save": return reply(await autoApproveSave(body));
       case "photo_confirm": return reply(await photoConfirm(user, body));
+      case "photo_recheck": return reply(await photoRecheck(body));
       case "photo_suggest": return reply(await photoSuggest(body));
       case "photo_suggest_approve": return reply(await photoSuggestApprove(user, body));
       case "photo_suggest_reject": return reply(await photoSuggestReject(user, body));
