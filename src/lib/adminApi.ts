@@ -492,7 +492,7 @@ export const adminApi = {
   saveHomepageLaunches: (token: string, items: HomepageLaunchItem[]) =>
     call<HomepageLaunchList>("homepage_launches_save", { items }, token, LAUNCHES_API),
   waInbox: (token: string, status: WaInboxStatus) =>
-    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string>; doubts?: Record<string, WaDoubt[]>; drafts?: Record<string, WaDraft>; no_photos?: Record<string, true>; photo_gaps?: WaPhotoGap[]; photo_checks?: Record<string, WaPhotoCheck>; photo_suggestions?: Record<string, WaPhotoSuggestion>; auto_approve?: WaAutoApprove }>("list", { status }, token, WA_INBOX_API),
+    call<{ items: WaInboxItem[]; matches: AdminUnit[]; counts: Record<WaInboxStatus, number>; duplicates?: Record<string, number[]>; auto_filled?: Record<string, Record<string, WaFillSource>>; previously_rejected?: Record<string, string>; suggestions?: Record<string, WaProjectSuggestion>; finishing_suggestions?: Record<string, string>; doubts?: Record<string, WaDoubt[]>; drafts?: Record<string, WaDraft>; no_photos?: Record<string, true>; photo_gaps?: WaPhotoGap[]; photo_checks?: Record<string, WaPhotoCheck>; photo_suggestions?: Record<string, WaPhotoSuggestion>; auto_approve?: WaAutoApprove; held?: { today: number; week: number } }>("list", { status }, token, WA_INBOX_API),
   waInboxSave: (token: string, id: number, values: WaInboxValues) =>
     call<{ item: WaInboxItem }>("save", { id, values }, token, WA_INBOX_API),
   waInboxApprove: (

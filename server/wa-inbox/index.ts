@@ -347,6 +347,86 @@ async function track(req: Request, body: Json) {
   return { track: Boolean(existing.track), new_group: false };
 }
 
+// ---------- the 7-day rule ----------
+//
+// After a unit type of a project (same type and bedrooms, or same area when no bedrooms) is updated on the
+// site from WhatsApp, the same type is not updated again for 7 days unless the new price is lower (we keep
+// the cheapest). Units stopped by the rule get status "held": never shown, never approved, and they do not
+// come back when the 7 days end (only messages arriving after that are read normally).
+
+const LOCK_DAYS = 7;
+
+const lockKey = (projectId: unknown, unitType: unknown, bedrooms: unknown, area: unknown) =>
+  `${text(projectId)}|${norm(unitType)}|${norm(bedrooms) || (Number(area) > 0 ? String(Math.round(Number(area))) : "")}`;
+
+interface UnitLock { until: string; price: number }
+
+/** Unit types approved from WhatsApp in the last 7 days, with the price the site shows now (lowest). */
+async function unitLocks(projectIds: string[]): Promise<Map<string, UnitLock>> {
+  const out = new Map<string, UnitLock>();
+  const ids = [...new Set(projectIds.filter(Boolean))];
+  if (!ids.length) return out;
+  const since = new Date(Date.now() - LOCK_DAYS * 86_400_000).toISOString();
+  const rows: Json[] = [];
+  for (let start = 0; start < ids.length; start += 200) {
+    const { data, error } = await db.from("wa_unit_inbox").select("project_id,unit_type,bedrooms_text,area_sqm,starting_price,decided_at,result_unit_id")
+      .eq("status", "approved").gte("decided_at", since).in("project_id", ids.slice(start, start + 200)).limit(5000);
+    fail(error);
+    rows.push(...((data ?? []) as Json[]));
+  }
+  const unitIds = [...new Set(rows.map((row) => text(row.result_unit_id)).filter(Boolean))];
+  const sitePrice = new Map<string, number>();
+  for (let start = 0; start < unitIds.length; start += 200) {
+    const { data, error } = await db.from("units").select("id,starting_price").in("id", unitIds.slice(start, start + 200));
+    fail(error);
+    for (const unit of (data ?? []) as Json[]) sitePrice.set(text(unit.id), Number(unit.starting_price) || 0);
+  }
+  for (const row of rows) {
+    const key = lockKey(row.project_id, row.unit_type, row.bedrooms_text, row.area_sqm);
+    const until = new Date(Date.parse(text(row.decided_at)) + LOCK_DAYS * 86_400_000).toISOString();
+    const price = sitePrice.get(text(row.result_unit_id)) || Number(row.starting_price) || 0;
+    const current = out.get(key);
+    out.set(key, {
+      until: !current || until > current.until ? until : current.until,
+      price: current?.price && price ? Math.min(current.price, price) : current?.price || price,
+    });
+  }
+  return out;
+}
+
+/** The lock that stops this unit (same type updated in the last 7 days, and it is not cheaper), or null. */
+function heldBy(row: Json, locks: Map<string, UnitLock>): UnitLock | null {
+  if (!text(row.project_id)) return null;
+  const lock = locks.get(lockKey(row.project_id, row.unit_type, row.bedrooms_text, row.area_sqm));
+  if (!lock) return null;
+  const price = Number(row.starting_price) || 0;
+  return price > 0 && lock.price > 0 && price < lock.price ? null : lock;
+}
+
+/** Cron: waiting units the rule stops are set aside ("held"); answer: how many. */
+async function holdLockedPending() {
+  const { data, error } = await db.from("wa_unit_inbox").select("id,project_id,unit_type,bedrooms_text,area_sqm,starting_price").eq("status", "pending").not("project_id", "is", null).limit(5000);
+  fail(error);
+  const rows = (data ?? []) as Json[];
+  const locks = await unitLocks(rows.map((row) => text(row.project_id)));
+  const held = rows.map((row) => ({ row, lock: heldBy(row, locks) })).filter((item) => item.lock);
+  for (const { row, lock } of held) {
+    fail((await db.from("wa_unit_inbox").update({ status: "held", note: `held_7_days_until:${lock!.until}`, updated_at: new Date().toISOString() })
+      .eq("id", Number(row.id)).eq("status", "pending")).error);
+  }
+  return { held: held.length };
+}
+
+/** For the admin: units the rule stopped today (Cairo day) and in the last 7 days. */
+async function heldCounts() {
+  const since = new Date(Date.now() - LOCK_DAYS * 86_400_000).toISOString();
+  const { data, error } = await db.from("wa_unit_inbox").select("updated_at").eq("status", "held").gte("updated_at", since).limit(20000);
+  fail(error);
+  const today = new Date(Date.now() + 2 * 3600_000).toISOString().slice(0, 10);
+  const rows = (data ?? []) as Json[];
+  return { today: rows.filter((row) => new Date(Date.parse(text(row.updated_at)) + 2 * 3600_000).toISOString().slice(0, 10) === today).length, week: rows.length };
+}
+
 async function intake(body: Json) {
   const values: Json = {};
   for (const field of TEXT_FIELDS) values[field] = text(body[field]).slice(0, 2000) || null;
@@ -392,9 +472,16 @@ async function intake(body: Json) {
   values.dedupe_key = values.message_id
     ? await sha256([values.message_id, norm(values.project_name), norm(values.unit_type), norm(values.bedrooms_text), values.area_sqm ?? "", values.starting_price ?? ""].join("|"))
     : null;
+  // The 7-day rule: the same type was updated on the site less than 7 days ago and this is not cheaper.
+  const lock = project ? heldBy(values, await unitLocks([text(values.project_id)])) : null;
+  if (lock) {
+    values.status = "held";
+    values.note = `held_7_days_until:${lock.until}`;
+  }
 
   const { data, error } = await db.from("wa_unit_inbox").upsert(values, { onConflict: "dedupe_key", ignoreDuplicates: true }).select("id");
   fail(error);
+  if (lock) return { stored: false, reason: "held_7_days", until: lock.until, id: data?.[0]?.id ?? null };
   return { stored: Boolean(data?.length), id: data?.[0]?.id ?? null, project_matched: Boolean(project), replaces_unit: values.match_unit_id ?? null };
 }
 
@@ -607,7 +694,8 @@ async function list(body: Json) {
     suggestions, finishing_suggestions: finishingSuggestions, doubts, drafts,
     no_photos: noPhotos, photo_gaps: photoGaps, photo_checks: status === "pending" ? await currentPhotoChecks(rows) : {},
     photo_suggestions: status === "pending" ? Object.fromEntries(await latestSuggestions(photoGaps.map((gap) => gap.project_id))) : {},
-    auto_approve: status === "pending" ? await autoApproveState() : undefined };
+    auto_approve: status === "pending" ? await autoApproveState() : undefined,
+    held: status === "pending" ? await heldCounts() : undefined };
 }
 
 /** A project or unit has a photo when its cover or its gallery holds at least one URL. */
@@ -2111,7 +2199,10 @@ Deno.serve(async (req: Request) => {
       // deno-lint-ignore no-explicit-any
       const runtime = (globalThis as any).EdgeRuntime;
       // Ready units first (no AI cost, runs in every mode), then the research.
-      const job = autoApproveRun()
+      // The 7-day rule first (no AI cost), then the ready units, then the research.
+      const job = holdLockedPending()
+        .catch((error) => console.error("hold_7_days", error))
+        .then(() => autoApproveRun())
         .catch((error) => console.error("auto_approve", error))
         .then(() => photoSuggestCron())
         .catch((error) => console.error("photo_suggest", error))

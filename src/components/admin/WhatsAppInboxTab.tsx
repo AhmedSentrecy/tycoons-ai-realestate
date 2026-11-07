@@ -85,6 +85,8 @@ export default function WhatsAppInboxTab({
   const [photoSuggestions, setPhotoSuggestions] = useState<Record<string, WaPhotoSuggestion>>({});
   const [autoApprove, setAutoApprove] = useState<WaAutoApprove | null>(null);
   const [autoBusy, setAutoBusy] = useState(false);
+  /** Units the 7-day rule stopped (same type updated on the site less than 7 days ago, not cheaper). */
+  const [held, setHeld] = useState<{ today: number; week: number } | null>(null);
   const [draftEditing, setDraftEditing] = useState<WaDraft | null>(null);
   const [publishing, setPublishing] = useState<WaDraft | null>(null);
   const [counts, setCounts] = useState<Record<WaInboxStatus, number>>({ pending: 0, approved: 0, rejected: 0 });
@@ -129,6 +131,7 @@ export default function WhatsAppInboxTab({
         setPhotoChecks(result.photo_checks ?? {});
         setPhotoSuggestions(result.photo_suggestions ?? {});
         if (result.auto_approve) setAutoApprove(result.auto_approve);
+        if (result.held) setHeld(result.held);
         setCounts(result.counts);
         setSelected(new Set());
       })
@@ -450,6 +453,11 @@ export default function WhatsAppInboxTab({
               {Math.round((autoApprove.photo_usage.total.input_tokens + autoApprove.photo_usage.total.output_tokens) / 1000).toLocaleString("en")} ألف توكن)
               {autoApprove.photo_usage.firecrawl_credits ? ` · Firecrawl: ${autoApprove.photo_usage.firecrawl_credits} credit` : ""}
             </p>
+            {held && (
+              <p className="mt-1 leading-5 text-[#5c6a62]">
+                قاعدة الـ 7 أيام: اتشال {held.today} تحديث متكرر النهارده ({held.week} في آخر 7 أيام). النوع اللي اتحدّث على الموقع ما بيتحدّثش تاني قبل 7 أيام، إلا لو السعر الجديد أرخص.
+              </p>
+            )}
           </div>
         )}
         {status === "pending" && photoGaps.length > 0 && (
