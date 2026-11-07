@@ -1622,7 +1622,9 @@ const STORAGE_BUCKET = "property-images";
 /** Social, video and reference sites: no usable project photos there. */
 const NOT_USABLE = /(facebook|instagram|youtube|tiktok|linkedin|twitter|x\.com|wikipedia|google|pinterest|threads\.net)/i;
 /** Broker and property-site pages scraped besides the developer's own pages. */
-const OTHER_PAGES = 2;
+const OTHER_PAGES = 4;
+/** Photos downloaded and shown to Claude per project (the best 10 at most are suggested). */
+const PHOTOS_TO_FILTER = 24;
 /** «none» results older than this were found by the first version (developer's site only): searched again. */
 const PHOTO_SEARCH_SINCE = "2026-11-07T00:00:00Z";
 
@@ -1698,9 +1700,15 @@ async function suggestPhotos(projectId: string): Promise<Json> {
   };
   try {
     // 1. Pages about the project. The developer's official website comes first (Claude picks it).
-    const search = await firecrawl("/search", { query: `${text(project.name)} ${text(project.developer)} ${text(project.area_group) || "Egypt"}`, limit: 10, sources: ["web"] });
-    credits += search.credits;
-    const results = ((search.data.web as Json[]) ?? []).map((item) => ({ url: text(item.url), title: text(item.title) }))
+    // Two searches (English and Arabic) so more property and broker sites come up.
+    const [search, searchAr] = await Promise.all([
+      firecrawl("/search", { query: `${text(project.name)} ${text(project.developer)} ${text(project.area_group) || "Egypt"}`, limit: 10, sources: ["web"] }),
+      firecrawl("/search", { query: `كمبوند ${text(project.name)} ${text(project.developer)} صور`, limit: 10, sources: ["web"] }).catch(() => ({ data: {} as Json, credits: 0 })),
+    ]);
+    credits += search.credits + searchAr.credits;
+    const results = [...((search.data.web as Json[]) ?? []), ...((searchAr.data.web as Json[]) ?? [])]
+      .map((item) => ({ url: text(item.url), title: text(item.title) }))
+      .filter((item, index, all) => all.findIndex((other) => other.url === item.url) === index)
       .filter((item) => /^https:\/\//i.test(item.url) && !NOT_USABLE.test(item.url) && !/\.pdf(\?|$)/i.test(item.url));
     if (!results.length) return await save({ status: "none", reason: "ما لقيناش صفحات عن المشروع في البحث" });
     const pick = await claudeJson(projectId, [{
@@ -1731,21 +1739,25 @@ async function suggestPhotos(projectId: string): Promise<Json> {
     pages.push(...others.filter((url) => !pages.includes(url)).slice(0, OTHER_PAGES));
     if (!pages.length) return await save({ status: "none", reason: "ما لقيناش صفحات عن المشروع ده بالتحديد" });
     const page = pages[0];
+    // All pages at once (the Supabase free plan stops a function after 150 seconds). Official pages stay first.
     const found: string[] = [];
-    for (const url of pages) {
-      const scraped = await firecrawl("/scrape", { url, formats: ["images"], onlyMainContent: false, waitFor: 3000 }, 90_000).catch(() => null);
+    const scrapes = await Promise.all(pages.map((url) => firecrawl("/scrape", { url, formats: ["images"], onlyMainContent: false, waitFor: 3000 }, 45_000).catch(() => null)));
+    for (const scraped of scrapes) {
       if (!scraped) continue;
       credits += scraped.credits || Number(((scraped.data.metadata ?? {}) as Json).creditsUsed) || 1;
       found.push(text(((scraped.data.metadata ?? {}) as Json).ogImage), ...((scraped.data.images as unknown[]) ?? []).map(text));
     }
     const candidates = [...new Set(found)]
       .filter((url) => /^https:\/\//i.test(url) && !/\.(svg|gif|ico)(\?|$)|logo|icon|sprite|favicon|avatar|flag|whatsapp|facebook|instagram/i.test(url))
-      .slice(0, 40);
+      .slice(0, 60);
     const photos: { url: string; bytes: Uint8Array; type: string }[] = [];
-    for (const url of candidates) {
-      if (photos.length >= 16) break;
-      const photo = await downloadPhoto(url);
-      if (photo) photos.push({ url, ...photo });
+    // Downloaded 12 at a time, in order, until PHOTOS_TO_FILTER real photos are in hand.
+    for (let start = 0; start < candidates.length && photos.length < PHOTOS_TO_FILTER; start += 12) {
+      const batch = candidates.slice(start, start + 12);
+      const downloads = await Promise.all(batch.map((url) => downloadPhoto(url)));
+      downloads.forEach((photo, index) => {
+        if (photo && photos.length < PHOTOS_TO_FILTER) photos.push({ url: batch[index], ...photo });
+      });
     }
     if (!photos.length) return await save({ status: "none", source_page: page, reason: "الصفحات اللي لقيناها مفيهاش صور ينفع نستخدمها" });
 
