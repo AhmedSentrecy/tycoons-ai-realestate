@@ -70,6 +70,10 @@ export default function WhatsAppInboxTab({
   /** Pending units split in two: everything present and nothing doubtful, or needs a look (with the reasons). */
   const [doubts, setDoubts] = useState<Record<string, WaDoubt[]>>({});
   const [view, setView] = useState<"ready" | "review">("ready");
+  /** «شغلك النهارده»: the step the list is narrowed to ("" = everything of the chosen half). */
+  const [focus, setFocus] = useState<"" | "drafts_ready" | "drafts_review" | "units">("");
+  /** «إعدادات الأتمتة» (switches, costs, the 7-day rule): closed by default. */
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, WaDraft>>({});
   /** Ready units that would have no photo on the site: they wait for the project's photos (no automatic approval). */
@@ -106,6 +110,7 @@ export default function WhatsAppInboxTab({
     setReloadKey((key) => key + 1);
   };
   const changeStatus = (next: WaInboxStatus) => {
+    setFocus("");
     if (next === status) return;
     setLoading(true);
     setStatus(next);
@@ -147,10 +152,34 @@ export default function WhatsAppInboxTab({
   const isReady = (item: WaInboxItem) => (doubts[String(item.id)]?.length ?? 1) === 0;
   const readyCount = useMemo(() => items.filter((item) => (doubts[String(item.id)]?.length ?? 1) === 0).length, [items, doubts]);
   // Pending: only the half chosen above ("جاهز للموافقة" / "محتاج مراجعة"); approved/rejected: everything.
-  const visibleItems = useMemo(
-    () => (status === "pending" ? items.filter((item) => ((doubts[String(item.id)]?.length ?? 1) === 0) === (view === "ready")) : items),
-    [items, doubts, status, view],
-  );
+  const onSite = (item: WaInboxItem) => Boolean(item.project_id && projectById.has(item.project_id));
+  const draftOf = (item: WaInboxItem) => (!onSite(item) && item.draft_id ? drafts[item.draft_id] ?? null : null);
+  const visibleItems = useMemo(() => {
+    if (status !== "pending") return items;
+    // A step of «شغلك النهارده»: all its units, ready or not.
+    if (focus === "drafts_ready") return items.filter((item) => draftOf(item)?.status === "ready");
+    if (focus === "drafts_review") return items.filter((item) => draftOf(item)?.status === "needs_review");
+    if (focus === "units") return items.filter((item) => onSite(item) && !isReady(item));
+    return items.filter((item) => ((doubts[String(item.id)]?.length ?? 1) === 0) === (view === "ready"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, doubts, status, view, focus, drafts, projectById]);
+
+  /** «شغلك النهارده»: how much is waiting in each step. */
+  const today = useMemo(() => {
+    const ready = new Set<string>();
+    const review = new Set<string>();
+    const researching = new Set<string>();
+    let units = 0;
+    for (const item of items) {
+      const draft = draftOf(item);
+      if (draft?.status === "ready") ready.add(draft.id);
+      else if (draft?.status === "needs_review") review.add(draft.id);
+      else if (draft?.status === "researching") researching.add(draft.id);
+      if (onSite(item) && !isReady(item)) units += 1;
+    }
+    return { draftsReady: ready.size, draftsReview: review.size, researching: researching.size, units };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, doubts, drafts, projectById]);
 
   /** Right-hand list: one row per project that has WhatsApp units (+ one row for the unmatched ones). */
   const buckets = useMemo(() => {
@@ -396,23 +425,75 @@ export default function WhatsAppInboxTab({
           </Chip>
         </div>
         {status === "pending" && (
-          <div className="mt-2 grid grid-cols-2 gap-1.5">
-            <button
-              onClick={() => { setView("ready"); setBucket(""); setSelected(new Set()); }}
-              className={`rounded-2xl px-3 py-2 text-sm font-black ${view === "ready" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700"}`}
-            >
-              جاهز للموافقة ({readyCount})
-            </button>
-            <button
-              onClick={() => { setView("review"); setBucket(""); setSelected(new Set()); }}
-              className={`rounded-2xl px-3 py-2 text-sm font-black ${view === "review" ? "bg-[#0d1f18] text-white" : "bg-[#f1eadc] text-[#0d1f18]"}`}
-            >
-              محتاج مراجعة ({items.length - readyCount})
-            </button>
+          <div className="mt-2 rounded-2xl border border-[#e7ddc8] p-2.5">
+            <p className="mb-2 text-sm font-black">شغلك النهارده</p>
+            <div className="space-y-1.5 text-sm">
+              {(
+                [
+                  { key: "drafts_ready", n: 1, label: "مشاريع جديدة جاهزة للنشر", count: today.draftsReady, tone: "bg-emerald-100 text-emerald-800", action: "انشر" },
+                  { key: "drafts_review", n: 2, label: "مشاريع جديدة محتاجة تأكيد", count: today.draftsReview, tone: "bg-amber-100 text-amber-800", action: "افتح" },
+                  { key: "units", n: 3, label: "وحدات محتاجة مراجعة", count: today.units, tone: "bg-amber-100 text-amber-800", action: "افتح" },
+                  { key: "photos", n: 4, label: "صور محتاجة مراجعة أو ناقصة", count: photoGaps.length + photoFlags.length, tone: "bg-red-100 text-red-700", action: "افتح" },
+                ] as const
+              ).map((step) => {
+                const active = step.key === "photos" ? false : focus === step.key;
+                return (
+                  <button
+                    key={step.key}
+                    onClick={() => {
+                      setBucket("");
+                      setSelected(new Set());
+                      if (step.key === "photos") {
+                        setFocus("");
+                        setView("ready");
+                        setPhotoGapsOpen(true);
+                        setPhotoFlagsOpen(true);
+                        window.setTimeout(() => document.getElementById("wa-photos")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+                      } else setFocus(active ? "" : step.key);
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-xl border p-2 text-right ${active ? "border-[#0d1f18] bg-[#fbf8f2]" : "border-[#efe7d8] bg-white"} ${step.count ? "" : "opacity-60"}`}
+                  >
+                    <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-lg text-xs font-black ${step.tone}`}>{step.n}</span>
+                    <span className="me-auto font-bold">{step.label}</span>
+                    <span className="font-black">{step.count}</span>
+                    <span className="rounded-full border border-[#d8c9ab] px-2.5 py-0.5 text-xs font-black">{active ? "اقفل" : step.action}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {today.researching > 0 && <p className="mt-1.5 text-xs text-[#5c6a62]">ولسه بنبحث على النت عن {today.researching} مشروع جديد، هيظهروا في 1 أو 2 لما يخلصوا.</p>}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-[#efe7d8] pt-2 text-xs">
+              <span className="text-[#5c6a62]">كل الوحدات:</span>
+              <button
+                onClick={() => { setFocus(""); setView("ready"); setBucket(""); setSelected(new Set()); }}
+                className={`rounded-full px-2.5 py-1 font-black ${!focus && view === "ready" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700"}`}
+              >
+                جاهز للموافقة ({readyCount})
+              </button>
+              <button
+                onClick={() => { setFocus(""); setView("review"); setBucket(""); setSelected(new Set()); }}
+                className={`rounded-full px-2.5 py-1 font-black ${!focus && view === "review" ? "bg-[#0d1f18] text-white" : "bg-[#f1eadc] text-[#0d1f18]"}`}
+              >
+                محتاج مراجعة ({items.length - readyCount})
+              </button>
+            </div>
           </div>
         )}
         {status === "pending" && autoApprove && (
-          <div className="mt-2 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-2.5 text-xs">
+          <button
+            onClick={() => setSettingsOpen((open) => !open)}
+            className="mt-2 flex w-full items-center gap-2 rounded-2xl bg-[#fbf8f2] px-3 py-2 text-right text-xs font-black"
+          >
+            <span className="me-auto">
+              إعدادات الأتمتة · النزول التلقائي{" "}
+              <span className={autoApprove.on ? "text-emerald-700" : "text-red-600"}>{autoApprove.on ? "شغال" : "متوقف"}</span> · تشييك الصور{" "}
+              <span className={autoApprove.photo_check ? "text-emerald-700" : "text-red-600"}>{autoApprove.photo_check ? "شغال" : "متوقف"}</span>
+            </span>
+            <span>{settingsOpen ? "▲" : "▼"}</span>
+          </button>
+        )}
+        {status === "pending" && autoApprove && settingsOpen && (
+          <div className="mt-1 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-2.5 text-xs">
             <div className="flex items-center gap-2">
               <span className="me-auto font-black">
                 النزول التلقائي:{" "}
@@ -460,6 +541,7 @@ export default function WhatsAppInboxTab({
             )}
           </div>
         )}
+        <span id="wa-photos" />
         {status === "pending" && photoGaps.length > 0 && (
           <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-2.5 text-xs">
             <button onClick={() => setPhotoGapsOpen((open) => !open)} className="flex w-full items-center gap-2 text-right font-black text-amber-800">
