@@ -12,6 +12,7 @@ import {
   WA_DRAFT_FIELD_LABELS,
   AREA_GROUPS,
   waDraftDoubtLabel,
+  waDraftDoubtBlocks,
   type WaDraft,
   type WaDraftField,
   type WaResearchMode,
@@ -430,8 +431,8 @@ export default function WhatsAppInboxTab({
             <div className="space-y-1.5 text-sm">
               {(
                 [
-                  { key: "drafts_ready", n: 1, label: "مشاريع جديدة جاهزة للنشر", count: today.draftsReady, tone: "bg-emerald-100 text-emerald-800", action: "انشر" },
-                  { key: "drafts_review", n: 2, label: "مشاريع جديدة محتاجة تأكيد", count: today.draftsReview, tone: "bg-amber-100 text-amber-800", action: "افتح" },
+                  { key: "drafts_ready", n: 1, label: "مشاريع جديدة مستنية موافقتك على الاسم", count: today.draftsReady, tone: "bg-emerald-100 text-emerald-800", action: "افتح" },
+                  { key: "drafts_review", n: 2, label: "مشاريع جديدة ناقصها اسم أو مطور أو منطقة", count: today.draftsReview, tone: "bg-amber-100 text-amber-800", action: "افتح" },
                   { key: "units", n: 3, label: "وحدات محتاجة مراجعة", count: today.units, tone: "bg-amber-100 text-amber-800", action: "افتح" },
                   { key: "photos", n: 4, label: "صور محتاجة مراجعة أو ناقصة", count: photoGaps.length + photoFlags.length, tone: "bg-red-100 text-red-700", action: "افتح" },
                 ] as const
@@ -1495,11 +1496,16 @@ function DraftPanel({ draft, onEdit, onPublish, onChanged }: { draft: WaDraft; o
         <Badge tone={draft.status === "ready" ? "ok" : draft.status === "researching" ? "pending" : "error"}>
           {draft.status === "ready" ? "بيانات المشروع كاملة" : draft.status === "researching" ? "بندوّر عليه على النت" : "محتاج مراجعة"}
         </Badge>
-        {draft.doubts.map((code) => <Badge key={code} tone="error">{waDraftDoubtLabel(code)}</Badge>)}
+        {draft.doubts.filter(waDraftDoubtBlocks).map((code) => <Badge key={code} tone="error">{waDraftDoubtLabel(code)}</Badge>)}
+        {draft.doubts.some((code) => !waDraftDoubtBlocks(code)) && (
+          <span className="text-xs text-[#5c6a62]" title={draft.doubts.filter((code) => !waDraftDoubtBlocks(code)).map(waDraftDoubtLabel).join(" · ")}>
+            {draft.doubts.filter((code) => !waDraftDoubtBlocks(code)).length} ملاحظة على الاستلام والتقسيط والتشطيب: مش بتوقف النشر، وبتتاخد من الوحدات
+          </span>
+        )}
         <span className="me-auto" />
         {draft.status === "ready" && (
           <button onClick={onPublish} className="rounded-full bg-emerald-600 px-5 py-1.5 text-sm font-black text-white">
-            انشر المشروع
+            وافق على الاسم وانشر
           </button>
         )}
         <button onClick={onEdit} className="rounded-full bg-[#0d1f18] px-4 py-1.5 text-xs font-black text-white">تعديل بيانات المشروع</button>
@@ -1606,13 +1612,14 @@ function PublishDialog({ draft, readyUnits, allUnits, onClose }: { draft: WaDraf
   };
 
   return (
-    <Modal title={`انشر «${draft.name}»`} onClose={() => !running && onClose(phase === "done")}>
+    <Modal title={`وافق على «${draft.name}» وانشر`} onClose={() => !running && onClose(phase === "done")}>
       {phase === "confirm" ? (
         <div className="space-y-2 text-sm">
           <p className="font-black">اللي هيحصل:</p>
           <ul className="list-disc space-y-1 ps-5 text-[#3d4a43]">
             <li>المشروع هيتعمل على الموقع ببياناته اللي فوق ({draft.developer} · {[draft.sub_area, draft.area_group].filter(Boolean).join("، ")}).</li>
             <li>{readyUnits} وحدة جاهزة من {allUnits} هتتوافق وتنزل معاه. الباقي يفضل في «محتاج مراجعة» تحت نفس المشروع.</li>
+            <li>البحث عن صور المشروع هيبدأ لوحده، والصور هتظهرلك اقتراح في «مشاريع ناقصها صور» توافق عليها.</li>
             <li>أداة الكتابة هتكتب المقال عربي وبعده إنجليزي (حوالي 5–10 دقايق)، وكل مقال بيتنشر لوحده لو عدّى التشييك. لو ما عدّاش بيفضل مسودة في «مقالات ناقصة».</li>
           </ul>
           <p className="text-xs text-[#5c6a62]">سيب الصفحة مفتوحة لحد ما يخلص.</p>
@@ -1963,7 +1970,7 @@ function PhotoGapRow({
         <span className="min-w-0 me-auto">
           <span className="block truncate font-black">{gap.name}</span>
           <span className="block truncate text-[#5c6a62]">
-            {gap.developer || "—"} · {gap.waiting} وحدة جاهزة
+            {gap.developer || "—"} · {gap.waiting ? `${gap.waiting} وحدة جاهزة` : "اتنشر من غير صور"}
           </span>
         </span>
         <button onClick={onUnits} className="rounded-full bg-[#f1eadc] px-2.5 py-1 font-black">

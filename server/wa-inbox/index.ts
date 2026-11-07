@@ -684,6 +684,18 @@ async function list(body: Json) {
       }
       photoGaps.sort((a, b) => b.waiting - a.waiting || a.name.localeCompare(b.name));
     }
+    // Projects whose suggested photos wait for the admin stay listed even with no waiting units
+    // (a new project published from WhatsApp: its units went on the site with it).
+    const { data: suggested, error: suggestedError } = await db.from("wa_photo_suggestions").select("project_id").eq("status", "pending").limit(500);
+    fail(suggestedError);
+    const extra = [...new Set(((suggested ?? []) as Json[]).map((row) => text(row.project_id)))].filter((id) => id && !photoGaps.some((gap) => gap.project_id === id));
+    if (extra.length) {
+      const { data: extraProjects, error: extraError } = await db.from("projects").select("id,name,developer,image_url,gallery_urls").in("id", extra);
+      fail(extraError);
+      for (const project of (extraProjects ?? []) as Json[]) {
+        if (!hasPhotos(project)) photoGaps.push({ project_id: text(project.id), name: text(project.name), developer: text(project.developer), waiting: 0 });
+      }
+    }
   }
   const counts: Record<string, number> = {};
   for (const key of ["pending", "approved", "rejected"]) {
@@ -1306,6 +1318,15 @@ async function resolveUnitDoubts(limit: number): Promise<{ checks: number; devel
   return result;
 }
 
+/**
+ * Only these doubts stop a new project: its name, developer and main area, or whether it is a project at
+ * all. Payment, delivery, finishing, sub-area and description doubts are shown but do not stop it: every
+ * WhatsApp unit carries its own payment and delivery, and the project texts can be edited later.
+ */
+function blocksDraft(code: string) {
+  return ["not_found", "grouping_unsure", "developer_mismatch"].includes(code) || /_(name|developer|area_group)$/.test(code);
+}
+
 /** Recomputes a draft's doubts and status from its values, sources and the admin's confirmations. */
 function draftState(draft: Json, extra: { weak?: DraftField[]; conflicts?: DraftField[]; found?: boolean; groupingSure?: boolean } = {}) {
   const values: Partial<Record<DraftField, string>> = {};
@@ -1325,7 +1346,16 @@ function draftState(draft: Json, extra: { weak?: DraftField[]; conflicts?: Draft
   // Found under another developer by the research: stays until the admin confirms the developer.
   const webDeveloper = Array.isArray(sources.developer) && (sources.developer as unknown[]).length >= 2;
   if (previous.has("developer_mismatch") && !doubts.includes("developer_mismatch") && !((draft.confirmed as string[]) ?? []).includes("developer") && !webDeveloper && !text(draft.wa_developer)) doubts.push("developer_mismatch");
-  return { doubts, status: doubts.length ? "needs_review" : "ready" };
+  return { doubts, status: doubts.some(blocksDraft) ? "needs_review" : "ready" };
+}
+
+/** Cron: drafts researched before the blocking rule above, whose only doubts no longer stop them, become ready. */
+async function promoteDrafts() {
+  const { data, error } = await db.from("wa_project_drafts").select("id,doubts").eq("status", "needs_review").limit(2000);
+  fail(error);
+  const ids = ((data ?? []) as Json[]).filter((row) => !((row.doubts as string[]) ?? []).map(text).some(blocksDraft)).map((row) => text(row.id));
+  if (ids.length) fail((await db.from("wa_project_drafts").update({ status: "ready", updated_at: new Date().toISOString() }).in("id", ids).eq("status", "needs_review")).error);
+  return { ready: ids.length };
 }
 
 /** Step 2: research one draft on the web and keep only the facts 2 different sites state. */
@@ -2106,7 +2136,7 @@ async function siteDeveloper(name: string): Promise<string> {
 }
 
 /**
- * «انشر» on a ready new project: creates the project on the site (same fields and texts as the admin's
+ * «وافق على الاسم وانشر» on a ready new project: creates the project on the site (same fields and texts as the admin's
  * new-project form), links every pending unit of it, and approves the units that are ready (the others
  * stay in «محتاج مراجعة» under the project). The article is written next by the admin page with the
  * site's writing tool. If the project already exists on the site (same name and developer), the units
@@ -2174,7 +2204,16 @@ async function publishDraft(user: AdminUser, body: Json) {
   fail(unitsError);
   const ids = ((units ?? []) as Json[]).map((row) => Number(row.id));
   const approval = ids.length ? await approveReady(user, { ids }) : { approved: 0, skipped: [] };
-  return { ok: true, project_id: projectId, slug, created, linked: ids.length, approved: approval.approved, left_for_review: approval.skipped.length };
+  // A new project has no photos: the photo search starts now in the background, and its photos wait in
+  // «مشاريع ناقصها صور» as a suggestion for the admin.
+  const photoSearch = created && Deno.env.get("FIRECRAWL_API_KEY");
+  if (photoSearch) {
+    const job = suggestPhotos(projectId).catch((error) => console.error("photo suggest after publish", projectId, error));
+    // deno-lint-ignore no-explicit-any
+    const runtime = (globalThis as any).EdgeRuntime;
+    if (runtime?.waitUntil) runtime.waitUntil(job);
+  }
+  return { ok: true, project_id: projectId, slug, created, linked: ids.length, approved: approval.approved, left_for_review: approval.skipped.length, photo_search: Boolean(photoSearch) };
 }
 
 /** Make sends form fields (application/x-www-form-urlencoded); the admin page sends JSON. */
@@ -2202,6 +2241,8 @@ Deno.serve(async (req: Request) => {
       // The 7-day rule first (no AI cost), then the ready units, then the research.
       const job = holdLockedPending()
         .catch((error) => console.error("hold_7_days", error))
+        .then(() => promoteDrafts())
+        .catch((error) => console.error("promote_drafts", error))
         .then(() => autoApproveRun())
         .catch((error) => console.error("auto_approve", error))
         .then(() => photoSuggestCron())
