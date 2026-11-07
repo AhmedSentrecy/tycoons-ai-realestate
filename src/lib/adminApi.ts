@@ -630,6 +630,15 @@ export type WaFillSource = "unit" | "project" | "units" | "web";
 export interface WaProjectSuggestion { project_id: string; name: string; kind: "phase" | "master" | "similar" | "ai" }
 export const WA_SUGGEST_LABELS: Record<WaProjectSuggestion["kind"], string> = { phase: "نفس المرحلة", master: "المشروع الأم", similar: "اسم قريب", ai: "Claude شايفه نفس المشروع" };
 
+/** One value the web search found, with the pages that state it. */
+export interface WaWebOption { value: string; sources: string[] }
+/** Web answers for a unit that did not reach 2 sites: suggestions the admin accepts with one click. */
+export interface WaUnitWebCandidates {
+  developer?: WaWebOption;
+  project?: WaWebOption & { project_id?: string | null };
+  fields?: Record<string, WaWebOption[]>;
+}
+
 /** A project from the WhatsApp groups that is not on the site yet (researched on the web, waiting for «انشر»). */
 export interface WaDraft {
   id: string;
@@ -651,6 +660,8 @@ export interface WaDraft {
   doubts: string[];
   /** fields the admin typed or confirmed */
   confirmed: string[];
+  /** What the web said for an unsettled field (one site, or sites that disagree): the admin picks one. */
+  candidates?: Record<string, WaWebOption[]> | null;
   research_error: string | null;
   researched_at: string | null;
   project_id: string | null;
@@ -756,6 +767,8 @@ export interface WaInboxItem {
   area_group?: string | null;
   /** New project (not on the site yet) this unit belongs to. */
   draft_id?: string | null;
+  /** What the web said without 2 sites (developer, project, missing details). */
+  web_candidates?: WaUnitWebCandidates | null;
   decided_at: string | null;
   result_unit_id: string | null;
   note: string | null;

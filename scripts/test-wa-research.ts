@@ -1,6 +1,6 @@
 // New-project research rules (server/wa-inbox/research.ts). Run: node --import tsx scripts/test-wa-research.ts
 import assert from "node:assert/strict";
-import { checkedValue, developerCheckPrompt, draftDoubts, firstJson, groupingCheckPrompt, projectCheckPrompt, unitSummary, groupingPrompt, siteOf, verifyFacts, verifyGrouping, type DraftState } from "../server/wa-inbox/research.ts";
+import { candidateValue, checkedValue, developerCheckPrompt, draftDoubts, firstJson, groupingCheckPrompt, projectCheckPrompt, unitSummary, groupingPrompt, siteOf, verifyFacts, verifyGrouping, type DraftState } from "../server/wa-inbox/research.ts";
 
 assert.equal(siteOf("https://www.nawy.com/compound/1"), "nawy.com");
 assert.equal(siteOf("https://ar.propertyfinder.eg/x"), "propertyfinder.eg");
@@ -84,5 +84,25 @@ assert.ok(developerCheckPrompt("Palm Beach", ["Tharaa"]).includes('"Palm Beach"'
 const unitLine = unitSummary({ unit_type: "Apartment", bedrooms_text: "3", area_sqm: 150, starting_price: 9000000, location: "New Cairo" });
 assert.equal(unitLine, "Apartment, 3 bedrooms, 150 m2, 9000000 EGP, New Cairo");
 assert.ok(projectCheckPrompt("Tharaa Developments", [unitLine], "").includes("Tharaa Developments's projects"));
+
+// What the web said without 2 sites is kept for the admin to pick (searched pages only, never ours).
+const withOptions = verifyFacts({
+  found: true,
+  facts: { location: { value: "Mostakbal City", sources: ["https://www.nawy.com/a"] } },
+  conflicts: [{ field: "delivery_text", options: [
+    { value: "2028", sources: ["https://www.nawy.com/a"] },
+    { value: "2029", sources: ["https://propertyfinder.eg/b", "https://tycoons-inv.com/c"] },
+    { value: "2030", sources: ["https://made-up.example.org/z"] },
+  ] }],
+}, searched);
+assert.deepEqual(withOptions.candidates.location, [{ value: "Mostakbal City", sources: ["https://www.nawy.com/a"] }]);
+assert.deepEqual(withOptions.candidates.delivery_text, [
+  { value: "2028", sources: ["https://www.nawy.com/a"] },
+  { value: "2029", sources: ["https://propertyfinder.eg/b"] },
+]);
+assert.equal(withOptions.facts.location, undefined);
+assert.equal(verifyFacts(raw, searched).candidates.name, undefined); // settled facts are not options
+assert.deepEqual(candidateValue({ developer: { value: "Tharaa", sources: ["https://www.nawy.com/w"] } }, "developer", web), { value: "Tharaa", sources: ["https://www.nawy.com/w"] });
+assert.equal(candidateValue({ developer: { value: "Tharaa", sources: ["https://tycoons-inv.com/x"] } }, "developer", web), null);
 
 console.log("wa research rules: ok");
