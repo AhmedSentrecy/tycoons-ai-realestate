@@ -12,6 +12,7 @@ import {
   type MediaTarget,
 } from "../../lib/adminApi";
 import { useAdmin } from "./AdminContext";
+import PhotoViewer from "./PhotoViewer";
 
 interface UploadJob {
   id: string;
@@ -56,6 +57,8 @@ export default function MediaEditor({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "pending" | "error">(initialValues ? "pending" : "idle");
   const [dragOver, setDragOver] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  /** Photo open in the big viewer (index in media.images), or null. */
+  const [viewing, setViewing] = useState<number | null>(null);
   const [videoDraft, setVideoDraft] = useState(initial.video);
   const [brochureDraft, setBrochureDraft] = useState(initial.brochure);
   const saveChain = useRef<Promise<void>>(Promise.resolve());
@@ -167,9 +170,11 @@ export default function MediaEditor({
     });
   }
 
+  /** Answer: true when the photo was removed (the admin confirmed). */
   function remove(index: number) {
-    if (!window.confirm("تشيل الصورة دي من المعرض؟ (الملف نفسه بيفضل محفوظ في التخزين)")) return;
+    if (!window.confirm("تشيل الصورة دي من المعرض؟ (الملف نفسه بيفضل محفوظ في التخزين)")) return false;
     commit((current) => ({ ...current, images: current.images.filter((_, i) => i !== index) }));
+    return true;
   }
 
   function onDrop(event: DragEvent) {
@@ -246,7 +251,9 @@ export default function MediaEditor({
 
       <div className="mt-4 flex items-center justify-between">
         <h3 className="font-black">المعرض ({media.images.length})</h3>
-        {media.images.length > 1 && <p className="text-xs text-[#5c6a62]">اسحب الصورة لتغيير ترتيبها</p>}
+        {media.images.length > 0 && (
+          <p className="text-xs text-[#5c6a62]">دوس على الصورة تكبر{media.images.length > 1 ? "، واسحبها لتغيير ترتيبها" : ""}</p>
+        )}
       </div>
       {!media.images.length && <p className="mt-2 rounded-2xl bg-[#fbf8f2] p-4 text-center text-sm text-[#5c6a62]">لسه مفيش صور</p>}
       <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
@@ -267,7 +274,14 @@ export default function MediaEditor({
               index === 0 ? "border-[#a3854e] ring-2 ring-[#d9b87c]" : "border-[#efe7d8]"
             } ${dragIndex === index ? "opacity-40" : ""}`}
           >
-            <img src={url} alt="" loading="lazy" className="aspect-[4/3] w-full cursor-grab object-cover" />
+            <img
+              src={url}
+              alt=""
+              loading="lazy"
+              onClick={() => setViewing(index)}
+              title="كبّر الصورة"
+              className="aspect-[4/3] w-full cursor-zoom-in object-cover"
+            />
             {index === 0 && (
               <span className="absolute right-2 top-2 rounded-full bg-[#d9b87c] px-2 py-0.5 text-[11px] font-black text-[#0d1f18]">
                 الغلاف
@@ -296,6 +310,40 @@ export default function MediaEditor({
           </figure>
         ))}
       </div>
+
+      {viewing !== null && media.images[viewing] && (
+        <PhotoViewer
+          title="صور المعرض"
+          urls={media.images}
+          index={viewing}
+          onIndex={setViewing}
+          onClose={() => setViewing(null)}
+          actions={(_url, index) => (
+            <>
+              {index !== 0 && (
+                <button
+                  onClick={() => {
+                    move(index, 0);
+                    setViewing(0);
+                  }}
+                  className="rounded-full bg-[#d9b87c] px-3 py-1.5 font-black text-[#0d1f18]"
+                >
+                  اجعلها الغلاف
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  const left = media.images.length - 1;
+                  if (remove(index)) setViewing(left ? Math.min(index, left - 1) : null);
+                }}
+                className="rounded-full bg-red-600 px-3 py-1.5 font-black"
+              >
+                شيلها
+              </button>
+            </>
+          )}
+        />
+      )}
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <LinkField
