@@ -1516,16 +1516,6 @@ function DraftPanel({ draft, onEdit, onPublish, onChanged }: { draft: WaDraft; o
         >
           {busy === "research" ? "بيدوّر… (دقيقة أو اتنين)" : "ابحث تاني"}
         </button>
-        <button
-          disabled={Boolean(busy)}
-          onClick={() => {
-            if (!window.confirm(`«${draft.name}» مش مشروع حقيقي؟ وحداته هترجع «مش متطابقة».`)) return;
-            void run("reject", async () => { await adminApi.waDraftReject(token, draft.id); return null; }, "اتشال المشروع");
-          }}
-          className="rounded-full bg-red-50 px-4 py-1.5 text-xs font-black text-red-600 disabled:opacity-50"
-        >
-          مش مشروع حقيقي
-        </button>
       </div>
       {draft.research_error && <p className="text-xs font-bold text-red-600">البحث وقف: {draft.research_error}</p>}
       <dl className="grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
