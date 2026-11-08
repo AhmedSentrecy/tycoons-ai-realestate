@@ -57,7 +57,11 @@ export default function ProjectForm({
           </label>
           <label className="block text-sm">
             <span className="mb-1 block font-bold">المطور *</span>
-            <DeveloperSelect value={values.developer} onChange={(developer, isNew) => setValues({ ...values, developer, new_developer: isNew })} />
+            <DeveloperSelect
+              value={values.developer}
+              onChange={(developer, isNew) => setValues((current) => ({ ...current, developer, new_developer: isNew }))}
+              prefillIsNew={Boolean(initial?.developer)}
+            />
             {values.new_developer && <span className="mt-1 block text-xs text-[#8a6630]">«{values.developer}» هيتضاف كمطور جديد في تابة المطورين.</span>}
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
