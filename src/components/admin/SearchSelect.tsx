@@ -134,10 +134,24 @@ export function SearchSelect({
 
 let developersCache: AdminDeveloper[] | null = null;
 
-/** Developer picker fed by the developers list (DevelopersTab). New companies only through "+ إضافة". */
-export function DeveloperSelect({ value, onChange }: { value: string; onChange: (value: string, isNew: boolean) => void }) {
+/**
+ * Developer picker fed by the developers list (DevelopersTab). New companies only through "+ إضافة".
+ * prefillIsNew: a pre-filled name (e.g. from a WhatsApp unit) that isn't on the list counts as a
+ * new developer, and a name that is on the list with other spelling/case becomes the list's name.
+ */
+export function DeveloperSelect({
+  value,
+  onChange,
+  prefillIsNew = false,
+}: {
+  value: string;
+  onChange: (value: string, isNew: boolean) => void;
+  prefillIsNew?: boolean;
+}) {
   const { token, handleError } = useAdmin();
   const [rows, setRows] = useState<AdminDeveloper[]>(developersCache ?? []);
+  const [loaded, setLoaded] = useState(Boolean(developersCache));
+  const checked = useRef(false);
   useEffect(() => {
     if (developersCache) return;
     adminApi
@@ -145,9 +159,22 @@ export function DeveloperSelect({ value, onChange }: { value: string; onChange: 
       .then((data) => {
         developersCache = data.developers;
         setRows(data.developers);
+        setLoaded(true);
       })
       .catch(handleError);
   }, [token, handleError]);
+  useEffect(() => {
+    if (!prefillIsNew || !loaded || checked.current) return;
+    checked.current = true;
+    const name = value.trim();
+    if (!name) return;
+    const known = rows.find((row) => row.has_row && key(row.name) === key(name));
+    if (known) {
+      if (known.name !== value) onChange(known.name, false);
+    } else {
+      onChange(name, true);
+    }
+  }, [prefillIsNew, loaded, rows, value, onChange]);
   const options = useMemo(
     () =>
       rows
