@@ -292,6 +292,29 @@ export default function WhatsAppInboxTab({
     }
   };
 
+  /** «وقّف كل الأتمتة»: one switch for every WhatsApp automation (articles keep working). */
+  const togglePaused = async () => {
+    if (!autoApprove) return;
+    const next = !autoApprove.paused;
+    if (
+      !window.confirm(
+        next
+          ? "توقف كل الأتمتة؟ مفيش رسايل هتتقري من الجروبات، ولا بحث عن مشاريع، ولا تشييك أو بحث صور، ولا نزول تلقائي. الرسايل هتتحفظ عشان نقراها بعدين. المقالات مش هتتأثر."
+          : "تشغّل الأتمتة تاني؟ الرسايل الجديدة هتتقري والبحث والصور والنزول التلقائي هيرجعوا يشتغلوا."
+      )
+    )
+      return;
+    setAutoBusy(true);
+    try {
+      setAutoApprove(await adminApi.waAutoApproveSave(token, { paused: next }));
+      notify(next ? "كل الأتمتة وقفت" : "الأتمتة اشتغلت تاني");
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
   /** «تشييك الصور» on/off: off = Claude checks no photos and nothing goes on the site by itself. */
   const togglePhotoCheck = async () => {
     if (!autoApprove) return;
@@ -425,6 +448,34 @@ export default function WhatsAppInboxTab({
             اترفض ({counts.rejected})
           </Chip>
         </div>
+        {status === "pending" && autoApprove && (
+          <div
+            className={`mt-2 flex items-center gap-2 rounded-2xl p-2.5 text-sm ${autoApprove.paused ? "border border-red-200 bg-red-50" : "border border-emerald-200 bg-emerald-50"}`}
+          >
+            <span className="me-auto font-black">
+              {autoApprove.paused ? (
+                <>
+                  <span className="text-red-700">⏸ كل الأتمتة واقفة</span>
+                  <span className="block text-[11px] font-bold text-[#5c6a62]">
+                    {autoApprove.paused_since ? `من ${when(autoApprove.paused_since)} · ` : ""}الرسايل بتتحفظ من غير ما تتقري · المقالات شغالة
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-emerald-700">▶ الأتمتة شغالة</span>
+                  <span className="block text-[11px] font-bold text-[#5c6a62]">قراية الرسايل · بحث المشاريع · الصور · النزول التلقائي</span>
+                </>
+              )}
+            </span>
+            <button
+              onClick={() => void togglePaused()}
+              disabled={autoBusy}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-black text-white disabled:opacity-40 ${autoApprove.paused ? "bg-emerald-700" : "bg-red-600"}`}
+            >
+              {autoApprove.paused ? "شغّل الأتمتة" : "وقّف كل الأتمتة"}
+            </button>
+          </div>
+        )}
         {status === "pending" && (
           <div className="mt-2 rounded-2xl border border-[#e7ddc8] p-2.5">
             <p className="mb-2 text-sm font-black">شغلك النهارده</p>

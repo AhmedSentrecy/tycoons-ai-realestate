@@ -1451,12 +1451,28 @@ async function researchSettingsSave(body: Json) {
 
 /** Most units approved in one run (the rest go in the next run). */
 const AUTO_APPROVE_PER_RUN = 100;
-const AUTO_KEYS = ["wa_auto_approve", "wa_auto_approve_last_run", "wa_auto_approve_last_count", "wa_photo_check"];
+const AUTO_KEYS = ["wa_auto_approve", "wa_auto_approve_last_run", "wa_auto_approve_last_count", "wa_photo_check", "wa_automation_paused"];
+/**
+ * «وقّف كل الأتمتة»: one switch for everything that runs by itself and costs Claude / Firecrawl —
+ * reading WhatsApp messages (wa-direct), the 15-minute cron (7-day rule, drafts, auto-approve,
+ * photo check, photo search, project research) and the photo search after a project is published.
+ * Articles are not affected. Read fresh every time (no cache), so the switch works at once.
+ */
+const PAUSE_KEY = "wa_automation_paused";
+async function automationPaused() {
+  const { data, error } = await db.from("media_admin_settings").select("value").eq("key", PAUSE_KEY).maybeSingle();
+  fail(error);
+  return text(data?.value) === "on";
+}
 /** Sonnet 5.5 list price, USD per million tokens (platform.claude.com, Nov 2026): input, output. */
 const PHOTO_PRICE_PER_MTOK = { input: 2, output: 10 };
 
+function pausedSince(rows: unknown) {
+  return text(((rows ?? []) as Json[]).find((row) => row.key === "wa_automation_paused_at")?.value);
+}
+
 async function autoApproveState() {
-  const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", AUTO_KEYS);
+  const { data, error } = await db.from("media_admin_settings").select("key,value").in("key", [...AUTO_KEYS, "wa_automation_paused_at"]);
   fail(error);
   const get = (key: string) => text(((data ?? []) as Json[]).find((row) => row.key === key)?.value);
   return {
@@ -1464,6 +1480,8 @@ async function autoApproveState() {
     last_run: get("wa_auto_approve_last_run") || null,
     last_approved: Number(get("wa_auto_approve_last_count")) || 0,
     photo_check: get("wa_photo_check") !== "off",
+    paused: get(PAUSE_KEY) === "on",
+    paused_since: get(PAUSE_KEY) === "on" ? (pausedSince(data) || null) : null,
     photo_usage: await photoUsage(),
   };
 }
@@ -1492,9 +1510,13 @@ async function photoUsage() {
   return { today: { ...day, usd: usd(day) }, total: { ...sum, usd: usd(sum) }, firecrawl_credits: firecrawlCredits };
 }
 
-/** The admin's switches: «النزول التلقائي» (on) and «تشييك الصور» (photo_check). */
+/** The admin's switches: «النزول التلقائي» (on), «تشييك الصور» (photo_check) and «وقّف كل الأتمتة» (paused). */
 async function autoApproveSave(body: Json) {
-  if (typeof body.on !== "boolean" && typeof body.photo_check !== "boolean") throw new HttpError(400, "on_required");
+  if (typeof body.on !== "boolean" && typeof body.photo_check !== "boolean" && typeof body.paused !== "boolean") throw new HttpError(400, "on_required");
+  if (typeof body.paused === "boolean") {
+    await setSetting(PAUSE_KEY, body.paused ? "on" : "off");
+    await setSetting("wa_automation_paused_at", body.paused ? new Date().toISOString() : null);
+  }
   if (typeof body.on === "boolean") await setSetting("wa_auto_approve", body.on ? "on" : "off");
   if (typeof body.photo_check === "boolean") await setSetting("wa_photo_check", body.photo_check ? "on" : "off");
   return autoApproveState();
@@ -2206,7 +2228,7 @@ async function publishDraft(user: AdminUser, body: Json) {
   const approval = ids.length ? await approveReady(user, { ids }) : { approved: 0, skipped: [] };
   // A new project has no photos: the photo search starts now in the background, and its photos wait in
   // «مشاريع ناقصها صور» as a suggestion for the admin.
-  const photoSearch = created && Deno.env.get("FIRECRAWL_API_KEY");
+  const photoSearch = created && Deno.env.get("FIRECRAWL_API_KEY") && !(await automationPaused());
   if (photoSearch) {
     const job = suggestPhotos(projectId).catch((error) => console.error("photo suggest after publish", projectId, error));
     // deno-lint-ignore no-explicit-any
@@ -2234,6 +2256,8 @@ Deno.serve(async (req: Request) => {
     const action = text(body.action);
     if (action === "research_run") {
       await requireIntake(req);
+      // «وقّف كل الأتمتة»: the cron does nothing at all until the admin turns it back on.
+      if (await automationPaused()) return reply({ accepted: true, paused: true });
       // Answer pg_cron now; grouping and research keep running in the background.
       // deno-lint-ignore no-explicit-any
       const runtime = (globalThis as any).EdgeRuntime;
