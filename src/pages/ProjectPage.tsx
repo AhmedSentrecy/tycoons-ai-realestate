@@ -28,13 +28,12 @@ import {
   type ProjectPageContent,
   type ProjectContentSegment,
 } from "@/lib/projectPages";
-import { arabicField } from "@/lib/arabicFields";
+import { arabicField, downPaymentAr, yearsAr } from "@/lib/arabicFields";
 import { areaFor } from "@/lib/unitContent";
 
 import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
 import { projectFacts, lastPriceUpdate } from "../../netlify/functions/_project-facts.cjs";
 import { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, tidyArabicName } from "../../netlify/functions/_unit-labels.cjs";
-import { yearsAr } from "@/lib/arabicFields";
 import ProjectFacts from "@/components/ProjectFacts";
 import PageStructuredData from "@/components/PageStructuredData";
 import { unitPath } from "@/lib/unitUrl";
@@ -760,7 +759,7 @@ export default function ProjectPage() {
               <div className="mt-6 space-y-4 border-t border-white/10 pt-6 text-sm">
                 <div className="flex items-center gap-3">
                   <WalletCards className="h-5 w-5 text-[#d9b87c]" />
-                  {arabicField(project.down_payment_text)}، {arabicField(project.installments_text)}
+                  {downPaymentAr(project.down_payment_text)}، {arabicField(project.installments_text)}
                 </div>
                 <div className="flex items-center gap-3">
                   <Maximize2 className="h-5 w-5 text-[#d9b87c]" />
@@ -833,7 +832,7 @@ export default function ProjectPage() {
                     <summary className="cursor-pointer list-none p-5 [&::-webkit-details-marker]:hidden">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-semibold text-[#a3854e]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p>
+                          {bedroomsAr(unit.bedrooms_text) ? <p className="text-xs font-semibold text-[#a3854e]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p> : null}
                           <h4 className="mt-1 text-lg font-extrabold text-[#14352a]">
                             {bedroomsAr(unit.bedrooms_text) || unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}
                           </h4>
@@ -846,7 +845,7 @@ export default function ProjectPage() {
                         {formatPrice(unit.starting_price)} جنيه
                       </p>
                       {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
-                      {unit.down_payment_text ? <p className="mt-2 text-sm text-[#5c6a62]">{arabicField(String(unit.down_payment_text).replace(/^\s*(\d+(?:\.\d+)?\s*%)\s*$/, "$1 Down Payment"))}</p> : null}
+                      {unit.down_payment_text ? <p className="mt-2 text-sm text-[#5c6a62]">{downPaymentAr(unit.down_payment_text)}</p> : null}
                       <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                         اعرض المقدم والقسط
                         <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
@@ -893,7 +892,7 @@ export default function ProjectPage() {
                 <summary className="cursor-pointer list-none p-6 [&::-webkit-details-marker]:hidden">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-sm text-[#8a7a58]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p>
+                      {bedroomsAr(unit.bedrooms_text) ? <p className="text-sm text-[#8a7a58]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p> : null}
                       <h4 className="mt-1 text-xl font-extrabold">
                         {bedroomsAr(unit.bedrooms_text) || unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}
                       </h4>
@@ -916,7 +915,7 @@ export default function ProjectPage() {
                     {formatPrice(unit.starting_price)} جنيه
                   </p>
                   {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
-                  <p className="mt-2 text-sm text-[#5c6a62]">{arabicField(String(unit.down_payment_text ?? "").replace(/^\s*(\d+(?:\.\d+)?\s*%)\s*$/, "$1 Down Payment"))}</p>
+                  <p className="mt-2 text-sm text-[#5c6a62]">{downPaymentAr(unit.down_payment_text)}</p>
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                       اعرض المقدم والقسط
                       <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />

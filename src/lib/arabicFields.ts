@@ -86,3 +86,10 @@ export function arabicField(value: unknown, fallback = "") {
     .replace(/\bcore\s*(?:&|and)\s*shell\b/gi, "نصف تشطيب")
     .replace(/\bfully finished\b/gi, "تشطيب كامل");
 }
+
+/** Down payment in one form everywhere: a bare "5%" becomes "مقدم 5%"; other text goes through arabicField. */
+export function downPaymentAr(value: unknown, fallback = ""): string {
+  const raw = String(value ?? "").trim();
+  if (/^\d+(?:\.\d+)?\s*%$/.test(raw)) return `مقدم ${raw.replace(/\s+/g, "")}`;
+  return arabicField(raw, fallback);
+}
