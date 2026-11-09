@@ -48,4 +48,12 @@ eq(tidyArabicName("ماونتن فيو الساحل الشمالي رأس الح
 eq(tidyArabicName("كمبوند ديستريكت 5 التجمع"), "كمبوند ديستريكت 5 التجمع");
 eq(arabicKeywords(["وحدات للبيع في Mountain View iCity October"], { areaAr: "السادس من أكتوبر", name: "Mountain View iCity October" })[0], "وحدات للبيع في Mountain View iCity October");
 eq(arabicKeywords(["شقق للبيع في Sheikh Zayed", "Mountain View iCity October prices 2026", "مشروعات Mountain View"], { areaAr: "السادس من أكتوبر", developer: "Mountain View", developerAr: "ماونتن فيو" }).join("|"), "شقق للبيع في السادس من أكتوبر|Mountain View iCity October prices 2026|مشروعات ماونتن فيو");
+const { availableAr, deliveryInAr } = require("../netlify/functions/_display-text.cjs");
+eq(`وحدتين ${availableAr(2)}`, "وحدتين متاحتين");
+eq(`مشروعين ${availableAr(2, true)}`, "مشروعين متاحين");
+eq(`مشروع واحد ${availableAr(1, true)}`, "مشروع واحد متاح");
+eq(`5 وحدات ${availableAr(5)}`, "5 وحدات متاحة");
+eq(deliveryInAr(1), "استلام بعد سنة");
+eq(deliveryInAr(2), "استلام بعد سنتين");
+eq(deliveryInAr(4), "استلام بعد 4 سنين");
 console.log(`Unit label tests passed (${n} checks).`);

@@ -1,6 +1,6 @@
 "use strict";
 
-const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, countAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr } = require("./_display-text.cjs");
+const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, countAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr, availableAr, deliveryInAr } = require("./_display-text.cjs");
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent, hasOwnWrittenGuide, isProjectGuideArticle } = require("./_localized-project-content.cjs");
 // Arabic H1/title for the top projects (audit SEO-07); shared with the static and React pages.
 const PROJECT_NAMES_AR = require("../../src/content/project-names-ar.json").projects;
@@ -1173,7 +1173,7 @@ function deliveryTag(project, ar) {
   const years = texts.map((t) => (t.match(/20\d\d/) || [])[0]).filter(Boolean).sort();
   if (years.length) return ar ? `استلام ${years[0]}` : `Delivery ${years[0]}`;
   const inYears = texts.map((t) => Number((t.match(/(\d+)\s*years?/i) || [])[1])).filter(Boolean).sort((x, y) => x - y)[0];
-  if (inYears) return ar ? `استلام ${inYears} ${inYears > 2 ? "سنين" : "سنة"}` : `Delivery in ${inYears} years`;
+  if (inYears) return ar ? deliveryInAr(inYears) : `Delivery in ${inYears} years`;
   return "";
 }
 
@@ -1243,7 +1243,7 @@ function projectCardHtml(project, lang) {
 <div class="pimg"><a href="${href}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(projectImage(project))}" alt="${escapeHtml(`${project.name} — ${ar ? area.ar : area.en}`)}" loading="lazy" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
 <div class="pbody"><h3><a href="${href}">${escapeHtml((ar && arabicProjectName(project.slug)) || project.name)}</a></h3><p class="ploc">${escapeHtml(area.indexable ? (ar ? area.ar : area.en) : projectLocation(project))} · ${escapeHtml(devDisplayName(project.developer, lang))}</p>
 <p class="pprice">${min ? `${ar ? "يبدأ من" : "From"} <b>${escapeHtml(new Intl.NumberFormat("en-EG").format(min))}</b> ${ar ? "ج.م" : "EGP"}` : (ar ? "السعر عند الطلب" : "Price on request")}</p>
-<div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${ar ? `${unitsAr(project.units.length)} متاحة` : `${project.units.length} ${project.units.length === 1 ? "unit" : "units"} available`}</span></div>
+<div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${ar ? `${unitsAr(project.units.length)} ${availableAr(project.units.length)}` : `${project.units.length} ${project.units.length === 1 ? "unit" : "units"} available`}</span></div>
 <div class="pcta"><a class="go" href="${href}">${ar ? "الوحدات والأسعار" : "Units & prices"}</a><a class="w" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" rel="noopener">${ar ? "واتساب" : "WhatsApp"}</a></div></div></article>`;
 }
 
@@ -1941,13 +1941,20 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const numericPrices = (homeUnits.length ? homeUnits : allUnits).map((unit) => numberValue(unit.starting_price)).filter(Boolean);
   const min = numericPrices.length ? Math.min(...numericPrices) : 0;
   const max = numericPrices.length ? Math.max(...numericPrices) : 0;
+  // Offices and shops left out of the range: say so, so a commercial card below the range
+  // ("5A يبدأ من 364 مليون") doesn't read as a contradiction.
+  const homesOnly = homeUnits.length > 0 && homeUnits.length < allUnits.length;
+  const priceScopeAr = homesOnly ? "للسكني" : "ظاهر";
+  const priceScopeEn = homesOnly ? "residential" : "listed";
   const minFmt = formatPrice(min, lang);
   const searchContent = kind === "area" ? AREA_SEARCH_CONTENT[area.slug]?.[lang] : null;
   const editorial = kind === "developer" ? developerContent(slug, lang) : null;
   // The written developer article already has its own "عن …" and FAQ sections: keep one of each.
   const editorialSections = Array.isArray(editorial?.sections) ? editorial.sections : [];
   const isFaqHeading = (heading) => /أسئلة شائعة|frequently asked|\bfaq\b/i.test(String(heading || ""));
-  const editorialHasAbout = editorialSections.some((section) => /^(?:عن|about)\s/i.test(String(section.heading || "").trim()));
+  // «عن …» / «من هي …؟» in the written text replaces the short profile, so it isn't said twice.
+  const editorialHasAbout = editorialSections.some((section) => /^(?:عن|about|من هي|من هو|who is)\s/i.test(String(section.heading || "").trim()));
+  const editorialHasByArea = editorialSections.some((section) => /حسب المنطقة|by area/i.test(String(section.heading || "")));
   const blockText = (block) => (Array.isArray(block?.content) ? block.content.map((part) => part?.text || "").join("") : String(block?.text || "")).trim();
   const editorialFaq = editorialSections.filter((section) => isFaqHeading(section.heading)).flatMap((section) => {
     const pairs = [];
@@ -1985,7 +1992,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   ];
   const contextSection =
     kind === "area"
-      ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${searchContent?.map ? `<section><h2>${escapeHtml(searchContent.map.heading)}</h2><iframe title="${escapeHtml(searchContent.map.heading)}" src="https://www.google.com/maps?q=${encodeURIComponent(searchContent.map.query)}&amp;output=embed" width="100%" height="360" style="border:0;border-radius:16px" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p><a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(searchContent.map.query)}" target="_blank" rel="noopener">${ar ? "افتح الخريطة على Google Maps" : "Open in Google Maps"}</a></p></section>` : ""}${linkAreaProjects((searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2>${(Array.isArray(text) ? text : [text]).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</section>`).join(""), matches, ar)}`
+      ? `<h2>${ar ? `عن ${escapeHtml(label)}` : `About ${escapeHtml(label)}`}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>${searchContent?.map ? `<section><h2>${escapeHtml(searchContent.map.heading)}</h2><iframe title="${escapeHtml(searchContent.map.heading)}" src="https://www.google.com/maps?q=${encodeURIComponent(searchContent.map.query)}&amp;hl=${ar ? "ar" : "en"}&amp;output=embed" width="100%" height="360" style="border:0;border-radius:16px" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe><p><a href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(searchContent.map.query)}" target="_blank" rel="noopener">${ar ? "افتح الخريطة على Google Maps" : "Open in Google Maps"}</a></p></section>` : ""}${linkAreaProjects((searchContent?.sections || []).map(([heading, text]) => `<section><h2>${escapeHtml(heading)}</h2>${(Array.isArray(text) ? text : [text]).map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</section>`).join(""), matches, ar)}`
       : devInfo && !editorialHasAbout && (ar ? devInfo.about_ar : devInfo.about_en)
         ? `<h2>${ar ? `عن ${escapeHtml(devInfo.name_ar || devInfo.name)}` : `About ${escapeHtml(devInfo.name)}`}</h2><p>${escapeHtml(ar ? devInfo.about_ar : devInfo.about_en)}</p>`
         : "";
@@ -2011,7 +2018,9 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
       })).values()];
   const branchHeading = kind === "area"
     ? (ar ? `المطورون ومشاريعهم في ${label}` : `Developers and their projects in ${label}`)
-    : (ar ? `مشاريع ${label} حسب المنطقة` : `${label} projects by area`);
+    : editorialHasByArea
+      ? (ar ? `كل مشاريع ${label} المتاحة عندنا` : `All ${label} projects we list`)
+      : (ar ? `مشاريع ${label} حسب المنطقة` : `${label} projects by area`);
   // Area pages: the developers active here, with their logos. Developer pages: the projects
   // grouped by area, each as a photo card that opens the project page with all its units.
   const branchHtml = kind === "area"
@@ -2047,7 +2056,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
             [
               ar ? `أسعار مشاريع ${label} بتبدأ من كام؟` : `What is the starting price of ${label} projects?`,
               ar
-                ? `أقل سعر ظاهر حاليًا في مشاريع ${label} عندنا ${minFmt}، وأعلى سعر ${escapeHtml(formatPrice(max, lang))}، حسب المشروع ونوع الوحدة. السعر النهائي يتأكد مع المطور وقت الطلب.`
+                ? `أقل سعر ${priceScopeAr} حاليًا في مشاريع ${label} عندنا ${minFmt}، وأعلى سعر ${escapeHtml(formatPrice(max, lang))}${homesOnly ? "، من غير المكاتب والمحلات" : ""}، حسب المشروع ونوع الوحدة. السعر النهائي يتأكد مع المطور وقت الطلب.`
                 : `The lowest price currently listed for ${label} projects is ${minFmt} and the highest is ${escapeHtml(formatPrice(max, lang))}, depending on the project and unit type. Confirm the final price with the developer at inquiry time.`,
             ],
             [
@@ -2086,7 +2095,7 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
 <section class="dhero"><div class="dwrap"><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" ‹ ")}</p>${heroLogo}<span class="eyebrow">${kind === "area" ? (ar ? "دليل منطقة" : "Area guide") : (ar ? "دليل مطور" : "Developer guide")}</span>
 <h1>${escapeHtml(editorial?.h1 || searchContent?.h1 || label)}</h1><p class="lead">${escapeHtml(description)}</p>${lastUpdated ? `<p class="updated">${ar ? "آخر تحديث للأسعار:" : "Prices last updated:"} <time datetime="${escapeHtml(lastUpdated.slice(0, 10))}">${escapeHtml(formatDate(lastUpdated, lang))}</time></p>` : ""}${apartmentsLink}
 ${searchMount(lang, placeholder)}
-<div class="stats">${stat(plural, ar ? "متاحة دلوقتي" : "available now")}${stat(new Intl.NumberFormat("en-EG").format(projectUnitCount), ar ? (projectUnitCount >= 3 && projectUnitCount <= 10 ? "وحدات متاحة" : "وحدة متاحة") : "available units")}${min ? stat(minFmt, ar ? "أقل سعر ظاهر" : "lowest listed") : ""}${max ? stat(formatPrice(max, lang), ar ? "أعلى سعر ظاهر" : "highest listed") : ""}</div></div></section>
+<div class="stats">${stat(plural, ar ? `${availableAr(matches.length, true)} دلوقتي` : "available now")}${stat(new Intl.NumberFormat("en-EG").format(projectUnitCount), ar ? (projectUnitCount >= 3 && projectUnitCount <= 10 ? "وحدات متاحة" : "وحدة متاحة") : "available units")}${min ? stat(minFmt, ar ? `أقل سعر ${priceScopeAr}` : `lowest ${priceScopeEn}`) : ""}${max ? stat(formatPrice(max, lang), ar ? `أعلى سعر ${priceScopeAr}` : `highest ${priceScopeEn}`) : ""}</div></div></section>
 <main class="dmain">
   ${kind === "area" && contextSection ? `<div class="prose">${contextSection}</div>` : ""}
   ${areaProjects}

@@ -52,6 +52,22 @@ function countAr(n, singular, dual, plural, oneWord = "واحدة") {
   return `${value} ${singular}`;
 }
 const unitsAr = (n) => countAr(n, "وحدة", "وحدتين", "وحدات");
+// «متاح» agreeing with the count: وحدة واحدة متاحة، وحدتين متاحتين، مشروع واحد متاح، مشروعين متاحين.
+function availableAr(n, masculine = false) {
+  const value = Math.round(Number(n) || 0);
+  if (value === 2) return masculine ? "متاحين" : "متاحتين";
+  if (value >= 3 && value <= 10) return "متاحة";
+  return masculine ? "متاح" : "متاحة";
+}
+// «استلام بعد سنة / سنتين / 3 سنين».
+function deliveryInAr(n) {
+  const value = Math.round(Number(n) || 0);
+  if (value <= 0) return "";
+  if (value === 1) return "استلام بعد سنة";
+  if (value === 2) return "استلام بعد سنتين";
+  if (value <= 10) return `استلام بعد ${value} سنين`;
+  return `استلام بعد ${value} سنة`;
+}
 const projectsAr = (n) => countAr(n, "مشروع", "مشروعين", "مشاريع", "واحد");
 function yearsAr(n) {
   const value = Number(n);
@@ -163,4 +179,4 @@ function priceShortAr(value) {
   return `${Math.round(price / 1000)} ألف`;
 }
 
-module.exports = { fitTitle, priceShortAr, stripInternalNotes, arabicDisplay, arabicProse, countAr, unitsAr, projectsAr, yearsAr, isCommercialUnit };
+module.exports = { availableAr, deliveryInAr, fitTitle, priceShortAr, stripInternalNotes, arabicDisplay, arabicProse, countAr, unitsAr, projectsAr, yearsAr, isCommercialUnit };
