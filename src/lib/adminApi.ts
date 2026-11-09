@@ -672,6 +672,8 @@ export function subAreaOptions(projects: Pick<AdminProject, "area_group" | "sub_
 }
 export const WA_INBOX_FIELDS = [
   "project_id",
+  "project_name",
+  "developer",
   "location",
   "unit_type",
   "bedrooms_text",
