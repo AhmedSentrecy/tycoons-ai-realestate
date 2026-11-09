@@ -33,6 +33,12 @@ function timingSafeEqual(a: string, b: string) {
   return diff === 0;
 }
 
+/** The admin's «وقّف كل الأتمتة» switch. Read fresh for every message (no cache) so it works at once. */
+async function automationPaused() {
+  const { data } = await db.from("media_admin_settings").select("value").eq("key", "wa_automation_paused").maybeSingle();
+  return text(data?.value) === "on";
+}
+
 let settingsCache: Record<string, string> | null = null;
 async function settings() {
   if (settingsCache) return settingsCache;
@@ -217,6 +223,8 @@ async function processMessage(event: Json, kind: Kind) {
     const groupName = text(group?.name) || groupId;
     await logUpdate(logId, { group_name: groupName });
     if (tracked.track === false) return await logUpdate(logId, { status: "group_off" });
+    // «وقّف كل الأتمتة» in the admin: the message is kept (text + media link) but not sent to Claude.
+    if (await automationPaused()) return await logUpdate(logId, { status: "paused" });
 
     const header = `WhatsApp group: ${groupName}\nSender: ${sender || "unknown"}\nAttached file: ${fileName || "none"} (${text(media.mimetype) || "none"})\nMessage text:\n${body || "(no text)"}`;
     const content: unknown[] = [{ type: "text", text: header }];
