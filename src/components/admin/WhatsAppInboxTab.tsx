@@ -15,6 +15,7 @@ import {
   waDraftDoubtBlocks,
   type WaDraft,
   type WaDraftField,
+  type WaWebOption,
   type WaResearchMode,
   type WaResearchSettings,
   type AdminProject,
@@ -376,6 +377,20 @@ export default function WhatsAppInboxTab({
     try {
       const result = await adminApi.waInboxLink(token, item.id, projectId);
       notify(`اتربطت ${result.linked} وحدة بـ ${projectName}${result.remembered ? " — والاسم ده هيتربط لوحده بعد كده" : ""}`);
+      reload();
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  /** A web suggestion (one site) the admin accepts: the unit takes the value, like an edit by hand. */
+  const acceptWeb = async (item: WaInboxItem, values: WaInboxValues, label: string) => {
+    setBusyId(item.id);
+    try {
+      await adminApi.waInboxSave(token, item.id, values);
+      notify(`اتحفظ: ${label}`);
       reload();
     } catch (error) {
       handleError(error);
@@ -925,6 +940,34 @@ export default function WhatsAppInboxTab({
                               {item.status === "approved" && <Badge tone="ok">اتوافق</Badge>}
                               {item.status === "rejected" && <Badge tone="muted">اترفض</Badge>}
                             </div>
+                            {pending && (() => {
+                              const web = item.web_candidates;
+                              if (!web) return null;
+                              const busy = busyId === item.id;
+                              const blocks = [];
+                              if (web.project && !item.project_id && !item.draft_id) {
+                                const project = web.project;
+                                blocks.push(
+                                  <WebOptions
+                                    key="project"
+                                    label="المشروع (مصدر واحد على النت):"
+                                    options={[project]}
+                                    busy={busy}
+                                    onPick={() => void (project.project_id ? linkProject(item, project.project_id, project.value) : acceptWeb(item, { project_name: project.value }, project.value))}
+                                  />,
+                                );
+                              }
+                              if (web.developer && !item.project_id && web.developer.value !== item.developer) {
+                                const developer = web.developer;
+                                blocks.push(<WebOptions key="developer" label="المطور (مصدر واحد على النت):" options={[developer]} busy={busy} onPick={(value) => void acceptWeb(item, { developer: value }, value)} />);
+                              }
+                              for (const [field, options] of Object.entries(web.fields ?? {})) {
+                                if (item[field as keyof WaInboxItem] || !options?.length) continue;
+                                const label = WA_DRAFT_FIELD_LABELS[field as WaDraftField] ?? field;
+                                blocks.push(<WebOptions key={field} label={`${label}:`} options={options} busy={busy} onPick={(value) => void acceptWeb(item, { [field]: value }, `${label} ${value}`)} />);
+                              }
+                              return blocks.length ? <div className="mt-1 space-y-1">{blocks}</div> : null;
+                            })()}
                           </td>
                           <td className="p-2">{Number(item.area_sqm) ? `${Number(item.area_sqm)} م²` : "—"}</td>
                           <td className="p-2 font-bold">
@@ -1524,6 +1567,32 @@ const DRAFT_FIELD_ORDER: WaDraftField[] = [
   "name", "name_ar", "developer", "area_group", "sub_area", "location", "down_payment_text", "installments_text", "delivery_text", "finishing", "description",
 ];
 
+/** What the web found for an unsettled detail: each value with its pages; «اختار» uses it (counts as confirmed by you). */
+function WebOptions({ options, busy, onPick, label = "لقيناه على النت:" }: { options: WaWebOption[]; busy: boolean; onPick: (value: string) => void; label?: string }) {
+  return (
+    <div className="mt-1 space-y-1 rounded-lg bg-white/70 p-1.5 ring-1 ring-[#ecdcbc]">
+      <span className="block text-[10px] font-bold text-[#5c6a62]">{label}</span>
+      {options.map((option) => (
+        <div key={option.value} className="flex flex-wrap items-center gap-1 text-[11px]">
+          <span className="font-black">{option.value}</span>
+          {option.sources.slice(0, 3).map((url, index) => (
+            <a key={url} href={url} target="_blank" rel="noreferrer" className="text-[#8a6d2f] underline">
+              مصدر {index + 1}
+            </a>
+          ))}
+          <button
+            disabled={busy}
+            onClick={() => onPick(option.value)}
+            className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-black text-white disabled:opacity-40"
+          >
+            اختار
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** A new project's facts from the web: trusted (2+ sites or confirmed), weak (one site: «أكّد») or missing. */
 function DraftPanel({ draft, onEdit, onPublish, onChanged }: { draft: WaDraft; onEdit: () => void; onPublish: () => void; onChanged: (draft: WaDraft | null) => void }) {
   const { token, notify, handleError } = useAdmin();
@@ -1596,6 +1665,13 @@ function DraftPanel({ draft, onEdit, onPublish, onChanged }: { draft: WaDraft; o
                   >
                     أكّد
                   </button>
+                )}
+                {!draft.confirmed.includes(field) && (draft.candidates?.[field]?.length ?? 0) > 0 && (
+                  <WebOptions
+                    options={draft.candidates![field]}
+                    busy={Boolean(busy)}
+                    onPick={(picked) => void run(field, async () => (await adminApi.waDraftSave(token, draft.id, { [field]: picked })).draft, `${WA_DRAFT_FIELD_LABELS[field]}: ${picked}`)}
+                  />
                 )}
               </dd>
             </div>

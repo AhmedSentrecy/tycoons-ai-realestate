@@ -17,7 +17,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { canonicalDeveloper, cleanDeveloperName, developerKey, developersByProject, doubtsFor, groupNameDeveloper, hasProjectName, isUnknownDeveloper, projectKey, resolveDeveloper, type DeveloperRow, type Doubt } from "./review.ts";
 import {
-  DRAFT_FIELDS, GROUPING_SCHEMA, checkedValue, developerCheckPrompt, draftDoubts, firstJson, groupingCheckPrompt, groupingPrompt, projectCheckPrompt, researchPrompt, searchedUrls, unitSummary, verifyFacts, verifyGrouping,
+  DRAFT_FIELDS, GROUPING_SCHEMA, candidateValue, checkedValue, developerCheckPrompt, draftDoubts, firstJson, groupingCheckPrompt, groupingPrompt, projectCheckPrompt, researchPrompt, searchedUrls, unitSummary, verifyFacts, verifyGrouping,
   type DraftField, type NameCount,
 } from "./research.ts";
 
@@ -37,9 +37,9 @@ const APPROVE_STATUSES = ["available", "new_launch"];
 const AREA_GROUPS = ["New Cairo", "Mostakbal City", "New Capital", "Sheikh Zayed", "October", "North Coast", "New Alamein", "Ain Sokhna", "Other"];
 const MAX_GALLERY = 60;
 const INBOX_COLUMNS =
-  "id,created_at,updated_at,status,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,description,image_url,source_group,source_group_id,sender,message_id,match_unit_id,decided_at,result_unit_id,note,area_group,draft_id,suggested_project_id,web_filled";
+  "id,created_at,updated_at,status,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,description,image_url,source_group,source_group_id,sender,message_id,match_unit_id,decided_at,result_unit_id,note,area_group,draft_id,suggested_project_id,web_filled,web_candidates";
 const DRAFT_COLUMNS =
-  "id,created_at,updated_at,status,name,name_ar,developer,area_group,sub_area,location,description,down_payment_text,installments_text,delivery_text,finishing,wa_keys,sources,doubts,confirmed,research_error,researched_at,project_id,published_at";
+  "id,created_at,updated_at,status,name,name_ar,developer,area_group,sub_area,location,description,down_payment_text,installments_text,delivery_text,finishing,wa_keys,sources,doubts,confirmed,research_error,researched_at,project_id,published_at,candidates";
 const UNIT_COLUMNS =
   "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,last_updated_at";
 
@@ -1185,6 +1185,17 @@ async function recheckUnsureDrafts(limit: number) {
   return done;
 }
 
+/** Saves what the web said without 2 sites on the units (web_candidates), next to what they already have. */
+async function keepCandidates(rows: Json[], add: Json) {
+  for (const row of rows) {
+    const current = (row.web_candidates ?? {}) as Json;
+    const next = { ...current, ...add, fields: { ...((current.fields ?? {}) as Json), ...((add.fields ?? {}) as Json) } };
+    if (!Object.keys(next.fields).length) delete (next as Json).fields;
+    fail((await db.from("wa_unit_inbox").update({ web_candidates: next }).eq("id", Number(row.id)).eq("status", "pending")).error);
+    row.web_candidates = next;
+  }
+}
+
 /**
  * Unit doubts about the project or the developer, settled on the web (2 sites) before the admin sees them.
  * Each unit is checked once (web_checked_at); what the web cannot settle stays a doubt for the admin.
@@ -1232,6 +1243,10 @@ async function resolveUnitDoubts(limit: number): Promise<{ checks: number; devel
         const known = canonicalDeveloper(name, developers) || [...groupDev.values()].find((dev) => developerKey(dev) === developerKey(name)) || name;
         fail((await db.from("wa_unit_inbox").update({ developer: known }).in("id", list.map((row) => Number(row.id))).eq("status", "pending")).error);
         result.developers += list.length;
+      } else {
+        // One site only: shown next to the unit as a suggestion the admin accepts with one click.
+        const maybe = candidateValue(firstJson(reply.text), "developer", reply.searched);
+        if (maybe) await keepCandidates(list, { developer: { ...maybe, value: cleanDeveloperName(maybe.value) } });
       }
     } catch (error) {
       console.error("wa developer check failed", list[0].project_name, error);
@@ -1269,6 +1284,12 @@ async function resolveUnitDoubts(limit: number): Promise<{ checks: number; devel
         if (isUnknownDeveloper(list[0].developer)) values.developer = canonicalDeveloper(developer, developers) || developer;
         fail((await db.from("wa_unit_inbox").update(values).in("id", list.map((row) => Number(row.id))).eq("status", "pending")).error);
         result.projects += list.length;
+      } else {
+        const maybe = candidateValue(firstJson(reply.text), "project", reply.searched);
+        if (maybe) {
+          const site = matchProject(projects, maybe.value, developer);
+          await keepCandidates(list, { project: { ...maybe, value: site?.name ?? maybe.value, project_id: site?.id ?? null } });
+        }
       }
     } catch (error) {
       console.error("wa project check failed", developer, error);
@@ -1295,6 +1316,9 @@ async function resolveUnitDoubts(limit: number): Promise<{ checks: number; devel
       try {
         const reply = await askClaude(researchPrompt(text(project.name), text(project.developer), [text(project.name)], []), { search: 5, maxTokens: 6000 });
         const checked = verifyFacts(firstJson(reply.text), reply.searched);
+        const options: Record<string, unknown> = {};
+        for (const field of missing) if (!checked.facts[field] && checked.candidates[field]?.length) options[field] = checked.candidates[field];
+        if (Object.keys(options).length) await keepCandidates(list.filter((row) => missing.some((field) => !text(row[field]) && options[field])), { fields: options });
         for (const row of list) {
           const values: Json = {};
           const web: Record<string, string[]> = { ...((row.web_filled ?? {}) as Record<string, string[]>) };
@@ -1383,6 +1407,10 @@ async function researchDraft(draft: Json) {
         delete sources[field];
       }
     }
+    // Facts without 2 sites: every value the sites gave, kept for the admin to pick (never used by itself).
+    const candidates: Record<string, unknown> = {};
+    for (const field of DRAFT_FIELDS) if (!confirmed.has(field) && !checked.facts[field] && checked.candidates[field]?.length) candidates[field] = checked.candidates[field];
+    values.candidates = candidates;
     const merged = { ...draft, ...values, sources, wa_developer: draft.developer };
     const state = draftState(merged, { weak: checked.weak, conflicts: checked.conflicts, found: checked.found, groupingSure: !((draft.doubts as string[]) ?? []).includes("grouping_unsure") });
     fail((await db.from("wa_project_drafts").update({ ...values, sources, doubts: state.doubts, status: state.status, research_error: null, researched_at: now, updated_at: now }).eq("id", text(draft.id))).error);
