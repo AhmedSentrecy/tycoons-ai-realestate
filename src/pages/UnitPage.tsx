@@ -22,6 +22,7 @@ import { areaFor, areaFacts, computeUnitStats, rankClause, pick } from "@/lib/un
 import { unitTitle } from "../lib/unitTitle";
 import { fitTitle } from "@/lib/fitTitle";
 import ServerHtmlOr from "@/components/ServerHtmlOr";
+import PageStructuredData from "@/components/PageStructuredData";
 
 const UNIT_INTRO_BANK: Array<(vars: Record<string, string>) => string> = [
   (v) => `${v.unitType} بمساحة ${v.area} م² جوه ${v.projectName} من ${v.developer}، في ${v.areaAr}. ${v.rank}. السعر يبدأ من ${v.price}، والاستلام ${v.delivery}.`,
@@ -165,7 +166,7 @@ export default function UnitPage() {
         image: images,
         dateModified: unit.last_updated_at,
         offers: { "@type": "Offer", price: unit.starting_price, priceCurrency: "EGP", availability: "https://schema.org/InStock" },
-        accommodation: {
+        about: {
           "@type": "Accommodation",
           floorSize: { "@type": "QuantitativeValue", value: unit.area_sqm, unitCode: "MTK" },
         },
@@ -261,7 +262,7 @@ export default function UnitPage() {
 
       <Footer />
       <FloatingContact message={decodeURIComponent(message)} />
-      <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      <PageStructuredData value={structuredData} />
     </main>
   );
 }

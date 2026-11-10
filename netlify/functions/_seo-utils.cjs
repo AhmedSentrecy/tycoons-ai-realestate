@@ -1896,7 +1896,7 @@ function renderUnit(projects, unitId, lang = "ar") {
         description: intro,
         dateModified: updated || undefined,
         offers: { "@type": "Offer", price: stats.price, priceCurrency: "EGP", availability: "https://schema.org/InStock" },
-        accommodation: {
+        about: {
           "@type": "Accommodation",
           floorSize: unit.area_sqm ? { "@type": "QuantitativeValue", value: numberValue(unit.area_sqm), unitCode: "MTK" } : undefined,
           numberOfRooms: numberValue(unit.bedrooms_text) || undefined,
@@ -2437,7 +2437,6 @@ function renderGuide(slug, lang = "ar") {
         inLanguage: ar ? "ar-EG" : "en",
         image: `${SITE_URL}/images/hero.webp`,
         author: guideAuthorSchema(),
-        reviewedBy: { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments" },
         publisher: {
           "@type": "Organization",
           "@id": `${SITE_URL}/#organization`,
@@ -2445,7 +2444,8 @@ function renderGuide(slug, lang = "ar") {
           url: SITE_URL,
           logo: { "@type": "ImageObject", url: `${SITE_URL}/images/logo.png`, width: 512, height: 512 },
         },
-        mainEntityOfPage: `${SITE_URL}${path}`,
+        // reviewedBy belongs to WebPage, not Article (Rich Results / schema.org validator flag it on Article).
+        mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${path}`, reviewedBy: { "@id": `${SITE_URL}/#organization` } },
       },
       ...(faq.length ? [{
         "@context": "https://schema.org",
@@ -2678,13 +2678,13 @@ function editorialArticleView(article, translation = null, extras = {}) {
         "@context": "https://schema.org", "@type": "Article", headline: article.title,
         description: article.meta_description || article.excerpt,
         datePublished: article.published_at, dateModified: article.updated_at || article.reviewed_at,
-        inLanguage: ar ? "ar-EG" : "en", mainEntityOfPage: `${SITE_URL}${path}`,
+        inLanguage: ar ? "ar-EG" : "en",
+        mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${path}`, ...(article.reviewed_by_name ? { reviewedBy: { "@type": "Person", name: article.reviewed_by_name } } : {}) },
         ...(keyword ? { keywords: keyword } : {}),
         ...(image ? { image: [image] } : {}),
         ...(takeaways.length ? { abstract: takeaways.join(" ") } : {}),
         ...(webSources.length ? { citation: webSources.map((ref) => ({ "@type": "CreativeWork", name: String(ref.label).slice(0, 160) })) } : {}),
         author: guideAuthorSchema(),
-        ...(article.reviewed_by_name ? { reviewedBy: { "@type": "Person", name: article.reviewed_by_name } } : {}),
         publisher: { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL },
       },
       ...(faq.length
@@ -2714,7 +2714,7 @@ function renderStaticPage(type) {
         "@type": "AboutPage",
         name: "عن Tycoons Investments",
         url: `${SITE_URL}/about`,
-        mainEntity: { "@type": ["Organization", "RealEstateAgent"], "@id": `${SITE_URL}/#organization`, name: "Tycoons Investments", url: SITE_URL, employee: { "@id": GUIDE_AUTHOR.id }, areaServed: ["New Cairo", "Mostakbal City", "New Administrative Capital", "Sheikh Zayed", "6th of October", "North Coast", "Ain Sokhna"] },
+        mainEntity: { "@id": `${SITE_URL}/#organization`, employee: { "@id": GUIDE_AUTHOR.id }, areaServed: ["New Cairo", "Mostakbal City", "New Administrative Capital", "Sheikh Zayed", "6th of October", "North Coast", "Ain Sokhna"] },
       }, { "@context": "https://schema.org", ...guideAuthorSchema() }],
     },
     faq: {
@@ -2750,7 +2750,7 @@ function renderStaticPage(type) {
         "@type": "WebPage",
         name: "سياسة الخصوصية",
         url: `${SITE_URL}/privacy`,
-        publisher: { "@type": ["Organization", "RealEstateAgent"], name: "Tycoons Investments", url: SITE_URL },
+        publisher: { "@id": `${SITE_URL}/#organization` },
       }],
     },
     contact: {
