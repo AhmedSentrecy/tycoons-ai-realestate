@@ -34,7 +34,8 @@ function buildProjectSchemas(input) {
       "@type": "RealEstateListing", "@id": `${url}#listing`, url, name, description,
       ...(images.length ? { image: images } : {}), ...(dated ? { dateModified: dated } : {}),
       ...(prices.length ? { offers: { "@type": "AggregateOffer", priceCurrency: "EGP", lowPrice: Math.min(...prices), highPrice: Math.max(...prices), offerCount: units.filter((u) => positive(u.starting_price)).length + ranges.filter((r) => positive(r.min_price)).length, availability: "https://schema.org/InStock" } } : {}),
-      address: { "@type": "PostalAddress", addressLocality: location, addressCountry: "EG" },
+      // address is not a RealEstateListing (WebPage) property; the location goes on a Place.
+      contentLocation: { "@type": "Place", ...(text(location) ? { name: text(location) } : {}), address: { "@type": "PostalAddress", ...(text(location) ? { addressLocality: text(location) } : {}), addressCountry: "EG" } },
     });
   }
   const items = [

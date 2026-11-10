@@ -613,7 +613,7 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
       ...(unit.created_at ? { datePosted: unit.created_at } : {}),
       dateModified: unit.last_updated_at,
       offers: { "@type": "Offer", price: numberValue(unit.starting_price), priceCurrency: "EGP", availability: "https://schema.org/InStock" },
-      accommodation: { "@type": "Accommodation", floorSize: { "@type": "QuantitativeValue", value: numberValue(unit.area_sqm), unitCode: "MTK" } },
+      about: { "@type": "Accommodation", floorSize: { "@type": "QuantitativeValue", value: numberValue(unit.area_sqm), unitCode: "MTK" } },
     },
     {
       "@type": "FAQPage",
