@@ -63,7 +63,7 @@ jobs:
           path: |
             mobile-build/Tycoons-Sales-War-Room.apk
             mobile-build/Tycoons-Sales-War-Room.zip
-          retention-days: 14
+          retention-days: 1
           if-no-files-found: error
 
       - name: Publish stable direct-download release
