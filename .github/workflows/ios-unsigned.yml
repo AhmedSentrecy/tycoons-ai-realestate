@@ -62,7 +62,7 @@ jobs:
           path: |
             ios-package/Tycoons-Sales-War-Room-Unsigned.ipa
             ios-package/Tycoons-Sales-War-Room-Unsigned.sha256
-          retention-days: 7
+          retention-days: 1
           if-no-files-found: error
 
       - name: Publish stable unsigned iOS release
