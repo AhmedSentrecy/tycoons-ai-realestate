@@ -1,0 +1,48 @@
+name: Compress new property photos
+
+# Shrinks large new photos in the Supabase `property-images` bucket in place (same URLs), so
+# Storage egress stays inside the plan. See scripts/compress-storage-images.mjs.
+# Needs the repository secret SUPABASE_SERVICE_ROLE_KEY. Uploads nothing to GitHub storage.
+
+on:
+  schedule:
+    - cron: '30 2 * * *' # daily, 04:30 Cairo time
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only list what would change'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compress-images
+  cancel-in-progress: false
+
+jobs:
+  compress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/compress-storage-images.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install sharp next to the script
+        run: |
+          mkdir -p "$RUNNER_TEMP/images"
+          cp scripts/compress-storage-images.mjs "$RUNNER_TEMP/images/"
+          cd "$RUNNER_TEMP/images"
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund sharp@0.34.4
+      - name: Compress
+        working-directory: ${{ runner.temp }}/images
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '--dry-run' || '' }}
+        run: node compress-storage-images.mjs $DRY_RUN --limit=200
