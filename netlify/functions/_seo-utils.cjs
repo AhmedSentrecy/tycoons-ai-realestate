@@ -52,12 +52,13 @@ const SUPABASE_KEY =
 const GA4_TAG = '<script src="/ga4.js" defer></script>';
 
 const CACHE_HEADERS = {
-  "cache-control": "public, max-age=0, s-maxage=900, stale-while-revalidate=86400",
+  "cache-control": "public, max-age=0, s-maxage=3600, stale-while-revalidate=86400",
   // Netlify durable cache: one cached copy shared by every edge region, served stale while
   // it refreshes in the background. Cold misses (2–3 s server renders) then happen about once
-  // per page per 15 minutes globally instead of per region, so Googlebot gets ~150 ms pages.
-  // A deploy (admin "rebuild") still purges it.
-  "netlify-cdn-cache-control": "public, durable, s-maxage=900, stale-while-revalidate=604800",
+  // per page per hour globally instead of per region, so Googlebot gets ~150 ms pages.
+  // Each re-render loads the whole inventory from Supabase (~1.4 MB), so a longer window
+  // keeps Supabase egress and Netlify function use down. A deploy (admin "rebuild") still purges it.
+  "netlify-cdn-cache-control": "public, durable, s-maxage=3600, stale-while-revalidate=604800",
   "content-security-policy":
     "default-src 'self'; script-src 'self' https://www.googletagmanager.com; img-src 'self' https: data:; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://coqnjymekrkoausiiytm.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; frame-src https://www.google.com; frame-ancestors 'none'; base-uri 'self'",
   "referrer-policy": "strict-origin-when-cross-origin",
@@ -735,7 +736,7 @@ function formatDate(value, lang) {
 }
 
 async function fetchUnits() {
-  if (cache.units && Date.now() - cache.fetchedAt < 15 * 60 * 1000) return cache.units;
+  if (cache.units && Date.now() - cache.fetchedAt < 60 * 60 * 1000) return cache.units;
   const columns = [
     "id",
     "project_id",
@@ -802,7 +803,7 @@ let developersCache = { rows: null, fetchedAt: 0 };
 // at the URL that redirects to it (audit SEO-04, Oct 2026).
 const DEVELOPER_PUBLIC_SLUGS = { "people-places": "people-and-places" };
 async function fetchDevelopers() {
-  if (developersCache.rows && Date.now() - developersCache.fetchedAt < 15 * 60 * 1000) return developersCache.rows;
+  if (developersCache.rows && Date.now() - developersCache.fetchedAt < 60 * 60 * 1000) return developersCache.rows;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 6000);
   try {
@@ -855,7 +856,7 @@ function logoBadge(logo, height = 28) {
 }
 
 async function fetchProjectsMeta({ strict = false } = {}) {
-  if (projectsCache.projects && Date.now() - projectsCache.fetchedAt < 15 * 60 * 1000) return projectsCache.projects;
+  if (projectsCache.projects && Date.now() - projectsCache.fetchedAt < 60 * 60 * 1000) return projectsCache.projects;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8500);
   try {
