@@ -50,11 +50,11 @@ export default function Hero() {
 
   return (
     <section className="relative min-h-[86svh] overflow-hidden bg-[#08130e]">
-      {/* The photo box is never taller than 99svh, the exact size of the pre-rendered hero photo in
-          index.html (.ssr-hero > img). If this one were any larger, the browser would count it as
-          the page's largest element and LCP would wait for JavaScript again. The box also clips
-          the zoom-in so the first frame is not larger either. */}
-      <div className="absolute inset-x-0 top-0 h-full max-h-[99svh] overflow-hidden max-sm:[mask-image:linear-gradient(to_bottom,#000_80%,transparent)]">
+      {/* The photo box is never taller than 90svh, a little less than the pre-rendered hero photo in
+          index.html (.ssr-hero > img, 92svh). If this one were larger, the browser would count it
+          as the page's largest element and LCP would wait for JavaScript again. The box also
+          clips the zoom-in so the first frame is not larger either. */}
+      <div className="absolute inset-x-0 top-0 h-full max-h-[90svh] overflow-hidden max-sm:[mask-image:linear-gradient(to_bottom,#000_80%,transparent)]">
         <motion.img
           src="/images/hero.webp"
           alt={tr("فيلا فاخرة على الساحل الشمالي")}
