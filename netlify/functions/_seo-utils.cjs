@@ -3,6 +3,7 @@
 const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, countAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr, availableAr, deliveryInAr } = require("./_display-text.cjs");
 const { imgSrcAttrs, heroSrcAttrs } = require("./_images.cjs");
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent, hasOwnWrittenGuide, isProjectGuideArticle } = require("./_localized-project-content.cjs");
+const { showcaseHtml } = require("./_project-showcase.cjs");
 // Arabic H1/title for the top projects (audit SEO-07); shared with the static and React pages.
 const PROJECT_NAMES_AR = require("../../src/content/project-names-ar.json").projects;
 const { developerContent } = require("./_developer-content.cjs");
@@ -1654,6 +1655,11 @@ function renderProject(projects, slug, lang, article = null) {
     .join("");
   const projectFaq = localizedContent?.faq?.length?localizedContent.faq.map((item)=>[fillTokens(item.question),fillTokens(item.answer)]):(searchContent?.faq?.(contentVars) || []);
   const visibleProjectFaq = localizedContent?.article_sections?.some((section) => /أسئلة شائعة|frequently asked|\bfaq\b/i.test(String(section.heading || ""))) ? [] : projectFaq;
+  // English only: the Arabic project page is the pre-rendered one (scripts/lib/data-pages.cjs), which adds this block itself.
+  const showcase = ar ? "" : showcaseHtml({
+    slug: project.slug, lang, units,
+    images: [...new Set([project.image_url, ...clean(project.gallery_urls, "").split(","), ...project.units.map((unit) => unit.image_url)].map((url) => clean(url, "").trim()).filter(Boolean))],
+  });
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
   <section class="hero">${logoBadge(projectLogo(project), 40)}<span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(localizedContent?.h1 || (ar && PROJECT_NAMES_AR[project.slug]?.h1) || project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
   ${image ? `<img ${heroSrcAttrs(image, 960)} alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:contain;background:#0d1f18;border-radius:20px" fetchpriority="high">` : ""}
@@ -1661,7 +1667,7 @@ function renderProject(projects, slug, lang, article = null) {
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
   <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.medianSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Median price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.medianSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
-  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث الأسعار والتوفر" : "Request current availability"}</a></section>${extraSections}
+  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث الأسعار والتوفر" : "Request current availability"}</a></section>${showcase ? `<div style="margin:28px 0 8px;border-radius:24px;overflow:clip">${showcase}</div><script src="/showcase.js" defer></script>` : ""}${extraSections}
   ${ownGuide && article && article.slug ? `<p><a href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></p>` : ""}${!ownGuide && article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${priceDateNoteHtml({ markdown: article.body_markdown, reviewedAt: article.reviewed_at, ar, unitsHref: hasUnits ? "#units" : "" })}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: liveUnitIdsOf(projects) })}</section>` : ""}
   ${(() => { const info = developerHasPage ? developerInfo(project.developer) : null; const about = info && (ar ? info.about_ar : info.about_en); if (ownGuide) return info ? `<p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? `كل مشاريع ${escapeHtml(info.name_ar || info.name)}` : `All projects by ${escapeHtml(info.name)}`}</a></p>` : ""; return about ? `<section><h2>${ar ? `عن المطور: ${escapeHtml(info.name_ar || info.name)}` : `About the developer: ${escapeHtml(info.name)}`}</h2><p>${escapeHtml(about)}</p><p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? "كل مشاريع المطور" : "All projects by this developer"}</a></p></section>` : ""; })()}
   ${!hasUnits && ownGuide ? "" : `<h2 id="units">${ar ? "الوحدات المتاحة" : "Available units"}</h2>`}${
