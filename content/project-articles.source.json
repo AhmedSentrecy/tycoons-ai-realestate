@@ -3795,7 +3795,7 @@
    "ar": {
     "h1": "ماونتن فيو آي سيتي أكتوبر في السادس من أكتوبر — Mountain View iCity October",
     "seo_title": "ماونتن فيو آي سيتي أكتوبر 2026 | Mountain View iCity October",
-    "seo_description": "ماونتن فيو آي سيتي أكتوبر مشروع ماونتن فيو في قلب السادس من أكتوبر بحدائق وبحيرات ونادي ومدرسة. اعرف الموقع وأنواع الوحدات والعيوب قبل الشراء 2026.",
+    "seo_description": "ماونتن فيو آي سيتي أكتوبر 2026: أسعار الوحدات المتاحة ومقدمها، وموقع المشروع في السادس من أكتوبر، وأنواع الوحدات والعيوب اللي لازم تعرفها قبل ما تحجز.",
     "article_sections": [
      {
       "key": "overview",
@@ -4236,6 +4236,10 @@
       "answer": "في قلب مدينة السادس من أكتوبر، قريب من نادي الرماية ومول العرب وميدان جهينة، ومش بعيد عن محور 26 يوليو."
      },
      {
+      "question": "أسعار ماونتن فيو آي سيتي أكتوبر 2026 بتبدأ من كام؟",
+      "answer": "أسعار الوحدات المتاحة عندنا بتبدأ من {{min_price}} جنيه. وجدول الوحدات في الصفحة فيه سعر كل وحدة ومقدمها وميعاد استلامها، وبيتحدّث من المتاح عندنا."
+     },
+     {
       "question": "ماونتن فيو اكتوبر هو آي سيتي ولا أكتوبر بارك؟",
       "answer": "الاتنين مشروعات لماونتن فيو في أكتوبر ومختلفين عن بعض. آي سيتي أكتوبر هو المشروع الكبير اللي في الصفحة دي، وأكتوبر بارك وتشيل أوت بارك ليهم صفحات منفصلة عندنا."
      },
@@ -4268,7 +4272,7 @@
    "en": {
     "h1": "Mountain View iCity October in Sixth of October City by Mountain View",
     "seo_title": "Mountain View iCity October 2026: Location, Units & Prices",
-    "seo_description": "Mountain View iCity October is a master-planned Mountain View community in October City with parks, lakes, a club and a school. Units and location, 2026.",
+    "seo_description": "Mountain View iCity October 2026 prices and payment plans for the units we have available, plus location in October City, unit types and drawbacks.",
     "article_sections": [
      {
       "key": "overview",
@@ -4591,6 +4595,10 @@
      {
       "question": "Where exactly is Mountain View iCity October?",
       "answer": "In the heart of October City, close to the Shooting Club, Mall of Arabia and Juhayna Square, and near the 26th of July Corridor."
+     },
+     {
+      "question": "What are Mountain View iCity October prices in 2026?",
+      "answer": "Prices of the units we have available start from EGP {{min_price}}. The unit table on this page shows the price, down payment and delivery of each unit, and it is updated from our live inventory."
      },
      {
       "question": "Who is the developer of Mountain View iCity October?",
