@@ -376,6 +376,11 @@ assert.match(index, /<script src="\/img-fallback\.js" defer><\/script>/, "Every 
 assert.ok(fs.existsSync(path.join(root, "public/img-fallback.js")), "The photo fallback script must ship with the site");
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>ابحث بصوتك/);
+assert.match(index, /<section class="ssr-hero">\s*<img src="\/images\/hero\.webp"[^>]*fetchpriority="high"/, "The homepage HTML holds the hero photo itself, so the largest element paints before JavaScript runs");
+assert.match(index, /\.ssr-hero\{position:relative;min-height:99svh;/, "The pre-rendered hero stays just under the full screen height: a full-screen image is ignored as the largest element, and a shorter one is replaced by the React hero");
+assert.match(fs.readFileSync(path.join(root, "src/main.tsx"), "utf8"), /requestAnimationFrame\(\(\) => requestAnimationFrame\(\(\) => setTimeout\(mountOnce, 60\)\)\)/, "React starts after the first paint so the pre-rendered page is shown first");
+assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "utf8"), /host\.style\.minHeight/, "The search box keeps its height while it is upgraded, so the page below does not jump");
+assert.match(fs.readFileSync(path.join(root, "scripts/lib/english-home.cjs"), "utf8"), /<section class="ssr-hero" aria-labelledby="home-title">\s*<img src="\/images\/hero\.webp"[^>]*fetchpriority="high"/, "The English homepage HTML holds the hero photo too");
 const lead = homeSeo.match(/HOME_H1_LEAD = "([^"]+)"/)?.[1];
 const accent = homeSeo.match(/HOME_H1_ACCENT = "([^"]+)"/)?.[1];
 const staticH1 = index.match(/<h1>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();

@@ -5,10 +5,14 @@ const SECTIONS_HTML = require("../../src/content/english-home-sections.json").ht
 const TITLE = "New Cairo, North Coast & New Capital Properties | Prices 2026";
 const DESCRIPTION = "Compare 240+ projects in New Cairo, Mostakbal City, the North Coast and Sheikh Zayed: prices per m², payment plans from 5% down and ready units.";
 const ENGLISH_CONTENT = `<div id="root"><main>
-  <section aria-labelledby="home-title">
+  <section class="ssr-hero" aria-labelledby="home-title">
+    <img src="/images/hero.webp" width="1767" height="1080" alt="Explore residential properties in Egypt" fetchpriority="high"/>
+    <div>
     <h1 id="home-title">Tell us what you have in mind. Find the property that fits.</h1>
     <p>${DESCRIPTION} Tycoons helps homebuyers compare Egyptian residential projects by location, developer, unit type, size, finishing, delivery and payment plan instead of relying on an advertised starting price alone.</p>
-    <img src="/images/hero.webp" width="1767" height="1080" alt="Explore residential properties in Egypt" style="max-width:100%;height:auto"/>
+    </div>
+  </section>
+  <section>
     <h2>Explore properties by location</h2>
     <p>Start with the neighbourhood or city where you want to live or invest. Each area guide links to relevant projects and developers, along with considerations that matter when comparing homes.</p>
     <nav aria-label="Property areas">
