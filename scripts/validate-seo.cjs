@@ -380,7 +380,7 @@ assert.match(index, /<section class="ssr-hero">\s*<img src="\/images\/hero\.webp
 assert.match(index, /\.ssr-hero\{position:relative;min-height:99svh;/, "The pre-rendered hero stays just under the full screen height: a full-screen image is ignored as the largest element, and a shorter one is replaced by the React hero");
 assert.match(index, /\.ssr-hero>img\{position:absolute;top:0;left:0;width:100%;height:99svh;/, "The pre-rendered hero photo is exactly 99svh tall");
 assert.match(hero, /max-h-\[99svh\] overflow-hidden/, "The React hero photo is never larger than the pre-rendered one (99svh), or it becomes the largest element and LCP waits for JavaScript");
-assert.match(fs.readFileSync(path.join(root, "src/main.tsx"), "utf8"), /requestAnimationFrame\(\(\) => requestAnimationFrame\(\(\) => setTimeout\(mountOnce, 60\)\)\)/, "React starts after the first paint so the pre-rendered page is shown first");
+assert.match(fs.readFileSync(path.join(root, "vite.config.ts"), "utf8"), /plugins: \[react\(\), runAppAfterFirstPaint\(\)\]/, "The built page runs the app only after the first paint, so the pre-rendered page (and its hero photo) is shown first");
 assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "utf8"), /host\.style\.minHeight/, "The search box keeps its height while it is upgraded, so the page below does not jump");
 assert.match(fs.readFileSync(path.join(root, "scripts/lib/english-home.cjs"), "utf8"), /<section class="ssr-hero" aria-labelledby="home-title">\s*<img src="\/images\/hero\.webp"[^>]*fetchpriority="high"/, "The English homepage HTML holds the hero photo too");
 const lead = homeSeo.match(/HOME_H1_LEAD = "([^"]+)"/)?.[1];

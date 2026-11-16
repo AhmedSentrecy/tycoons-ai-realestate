@@ -1,11 +1,37 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
-import { defineConfig } from "vite"
+import { defineConfig, type Plugin } from "vite"
+
+// The HTML already holds each page's content (on the homepage: the hero photo and headings).
+// Running the app's JavaScript blocks the browser for a while, and when it ran first the photo
+// was only painted after it (slow LCP). So the built page downloads the app right away
+// (modulepreload) but runs it only once the browser reports the pre-rendered hero photo as
+// painted (on pages without that photo: once anything is painted). Removing the photo before
+// the browser has counted it would hand "largest element" to the React photo again.
+// Safety nets: 0.6 s after the photo loads, 3 s in any case, and at once in a hidden tab
+// (it never paints).
+const APP_LOADER = (src: string) => `<link rel="modulepreload" crossorigin href="${src}">
+    <script data-app-loader>(function(){var done=false;function run(){if(done)return;done=true;var s=document.createElement("script");s.type="module";s.crossOrigin="";s.src="${src}";document.head.appendChild(s)}function start(){if(document.visibilityState!=="visible"){run();return}var img=document.querySelector(".ssr-hero>img");try{new PerformanceObserver(function(list){list.getEntries().forEach(function(entry){if(!img||entry.element===img)run()})}).observe({type:img?"largest-contentful-paint":"paint",buffered:true})}catch(e){if(!img)requestAnimationFrame(function(){requestAnimationFrame(function(){setTimeout(run,100)})})}if(img){var soon=function(){setTimeout(run,600)};if(img.complete){soon()}else{img.addEventListener("load",soon,{once:true});img.addEventListener("error",run,{once:true})}}setTimeout(run,3000)}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",start)}else{start()}})()</script>`
+
+function runAppAfterFirstPaint(): Plugin {
+  return {
+    name: "run-app-after-first-paint",
+    apply: "build",
+    transformIndexHtml: {
+      order: "post",
+      handler(html) {
+        const tag = /<script type="module" crossorigin src="(\/assets\/main-[^"]+\.js)"><\/script>/
+        if (!tag.test(html)) throw new Error("run-app-after-first-paint: the app's module script was not found in index.html")
+        return html.replace(tag, (_match, src: string) => APP_LOADER(src))
+      },
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   base: "/",
-  plugins: [react()],
+  plugins: [react(), runAppAfterFirstPaint()],
   build: {
     cssCodeSplit: true,
     commonjsOptions: { include: [/node_modules/, /_(?:article-render|project-schema|unit-url)\.cjs$/] },

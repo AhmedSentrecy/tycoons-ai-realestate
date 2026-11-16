@@ -51,47 +51,18 @@ function WarRoomViewportGuard() {
   return null
 }
 
-function mountApp() {
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <BrowserRouter>
-        <WarRoomViewportGuard />
-        <VoiceSessionProvider>
-          <App />
-          <SalesWarRoomExtras />
-        </VoiceSessionProvider>
-      </BrowserRouter>
-    </StrictMode>,
-  )
-}
-
-// The HTML already holds the page's content (hero photo, headings, links). Let the browser
-// paint that first, then start React: otherwise React replaces it before it is ever shown and
-// the largest element only appears once all the JavaScript has run (slow LCP).
-// A hidden tab never paints, so there (and after a short wait at most) the app starts anyway.
-let mounted = false
-function mountOnce() {
-  if (mounted) return
-  mounted = true
-  mountApp()
-}
-// Two frames and a short pause: the browser only counts an element as painted once the frame
-// reaches the screen, and drops it if React removes it before that.
-function mountAfterPaint() {
-  requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(mountOnce, 60)))
-}
-if (document.visibilityState === 'visible' && document.getElementById('root')?.firstElementChild) {
-  // On the homepage, also wait for the pre-rendered hero photo, so it is what gets painted.
-  const heroPhoto = document.querySelector<HTMLImageElement>('.ssr-hero > img')
-  if (heroPhoto && !heroPhoto.complete) {
-    heroPhoto.addEventListener('load', mountAfterPaint, { once: true })
-    heroPhoto.addEventListener('error', mountOnce, { once: true })
-  } else {
-    mountAfterPaint()
-  }
-  setTimeout(mountOnce, 2500)
-} else {
-  mountOnce()
-}
+// The built page runs this file only after the pre-rendered HTML has been painted (see
+// runAppAfterFirstPaint in vite.config.ts), so React can take over right away.
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <WarRoomViewportGuard />
+      <VoiceSessionProvider>
+        <App />
+        <SalesWarRoomExtras />
+      </VoiceSessionProvider>
+    </BrowserRouter>
+  </StrictMode>,
+)
 
 void registerWebMcpTools()
