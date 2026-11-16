@@ -16,6 +16,7 @@
     var bar = walk.querySelector("[data-tsc-bar]"), caption = walk.querySelector("[data-tsc-caption]");
     var labels = shots.map(function (shot) { var c = shot.querySelector("figcaption"); return c && c.firstChild ? c.firstChild.textContent : ""; });
     var ticking = false, placed = false, last = -1;
+    var of = walk.getAttribute("data-of") || "/";
     function frame() {
       ticking = false;
       var vh = window.innerHeight, rect = walk.getBoundingClientRect(), total = rect.height - vh;
@@ -38,7 +39,7 @@
         shot.style.transform = "translate3d(" + (direction * side * near).toFixed(1) + "px,0," + z.toFixed(1) + "px) rotateY(" + (-direction * 14 * near).toFixed(2) + "deg)";
       }
       if (bar) bar.style.transform = "scaleX(" + progress.toFixed(4) + ")";
-      if (caption && nearest !== last) { last = nearest; caption.textContent = (nearest + 1) + " من " + shots.length + " · " + labels[nearest]; }
+      if (caption && nearest !== last) { last = nearest; caption.textContent = (nearest + 1) + " " + of + " " + shots.length + " · " + labels[nearest]; }
     }
     function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -67,7 +68,7 @@
         if (el) el.textContent = money(price * Number(part) / 100);
       });
       if (totalEl) totalEl.textContent = money(price * total / 100);
-      if (cta) cta.href = "https://wa.me/" + calc.getAttribute("data-whatsapp") + "?text=" + encodeURIComponent("أهلاً Tycoons، عايز جدول السداد لوحدة " + option.getAttribute("data-label") + " في " + calc.getAttribute("data-project") + " (سعر " + money(price) + " جنيه)");
+      if (cta) cta.href = "https://wa.me/" + calc.getAttribute("data-whatsapp") + "?text=" + encodeURIComponent((calc.getAttribute("data-message") || "").replace("{unit}", option.getAttribute("data-label")).replace("{price}", money(price)));
     }
     select.addEventListener("change", render);
     return function () { select.removeEventListener("change", render); };

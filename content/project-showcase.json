@@ -4,14 +4,39 @@
     "mountain-view-icity-october--mountain-view": {
       "name_ar": "ماونتن فيو آي سيتي أكتوبر",
       "walk": {
-        "photos": [1, 4, 2, 6, 7, 9],
+        "photos": [
+          1,
+          4,
+          2,
+          6,
+          7,
+          9
+        ],
         "stops": [
-          ["في السادس من أكتوبر", "ماونتن فيو آي سيتي أكتوبر"],
-          ["بحيرات ولاند سكيب", "أغلب الوحدات بتطل على خضرة أو مية"],
-          ["فيلات وبيوت", "آي فيلا، بارك فيلا، بيتش هاوس، ليك هاوس"],
-          ["شقق بمساحات مختلفة", "آي أبارتمنت، ميلينيال، سكاي لوفت"],
-          ["تاون هاوس وشوارع داخلية", "مجتمع متخطط من الأول"],
-          ["وحدات استلام فوري", "ومنها اللي لسه تحت الإنشاء"]
+          [
+            "في السادس من أكتوبر",
+            "ماونتن فيو آي سيتي أكتوبر"
+          ],
+          [
+            "بحيرات ولاند سكيب",
+            "أغلب الوحدات بتطل على خضرة أو مية"
+          ],
+          [
+            "فيلات وبيوت",
+            "آي فيلا، بارك فيلا، بيتش هاوس، ليك هاوس"
+          ],
+          [
+            "شقق بمساحات مختلفة",
+            "آي أبارتمنت، ميلينيال، سكاي لوفت"
+          ],
+          [
+            "تاون هاوس وشوارع داخلية",
+            "مجتمع متخطط من الأول"
+          ],
+          [
+            "وحدات استلام فوري",
+            "ومنها اللي لسه تحت الإنشاء"
+          ]
         ]
       },
       "offer": {
@@ -21,9 +46,18 @@
         "intro": "تلات طرق تدفع بيهم حسب السيولة اللي معاك. في نظامي العملاء الجدد فيه قسط شهري ودفعات مجمعة آخر كل سنة، وتفاصيلها في جدول السداد.",
         "first_payment_percent": 2,
         "down_payment_parts": [
-          ["أول دفعة", 2],
-          ["بعد 3 شهور", 2],
-          ["بعد 6 شهور", 2]
+          [
+            "أول دفعة",
+            2
+          ],
+          [
+            "بعد 3 شهور",
+            2
+          ],
+          [
+            "بعد 6 شهور",
+            2
+          ]
         ],
         "years": 14,
         "plans": [
@@ -33,24 +67,111 @@
             "big": "2%",
             "big_label": "أول دفعة",
             "best": true,
-            "items": ["2% كمان بعد 3 شهور، و2% بعد 6 شهور", "تقسيط لحد 14 سنة", "قسط شهري من 20 ألف جنيه"]
+            "items": [
+              "2% كمان بعد 3 شهور، و2% بعد 6 شهور",
+              "تقسيط لحد 14 سنة",
+              "قسط شهري من 20 ألف جنيه"
+            ]
           },
           {
             "tag": "خصم على السعر",
             "title": "عميل جديد: بخصم",
             "big": "15%",
             "big_label": "خصم",
-            "items": ["مقدم 5%، و5% بعد 3 شهور", "تقسيط لحد 12 سنة", "قسط شهري من 20 ألف جنيه"]
+            "items": [
+              "مقدم 5%، و5% بعد 3 شهور",
+              "تقسيط لحد 12 سنة",
+              "قسط شهري من 20 ألف جنيه"
+            ]
           },
           {
             "tag": "لملاك ماونتن فيو",
             "title": "عندك وحدة في ماونتن فيو؟",
             "big": "45%",
             "big_label": "خصم لحد",
-            "items": ["مقدم 10%", "تقسيط 6 سنين", "للملاك الحاليين بس"]
+            "items": [
+              "مقدم 10%",
+              "تقسيط 6 سنين",
+              "للملاك الحاليين بس"
+            ]
           }
         ],
         "note": "العرض ده من المطور وشروطه ممكن تتغير. الأرقام النهائية بتتأكد وقت الحجز."
+      },
+      "en": {
+        "name": "Mountain View iCity October",
+        "stops": [
+          [
+            "In Sixth of October City",
+            "Mountain View iCity October"
+          ],
+          [
+            "Lakes and landscaping",
+            "Most homes look onto greenery or water"
+          ],
+          [
+            "Villas and houses",
+            "iVilla, Park Villa, Beach House, Lake House"
+          ],
+          [
+            "Apartments in several sizes",
+            "iApartment, Millennial, Sky Loft"
+          ],
+          [
+            "Townhouses and inner streets",
+            "A community planned from the start"
+          ],
+          [
+            "Ready-to-move homes",
+            "Alongside homes still under construction"
+          ]
+        ],
+        "offer": {
+          "title": "Mountain View iCity October payment plans in the current offer",
+          "intro": "Three ways to pay, depending on the cash you have in hand. Both new-buyer plans combine a monthly instalment with a bulk payment at the end of each year; the home's payment schedule shows the details.",
+          "down_payment_labels": [
+            "First payment",
+            "After 3 months",
+            "After 6 months"
+          ],
+          "plans": [
+            {
+              "tag": "Lowest down payment",
+              "title": "New buyer: longest term",
+              "big": "2%",
+              "big_label": "first payment",
+              "best": true,
+              "items": [
+                "Another 2% after 3 months, and 2% after 6 months",
+                "Instalments over up to 14 years",
+                "Monthly instalment from EGP 20,000"
+              ]
+            },
+            {
+              "tag": "Price discount",
+              "title": "New buyer: with a discount",
+              "big": "15%",
+              "big_label": "discount",
+              "items": [
+                "5% down payment, and 5% after 3 months",
+                "Instalments over up to 12 years",
+                "Monthly instalment from EGP 20,000"
+              ]
+            },
+            {
+              "tag": "Mountain View owners",
+              "title": "Already own a Mountain View home?",
+              "big": "45%",
+              "big_label": "discount, up to",
+              "items": [
+                "10% down payment",
+                "Instalments over 6 years",
+                "For existing owners only"
+              ]
+            }
+          ],
+          "note": "This is the developer's offer and its terms can change. Final figures are confirmed when you book."
+        }
       }
     }
   }

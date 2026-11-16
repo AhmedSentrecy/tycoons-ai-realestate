@@ -99,6 +99,22 @@ const icityRows = rows.map((row, index) => ({
 }));
 const icityProjects = groupProjects(icityRows);
 const icity = renderProject(icityProjects, "mountain-view-icity-october--mountain-view", "ar");
+{
+  // English project page: same showcase block, in English, with the offer and calculator as page text.
+  const gallery = Array.from({ length: 11 }, (_, index) => `https://coqnjymekrkoausiiytm.supabase.co/storage/v1/object/public/property-images/x/p${index}.webp`);
+  const withPhotos = icityProjects.map((item) => ({ ...item, image_url: gallery[0], gallery_urls: gallery.slice(1).join(",") }));
+  const icityEn = renderProject(withPhotos, "mountain-view-icity-october--mountain-view", "en");
+  if (process.env.SHOWCASE_EN_OUT) fs.writeFileSync(process.env.SHOWCASE_EN_OUT, icityEn);
+  assert.match(icityEn, /<div class="tsc" dir="ltr" lang="en" data-showcase>/, "The English project page carries the showcase block");
+  assert.match(icityEn, /Mountain View iCity October payment plans in the current offer/, "English page: the offer's payment plans are a heading in the page");
+  assert.match(icityEn, /How much is the down payment at Mountain View iCity October\?/, "English page: the down-payment question is a heading in the page");
+  assert.equal((icityEn.match(/<article class="tsc-plan/g) || []).length, 3, "English page: three payment plans");
+  assert.match(icityEn, /<script src="\/showcase\.js" defer><\/script>/, "English page loads the walk-through script from the site itself");
+  const block = icityEn.slice(icityEn.indexOf('data-showcase>'), icityEn.indexOf('id="down-payment"') + 3000);
+  assert.doesNotMatch(block, /[؀-ۿ]/, "No Arabic text is left inside the English block");
+  assert.doesNotMatch(icityEn, /31 December|end of the year|until the end/i, "English page: the offer's end date is never printed");
+  assert.doesNotMatch(icity, /data-showcase/, "The server-rendered Arabic fallback does not repeat the block of the pre-rendered Arabic page");
+}
 const methodology = renderStaticPage("methodology");
 const about = renderStaticPage("about");
 {
