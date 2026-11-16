@@ -49,19 +49,24 @@ export default function Hero() {
   ];
 
   return (
-    <section className="relative min-h-[86svh] overflow-hidden">
-      <motion.img
-        src="/images/hero.webp"
-        alt={tr("فيلا فاخرة على الساحل الشمالي")}
-        width={1767}
-        height={1080}
-        decoding="async"
-        fetchPriority="high"
-        initial={{ scale: 1.12 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 2.2, ease }}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+    <section className="relative min-h-[86svh] overflow-hidden bg-[#08130e]">
+      {/* The photo box is never taller than 99svh, the exact size of the pre-rendered hero photo in
+          index.html (.ssr-hero > img). If this one were any larger, the browser would count it as
+          the page's largest element and LCP would wait for JavaScript again. The box also clips
+          the zoom-in so the first frame is not larger either. */}
+      <div className="absolute inset-x-0 top-0 h-full max-h-[99svh] overflow-hidden max-sm:[mask-image:linear-gradient(to_bottom,#000_80%,transparent)]">
+        <motion.img
+          src="/images/hero.webp"
+          alt={tr("فيلا فاخرة على الساحل الشمالي")}
+          width={1767}
+          height={1080}
+          fetchPriority="high"
+          initial={{ scale: 1.12 }}
+          animate={{ scale: 1 }}
+          transition={{ duration: 2.2, ease }}
+          className="h-full w-full object-cover"
+        />
+      </div>
       <div className="absolute inset-0 bg-gradient-to-b from-[#08130e]/70 via-[#08130e]/35 to-[#08130e]/85" />
       <div className="absolute inset-0 bg-gradient-to-l from-[#08130e]/45 to-transparent" />
 

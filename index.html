@@ -36,7 +36,8 @@
     <style>@font-face{font-family:'Alexandria';font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/alexandria-arabic-wght-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}@font-face{font-family:'Alexandria';font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/alexandria-latin-wght-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:'Alexandria';font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/alexandria-latin-ext-wght-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}/* Pre-rendered hero: the same photo and size as the React hero (src/sections/Hero.tsx), so the
        largest element paints from the HTML instead of waiting for JavaScript. */
     .ssr-hero{position:relative;min-height:99svh;overflow:hidden;background:#08130e;color:#fff}
-    .ssr-hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .ssr-hero>img{position:absolute;top:0;left:0;width:100%;height:99svh;object-fit:cover}
+    @media (max-width:639px){.ssr-hero>img{-webkit-mask-image:linear-gradient(to bottom,#000 80%,transparent);mask-image:linear-gradient(to bottom,#000 80%,transparent)}}
     .ssr-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(8,19,14,.7),rgba(8,19,14,.35),rgba(8,19,14,.85))}
     .ssr-hero>div{position:relative;z-index:1;max-width:72rem;margin:0 auto;padding:6rem 1.25rem 3.5rem}
     .ssr-hero h1{max-width:48rem;margin:0 0 1rem;font-size:32px;font-weight:800;line-height:1.25}
