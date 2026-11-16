@@ -1,3 +1,4 @@
+import { sizedImageProps } from "@/lib/images";
 import { tr, localeHref, isEnglish } from "@/lib/homeLanguage";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -96,7 +97,7 @@ export default function Projects() {
             {/* Image */}
             <div className="relative aspect-[16/10] overflow-hidden">
               <img
-                src={p.image}
+                {...sizedImageProps(p.image, 320)}
                 alt={p.title}
                 width={1012}
                 height={733}

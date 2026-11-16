@@ -16,6 +16,14 @@
   status = 301
   force = true
 
+# The search widget moved out of /assets/ (Nov 2026) so /assets/ can be cached for a year.
+# Pages still held in the CDN or a browser cache ask for the old address for a while.
+[[redirects]]
+  from = "/assets/search-widget.js"
+  to = "/widget/search-widget.js"
+  status = 301
+  force = true
+
 # Developer names unified in Supabase (Oct 2026): Hyde Park, Hydepark and Ora
 # variants now resolve to one developer page each. El Shorouk lost its Arabic suffix.
 [[redirects]]
@@ -557,6 +565,29 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
     Access-Control-Allow-Origin = "*"
+
+# Vite build output: every file name carries a content hash, so browsers can keep it for a
+# year. The one file with a fixed name (the search widget) lives in /widget/ instead.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/widget/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+# Site images keep their file names when replaced, so cache them for a day only.
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+# Netlify Image CDN may resize property photos stored in Supabase Storage
+# (see sizedImage in netlify/functions/_seo-utils.cjs and src/lib/images.ts).
+[images]
+  remote_images = ['https://coqnjymekrkoausiiytm\.supabase\.co/storage/v1/object/public/.*']
 
 [[headers]]
   for = "/.well-known/api-catalog"

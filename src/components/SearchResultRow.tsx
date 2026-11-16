@@ -1,3 +1,4 @@
+import { sizedImageProps } from "@/lib/images";
 import { Link } from "react-router";
 import { MessageCircle } from "lucide-react";
 import { fallbackImageFor } from "@/lib/inventory";
@@ -36,7 +37,7 @@ export default function SearchResultRow({ group, query, onNavigate }: Props) {
   return (
     <div className="flex items-center gap-3 border-b border-[#f1ead9] px-4 py-3 transition-colors hover:bg-[#f6f1e4]">
       <img
-        src={image}
+        {...sizedImageProps(image, 80)}
         alt={group.projectName}
         loading="lazy"
         width={74}

@@ -180,7 +180,10 @@ exports.handler = async function handler(event) {
         const project = projects.find((item) => item.slug === slug);
         if (project) attachPublishedGuides([project], recent, project.units?.length ? new Set([String(project.id)]) : new Set());
         const article = recent.find((item) => !isProjectGuideArticle(item)) || null;
-        html = hasCanonicalProject ? renderProject(projects, slug, lang, article) : null;
+        // A project row saved without a slug still has live units grouped under a slug built from
+        // its name. The directory links that slug, so render it instead of returning a 404.
+        const hasListedUnits = Boolean(project && project.units?.length);
+        html = hasCanonicalProject || hasListedUnits ? renderProject(projects, slug, lang, article) : null;
       }
       if (type === "unit") {
         // Legacy /units/<uuid> and outdated words 301 to the one readable URL.
@@ -197,11 +200,11 @@ exports.handler = async function handler(event) {
       if (apartmentsRoute) {
         html = renderApartments(projects, apartmentsRoute[1], lang);
       } else if (type === "area") {
-        const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
+        const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type,published_at", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
         html = renderCollection(projects, "area", slug, lang, guides);
       }
       if (type === "developer") {
-        const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
+        const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type,published_at", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
         html = renderCollection(projects, "developer", slug, lang, guides);
       }
     }

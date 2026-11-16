@@ -1,3 +1,4 @@
+import { sizedImage } from "@/lib/images";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import {
@@ -214,7 +215,7 @@ function ProjectGallery({
             />
           ) : (
             <img
-              src={current.src}
+              src={sizedImage(current.src, 1200)}
               alt={`${name} — صورة ${index + 1}`}
               className="h-full w-full object-contain"
               fetchPriority={index === 0 ? "high" : "auto"}
