@@ -1,6 +1,7 @@
 "use strict";
 
 const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, countAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr, availableAr, deliveryInAr } = require("./_display-text.cjs");
+const { imgSrcAttrs, heroSrcAttrs } = require("./_images.cjs");
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent, hasOwnWrittenGuide, isProjectGuideArticle } = require("./_localized-project-content.cjs");
 // Arabic H1/title for the top projects (audit SEO-07); shared with the static and React pages.
 const PROJECT_NAMES_AR = require("../../src/content/project-names-ar.json").projects;
@@ -1056,7 +1057,7 @@ function siteHeader(lang, path = "/", arHref = "", enHref = "") {
 <a class="logo" href="${ar ? "/" : "/en/"}" aria-label="Tycoons Investments"><span class="badge"><img src="/images/logo-badge-gold.png" alt="" width="24" height="24"></span><span><b>TYCOONS</b><small>INVESTMENTS</small></span></a>
 <nav class="nav" aria-label="${ar ? "القائمة الرئيسية" : "Main menu"}">${nav}</nav>
 <div class="acts"><span class="lang" aria-label="${ar ? "اختيار اللغة" : "Choose language"}"><a href="${escapeHtml(arLink)}" lang="ar"${ar ? ' aria-current="page"' : ""}>عربي</a><a href="${escapeHtml(enLink)}" lang="en"${ar ? "" : ' aria-current="page"'}>EN</a></span>
-<a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>${ar ? "واتساب" : "WhatsApp"}</span></a>
+<a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener" aria-label="${ar ? "تواصل على واتساب" : "Chat on WhatsApp"}">${WA_ICON}<span>${ar ? "واتساب" : "WhatsApp"}</span></a>
 <details class="menu"><summary aria-label="${ar ? "القائمة" : "Menu"}">☰</summary><div>${nav}</div></details></div>
 </div></header>`;
 }
@@ -1081,6 +1082,7 @@ function renderPage({
 <html lang="${lang}" dir="${ar ? "rtl" : "ltr"}"><head>${GA4_TAG}
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/png" href="/images/logo.png">
+<link rel="preconnect" href="${SUPABASE_URL}" crossorigin>
 <title>${escapeHtml(title)}</title>
 <meta name="description" content="${escapeHtml(description)}"><meta name="robots" content="${robots}">
 <link rel="canonical" href="${escapeHtml(canonical)}">
@@ -1103,7 +1105,7 @@ ${siteHeader(lang, path, ar ? canonical : alternate, ar ? alternate : canonical)
 <footer><strong>Tycoons Investments</strong><p>${ar ? "بيانات الأسعار والتوفر استرشادية ويتم تأكيدها وقت الطلب. العوائد تقديرية وليست ضمانًا." : "Prices and availability are indicative and reconfirmed on request. Returns are estimates, not guarantees."}</p>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
 <a href="/corrections">${ar ? "سياسة التصحيح" : "Corrections"}</a>
-<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer>${String(body).includes("data-tycoons-search") ? '<script type="module" src="/assets/search-widget.js"></script>' : ""}<script src="/wa-track.js" defer></script><script src="/voice-cta.js" defer></script></body></html>`;
+<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer>${String(body).includes("data-tycoons-search") ? '<script type="module" src="/widget/search-widget.js"></script>' : ""}<script src="/wa-track.js" defer></script><script src="/voice-cta.js" defer></script><script src="/img-fallback.js" defer></script></body></html>`;
 }
 
 function cards(projects, lang) {
@@ -1113,7 +1115,7 @@ function cards(projects, lang) {
       const image = projectImage(project);
       const projectPath = ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`;
       return `<a class="card" href="${projectPath}">
-      ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(project.name)}" loading="lazy" width="640" height="360">` : ""}
+      ${image ? `<img ${imgSrcAttrs(image, 640)} alt="${escapeHtml(project.name)}" loading="lazy" decoding="async" width="640" height="360">` : ""}
       ${logoBadge(projectLogo(project))}
       <h3>${escapeHtml(project.name)}</h3><p>${escapeHtml(project.developer)} · ${escapeHtml(projectLocation(project))}</p>
       <strong>${ar ? "يبدأ من" : "Starting from"} ${escapeHtml(formatPrice(projectMinPrice(project), lang))}</strong></a>`;
@@ -1241,14 +1243,14 @@ function projectCardHtml(project, lang) {
   const ready = /استلام فوري|Ready/.test(tag);
   const message = encodeURIComponent(`${ar ? "أهلاً Tycoons، مهتم بمشروع" : "Hello Tycoons, I am interested in"} ${project.name}\n${SITE_URL}${href}`);
   return `<article class="pcard" data-area="${escapeHtml(area.slug)}" data-types="${cats.join(" ")}"${ready ? " data-ready" : ""}${min && min < 10000000 ? " data-u10" : ""}>
-<div class="pimg"><a href="${href}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(projectImage(project))}" alt="${escapeHtml(`${project.name} — ${ar ? area.ar : area.en}`)}" loading="lazy" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
+<div class="pimg"><a href="${href}" tabindex="-1" aria-hidden="true"><img ${imgSrcAttrs(projectImage(project), 400)} alt="${escapeHtml(`${project.name} — ${ar ? area.ar : area.en}`)}" loading="lazy" decoding="async" width="400" height="190"></a>${tag ? `<span class="tag">${escapeHtml(tag)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
 <div class="pbody"><h3><a href="${href}">${escapeHtml((ar && arabicProjectName(project.slug)) || project.name)}</a></h3><p class="ploc">${escapeHtml(area.indexable ? (ar ? area.ar : area.en) : projectLocation(project))} · ${escapeHtml(devDisplayName(project.developer, lang))}</p>
 <p class="pprice">${min ? `${ar ? "يبدأ من" : "From"} <b>${escapeHtml(new Intl.NumberFormat("en-EG").format(min))}</b> ${ar ? "ج.م" : "EGP"}` : (ar ? "السعر عند الطلب" : "Price on request")}</p>
 <div class="pmeta">${cats.slice(0, 3).map((cat) => `<span>${CATEGORY_LABEL[cat][ar ? 0 : 1]}</span>`).join("")}<span>${ar ? `${unitsAr(project.units.length)} ${availableAr(project.units.length)}` : `${project.units.length} ${project.units.length === 1 ? "unit" : "units"} available`}</span></div>
 <div class="pcta"><a class="go" href="${href}">${ar ? "الوحدات والأسعار" : "Units & prices"}</a><a class="w" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" rel="noopener">${ar ? "واتساب" : "WhatsApp"}</a></div></div></article>`;
 }
 
-// Server-rendered search box (works without JavaScript). /assets/search-widget.js
+// Server-rendered search box (works without JavaScript). /widget/search-widget.js
 // upgrades it in place to the homepage's AI search bar with the voice agent.
 function searchMount(lang, placeholder = "") {
   const ar = lang === "ar";
@@ -1503,7 +1505,7 @@ function renderDirectory(allProjects, lang, articles = []) {
     const top = [...entry.projects].sort((a, b) => b.units.length - a.units.length).find((project) => clean(project.image_url, ""));
     return top ? projectImage(top) : projectImage(entry.projects[0]);
   };
-  const areaCards = areaList.map((entry) => `<a class="area" href="/${lang}/areas/${entry.area.slug}"><img src="${escapeHtml(areaImage(entry))}" alt="${escapeHtml(ar ? entry.area.ar : entry.area.en)}" loading="lazy" width="400" height="190"><div><h3>${escapeHtml(ar ? entry.area.ar : entry.area.en)}</h3><span>${ar ? projectsAr(entry.projects.length) : `${entry.projects.length} projects`}${entry.min ? ` · ${ar ? "من" : "from"} ${escapeHtml(formatPrice(entry.min, lang))}` : ""}</span></div></a>`).join("");
+  const areaCards = areaList.map((entry) => `<a class="area" href="/${lang}/areas/${entry.area.slug}"><img ${imgSrcAttrs(areaImage(entry), 400)} alt="${escapeHtml(ar ? entry.area.ar : entry.area.en)}" loading="lazy" decoding="async" width="400" height="190"><div><h3>${escapeHtml(ar ? entry.area.ar : entry.area.en)}</h3><span>${ar ? projectsAr(entry.projects.length) : `${entry.projects.length} projects`}${entry.min ? ` · ${ar ? "من" : "from"} ${escapeHtml(formatPrice(entry.min, lang))}` : ""}</span></div></a>`).join("");
   const otherAreaChips = [...new Set(otherAreas.values())].filter(Boolean).slice(0, 10);
 
   // Developers: every company once (name variants merged), best-known first, logo or initials.
@@ -1654,7 +1656,7 @@ function renderProject(projects, slug, lang, article = null) {
   const visibleProjectFaq = localizedContent?.article_sections?.some((section) => /أسئلة شائعة|frequently asked|\bfaq\b/i.test(String(section.heading || ""))) ? [] : projectFaq;
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
   <section class="hero">${logoBadge(projectLogo(project), 40)}<span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(location)}</span><h1>${escapeHtml(localizedContent?.h1 || (ar && PROJECT_NAMES_AR[project.slug]?.h1) || project.name)}</h1><p class="lead">${escapeHtml(description)}</p>
-  ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:contain;background:#0d1f18;border-radius:20px" fetchpriority="high">` : ""}
+  ${image ? `<img ${heroSrcAttrs(image, 960)} alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:contain;background:#0d1f18;border-radius:20px" fetchpriority="high">` : ""}
   <div class="facts">${hasUnits ? `<div class="fact"><small>${ar ? "يبدأ من" : "Starting from"}</small><strong>${escapeHtml(formatPrice(minPrice, lang))}</strong></div>
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
   <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.medianSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Median price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.medianSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
@@ -2002,9 +2004,14 @@ function renderCollection(projects, kind, slug, lang, guides = []) {
   const matchIds = new Set(matches.map((project) => String(project.id || "")).filter(Boolean));
   const areaGuides = (Array.isArray(guides) ? guides : []).filter((guide) => guide && guide.slug && guide.title
     && ((guide.project_id && matchIds.has(String(guide.project_id))) || (kind === "area" && guide.target_type === "area" && areaFor(guide.area_name || "").slug === slug))).slice(0, 12);
+  // The newest Arabic guide of a project is shown in full on the project page and its
+  // /guides/ URL 301s there, so link the project page directly instead of the redirect.
+  const embeddedGuides = ar
+    ? embeddedGuidePaths(guides, projects, new Set(projects.filter((project) => (project.units || []).length && project.id).map((project) => String(project.id))))
+    : new Map();
   // Articles written in the admin for these projects, as cards right under the projects.
   const areaGuidesHtml = areaGuides.length
-    ? `<div class="sh" id="guides"><div><h2>${ar ? `مقالات عن ${kind === "developer" ? "مشاريع " : ""}${escapeHtml(label)}` : `Guides about ${escapeHtml(label)}${kind === "developer" ? " projects" : ""}`}</h2><p>${ar ? "أسعار وأنظمة سداد وتفاصيل كل مشروع — مراجَعة قبل النشر" : "Prices, payment plans and project details — reviewed before publishing"}</p></div></div><div class="guides3">${areaGuides.map((guide) => `<a class="g3" href="${escapeHtml(editorialGuidePath(guide))}"><small>${ar ? "دليل" : "Guide"}</small><h3>${escapeHtml(guide.title)}</h3></a>`).join("")}</div>`
+    ? `<div class="sh" id="guides"><div><h2>${ar ? `مقالات عن ${kind === "developer" ? "مشاريع " : ""}${escapeHtml(label)}` : `Guides about ${escapeHtml(label)}${kind === "developer" ? " projects" : ""}`}</h2><p>${ar ? "أسعار وأنظمة سداد وتفاصيل كل مشروع — مراجَعة قبل النشر" : "Prices, payment plans and project details — reviewed before publishing"}</p></div></div><div class="guides3">${areaGuides.map((guide) => `<a class="g3" href="${escapeHtml(embeddedGuides.get(guide.slug) || editorialGuidePath(guide))}"><small>${ar ? "دليل" : "Guide"}</small><h3>${escapeHtml(guide.title)}</h3></a>`).join("")}</div>`
     : "";
   const projectUnitCount = matches.reduce((total, project) => total + project.units.length, 0);
   const branches = kind === "area"
@@ -2295,7 +2302,7 @@ function renderApartments(projects, areaSlug, lang = "ar") {
     const image = String(unit.image_url || "").split(",")[0].trim() || projectImage(project);
     const message = encodeURIComponent(`أهلاً Tycoons، مهتم بـ ${label}\n${SITE_URL}${href}`);
     return `<article class="pcard"${delivery === "استلام فوري" ? " data-ready" : ""}>
-<div class="pimg"><a href="${escapeHtml(href)}" tabindex="-1" aria-hidden="true"><img src="${escapeHtml(image)}" alt="${escapeHtml(`${label} — ${area.ar}`)}" loading="lazy" width="400" height="190"></a>${delivery ? `<span class="tag">${escapeHtml(delivery)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
+<div class="pimg"><a href="${escapeHtml(href)}" tabindex="-1" aria-hidden="true"><img ${imgSrcAttrs(image, 400)} alt="${escapeHtml(`${label} — ${area.ar}`)}" loading="lazy" decoding="async" width="400" height="190"></a>${delivery ? `<span class="tag">${escapeHtml(delivery)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
 <div class="pbody"><h3><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></h3><p class="ploc">${escapeHtml(area.ar)} · ${escapeHtml(devDisplayName(project.developer, "ar"))}</p>
 <p class="pprice">يبدأ من <b>${escapeHtml(fmtNum(unit.starting_price))}</b> ج.م${pricePerSqm(unit) ? ` · ${escapeHtml(fmtNum(pricePerSqm(unit)))} ج.م/م²` : ""}</p>
 <div class="pmeta">${down !== null && down > 0 ? `<span>مقدم ${escapeHtml(String(down))}%</span>` : ""}${yrs ? `<span>تقسيط ${escapeHtml(yearsAr(yrs))}</span>` : ""}<span><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(project.name)}</a></span></div>
@@ -2757,7 +2764,7 @@ function renderStaticPage(type) {
     contact: {
       title: "تواصل مع Tycoons Investments",
       description: "تواصل مع فريق Tycoons Investments للاستفسار عن أحدث الأسعار والتوفر وخطط السداد.",
-      body: `<h1>تواصل مع Tycoons Investments</h1><div class="answer">لأحدث الأسعار والتوفر وخطط السداد، تواصل مباشرة على واتساب. نخدم العملاء بالعربي والإنجليزي داخل مصر.</div><p><a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}">واتساب +20 111 010 0025</a></p><h2>بيانات النشر</h2><p>الاسم المستخدم على الموقع والسوشيال: Tycoons Investments / تايكونز للاستثمار العقاري.</p><p>العنوان وساعات العمل سيتم إضافتهما بعد اعتماد البيانات الرسمية، لذلك لا ننشر بيانات غير مؤكدة.</p>`,
+      body: `<h1>تواصل مع Tycoons Investments</h1><div class="answer">لأحدث الأسعار والتوفر وخطط السداد، تواصل مباشرة على واتساب. نخدم العملاء بالعربي والإنجليزي داخل مصر.</div><p><a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}">واتساب +20 111 010 0025</a></p><h2>بيانات النشر</h2><p>الاسم المستخدم على الموقع والسوشيال: Tycoons Investments / تايكونز للاستثمار العقاري.</p><h2>العنوان</h2><p>المكتب: Hyde Park Business District، مكتب 14، التجمع الخامس، القاهرة الجديدة.</p><p>للزيارة، نسّق معانا على واتساب الأول علشان نجهزلك المشاريع اللي تهمك.</p>`,
     },
   };
   const page = pages[type];

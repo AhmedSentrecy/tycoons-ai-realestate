@@ -43,7 +43,7 @@ module.exports = function englishHome(shell) {
     .replace(/(<meta\s+(?:name|property)="(?:og:title|twitter:title)"\s+content=")[^"]*("\s*\/?>)/g, `$1${TITLE}$2`)
     .replace(/(<link rel="canonical" href=")[^"]+/, '$1https://tycoons-inv.com/en/')
     .replace(/(<meta property="og:url" content=")[^"]+/, '$1https://tycoons-inv.com/en/')
-    .replace('content="ar_EG"', 'content="en_GB"')
+    .replace('content="ar_EG"', 'content="en_US"')
     .replace(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g, (full, json) => JSON.parse(json)["@type"] === "FAQPage" ? "" : full)
     .replace(/<div id="root">[\s\S]*?<\/main>\s*<\/div>/, ENGLISH_CONTENT);
 };

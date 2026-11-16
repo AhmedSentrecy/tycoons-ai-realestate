@@ -368,8 +368,12 @@ assert.match(
   /from = "\/en\/guides\/payment-plan-comparison"\s+to = "\/\.netlify\/functions\/seo-page\?lang=en&type=guide&slug=payment-plan-comparison"\s+status = 200/,
   "The slashless English canonical variant must rewrite directly; redirecting it to a slash loops on Netlify",
 );
-assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/ar\/"/, "The voice-search homepage points Google to /ar/, the main Arabic homepage");
+assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/, "The voice-search homepage is self-canonical: its content differs from /ar/, so Google indexed it separately anyway");
+assert.match(index, /hreflang="en" href="https:\/\/tycoons-inv\.com\/en\/"/, "The voice-search homepage declares its English twin");
+assert.match(netlify, /from = "\/assets\/search-widget\.js"\s+to = "\/widget\/search-widget\.js"\s+status = 301/, "The old search widget address must redirect to the new one for cached pages");
 assert.match(index, /<script src="\/voice-cta\.js" defer><\/script>/, "Every page loads the sitewide voice button");
+assert.match(index, /<script src="\/img-fallback\.js" defer><\/script>/, "Every page loads the photo fallback, so a failed resize never leaves an empty image box");
+assert.ok(fs.existsSync(path.join(root, "public/img-fallback.js")), "The photo fallback script must ship with the site");
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>ابحث بصوتك/);
 const lead = homeSeo.match(/HOME_H1_LEAD = "([^"]+)"/)?.[1];

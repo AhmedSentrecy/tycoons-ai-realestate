@@ -1,3 +1,4 @@
+import { sizedImageProps } from "@/lib/images";
 import { Link } from "react-router";
 import { MessageCircle } from "lucide-react";
 import { fallbackImageFor } from "@/lib/inventory";
@@ -49,7 +50,7 @@ export default function ProjectResultCard({ group, query }: Props) {
   return (
     <article className="overflow-hidden rounded-2xl border border-[#e7ddc8] bg-white">
       <div className="relative h-[125px] bg-gradient-to-br from-[#2a4a3a] to-[#0d1f18]">
-        <img src={image} alt={group.projectName} loading="lazy" className="h-full w-full object-cover" />
+        <img {...sizedImageProps(image, 400)} alt={group.projectName} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         <span
           className={`absolute right-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold ${
             group.exact ? "bg-[#d3f5e2] text-[#0b6b3a]" : "bg-[#fdeeca] text-[#8a6a1f]"

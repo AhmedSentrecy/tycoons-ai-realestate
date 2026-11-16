@@ -1,7 +1,7 @@
 // Search widget for server-rendered pages (areas, developers, project directory).
 // It upgrades every `[data-tycoons-search]` box into the homepage AI search bar with the
 // voice agent. Rendered inside a shadow root so the site's Tailwind styles and the
-// server page's own CSS never leak into each other. Built to /assets/search-widget.js.
+// server page's own CSS never leak into each other. Built to /widget/search-widget.js.
 import { StrictMode, useCallback, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router";

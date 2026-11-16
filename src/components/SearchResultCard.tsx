@@ -1,3 +1,4 @@
+import { sizedImageProps } from "@/lib/images";
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 import {
@@ -73,7 +74,7 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
         onTouchEnd={(event) => finishSwipe(event.changedTouches[0]?.clientX ?? 0)}
       >
         <img
-          src={images[imageIndex]}
+          {...sizedImageProps(images[imageIndex], 480)}
           alt={`${unit.project_name} ${unit.unit_type}`}
           className="h-full w-full object-cover"
           loading="lazy"

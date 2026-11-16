@@ -16,6 +16,14 @@
   status = 301
   force = true
 
+# The search widget moved out of /assets/ (Nov 2026) so /assets/ can be cached for a year.
+# Pages still held in the CDN or a browser cache ask for the old address for a while.
+[[redirects]]
+  from = "/assets/search-widget.js"
+  to = "/widget/search-widget.js"
+  status = 301
+  force = true
+
 # Developer names unified in Supabase (Oct 2026): Hyde Park, Hydepark and Ora
 # variants now resolve to one developer page each. El Shorouk lost its Arabic suffix.
 [[redirects]]
@@ -535,10 +543,10 @@
     # WebMCP origin trial (first-party, subdomain matching). Sent on every path
     # so it covers all three render paths: the SPA shell, the build-time static
     # pages, and the Netlify function SSR pages.
-    # EXPIRES 2026-11-17 — renew at https://developer.chrome.com/origintrials
+    # EXPIRES 2027-03-30 — renew at https://developer.chrome.com/origintrials
     # The trial itself ends at Chrome 156; after that this header is dead weight
     # and the tools work (or don't) on the shipped API instead.
-    Origin-Trial = "AmpXSEf7Y8P74TL7LNDacHR1HCFqxWD8b+1Xcpu6qGauLOjANuz1I4fpiDLBAJayEjVj5IcYSStodi0/o8xAFwwAAABieyJvcmlnaW4iOiJodHRwczovL3R5Y29vbnMtaW52LmNvbTo0NDMiLCJmZWF0dXJlIjoiV2ViTUNQIiwiZXhwaXJ5IjoxNzk0ODczNjAwLCJpc1N1YmRvbWFpbiI6dHJ1ZX0="
+    Origin-Trial = "Aijg/5GsGMOPOm09DrZhZ/ye5e+L30rxgh+srQxn+7EaYIp6U/naGOU3HKo/aCdLVZ6UIOcqA7zwQ5EK0ZQh0gcAAABieyJvcmlnaW4iOiJodHRwczovL3R5Y29vbnMtaW52LmNvbTo0NDMiLCJmZWF0dXJlIjoiV2ViTUNQIiwiZXhwaXJ5IjoxODA2MzY0ODAwLCJpc1N1YmRvbWFpbiI6dHJ1ZX0="
 
 [[headers]]
   for = "/"
@@ -557,6 +565,29 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
     Access-Control-Allow-Origin = "*"
+
+# Vite build output: every file name carries a content hash, so browsers can keep it for a
+# year. The one file with a fixed name (the search widget) lives in /widget/ instead.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/widget/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300, must-revalidate"
+
+# Site images keep their file names when replaced, so cache them for a day only.
+[[headers]]
+  for = "/images/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=604800"
+
+# Netlify Image CDN may resize property photos stored in Supabase Storage
+# (see sizedImage in netlify/functions/_seo-utils.cjs and src/lib/images.ts).
+[images]
+  remote_images = ['https://coqnjymekrkoausiiytm\.supabase\.co/storage/v1/object/public/.*']
 
 [[headers]]
   for = "/.well-known/api-catalog"
