@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { showcaseHtml, type ShowcaseUnit } from "../../netlify/functions/_project-showcase.cjs";
 
 declare global {
@@ -16,10 +16,15 @@ export default function ProjectShowcase({ slug, images, units }: { slug: string;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const html = useMemo(() => showcaseHtml({ slug, images, units }), [slug, imagesKey, unitsKey]);
 
-  useEffect(() => {
+  // The markup is written here, once per change, instead of through dangerouslySetInnerHTML:
+  // React writes that prop again on every render of the page, which threw away the block the
+  // script had already set up and made the page jump while it was being scrolled.
+  useLayoutEffect(() => {
     const host = ref.current;
-    const root = host?.querySelector("[data-showcase]");
-    if (!html || !root) return;
+    if (!host) return;
+    host.innerHTML = html;
+    const root = host.querySelector("[data-showcase]");
+    if (!root) return;
     let stop: (() => void) | undefined;
     let cancelled = false;
     const start = () => { if (!cancelled && window.TycoonsShowcase) stop = window.TycoonsShowcase.init(root); };
@@ -39,5 +44,5 @@ export default function ProjectShowcase({ slug, images, units }: { slug: string;
   }, [html]);
 
   if (!html) return null;
-  return <div ref={ref} dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div ref={ref} />;
 }
