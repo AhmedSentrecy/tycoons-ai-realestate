@@ -6,7 +6,6 @@ const TITLE = "New Cairo, North Coast & New Capital Properties | Prices 2026";
 const DESCRIPTION = "Compare 240+ projects in New Cairo, Mostakbal City, the North Coast and Sheikh Zayed: prices per m², payment plans from 5% down and ready units.";
 const ENGLISH_CONTENT = `<div id="root"><main>
   <section class="ssr-hero" aria-labelledby="home-title">
-    <img src="/images/hero.webp" width="1767" height="1080" alt="Explore residential properties in Egypt" fetchpriority="high"/>
     <div>
     <h1 id="home-title">Tell us what you have in mind. Find the property that fits.</h1>
     <p>${DESCRIPTION} Tycoons helps homebuyers compare Egyptian residential projects by location, developer, unit type, size, finishing, delivery and payment plan instead of relying on an advertised starting price alone.</p>
@@ -48,6 +47,7 @@ module.exports = function englishHome(shell) {
     .replace(/(<link rel="canonical" href=")[^"]+/, '$1https://tycoons-inv.com/en/')
     .replace(/(<meta property="og:url" content=")[^"]+/, '$1https://tycoons-inv.com/en/')
     .replace('content="ar_EG"', 'content="en_US"')
+    .replace(/(<div id="ssr-hero-photo"><img [^>]*alt=")[^"]*/, '$1Explore residential properties in Egypt')
     .replace(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g, (full, json) => JSON.parse(json)["@type"] === "FAQPage" ? "" : full)
     .replace(/<div id="root">[\s\S]*?<\/main>\s*<\/div>/, ENGLISH_CONTENT);
 };

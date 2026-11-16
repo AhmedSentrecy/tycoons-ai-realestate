@@ -43,6 +43,8 @@ function pageShell(shell, { title: rawTitle, description, canonical, image, keyw
   ].filter(Boolean).join("\n    ");
   html = html.replace("</head>", `    ${head}\n  </head>`);
 
+  // The homepage's hero photo sits outside #root (see index.html); other pages do not use it.
+  html = html.replace(/<div id="ssr-hero-photo">[\s\S]*?<\/div>\s*<script data-hero-photo>[\s\S]*?<\/script>\s*/, "");
   const rootStart = html.indexOf('<div id="root">');
   const bodyEnd = html.lastIndexOf("</body>");
   if (rootStart < 0 || bodyEnd < 0) throw new Error("Vite shell is missing the root or body end");

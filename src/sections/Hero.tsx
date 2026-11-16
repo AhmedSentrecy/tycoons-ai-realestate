@@ -41,6 +41,27 @@ const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function Hero() {
   const { stats } = useInventory();
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // The pre-rendered hero photo (#ssr-hero-photo in index.html) stays in the page under this
+  // section, because removing it would move the browser's "largest element" to the photo below
+  // and LCP would wait for JavaScript. This section covers it; keep it no taller than the
+  // section, and hide it when the visitor leaves the homepage.
+  useEffect(() => {
+    const photo = document.getElementById("ssr-hero-photo");
+    const section = sectionRef.current;
+    if (!photo || !section) return;
+    photo.style.display = "";
+    const fit = () => { photo.style.height = `${Math.min(section.offsetHeight, photo.firstElementChild instanceof HTMLElement ? photo.firstElementChild.offsetHeight : section.offsetHeight)}px`; };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(section);
+    return () => {
+      observer.disconnect();
+      photo.style.display = "none";
+    };
+  }, []);
+
   const liveStats = [
     { value: stats.units, suffix: "+", label: tr("وحدة متاحة") },
     { value: stats.projects, suffix: "", label: tr("مشروع") },
@@ -49,9 +70,9 @@ export default function Hero() {
   ];
 
   return (
-    <section className="relative min-h-[86svh] overflow-hidden bg-[#08130e]">
+    <section ref={sectionRef} className="relative min-h-[86svh] overflow-hidden bg-[#08130e]">
       {/* The photo box is never taller than 90svh, a little less than the pre-rendered hero photo in
-          index.html (.ssr-hero > img, 92svh). If this one were larger, the browser would count it
+          index.html (#ssr-hero-photo, 92svh). If this one were larger, the browser would count it
           as the page's largest element and LCP would wait for JavaScript again. The box also
           clips the zoom-in so the first frame is not larger either. */}
       <div className="absolute inset-x-0 top-0 h-full max-h-[90svh] overflow-hidden">
