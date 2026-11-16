@@ -54,7 +54,7 @@ export default function Hero() {
           index.html (.ssr-hero > img, 92svh). If this one were larger, the browser would count it
           as the page's largest element and LCP would wait for JavaScript again. The box also
           clips the zoom-in so the first frame is not larger either. */}
-      <div className="absolute inset-x-0 top-0 h-full max-h-[90svh] overflow-hidden max-sm:[mask-image:linear-gradient(to_bottom,#000_80%,transparent)]">
+      <div className="absolute inset-x-0 top-0 h-full max-h-[90svh] overflow-hidden">
         <motion.img
           src="/images/hero.webp"
           alt={tr("فيلا فاخرة على الساحل الشمالي")}
@@ -66,6 +66,9 @@ export default function Hero() {
           transition={{ duration: 2.2, ease }}
           className="h-full w-full object-cover"
         />
+        {/* Fades the photo's lower edge into the section background where the hero is taller
+            than the photo box (phones). */}
+        <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-b from-[#08130e]/0 to-[#08130e]" />
       </div>
       <div className="absolute inset-0 bg-gradient-to-b from-[#08130e]/70 via-[#08130e]/35 to-[#08130e]/85" />
       <div className="absolute inset-0 bg-gradient-to-l from-[#08130e]/45 to-transparent" />

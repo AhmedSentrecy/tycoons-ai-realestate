@@ -379,6 +379,7 @@ assert.match(index, /<h1>ابحث بصوتك/);
 assert.match(index, /<section class="ssr-hero">\s*<img src="\/images\/hero\.webp"[^>]*fetchpriority="high"/, "The homepage HTML holds the hero photo itself, so the largest element paints before JavaScript runs");
 assert.match(index, /\.ssr-hero\{position:relative;min-height:92svh;/, "The pre-rendered hero is as tall as its photo (92svh)");
 assert.match(index, /\.ssr-hero>img\{position:absolute;top:0;left:0;width:100%;height:92svh;/, "The pre-rendered hero photo is 92svh tall: under the full screen height, above the React photo");
+assert.doesNotMatch(index, /\.ssr-hero>img\{[^}]*mask-image/, "No mask-image on the pre-rendered hero photo: newer Chrome leaves a masked image out as the largest element");
 assert.match(hero, /max-h-\[90svh\] overflow-hidden/, "The React hero photo (90svh at most) is never larger than the pre-rendered one (92svh), or it becomes the largest element and LCP waits for JavaScript");
 assert.match(fs.readFileSync(path.join(root, "vite.config.ts"), "utf8"), /plugins: \[react\(\), runAppAfterFirstPaint\(\)\]/, "The built page runs the app only after the first paint, so the pre-rendered page (and its hero photo) is shown first");
 assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "utf8"), /host\.style\.minHeight/, "The search box keeps its height while it is upgraded, so the page below does not jump");
