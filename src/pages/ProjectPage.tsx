@@ -30,6 +30,7 @@ import {
   type ProjectContentSegment,
 } from "@/lib/projectPages";
 import { arabicField, downPaymentAr, yearsAr } from "@/lib/arabicFields";
+import { bookingLabel } from "@/lib/booking";
 import { areaFor } from "@/lib/unitContent";
 
 import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs";
@@ -847,6 +848,7 @@ export default function ProjectPage() {
                       </p>
                       {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
                       {unit.down_payment_text ? <p className="mt-2 text-sm text-[#5c6a62]">{downPaymentAr(unit.down_payment_text)}</p> : null}
+                      {bookingLabel(unit.starting_price, unit.down_payment_text) ? <p className="mt-1 text-sm font-bold text-[#14733c]">{bookingLabel(unit.starting_price, unit.down_payment_text)}</p> : null}
                       <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                         اعرض المقدم والقسط
                         <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
@@ -917,6 +919,7 @@ export default function ProjectPage() {
                   </p>
                   {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
                   <p className="mt-2 text-sm text-[#5c6a62]">{downPaymentAr(unit.down_payment_text)}</p>
+                  {bookingLabel(unit.starting_price, unit.down_payment_text) ? <p className="mt-1 text-sm font-bold text-[#14733c]">{bookingLabel(unit.starting_price, unit.down_payment_text)}</p> : null}
                     <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
                       اعرض المقدم والقسط
                       <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
