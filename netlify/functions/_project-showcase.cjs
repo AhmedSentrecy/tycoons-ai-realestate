@@ -4,8 +4,9 @@
 // developer's current offer, and a down-payment calculator. One builder for the pre-rendered
 // page (scripts/lib/data-pages.cjs) and the browser page (src/pages/ProjectPage.tsx), so both
 // show the same thing. Which projects get it, and the offer terms, live in
-// content/project-showcase.json. /showcase.js adds the movement; without it (or with "reduce
-// motion") the photos are a plain strip and everything else reads the same.
+// content/project-showcase.json. The walk-through takes its full scroll length from CSS alone, so
+// the page below never moves when /showcase.js arrives; the script only moves the photos. With
+// "reduce motion" the photos are a plain strip.
 const { sizedImage } = require("./_images.cjs");
 
 let CONFIG = {};
@@ -70,12 +71,15 @@ const STYLE = `<style>
 .tsc-shot figcaption small{display:block;font-weight:400;color:var(--tsc-soft);font-size:12.5px}
 .tsc-walk-title{padding:26px clamp(18px,5vw,56px) 0}
 .tsc-bar{display:none}
-.tsc-walk.is-live{height:calc(100svh * var(--tsc-screens,4))}
-.tsc-walk.is-live .tsc-stage{position:sticky;top:0;height:100svh;overflow:hidden;perspective:1100px;perspective-origin:50% 48%;background:radial-gradient(120% 90% at 50% 40%,#17382d 0%,var(--tsc-night) 70%)}
-.tsc-walk.is-live .tsc-world{position:absolute;inset:0;display:block;overflow:visible;padding:0;transform-style:preserve-3d}
-.tsc-walk.is-live .tsc-shot{--tsc-sw:min(82vw,820px,calc(100svh * .86));position:absolute;top:48%;left:50%;width:var(--tsc-sw);margin:calc(var(--tsc-sw) * -.33) 0 0 calc(var(--tsc-sw) * -.5);box-shadow:0 40px 90px -30px rgba(0,0,0,.85);will-change:transform,opacity;backface-visibility:hidden}
-.tsc-walk.is-live .tsc-walk-title{position:absolute;inset:auto 0 0 0;z-index:5;padding:40px clamp(18px,5vw,56px) 96px;pointer-events:none;background:linear-gradient(to top,var(--tsc-night) 30%,transparent)}
-.tsc-walk.is-live .tsc-bar{display:block;height:3px;margin-top:12px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+@media (prefers-reduced-motion:no-preference){
+.tsc-walk{height:calc(100svh * var(--tsc-screens,4))}
+.tsc-walk .tsc-stage{position:sticky;top:0;height:100svh;overflow:hidden;perspective:1100px;perspective-origin:50% 48%;background:radial-gradient(120% 90% at 50% 40%,#17382d 0%,var(--tsc-night) 70%)}
+.tsc-walk .tsc-world{position:absolute;inset:0;display:block;overflow:visible;padding:0;transform-style:preserve-3d}
+.tsc-walk .tsc-shot{--tsc-sw:min(82vw,820px,calc(100svh * .86));position:absolute;top:48%;left:50%;width:var(--tsc-sw);margin:calc(var(--tsc-sw) * -.33) 0 0 calc(var(--tsc-sw) * -.5);box-shadow:0 40px 90px -30px rgba(0,0,0,.85);will-change:transform,opacity;backface-visibility:hidden;opacity:0}
+.tsc-walk .tsc-shot:first-child{opacity:1}
+.tsc-walk .tsc-walk-title{position:absolute;inset:auto 0 0 0;z-index:5;padding:40px clamp(18px,5vw,56px) 96px;pointer-events:none;background:linear-gradient(to top,var(--tsc-night) 30%,transparent)}
+.tsc-walk .tsc-bar{display:block;height:3px;margin-top:12px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+}
 .tsc-bar i{display:block;height:100%;background:var(--tsc-gold);transform-origin:right;transform:scaleX(0)}
 .tsc-plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px}
 .tsc-plan{padding:24px 22px;border-radius:22px;border:1px solid var(--tsc-line);background:linear-gradient(160deg,#1a3b30,#10261d)}

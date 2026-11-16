@@ -1,7 +1,7 @@
 // Movement for the project "showcase" block (netlify/functions/_project-showcase.cjs):
 // the photos move toward the viewer as the page scrolls (CSS 3D, no library), and the
-// down-payment calculator follows the selected home. Without this file, or with "reduce
-// motion", the block is a plain photo strip with the first home's numbers.
+// down-payment calculator follows the selected home. The layout and its scroll length are
+// already set by the block's CSS, so nothing on the page shifts when this file loads.
 (function () {
   "use strict";
   if (window.TycoonsShowcase) return;
@@ -16,7 +16,6 @@
     var bar = walk.querySelector("[data-tsc-bar]"), caption = walk.querySelector("[data-tsc-caption]");
     var labels = shots.map(function (shot) { var c = shot.querySelector("figcaption"); return c && c.firstChild ? c.firstChild.textContent : ""; });
     var ticking = false, placed = false, last = -1;
-    walk.classList.add("is-live");
     function frame() {
       ticking = false;
       var vh = window.innerHeight, rect = walk.getBoundingClientRect(), total = rect.height - vh;

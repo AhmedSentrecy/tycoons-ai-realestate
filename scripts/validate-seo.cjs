@@ -389,6 +389,7 @@ assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "ut
   assert.match(live, /14<\/span> سنة/, "The 14-year plan is in the page text");
   assert.match(live, /12<\/span> سنة/, "The 12-year plan of the 15% discount is in the page text");
   assert.match(live, /170,146/, "The calculator is pre-filled with 2% of the cheapest home");
+  assert.doesNotMatch(live + fs.readFileSync(path.join(root, "public/showcase.js"), "utf8"), /is-live/, "The walk-through gets its height from CSS, not from the script, so the page does not shift while it loads");
   assert.match(live, /data-wa-source="project-showcase-calculator"/, "The showcase WhatsApp button is tracked");
   assert.doesNotMatch(live, /2026-12-31|31 ديسمبر|آخر السنة|نهاية السنة|ساري لحد|<script/, "The offer's end date is never printed, and the block carries no inline script");
   const expired = showcaseHtml({ slug: showcaseSlug, images: showcaseImages, units: showcaseUnits, now: Date.parse("2027-01-01T00:30:00+02:00") });
