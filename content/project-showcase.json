@@ -1,0 +1,57 @@
+{
+  "note": "Projects whose page shows the scroll walk-through, the current developer offer and the down-payment calculator. Offer terms are confirmed by Ahmed and are NOT part of the written guide (the guide only carries the {{min_price}} token). hide_after is internal: the offer block stops rendering after that day and the date is never printed on the page.",
+  "projects": {
+    "mountain-view-icity-october--mountain-view": {
+      "name_ar": "ماونتن فيو آي سيتي أكتوبر",
+      "walk": {
+        "photos": [1, 4, 2, 6, 7, 9],
+        "stops": [
+          ["في السادس من أكتوبر", "ماونتن فيو آي سيتي أكتوبر"],
+          ["بحيرات ولاند سكيب", "أغلب الوحدات بتطل على خضرة أو مية"],
+          ["فيلات وبيوت", "آي فيلا، بارك فيلا، بيتش هاوس، ليك هاوس"],
+          ["شقق بمساحات مختلفة", "آي أبارتمنت، ميلينيال، سكاي لوفت"],
+          ["تاون هاوس وشوارع داخلية", "مجتمع متخطط من الأول"],
+          ["وحدات استلام فوري", "ومنها اللي لسه تحت الإنشاء"]
+        ]
+      },
+      "offer": {
+        "confirmed": "2026-11-16",
+        "hide_after": "2026-12-31",
+        "title": "أنظمة السداد في عرض ماونتن فيو آي سيتي أكتوبر",
+        "intro": "تلات طرق تدفع بيهم حسب السيولة اللي معاك. في نظامي العملاء الجدد فيه قسط شهري ودفعات مجمعة آخر كل سنة، وتفاصيلها في جدول السداد.",
+        "first_payment_percent": 2,
+        "down_payment_parts": [
+          ["أول دفعة", 2],
+          ["بعد 3 شهور", 2],
+          ["بعد 6 شهور", 2]
+        ],
+        "years": 14,
+        "plans": [
+          {
+            "tag": "أقل مقدم",
+            "title": "عميل جديد: أطول مدة",
+            "big": "2%",
+            "big_label": "أول دفعة",
+            "best": true,
+            "items": ["2% كمان بعد 3 شهور، و2% بعد 6 شهور", "تقسيط لحد 14 سنة", "قسط شهري من 20 ألف جنيه"]
+          },
+          {
+            "tag": "خصم على السعر",
+            "title": "عميل جديد: بخصم",
+            "big": "15%",
+            "big_label": "خصم",
+            "items": ["مقدم 5%، و5% بعد 3 شهور", "تقسيط لحد 12 سنة", "قسط شهري من 20 ألف جنيه"]
+          },
+          {
+            "tag": "لملاك ماونتن فيو",
+            "title": "عندك وحدة في ماونتن فيو؟",
+            "big": "45%",
+            "big_label": "خصم لحد",
+            "items": ["مقدم 10%", "تقسيط 6 سنين", "للملاك الحاليين بس"]
+          }
+        ],
+        "note": "العرض ده من المطور وشروطه ممكن تتغير. الأرقام النهائية بتتأكد وقت الحجز."
+      }
+    }
+  }
+}
