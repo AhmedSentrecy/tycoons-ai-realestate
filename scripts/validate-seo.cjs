@@ -376,6 +376,7 @@ assert.match(index, /<script src="\/img-fallback\.js" defer><\/script>/, "Every 
 assert.ok(fs.existsSync(path.join(root, "public/img-fallback.js")), "The photo fallback script must ship with the site");
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>ابحث بصوتك/);
+assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "utf8"), /host\.style\.minHeight/, "The search box keeps its height while it is upgraded, so the page below does not jump");
 const lead = homeSeo.match(/HOME_H1_LEAD = "([^"]+)"/)?.[1];
 const accent = homeSeo.match(/HOME_H1_ACCENT = "([^"]+)"/)?.[1];
 const staticH1 = index.match(/<h1>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
