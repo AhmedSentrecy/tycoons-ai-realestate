@@ -29,6 +29,9 @@
     ["تقسيط لحد 14 سنة", "قسط شهري ودفعات سنوية"],
     ["اطلب جدول السداد", "هيوصلك على واتساب"]
   ];
+  // Which photo each stop shows (the hero uses photo 0). The low-resolution banner and a
+  // duplicate are left out.
+  var WALK_PHOTOS = [1, 4, 2, 6, 7, 9, 8, 5];
   var PROJECT_ID = "f01d0f14-3106-4cd1-994f-f1d68c936f5f";
   var SUPABASE_URL = "https://coqnjymekrkoausiiytm.supabase.co";
   var PUBLIC_KEY = "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
@@ -78,7 +81,7 @@
     img.alt = "صورة من ماونتن فيو آي سيتي أكتوبر (" + (index + 1) + ")";
     img.width = 960; img.height = 630; img.decoding = "async";
     if (index > 1) img.loading = "lazy";
-    img.src = photo(index + 1, window.innerWidth < 700 ? 700 : 1200);
+    img.src = photo(WALK_PHOTOS[index], window.innerWidth < 700 ? 700 : 1200);
     var caption = document.createElement("figcaption");
     caption.textContent = stop[0];
     var small = document.createElement("small");
@@ -117,7 +120,8 @@
     if (placed && (rect.top > vh || rect.bottom < 0)) return;
     placed = true;
     var progress = clamp(-rect.top / total, 0, 1);
-    var travel = progress * (shots.length - 1 + 0.6) * GAP;
+    // The last photo stops at the focus plane and stays there for the end of the section.
+    var travel = clamp(progress * 1.08, 0, 1) * (shots.length - 1) * GAP;
     var side = Math.min(window.innerWidth * 0.2, 230);
     var nearest = 0, nearestDistance = Infinity;
     for (var i = 0; i < shots.length; i += 1) {
@@ -126,14 +130,15 @@
       var approach = clamp(-z / GAP, 0, 3);           // 0 at focus, grows with distance behind it
       var x = direction * side * clamp(approach, 0, 1);
       var rotate = -direction * 14 * clamp(approach, 0, 1);
-      var opacity = z > 0 ? clamp(1 - z / 420, 0, 1) : clamp(1 - (approach - 1.15) / 1.2, 0, 1);
+      // In front of the focus plane a photo fades out fast; behind it, only the next one shows faintly.
+      var opacity = z > 0 ? clamp(1 - z / 240, 0, 1) : clamp(1 - (approach - 0.12) / 1.05, 0, 1);
       var shot = shots[i];
+      if (Math.abs(z) < nearestDistance) { nearestDistance = Math.abs(z); nearest = i; }
       if (opacity <= 0.01) { shot.style.opacity = "0"; shot.style.visibility = "hidden"; continue; }
       shot.style.visibility = "visible";
       shot.style.opacity = opacity.toFixed(3);
       shot.style.zIndex = String(1000 - Math.round(Math.abs(z)));
       shot.style.transform = "translate3d(" + x.toFixed(1) + "px,0," + z.toFixed(1) + "px) rotateY(" + rotate.toFixed(2) + "deg)";
-      if (Math.abs(z) < nearestDistance) { nearestDistance = Math.abs(z); nearest = i; }
     }
     bar.style.transform = "scaleX(" + progress.toFixed(4) + ")";
     if (nearest !== lastCaption) {
