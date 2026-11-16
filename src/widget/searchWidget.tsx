@@ -38,6 +38,11 @@ function mount(host: HTMLElement) {
   host.dataset.mounted = "1";
   const placeholder = host.dataset.placeholder || "";
   const fallback = host.innerHTML;
+  // The shadow root hides the server-rendered form at once, but React paints the new bar a
+  // moment later. Hold the box at its current height in between, so the page below it does
+  // not jump up and back down (layout shift).
+  const height = host.getBoundingClientRect().height;
+  if (height > 0) host.style.minHeight = `${Math.ceil(height)}px`;
   const shadow = host.attachShadow({ mode: "open" });
   const style = document.createElement("style");
   // Tailwind's :root variables and base rules must target the shadow host instead.
