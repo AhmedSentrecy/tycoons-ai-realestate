@@ -247,6 +247,11 @@ function showcaseHtml({ slug, images = [], units = [], lang = "ar", now = Date.n
         items: [...(plan.parts.length > 1 ? [!en && plan.parts.length === 2 ? `المقدم على دفعتين: ${list}` : fill(t.planParts, { count: plan.parts.length, list })] : []), fill(t.planYears, { years: yearsText(plan.years, en) }), fill(t.planFrom, { price: money(min) })],
       };
     });
+  // A plan the developer announced that is not on any live unit yet (a new launch), written in the settings file.
+  if (!offer && planCards.length) {
+    const extra = (en ? config.en?.plans_extra : config.plans_extra) || [];
+    planCards.splice(Math.max(0, 3 - extra.length), planCards.length, ...extra.map((plan) => ({ best: false, tag: plan.tag, title: plan.title, big: plan.big, bigLabel: plan.big_label, items: plan.items || [] })));
+  }
   const plans = planCards.length ? `<section class="tsc-sec" id="${offer ? "offer" : "payment-plans"}"><div class="tsc-wrap"><span class="tsc-eyebrow">${esc(offer ? t.offerEyebrow : t.plansEyebrow)}</span>
 <h2 class="tsc-h">${esc(offer ? offer.title : fill(t.plansTitle, { name }))}</h2><p class="tsc-sub">${esc(offer ? offer.intro : fill(t.plansIntro, { name }))}</p>
 <div class="tsc-plans">${planCards.map((plan) => `<article class="tsc-plan${plan.best ? " is-best" : ""}">${plan.tag ? `<span class="tsc-tag">${esc(plan.tag)}</span>` : ""}<h3>${ltr(plan.title)}</h3><p class="tsc-big">${ltr(plan.big)} <small>${esc(plan.bigLabel)}</small></p><ul>${plan.items.map((item) => `<li>${ltr(item)}</li>`).join("")}</ul></article>`).join("")}</div>

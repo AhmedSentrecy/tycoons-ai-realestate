@@ -429,6 +429,11 @@ assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "ut
   const aliva = showcaseHtml({ slug: "mountain-view-aliva--mountain-view", images: showcaseImages, units: showcaseUnits, now: Date.parse("2026-11-17T12:00:00+02:00") });
   assert.match(aliva, /أنظمة السداد في عرض ماونتن فيو أليفا/, "Aliva carries the offer's three systems");
   assert.equal((aliva.match(/<article class="tsc-plan/g) || []).length, 3, "Aliva: three payment systems");
+  const lvls = showcaseHtml({ slug: "mountain-view-lvls--mountain-view", images: Array.from({ length: 20 }, (_, index) => `https://coqnjymekrkoausiiytm.supabase.co/storage/v1/object/public/property-images/x/l${index}.webp`), units: showcaseUnits, now: Date.parse("2026-11-17T12:00:00+02:00") }).replace(/<[^>]+>/g, " ");
+  assert.ok(/أنظمة السداد في عرض ماونتن فيو ليفلز/.test(lvls) && /15%\s+خصم[\s\S]*للملاك الحاليين بس/.test(lvls) && !/45%/.test(lvls), "LVLS: the offer's owner discount is 15%, not the 45% of Aliva and iCity October");
+  const chill = showcaseHtml({ slug: "mountain-view-chillout--mountain-view", images: Array.from({ length: 20 }, (_, index) => `https://coqnjymekrkoausiiytm.supabase.co/storage/v1/object/public/property-images/x/h${index}.webp`), units: [unit("One Villa", 16700000, "3%", "10 years"), unit("Townhouse", 21000000, "10% + 5% after 6 months", "7 years")] });
+  assert.equal((chill.match(/<article class="tsc-plan/g) || []).length, 3, "Chillout: the two plans on its live units plus the launch plan from the developer's announcement");
+  assert.match(chill.replace(/<[^>]+>/g, ""), /مقدم 10% وتقسيط 8 سنين/, "Chillout: the launch plan is on the page");
   const config = require("../content/project-showcase.json").projects;
   for (const [slug, entry] of Object.entries(config)) {
     assert.ok(entry.name_ar && entry.name_en, `${slug}: the showcase needs an Arabic and an English name`);
