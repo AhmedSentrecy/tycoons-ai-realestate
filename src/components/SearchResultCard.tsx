@@ -18,6 +18,7 @@ import { openUnitWhatsApp } from "@/lib/whatsapp";
 import { unitPath } from "@/lib/unitUrl";
 import DeveloperLogo from "@/components/DeveloperLogo";
 import { arabicField } from "@/lib/arabicFields";
+import { bookingLabel } from "@/lib/booking";
 
 interface Props {
   result: RankedInventoryUnit;
@@ -174,6 +175,11 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
           <div>
             <div className="text-[10px] text-[#7b877f]">يبدأ من</div>
             <div className="text-lg font-black text-[#9b793f]">{formatPrice(unit.starting_price)}</div>
+            {bookingLabel(unit.starting_price, unit.down_payment_text) && (
+              <div className="mt-0.5 text-[11px] font-bold text-[#14733c]">
+                {bookingLabel(unit.starting_price, unit.down_payment_text)}
+              </div>
+            )}
           </div>
           <div className="flex max-w-full items-start gap-1.5 text-[11px] leading-relaxed text-[#5d6b63]">
             <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0" />

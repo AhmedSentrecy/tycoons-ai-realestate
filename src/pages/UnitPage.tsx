@@ -24,6 +24,7 @@ import { unitTitle } from "../lib/unitTitle";
 import { fitTitle } from "@/lib/fitTitle";
 import ServerHtmlOr from "@/components/ServerHtmlOr";
 import PageStructuredData from "@/components/PageStructuredData";
+import { bookingLabel } from "@/lib/booking";
 
 const UNIT_INTRO_BANK: Array<(vars: Record<string, string>) => string> = [
   (v) => `${v.unitType} بمساحة ${v.area} م² جوه ${v.projectName} من ${v.developer}، في ${v.areaAr}. ${v.rank}. السعر يبدأ من ${v.price}، والاستلام ${v.delivery}.`,
@@ -222,7 +223,7 @@ export default function UnitPage() {
           [WalletCards, "خطة السداد", arabicField(unit.installments_text, "حسب آخر تحديث")],
           [Building2, "التشطيب", arabicField(unit.finishing, "حسب نوع الوحدة")],
         ].map(([Icon, label, value]) => { const DetailIcon = Icon as typeof BedDouble; return <div key={String(label)} className="rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><DetailIcon className="h-5 w-5 text-[#a3854e]" /><p className="mt-3 text-xs text-[#7b877f]">{String(label)}</p><p className="mt-1 font-bold">{String(value)}</p></div>; })}</div></article>
-        <aside className="rounded-3xl bg-[#0d1f18] p-7 text-white lg:sticky lg:top-28 lg:self-start"><p className="text-sm text-white/55">السعر يبدأ من</p><p className="mt-2 text-3xl font-extrabold text-[#ecd9ae]">{formatPrice(unit.starting_price)} جنيه</p><p className="mt-5 text-sm text-white/70">{unit.down_payment_text}</p><Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#d9b87c]">شوف المشروع بالكامل <ArrowLeft className="h-4 w-4" /></Link></aside>
+        <aside className="rounded-3xl bg-[#0d1f18] p-7 text-white lg:sticky lg:top-28 lg:self-start"><p className="text-sm text-white/55">السعر يبدأ من</p><p className="mt-2 text-3xl font-extrabold text-[#ecd9ae]">{formatPrice(unit.starting_price)} جنيه</p><p className="mt-5 text-sm text-white/70">{unit.down_payment_text}</p>{bookingLabel(unit.starting_price, unit.down_payment_text) ? <p className="mt-1 text-base font-bold text-[#ecd9ae]">{bookingLabel(unit.starting_price, unit.down_payment_text)}</p> : null}<Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#d9b87c]">شوف المشروع بالكامل <ArrowLeft className="h-4 w-4" /></Link></aside>
       </div></section>
 
       <section className="mx-auto max-w-6xl px-5 pb-12 lg:px-8">
