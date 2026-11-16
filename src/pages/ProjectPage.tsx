@@ -37,6 +37,7 @@ import { buildProjectSchemas } from "../../netlify/functions/_project-schema.cjs
 import { projectFacts, lastPriceUpdate } from "../../netlify/functions/_project-facts.cjs";
 import { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, tidyArabicName } from "../../netlify/functions/_unit-labels.cjs";
 import ProjectFacts from "@/components/ProjectFacts";
+import ProjectShowcase from "@/components/ProjectShowcase";
 import PageStructuredData from "@/components/PageStructuredData";
 import { unitPath } from "@/lib/unitUrl";
 import { fitTitle } from "@/lib/fitTitle";
@@ -475,6 +476,9 @@ export default function ProjectPage() {
       ].filter(Boolean),
     ),
   ].filter(Boolean);
+  // Same photo order as the pre-rendered page (project photo, then its gallery): the showcase
+  // walk-through picks photos by their position in this list.
+  const showcaseImages = [...new Set([content?.image_url || "", ...(content?.gallery_urls || "").split(",").map((url) => url.trim())].filter(Boolean))];
   const videos = [
     ...new Set(
       [content?.video_url || "", ...projectUnits.map((unit) => unit.video_url)]
@@ -646,6 +650,8 @@ export default function ProjectPage() {
       <div className="-mt-px bg-[#0d1f18] pb-4">
         <ProjectGallery images={images} videos={videos} name={project.project_name} />
       </div>
+
+      <ProjectShowcase slug={slug} images={showcaseImages} units={projectUnits} />
 
       <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]">

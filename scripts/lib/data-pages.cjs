@@ -1,6 +1,7 @@
 "use strict";
 
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("../../netlify/functions/_localized-project-content.cjs");
+const { showcaseHtml } = require("../../netlify/functions/_project-showcase.cjs");
 // Buyer FAQ computed from the live units (shared with the React project page; needs `node --import tsx`).
 const { buildProjectFaq, isCuratedFaq, cleanPublicFaq } = require("../../src/lib/projectFaq.ts");
 const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, countAr, priceShortAr } = require("../../netlify/functions/_display-text.cjs");
@@ -368,6 +369,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   const minArea = areas.length ? Math.min(...areas) : 0;
   const maxArea = areas.length ? Math.max(...areas) : 0;
   const imageList = urls(project.image_url, project.gallery_urls, ...units.map((unit) => unit.image_url));
+  const showcase = showcaseHtml({ slug: project.slug, images: imageList, units });
   // The iCity October template only fills gaps: a written seo_title / article from the admin wins.
   const isIcityOctober = project.slug === "mountain-view-icity-october--mountain-view";
   const hasWrittenTitle = Boolean(text(project.seo_title));
@@ -451,6 +453,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   <header class="bg-[#0d1f18] px-5 py-5 text-white"><nav class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4"><a href="/" class="font-extrabold">TYCOONS INVESTMENTS</a><span class="flex gap-4 text-sm"><a href="/ar/">دليل المشاريع</a><a href="${areaPath}">${escapeHtml(areaInfo(project.location).ar)}</a>${developerNav}<a href="/en/projects/${escapeHtml(project.slug)}" lang="en" hreflang="en">English</a></span></nav></header>
   <section class="bg-[#0d1f18] px-5 pb-12 pt-16 text-white"><div class="mx-auto max-w-7xl">${project.logo?.src ? `<span style="display:inline-flex;align-items:center;height:56px;padding:8px 14px;margin-bottom:18px;border-radius:14px;${project.logo.dark ? "border:1px solid rgba(255,255,255,.18)" : "background:#fff"}"><img src="${escapeHtml(project.logo.src)}" alt="${escapeHtml(project.logo.alt)}" height="40" style="height:40px;width:auto;max-width:220px;object-fit:contain" decoding="async"></span>` : ""}<p class="text-sm text-[#d9b87c]">${escapeHtml(developerAr)} · ${escapeHtml(areaInfo(project.location).ar)}</p><h1 class="mt-5 max-w-4xl text-4xl font-extrabold leading-tight sm:text-5xl">${escapeHtml(localized?.h1 ? project.name : (arabicName?.h1 || project.name))}</h1><p class="mt-5 max-w-4xl text-lg text-white/70">${escapeHtml(heroLine)}</p>${factsHtml}</div></section>
   ${imageList[0] ? `<section class="bg-[#0d1f18] px-5 pb-12"><img ${heroSrcAttrs(imageList[0], 1280)} alt="${escapeHtml(project.name)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-contain"></section>` : ""}
+  ${showcase}${showcase ? '<script src="/showcase.js" defer></script>' : ""}
   <section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]"><article>
   ${article.length ? linkProjectNames(article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#5c6a62]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join(""), faqContext.projectLinks, project.slug) : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
   ${visibleFaq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(headingName(project))}</h2>${visibleFaq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#5c6a62]">${linkProjectNames(escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea)), faqContext.projectLinks, project.slug)}</p></details>`).join("")}</section>` : ""}

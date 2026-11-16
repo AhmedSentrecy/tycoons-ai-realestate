@@ -46,3 +46,13 @@ declare module "*/_unit-labels.cjs" {
   export function arabicHeroLine(value: unknown, names?: { name?: string; nameAr?: string; location?: string; areaAr?: string; developer?: string; developerAr?: string }): string;
   export function hasLatinWords(value: unknown, allowed?: string[]): boolean;
 }
+
+declare module "*/_project-showcase.cjs" {
+  export interface ShowcaseUnit {
+    unit_type?: string | null; bedrooms_text?: string | null;
+    area_sqm?: number | string | null; starting_price?: number | string | null;
+  }
+  /** HTML of the project "showcase" block (photo walk-through, current offer, down-payment calculator); "" for projects without one. */
+  export function showcaseHtml(input: { slug: string; images?: string[]; units?: ShowcaseUnit[]; lang?: "ar" | "en"; now?: number }): string;
+  export function showcaseConfig(slug: string): Record<string, unknown> | null;
+}

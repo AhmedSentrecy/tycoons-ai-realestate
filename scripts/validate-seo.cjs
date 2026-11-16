@@ -377,6 +377,28 @@ assert.ok(fs.existsSync(path.join(root, "public/img-fallback.js")), "The photo f
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
 assert.match(index, /<h1>ابحث بصوتك/);
 assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "utf8"), /host\.style\.minHeight/, "The search box keeps its height while it is upgraded, so the page below does not jump");
+// Project showcase block (photo walk-through, current offer, down-payment calculator).
+{
+  const { showcaseHtml } = require("../netlify/functions/_project-showcase.cjs");
+  const showcaseSlug = "mountain-view-icity-october--mountain-view";
+  const showcaseImages = Array.from({ length: 11 }, (_, index) => `https://coqnjymekrkoausiiytm.supabase.co/storage/v1/object/public/property-images/x/p${index}.webp`);
+  const showcaseUnits = [{ unit_type: "I-Apartment", bedrooms_text: "2 bedrooms", area_sqm: 115, starting_price: 8507289 }, { unit_type: "Sky Loft", bedrooms_text: "4 bedrooms", area_sqm: 260, starting_price: 15637381 }];
+  const live = showcaseHtml({ slug: showcaseSlug, images: showcaseImages, units: showcaseUnits, now: Date.parse("2026-11-16T12:00:00+02:00") });
+  assert.equal((live.match(/class="tsc-shot"/g) || []).length, 6, "The showcase walk-through shows its six photos");
+  assert.equal((live.match(/<article class="tsc-plan/g) || []).length, 3, "The showcase lists the three payment systems of the offer");
+  assert.match(live, /14<\/span> سنة/, "The 14-year plan is in the page text");
+  assert.match(live, /12<\/span> سنة/, "The 12-year plan of the 15% discount is in the page text");
+  assert.match(live, /170,146/, "The calculator is pre-filled with 2% of the cheapest home");
+  assert.doesNotMatch(live + fs.readFileSync(path.join(root, "public/showcase.js"), "utf8"), /is-live/, "The walk-through gets its height from CSS, not from the script, so the page does not shift while it loads");
+  assert.doesNotMatch(fs.readFileSync(path.join(root, "src/components/ProjectShowcase.tsx"), "utf8"), /dangerouslySetInnerHTML=/, "The showcase markup is written once per change, so a page re-render does not reset the walk-through");
+  assert.match(live, /data-wa-source="project-showcase-calculator"/, "The showcase WhatsApp button is tracked");
+  assert.doesNotMatch(live, /2026-12-31|31 ديسمبر|آخر السنة|نهاية السنة|ساري لحد|<script/, "The offer's end date is never printed, and the block carries no inline script");
+  const expired = showcaseHtml({ slug: showcaseSlug, images: showcaseImages, units: showcaseUnits, now: Date.parse("2027-01-01T00:30:00+02:00") });
+  assert.doesNotMatch(expired, /tsc-plan"|data-tsc-calc|tsc-facts"/, "After the offer ends, its terms and calculator are no longer shown");
+  assert.match(expired, /class="tsc-shot"/, "The photo walk-through stays after the offer ends");
+  assert.equal(showcaseHtml({ slug: "some-other-project", images: showcaseImages, units: showcaseUnits }), "", "Projects without a showcase get nothing");
+  assert.match(fs.readFileSync(path.join(root, "src/pages/ProjectPage.tsx"), "utf8"), /<ProjectShowcase /, "The browser project page shows the same showcase block");
+}
 const lead = homeSeo.match(/HOME_H1_LEAD = "([^"]+)"/)?.[1];
 const accent = homeSeo.match(/HOME_H1_ACCENT = "([^"]+)"/)?.[1];
 const staticH1 = index.match(/<h1>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim();
