@@ -54,20 +54,26 @@
   function initCalc(calc) {
     var select = calc.querySelector("[data-tsc-select]");
     if (!select) return function () {};
-    var parts = [];
-    try { parts = JSON.parse(calc.getAttribute("data-parts") || "[]"); } catch (error) { parts = []; }
-    var total = parts.reduce(function (sum, part) { return sum + Number(part || 0); }, 0);
     function render() {
       var option = select.options[select.selectedIndex];
       var price = Number(select.value) || 0;
       if (!option || !price) return;
+      var parts = [];
+      try { parts = JSON.parse(option.getAttribute("data-parts") || "[]"); } catch (error) { parts = []; }
+      var total = parts.reduce(function (sum, part) { return sum + Number(part[1] || 0); }, 0);
       var priceEl = calc.querySelector("[data-tsc-price]"), totalEl = calc.querySelector("[data-tsc-total]"), cta = calc.querySelector("[data-tsc-cta]");
+      var totalPct = calc.querySelector("[data-tsc-totalpct]"), term = calc.querySelector("[data-tsc-term]");
       if (priceEl) priceEl.textContent = money(price);
-      parts.forEach(function (part, index) {
-        var el = calc.querySelector('[data-tsc-part="' + index + '"]');
-        if (el) el.textContent = money(price * Number(part) / 100);
+      Array.prototype.forEach.call(calc.querySelectorAll("[data-tsc-row]"), function (row, index) {
+        var part = parts[index], label = row.querySelector("[data-tsc-label]"), value = row.querySelector("[data-tsc-part]");
+        row.hidden = !part;
+        if (!part) return;
+        if (label) label.textContent = part[0] + " (\u2066" + Number(part[1]) + "%\u2069)";
+        if (value) value.textContent = money(price * Number(part[1]) / 100);
       });
       if (totalEl) totalEl.textContent = money(price * total / 100);
+      if (totalPct) totalPct.textContent = Number(total.toFixed(2)) + "%";
+      if (term) term.textContent = option.getAttribute("data-term") || "";
       if (cta) cta.href = "https://wa.me/" + calc.getAttribute("data-whatsapp") + "?text=" + encodeURIComponent((calc.getAttribute("data-message") || "").replace("{unit}", option.getAttribute("data-label")).replace("{price}", money(price)));
     }
     select.addEventListener("change", render);

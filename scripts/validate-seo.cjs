@@ -413,6 +413,27 @@ assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "ut
   assert.doesNotMatch(expired, /tsc-plan"|data-tsc-calc|tsc-facts"/, "After the offer ends, its terms and calculator are no longer shown");
   assert.match(expired, /class="tsc-shot"/, "The photo walk-through stays after the offer ends");
   assert.equal(showcaseHtml({ slug: "some-other-project", images: showcaseImages, units: showcaseUnits }), "", "Projects without a showcase get nothing");
+  // Projects without a confirmed offer: plans and calculator come from the live units' own payment data.
+  const unit = (type, price, down, term) => ({ unit_type: type, bedrooms_text: "3 bedrooms", area_sqm: 150, starting_price: price, down_payment_text: down, installments_text: term });
+  const vague = "المقدمات تبدأ من 3% في بعض المشاريع، حسب المشروع وموعد الاستلام.";
+  const ownUnits = [unit("Apartment", 6909058, "5% down payment", "Installments over 8 years"), unit("iVilla", 15000000, "5% down payment + 5% after 3 months", "6 years"), unit("Villa", 30000000, vague, "الأقساط قد تصل إلى 12 سنة، حسب المشروع وموعد الاستلام.")];
+  const own = showcaseHtml({ slug: "mountain-view-creek-view--mountain-view", images: Array.from({ length: 20 }, (_, index) => `https://coqnjymekrkoausiiytm.supabase.co/storage/v1/object/public/property-images/x/c${index}.webp`), units: ownUnits });
+  assert.match(own, /<h2 class="tsc-h">أنظمة السداد في ماونتن فيو كريك فيو<\/h2>/, "Inventory plans: the payment-plans heading carries the project's searched name");
+  assert.equal((own.match(/<article class="tsc-plan/g) || []).length, 2, "Inventory plans: one card per distinct plan on the live units");
+  assert.equal((own.match(/<option /g) || []).length, 2, "Inventory plans: a unit with a vague plan text is left out of the calculator");
+  assert.match(own, /345,453/, "Inventory plans: the calculator shows 5% of the cheapest home");
+  assert.match(own.replace(/<[^>]+>/g, ""), /المقدم على دفعتين: 5% \+ 5% بعد 3 شهور/, "Inventory plans: a split down payment is spelled out");
+  assert.doesNotMatch(own, /عرض المطور|خصم/, "Inventory plans: no offer or discount is claimed for a project without a confirmed offer");
+  const walkOnly = showcaseHtml({ slug: "mountain-view-kingsway--mountain-view", images: showcaseImages, units: [ownUnits[2]] });
+  assert.ok(/data-tsc-walk/.test(walkOnly) && !/class="tsc-plan|data-tsc-calc|class="tsc-facts"/.test(walkOnly), "Only vague plan texts: the photo walk-through shows, and no payment numbers");
+  const aliva = showcaseHtml({ slug: "mountain-view-aliva--mountain-view", images: showcaseImages, units: showcaseUnits, now: Date.parse("2026-11-17T12:00:00+02:00") });
+  assert.match(aliva, /أنظمة السداد في عرض ماونتن فيو أليفا/, "Aliva carries the offer's three systems");
+  assert.equal((aliva.match(/<article class="tsc-plan/g) || []).length, 3, "Aliva: three payment systems");
+  const config = require("../content/project-showcase.json").projects;
+  for (const [slug, entry] of Object.entries(config)) {
+    assert.ok(entry.name_ar && entry.name_en, `${slug}: the showcase needs an Arabic and an English name`);
+    assert.ok(Array.isArray(entry.walk?.photos) && entry.walk.photos.length >= 5 && !entry.walk.photos.includes(0) && new Set(entry.walk.photos).size === entry.walk.photos.length, `${slug}: the walk-through needs at least five different photos, none of them the page's main photo`);
+  }
   assert.match(fs.readFileSync(path.join(root, "src/pages/ProjectPage.tsx"), "utf8"), /<ProjectShowcase /, "The browser project page shows the same showcase block");
 }
 const lead = homeSeo.match(/HOME_H1_LEAD = "([^"]+)"/)?.[1];

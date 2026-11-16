@@ -12,7 +12,7 @@ export default function ProjectShowcase({ slug, images, units }: { slug: string;
   const ref = useRef<HTMLDivElement>(null);
   // The parent builds new arrays on every render: rebuild the markup only when their content changes.
   const imagesKey = images.join("|");
-  const unitsKey = units.map((unit) => [unit.unit_type, unit.bedrooms_text, unit.area_sqm, unit.starting_price].join("|")).join(";");
+  const unitsKey = units.map((unit) => [unit.unit_type, unit.bedrooms_text, unit.area_sqm, unit.starting_price, unit.down_payment_text, unit.installments_text].join("|")).join(";");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const html = useMemo(() => showcaseHtml({ slug, images, units }), [slug, imagesKey, unitsKey]);
 

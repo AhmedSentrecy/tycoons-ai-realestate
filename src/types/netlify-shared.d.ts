@@ -51,6 +51,7 @@ declare module "*/_project-showcase.cjs" {
   export interface ShowcaseUnit {
     unit_type?: string | null; bedrooms_text?: string | null;
     area_sqm?: number | string | null; starting_price?: number | string | null;
+    down_payment_text?: string | null; installments_text?: string | null;
   }
   /** HTML of the project "showcase" block (photo walk-through, current offer, down-payment calculator); "" for projects without one. */
   export function showcaseHtml(input: { slug: string; images?: string[]; units?: ShowcaseUnit[]; lang?: "ar" | "en"; now?: number }): string;
