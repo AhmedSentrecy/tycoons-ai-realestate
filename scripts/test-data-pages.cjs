@@ -135,7 +135,9 @@ assert.match(unitHtml, /القاهرة الجديدة والتجمع/);
 assert.match(unitHtml, /بدائل قريبة/);
 assert.match(unitHtml, /href="\/units\/unit-sibling"/);
 assert.match(unitHtml, /"position":2,"name":"[^"]+","item":"https:\/\/tycoons-inv\.com\/ar\/areas\/new-cairo"/);
-assert.match(unitHtml, /"position":3,"name":"Developer One","item":"https:\/\/tycoons-inv\.com\/ar\/developers\/developer-one"/);
+// New Cairo apartment units go through the apartments-for-sale page (Nov 2026), so the developer is 4th.
+assert.match(unitHtml, /"position":3,"name":"شقق للبيع في التجمع الخامس","item":"https:\/\/tycoons-inv\.com\/ar\/areas\/new-cairo\/apartments-for-sale"/);
+assert.match(unitHtml, /"position":4,"name":"Developer One","item":"https:\/\/tycoons-inv\.com\/ar\/developers\/developer-one"/);
 assert.doesNotMatch(
   unitHtml,
   /A complete unit description with enough detail for a useful standalone search result page\./,
