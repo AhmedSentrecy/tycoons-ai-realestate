@@ -14,7 +14,7 @@ const { unitPath } = require("../../netlify/functions/_unit-url.cjs");
 const { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, arabicKeywords } = require("../../netlify/functions/_unit-labels.cjs");
 const { renderSafeMarkdown, priceDateNoteHtml } = require("../../netlify/functions/_article-render.cjs");
 const { topicOf, dropCoveredSections, unlinkSelf, durationMonths, durationAr, pageNumberConflicts, feddanOnly } = require("../../netlify/functions/_page-consistency.cjs");
-const { publicEditorialMarkdown, developerInfo, arabicProjectName } = require("../../netlify/functions/_seo-utils.cjs");
+const { publicEditorialMarkdown, developerInfo, arabicProjectName, isApartmentUnit, APARTMENT_PAGE_ANCHORS } = require("../../netlify/functions/_seo-utils.cjs");
 // Arabic headings use the searched Arabic name ("كمبوند بلوم فيلدز المستقبل سيتي"), never the Latin name alone.
 const headingName = (project) => arabicProjectName(project.slug) || project.name;
 
@@ -435,6 +435,11 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   const heroSwapped = arabicHeroLine(arabicProse(text(project.hero_text) || description), { name: project.name, nameAr: headingName(project), location: text(project.location), areaAr: areaInfo(project.location).ar, developer: project.developer, developerAr });
   const heroLine = heroSwapped && !hasLatinWords(heroSwapped) ? heroSwapped : defaultHeroLine(headingName(project), areaInfo(project.location).ar);
   const areaPath = `/ar/areas/${areaSlug(project.location)}`;
+  // Projects with apartments in an area that has an /apartments-for-sale page link to it under the units heading.
+  const apartmentsAnchor = APARTMENT_PAGE_ANCHORS[areaSlug(project.location)];
+  const projectApartmentsLink = apartmentsAnchor && projectUnits.some((unit) => isApartmentUnit(unit))
+    ? `<p class="mt-2"><a class="font-bold text-[#0d1f18] underline" href="${areaPath}/apartments-for-sale">قارن بكل ${escapeHtml(apartmentsAnchor)} وسعر المتر لكل مشروع ←</a></p>`
+    : "";
   // Topics the page already answers above the embedded guide: its own sections, the FAQ and
   // the live unit table. The guide's sections on the same topics are left out (one answer per fact).
   const ownHeadings = localized?.article_sections?.length
@@ -463,7 +468,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   ${developerHasPage ? (ownGuide || coveredTopics.has("developer") ? developerLinkHtml(project) : developerAboutHtml(project)) : ""}
   ${buyerQuestionsHtml({ ...project, name: schemaProjectName }, ownGuide ? guides : guides.slice(1))}
   </article><aside class="rounded-3xl bg-[#0d1f18] p-7 text-white">${minPrice ? `<p class="text-sm text-white/55">الأسعار تبدأ من</p><p class="mt-2 text-3xl font-extrabold text-[#ecd9ae]">${formatPrice(minPrice)} جنيه</p>` : `<p class="text-sm text-white/55">السعر حسب آخر طرح</p><p class="mt-2 text-xl font-extrabold text-[#ecd9ae]">اسأل عن أحدث الأسعار</p>`}${text(project.down_payment_text) ? `<p class="mt-3 text-sm text-white/70">${escapeHtml(/^\d+(?:\.\d+)?\s*%$/.test(text(project.down_payment_text)) ? `مقدم ${text(project.down_payment_text).replace(/\s+/g, "")}` : arabicField(project.down_payment_text))}</p>` : ""}${text(project.installments_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(arabicField(project.installments_text))}</p>` : ""}${deliverySummary(units, project.delivery_text) ? `<p class="mt-1 text-sm text-white/70">${escapeHtml(deliverySummary(units, project.delivery_text))}</p>` : ""}<a href="https://wa.me/201110100025" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold">تأكيد السعر والمتاح</a></aside></div></section>
-  ${totalOptionCount ? `<section id="units" class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">اختار وحدتك واعرف خطة السداد</h2><p class="mt-3 text-[#5c6a62]">${totalOptionCount >= 3 && totalOptionCount <= 10 ? `${totalOptionCount} اختيارات متاحة` : countAr(totalOptionCount, "اختيار", "اختيارين متاحين", "اختيارات", "واحد متاح") + (totalOptionCount > 10 ? " متاح" : "")} من البيانات الحالية للصفحة.</p>${priceRanges.length || villaUnits.length ? `<section class="mt-9 rounded-3xl bg-[#0d1f18] p-6 text-white"><h3 class="text-2xl font-extrabold">فلل وتاون هاوس</h3><div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">${priceRanges.map((range) => `<details class="overflow-hidden rounded-3xl bg-white p-6 text-[#1b2420]"><summary class="cursor-pointer list-none"><h4 class="text-xl font-extrabold">${escapeHtml(unitTypeAr(range.unit_type) || arabicField(range.unit_type))}</h4><p class="mt-3">${range.area_sqm} م² · ${formatPrice(range.min_price)}–${formatPrice(range.max_price)} جنيه</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary><p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml([text(project.down_payment_text), text(project.installments_text)].filter(Boolean).map(arabicField).join(" · "))}</p></details>`).join("")}${villaUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}${otherUnits.length ? `<section class="mt-10"><h3 class="text-2xl font-extrabold">${villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : "الوحدات المتاحة"}</h3><div class="mt-6 grid gap-5 md:grid-cols-2">${otherUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}</div></section>` : ownGuide ? "" : `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات في ${escapeHtml(headingName(project))}</h2><p class="mt-5 max-w-3xl leading-loose text-[#5c6a62]">لا توجد وحدات منشورة بأسعار تفصيلية لهذا المشروع حالياً. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من المطور.</p><a href="https://wa.me/201110100025" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اطلب أحدث الأسعار</a></div></section>`}
+  ${totalOptionCount ? `<section id="units" class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">اختار وحدتك واعرف خطة السداد</h2><p class="mt-3 text-[#5c6a62]">${totalOptionCount >= 3 && totalOptionCount <= 10 ? `${totalOptionCount} اختيارات متاحة` : countAr(totalOptionCount, "اختيار", "اختيارين متاحين", "اختيارات", "واحد متاح") + (totalOptionCount > 10 ? " متاح" : "")} من البيانات الحالية للصفحة.</p>${projectApartmentsLink}${priceRanges.length || villaUnits.length ? `<section class="mt-9 rounded-3xl bg-[#0d1f18] p-6 text-white"><h3 class="text-2xl font-extrabold">فلل وتاون هاوس</h3><div class="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">${priceRanges.map((range) => `<details class="overflow-hidden rounded-3xl bg-white p-6 text-[#1b2420]"><summary class="cursor-pointer list-none"><h4 class="text-xl font-extrabold">${escapeHtml(unitTypeAr(range.unit_type) || arabicField(range.unit_type))}</h4><p class="mt-3">${range.area_sqm} م² · ${formatPrice(range.min_price)}–${formatPrice(range.max_price)} جنيه</p><span class="mt-4 inline-block font-bold text-[#8a6630]">اعرض المقدم وخطة التقسيط</span></summary><p class="mt-5 border-t border-[#eee5d6] pt-5 text-[#5c6a62]">${escapeHtml([text(project.down_payment_text), text(project.installments_text)].filter(Boolean).map(arabicField).join(" · "))}</p></details>`).join("")}${villaUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}${otherUnits.length ? `<section class="mt-10"><h3 class="text-2xl font-extrabold">${villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : "الوحدات المتاحة"}</h3><div class="mt-6 grid gap-5 md:grid-cols-2">${otherUnits.map((row) => staticUnitCard(row, project.slug)).join("")}</div></section>` : ""}</div></section>` : ownGuide ? "" : `<section class="border-y border-[#e7ddc8] bg-[#efe7d8] px-5 py-16"><div class="mx-auto max-w-7xl"><h2 class="text-3xl font-extrabold">الوحدات في ${escapeHtml(headingName(project))}</h2><p class="mt-5 max-w-3xl leading-loose text-[#5c6a62]">لا توجد وحدات منشورة بأسعار تفصيلية لهذا المشروع حالياً. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من المطور.</p><a href="https://wa.me/201110100025" class="mt-6 inline-block rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">اطلب أحدث الأسعار</a></div></section>`}
   </main>`;
 
   const schemas = [
@@ -574,7 +579,10 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
   const area = areaInfo(unit.location || project.location);
   const areaPath = `/ar/areas/${area.slug}`;
   const developerPath = `/ar/developers/${slugify(project.developer)}`;
-  const entityNavigation = `<nav aria-label="Breadcrumb" class="mx-auto flex max-w-7xl flex-wrap gap-3 px-5 py-3"><a href="/">الرئيسية</a><a href="${areaPath}">${escapeHtml(area.ar)}</a><a href="${developerPath}">${escapeHtml(project.developer)}</a><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(unit.project_name)}</a></nav>`;
+  // Apartment units in an area with an /apartments-for-sale page get that page as an extra crumb.
+  const apartmentsCrumb = isApartmentUnit(unit) && APARTMENT_PAGE_ANCHORS[area.slug]
+    ? { name: APARTMENT_PAGE_ANCHORS[area.slug], path: `${areaPath}/apartments-for-sale` } : null;
+  const entityNavigation = `<nav aria-label="Breadcrumb" class="mx-auto flex max-w-7xl flex-wrap gap-3 px-5 py-3"><a href="/">الرئيسية</a><a href="${areaPath}">${escapeHtml(area.ar)}</a>${apartmentsCrumb ? `<a href="${apartmentsCrumb.path}">${escapeHtml(apartmentsCrumb.name)}</a>` : ""}<a href="${developerPath}">${escapeHtml(project.developer)}</a><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(unit.project_name)}</a></nav>`;
   const stats = unitStats(unit, siblings);
   const rank = rankClause(stats);
   const introVars = {
@@ -631,12 +639,13 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
     {
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "الرئيسية", item: SITE_URL },
-        { "@type": "ListItem", position: 2, name: area.ar, item: `${SITE_URL}${areaPath}` },
-        { "@type": "ListItem", position: 3, name: project.developer, item: `${SITE_URL}${developerPath}` },
-        { "@type": "ListItem", position: 4, name: unit.project_name, item: projectUrl },
-        { "@type": "ListItem", position: 5, name: unitType, item: canonical },
-      ],
+        { name: "الرئيسية", item: SITE_URL },
+        { name: area.ar, item: `${SITE_URL}${areaPath}` },
+        ...(apartmentsCrumb ? [{ name: apartmentsCrumb.name, item: `${SITE_URL}${apartmentsCrumb.path}` }] : []),
+        { name: project.developer, item: `${SITE_URL}${developerPath}` },
+        { name: unit.project_name, item: projectUrl },
+        { name: unitType, item: canonical },
+      ].map((crumb, index) => ({ "@type": "ListItem", position: index + 1, ...crumb })),
     },
   ];
   return pageShell(shell, {

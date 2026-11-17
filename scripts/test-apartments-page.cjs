@@ -59,4 +59,20 @@ check(area.includes('href="/ar/areas/new-cairo/apartments-for-sale"'), "area pag
 check(/آخر تحديث للأسعار: <time datetime="2026-10-27">/.test(area), "area page shows the last price update");
 check(u.isApartmentUnit({ unit_type: "Creek View - Millennial" }) && u.isApartmentUnit({ unit_type: "CLEO 2B Garden" }) && u.isApartmentUnit({ unit_type: "Penthouse Open Roof" }), "apartment types recognised");
 check(!u.isApartmentUnit({ unit_type: "I Villa Garden" }) && !u.isApartmentUnit({ unit_type: "Clinic" }) && !u.isApartmentUnit({ unit_type: "Garden Town House Middle" }), "villas, townhouses and clinics excluded");
+// Internal links to the apartments page (Nov 2026).
+check(u.apartmentsPageLinkAr("new-cairo") === '<a href="/ar/areas/new-cairo/apartments-for-sale">شقق للبيع في التجمع الخامس</a>', "link helper uses the target keyword as anchor");
+check(u.apartmentsPageLinkAr("sheikh-zayed") === "", "no link for areas without an apartments page");
+check(/<a class="more" href="\/ar\/areas\/new-cairo\/apartments-for-sale">شقق للبيع في التجمع الخامس ←<\/a>/.test(area), "area page project grid links to the apartments page");
+const { renderProjectStatic, renderUnitStatic } = require("./lib/data-pages.cjs");
+const shell = `<!doctype html><html lang="ar" dir="rtl"><head><title>x</title><meta name="description" content="x"><link rel="canonical" href="https://tycoons-inv.com/"></head><body><div id="root"></div></body></html>`;
+const sProject = { id: "p1", name: "Creek", slug: "creek--mv", developer: "Mountain View", location: "New Cairo", status: "available", image_url: "https://example.com/a.jpg", gallery_urls: "", last_updated_at: "2026-11-01T00:00:00Z" };
+const sApt = { id: "11111111-1111-4111-8111-111111111111", project_id: "p1", project_name: "Creek", developer: "Mountain View", location: "New Cairo", unit_type: "Apartment", bedrooms_text: "2 Bedrooms", area_sqm: 120, starting_price: 9000000, availability_status: "available", description: "A complete unit description with enough detail for a useful standalone search result page.", installments_text: "8 years", delivery_text: "3 years", image_url: "https://example.com/u.jpg", gallery_urls: "", last_updated_at: "2026-11-01T00:00:00Z" };
+const sVilla = { ...sApt, id: "22222222-2222-4222-8222-222222222222", unit_type: "Standalone Villa", bedrooms_text: "4 Bedrooms", area_sqm: 300, starting_price: 30000000 };
+check(renderProjectStatic(shell, sProject, [sApt]).includes('href="/ar/areas/new-cairo/apartments-for-sale">قارن بكل شقق للبيع في التجمع الخامس'), "project page with apartments links to the apartments page");
+check(!renderProjectStatic(shell, sProject, [sVilla]).includes("apartments-for-sale"), "villa-only project page has no apartments link");
+const aptUnitHtml = renderUnitStatic(shell, sApt, sProject, []);
+check(aptUnitHtml.includes('<a href="/ar/areas/new-cairo/apartments-for-sale">شقق للبيع في التجمع الخامس</a>'), "apartment unit breadcrumb goes through the apartments page");
+const crumbSchema = [...aptUnitHtml.matchAll(/<script type="application\/ld\+json"[^>]*>(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1])).flatMap((x) => x["@graph"] || [x]).find((x) => x["@type"] === "BreadcrumbList");
+check(crumbSchema && crumbSchema.itemListElement[2].item.endsWith("/ar/areas/new-cairo/apartments-for-sale") && crumbSchema.itemListElement.every((item, i) => item.position === i + 1), "unit BreadcrumbList includes the apartments page with positions 1..n");
+check(!renderUnitStatic(shell, sVilla, sProject, []).includes("apartments-for-sale"), "villa unit breadcrumb unchanged");
 console.log(`Apartments page validation passed (${checks} checks).`);
