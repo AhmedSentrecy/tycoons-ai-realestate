@@ -410,6 +410,591 @@
           "note": "This is the developer's offer and its terms can change. Final figures are confirmed when you book."
         }
       }
+    },
+    "31north-tri-t--nile-developments": {
+      "name_ar": "31 نورث تاور العاصمة الإدارية",
+      "name_en": "31North Tri-T New Capital"
+    },
+    "6ixty-heliopolis--al-borouj-misr-developments-group-abm": {
+      "name_ar": "سيكستي هيليوبوليس مول",
+      "name_en": "6ixty Heliopolis Mall, Sheraton Heliopolis"
+    },
+    "acasa--dar-al-alamia-developments": {
+      "name_ar": "اكاسا التجمع الخامس",
+      "name_en": "Acasa New Cairo, Fifth Settlement",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "acasa-alma--dar-al-alamia-developments": {
+      "name_ar": "اكاسا الما التجمع السادس",
+      "name_en": "Acasa Alma New Cairo, Sixth Settlement",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "acasa-mia--dar-al-alamia-developments": {
+      "name_ar": "اكاسا ميا التجمع الخامس",
+      "name_en": "Acasa Mia New Cairo, Fifth Settlement",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "amazon-diamond-tower--amazon-developments": {
+      "name_ar": "كابيتال دايموند تاور العاصمة",
+      "name_en": "Amazon Diamond Tower New Capital"
+    },
+    "amorada-park-view--amorada": {
+      "name_ar": "أمورادا بارك فيو التجمع الخامس",
+      "name_en": "Amorada Park View New Cairo"
+    },
+    "ark-east--the-ark-development": {
+      "name_ar": "آرك إيست التجمع الخامس",
+      "name_en": "Ark East New Cairo"
+    },
+    "atika--new-plan": {
+      "name_ar": "أتيكا العاصمة الإدارية",
+      "name_en": "Atika New Capital Compound by New Plan"
+    },
+    "avelin--times-developments": {
+      "name_ar": "أفيلين التجمع الخامس",
+      "name_en": "Avelin New Cairo"
+    },
+    "axle--menassat-developments": {
+      "name_ar": "مول أكسل التجمع الخامس",
+      "name_en": "Axle Mall New Cairo"
+    },
+    "azha--madaar-development": {
+      "name_ar": "أزها العين السخنة",
+      "name_en": "Azha Ain Sokhna by Madaar Development",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "begonia-residence--menassat-developments": {
+      "name_ar": "بيجونيا ريزيدنس التجمع الخامس",
+      "name_en": "Begonia Residence New Cairo"
+    },
+    "begonia-walk--menassat-developments": {
+      "name_ar": "مول بيجونيا ووك التجمع الخامس",
+      "name_en": "Begonia Walk New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "bianchi-ilios--al-borouj-misr-developments-group-abm": {
+      "name_ar": "بيانكي إيليوس الساحل الشمالي",
+      "name_en": "Bianchi Ilios North Coast, Sidi Abdel Rahman"
+    },
+    "blanks--manaj-developments": {
+      "name_ar": "بلانكس القاهرة الجديدة",
+      "name_en": "Blanks New Cairo by Manaj Developments"
+    },
+    "bleu-vert--saudi-egyptian-developers-sed": {
+      "name_ar": "بلو فيرت العاصمة الإدارية",
+      "name_en": "Bleu Vert New Capital"
+    },
+    "blu-stays-the-island--housing-and-development-properties-hdp": {
+      "name_ar": "بلو ستايز ذا آيلاند العلمين الجديدة",
+      "name_en": "Blu Stays The Island New Alamein"
+    },
+    "cairo-business-plaza--better-home": {
+      "name_ar": "كايرو بيزنس بلازا العاصمة الإدارية",
+      "name_en": "Cairo Business Plaza New Capital"
+    },
+    "cap-west--via-developments": {
+      "name_ar": "كاب ويست أكتوبر",
+      "name_en": "Cap West October West Somid"
+    },
+    "cape-bay-blumar-lasirena--lasirena-group": {
+      "name_ar": "كيب باي لاسيرينا السخنة",
+      "name_en": "Cape Bay Blumar Lasirena Ain Sokhna"
+    },
+    "capella-residence--illume-societies": {
+      "name_ar": "كابيلا ريزيدنس المعادي",
+      "name_en": "Capella Residence Maadi"
+    },
+    "capital-heights-1--sud": {
+      "name_ar": "كابيتال هايتس 1 العاصمة",
+      "name_en": "Capital Heights 1 New Capital"
+    },
+    "capital-heights-2--safwa-urban-development": {
+      "name_ar": "كابيتال هايتس 2 العاصمة الإدارية",
+      "name_en": "Capital Heights 2 New Capital by Safwa"
+    },
+    "capital-hub-2-mall--safwa-urban-development-sud": {
+      "name_ar": "كابيتال هاب 2 مول العاصمة الإدارية",
+      "name_en": "Capital Hub 2 Mall New Capital"
+    },
+    "cattleya--arabco-developments": {
+      "name_ar": "كاتليا التجمع الخامس",
+      "name_en": "Cattleya New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "central-point--town-writers": {
+      "name_ar": "سنترال بوينت مول العاصمة الإدارية",
+      "name_en": "Central Point Mall New Capital"
+    },
+    "chapters-residence-r8--jadeer-realestate": {
+      "name_ar": "تشابترز ريزيدنس العاصمة الإدارية",
+      "name_en": "Chapters Residence R8 New Capital"
+    },
+    "co-clinics--enwan-developments": {
+      "name_ar": "كو كلينكس العاصمة الإدارية",
+      "name_en": "Co-Clinics New Capital"
+    },
+    "covaya--pre-group": {
+      "name_ar": "كوفايا العين السخنة",
+      "name_en": "Covaya Ain Sokhna"
+    },
+    "creek-town--il-cazar-developments": {
+      "name_ar": "كريك تاون التجمع",
+      "name_en": "Creek Town New Cairo"
+    },
+    "d-bay--tatweer-misr": {
+      "name_ar": "دي باي الساحل الشمالي",
+      "name_en": "D-Bay North Coast"
+    },
+    "d-line--la-vista-developments": {
+      "name_ar": "دي لاين الشيخ زايد",
+      "name_en": "D Line Sheikh Zayed"
+    },
+    "d-o-s-e--akam-alrajhi-developments": {
+      "name_ar": "دوس الساحل الشمالي",
+      "name_en": "D.O.S.E North Coast, Al Dabaa",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "eastshire--al-qamzi-developments": {
+      "name_ar": "إيست شاير التجمع الخامس",
+      "name_en": "Eastshire New Cairo"
+    },
+    "el-patio-hills--la-vista-developments": {
+      "name_ar": "الباتيو هيلز التجمع السادس",
+      "name_en": "El Patio Hills New Cairo"
+    },
+    "el-patio-jade--la-vista-developments": {
+      "name_ar": "الباتيو جيد التجمع السادس",
+      "name_en": "El Patio Jade New Cairo"
+    },
+    "el-patio-riva--la-vista-developments": {
+      "name_ar": "الباتيو ريفا التجمع السادس",
+      "name_en": "El Patio Riva New Cairo"
+    },
+    "el-patio-town--la-vista-developments": {
+      "name_ar": "الباتيو تاون التجمع الخامس",
+      "name_en": "El Patio Town New Cairo"
+    },
+    "el-patio-vida--la-vista-developments": {
+      "name_ar": "الباتيو فيدا التجمع السادس",
+      "name_en": "El Patio Vida New Cairo"
+    },
+    "elen-residence--concrete-development": {
+      "name_ar": "إيلين ريزيدنس التجمع الخامس",
+      "name_en": "Elen Residence New Cairo"
+    },
+    "elora--arabia-holding": {
+      "name_ar": "إيلورا زايد الجديدة",
+      "name_en": "Elora New Zayed"
+    },
+    "ever--cred-developments": {
+      "name_ar": "إيفر أكتوبر 2026 من كريد",
+      "name_en": "Ever October",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "ever-new-cairo--cred-developments": {
+      "name_ar": "ايفر القاهرة الجديدة",
+      "name_en": "Ever New Cairo, Sixth Settlement",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "fcc--al-borouj-misr-developments-group-abm": {
+      "name_ar": "إف سي سي التجمع الخامس",
+      "name_en": "FCC New Cairo, Golden Square"
+    },
+    "financial-hub--safwa-urban-development-sud": {
+      "name_ar": "فايننشيال هاب العاصمة الإدارية",
+      "name_en": "Financial Hub New Capital"
+    },
+    "galleria-residence--arabia-holding": {
+      "name_ar": "جاليريا ريزيدنس التجمع الخامس",
+      "name_en": "Galleria Residence New Cairo"
+    },
+    "garden-lakes--hydepark-developments": {
+      "name_ar": "جاردن ليكس أكتوبر",
+      "name_en": "Garden Lakes October",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "glare-mall--areva-developments": {
+      "name_ar": "جلير مول التجمع الخامس",
+      "name_en": "Glare Mall New Cairo"
+    },
+    "glee--tharaa-developments": {
+      "name_ar": "جلي الساحل الشمالي",
+      "name_en": "Glee North Coast"
+    },
+    "h-rs-mall--main-marks": {
+      "name_ar": "مول H:RS التجمع الخامس",
+      "name_en": "H:RS Mall Fifth Settlement New Cairo"
+    },
+    "hadaba--pre-group": {
+      "name_ar": "هضبة أكتوبر",
+      "name_en": "Hadaba October"
+    },
+    "harmont--prime-developments": {
+      "name_ar": "برج هارمونت العاصمة الإدارية",
+      "name_en": "Harmont Tower New Capital Downtown"
+    },
+    "heaven-hills-porto-el-sokhna--al-borouj-misr-developments-group-abm": {
+      "name_ar": "هيفن هيلز بورتو السخنة",
+      "name_en": "Heaven Hills Porto El Sokhna, Ain Sokhna"
+    },
+    "hydepark-central--hydepark-developments": {
+      "name_ar": "هايد بارك سنترال التجمع السادس",
+      "name_en": "Hydepark Central New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "hydepark-seashore--hydepark-developments": {
+      "name_ar": "هايد بارك سيشور رأس الحكمة",
+      "name_en": "Hydepark Seashore Ras El Hekma",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "icon-garden--style-home-development": {
+      "name_ar": "ايكون جاردن التجمع الخامس",
+      "name_en": "Icon Garden New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "iguall--upwyde": {
+      "name_ar": "إيجوال مول التجمع الخامس",
+      "name_en": "Iguall Mall New Cairo"
+    },
+    "il-latini-sed--saudi-egyptian-developers-sed": {
+      "name_ar": "الحي اللاتيني العلمين الجديدة",
+      "name_en": "Il Latini SED New Alamein"
+    },
+    "il-monte-galala-towers--tatweer-misr": {
+      "name_ar": "إل مونت جلالة تاورز العين السخنة",
+      "name_en": "IL Monte Galala Towers Ain Sokhna",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "it-business-hub--upwyde": {
+      "name_ar": "آي تي بيزنس هاب التجمع الخامس",
+      "name_en": "IT Business Hub New Cairo"
+    },
+    "ivoire-west--pre-group": {
+      "name_ar": "ايفوري ويست الشيخ زايد",
+      "name_en": "Ivoire West Sheikh Zayed"
+    },
+    "jayd--saudi-egyptian-developers-sed": {
+      "name_ar": "جايد التجمع الخامس",
+      "name_en": "Jayd New Cairo"
+    },
+    "jebal--pre-group": {
+      "name_ar": "جبال العين السخنة",
+      "name_en": "Jebal El Sokhna Ain Sokhna"
+    },
+    "jefaira--inertia-egypt": {
+      "name_ar": "جفيرة الساحل الشمالي",
+      "name_en": "Jefaira North Coast",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "la-vista-6--la-vista-developments": {
+      "name_ar": "لافيستا 6 العين السخنة",
+      "name_en": "La Vista 6 Ain Sokhna"
+    },
+    "la-vista-7--la-vista-developments": {
+      "name_ar": "لافيستا 7 العين السخنة",
+      "name_en": "La Vista 7 Ain Sokhna"
+    },
+    "la-vista-bay-east--la-vista-developments": {
+      "name_ar": "لافيستا باي إيست راس الحكمة",
+      "name_en": "La Vista Bay East Ras El Hikma",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "la-vista-ras-el-hikma--la-vista-developments": {
+      "name_ar": "لافيستا راس الحكمة",
+      "name_en": "La Vista Ras El Hikma",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "la-vista-ras-el-hikma-lagoona--la-vista-developments": {
+      "name_ar": "لاجونا لافيستا رأس الحكمة",
+      "name_en": "La Vista Ras El Hikma Lagoona North Coast",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "la-vista-ray--la-vista-developments": {
+      "name_ar": "لافيستا راي العين السخنة",
+      "name_en": "La Vista Ray Ain Sokhna"
+    },
+    "lazura-new-cairo--lazura-developments": {
+      "name_ar": "لازورا القاهرة الجديدة",
+      "name_en": "Lazura New Cairo Fifth Settlement"
+    },
+    "lifewise--eons-developments": {
+      "name_ar": "لايف وايز التجمع الخامس",
+      "name_en": "LifeWise New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "linea-commercial-patio-oro--la-vista-developments": {
+      "name_ar": "لينيا الباتيو أورو",
+      "name_en": "Linea Commercial Patio Oro New Cairo"
+    },
+    "livyn--nakheel-developments": {
+      "name_ar": "ليفين الشروق",
+      "name_en": "Livyn Shorouk by Nakheel Developments"
+    },
+    "lumia-crown-hotel-r8--dubai-misr-developments": {
+      "name_ar": "فندق لوميا كراون العاصمة الإدارية",
+      "name_en": "Lumia Crown Hotel R8 New Capital"
+    },
+    "lumia-grand-hotel-r7--dubai-misr-developments": {
+      "name_ar": "فندق لوميا جراند العاصمة الإدارية",
+      "name_en": "Lumia Grand Hotel R7 New Capital"
+    },
+    "lumia-lagoons-r8--dubai-misr-developments": {
+      "name_ar": "لوميا لاجونز العاصمة الإدارية",
+      "name_en": "Lumia Lagoons New Capital"
+    },
+    "lumia-mall--dubai-misr-developments": {
+      "name_ar": "مول لوميا العاصمة الإدارية",
+      "name_en": "Lumia Mall New Capital"
+    },
+    "lumia-residence-r7--dubai-misr-developments": {
+      "name_ar": "لوميا ريزيدنس العاصمة الإدارية",
+      "name_en": "Lumia Residence R7 New Capital",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "lynks--living-yards-developments": {
+      "name_ar": "مول لينكس التجمع الخامس",
+      "name_en": "Lynks Mall New Cairo"
+    },
+    "lyv-caesar-ras-el-hekma--gates-development": {
+      "name_ar": "ليف سيزر رأس الحكمة",
+      "name_en": "Lyv Caesar Ras El Hekma"
+    },
+    "midtown-new-cairo--better-home": {
+      "name_ar": "ميدتاون القاهرة الجديدة",
+      "name_en": "Midtown New Cairo"
+    },
+    "midtown-sky--better-home": {
+      "name_ar": "ميد تاون سكاي العاصمة الإدارية",
+      "name_en": "Midtown Sky New Capital"
+    },
+    "midtown-solo--better-home": {
+      "name_ar": "ميد تاون سولو العاصمة الإدارية",
+      "name_en": "Midtown Solo New Capital"
+    },
+    "midtown-villa--better-home": {
+      "name_ar": "ميد تاون فيلا العاصمة الإدارية",
+      "name_en": "Midtown Villa New Capital"
+    },
+    "midtown-west--better-home": {
+      "name_ar": "ميدتاون ويست زايد الجديدة",
+      "name_en": "Midtown West New Zayed"
+    },
+    "monark-residence--royal-development": {
+      "name_ar": "مونارك ريزيدنس مستقبل سيتي",
+      "name_en": "Monark Residence Mostakbal City by Royal",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "montenapoleone--reportage-properties": {
+      "name_ar": "مونتينابوليوني مستقبل سيتي",
+      "name_en": "Montenapoleone Mostakbal City by Reportage",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "moray--main-marks": {
+      "name_ar": "مول موراي التجمع الخامس",
+      "name_en": "Moray New Cairo Fifth Settlement",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "nest--n-developments": {
+      "name_ar": "نست التجمع السادس",
+      "name_en": "Nest New Cairo, Sixth Settlement",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "noir--living-yards": {
+      "name_ar": "مول نوار التجمع الخامس",
+      "name_en": "NOIR Mall New Cairo"
+    },
+    "noll--kleek-developments": {
+      "name_ar": "نول التجمع السادس",
+      "name_en": "Noll New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "notion--town-writers": {
+      "name_ar": "نوشن القاهرة الجديدة",
+      "name_en": "Notion New Cairo"
+    },
+    "nyoum-mostaqbal-city--arab-developers-holding": {
+      "name_ar": "نيوم مستقبل سيتي",
+      "name_en": "Nyoum Mostaqbal City"
+    },
+    "obsidier-tower--dubai-misr-developments": {
+      "name_ar": "اوبسيدر تاور العاصمة الإدارية",
+      "name_en": "Obsidier Tower New Capital"
+    },
+    "olin--mass-developments": {
+      "name_ar": "مول أولين التجمع الخامس",
+      "name_en": "Olin Social District New Cairo"
+    },
+    "park-sight--il-cazar-developments": {
+      "name_ar": "بارك سايت العاصمة الإدارية",
+      "name_en": "Park Sight New Capital",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "patio-5-east--la-vista-developments": {
+      "name_ar": "الباتيو 5 إيست الشروق",
+      "name_en": "Patio 5 East El Shorouk"
+    },
+    "patio-casa--la-vista-developments": {
+      "name_ar": "الباتيو كازا الشروق",
+      "name_en": "Patio Casa El Shorouk"
+    },
+    "patio-prime--la-vista-developments": {
+      "name_ar": "الباتيو برايم الشروق",
+      "name_en": "Patio Prime El Shorouk"
+    },
+    "patio-sola--la-vista-developments": {
+      "name_ar": "الباتيو سولا الشروق",
+      "name_en": "Patio Sola El Shorouk"
+    },
+    "plato-residence--artal-developments": {
+      "name_ar": "بلاتو العاصمة الإدارية",
+      "name_en": "Plato Residence New Capital"
+    },
+    "queens--al-jazi-egypt": {
+      "name_ar": "كوينز التجمع الخامس",
+      "name_en": "Queens New Cairo"
+    },
+    "r-line-commercial-hub--spd-property-development": {
+      "name_ar": "مول آر لاين التجمع الخامس",
+      "name_en": "R-Line Commercial Hub New Cairo"
+    },
+    "redville-phase-4--residence-developments": {
+      "name_ar": "ريد فيل أروما السخنة",
+      "name_en": "Redville Phase 4 Aroma Ain Sokhna"
+    },
+    "regent-s-square--al-dawlia-developments": {
+      "name_ar": "ريجنتس سكوير التجمع الخامس",
+      "name_en": "Regent's Square New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "rosail--khaled-sabry-holding": {
+      "name_ar": "روزيل سيتي مستقبل سيتي",
+      "name_en": "Rosail City Mostakbal City"
+    },
+    "saada--horizon-egypt-development": {
+      "name_ar": "سعادة القاهرة الجديدة",
+      "name_en": "Saada New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "saada-boutique--horizon-egypt-development": {
+      "name_ar": "سعادة بوتيك التجمع السادس",
+      "name_en": "Saada Boutique New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "sadaf--new-plan": {
+      "name_ar": "صدف الساحل الشمالي",
+      "name_en": "Sadaf North Coast by New Plan",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "salt--tatweer-misr": {
+      "name_ar": "سولت الساحل الشمالي",
+      "name_en": "Salt North Coast Ras El Hekma",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "sea-via--la-vista-developments": {
+      "name_ar": "سي فيا رأس الحكمة",
+      "name_en": "Sea Via Ras El Hekma North Coast",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "serrano--new-plan": {
+      "name_ar": "سيرانو العاصمة الإدارية",
+      "name_en": "Serrano New Capital Compound by New Plan",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "sia-lagoons--arab-developers-holding-adh": {
+      "name_ar": "سيا لاجونز العلمين الجديدة",
+      "name_en": "Sia Lagoons New Alamein"
+    },
+    "signature--hydepark-developments": {
+      "name_ar": "هايد بارك سيجنتشر",
+      "name_en": "Hyde Park Signature West Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "solay--living-yards-developments": {
+      "name_ar": "سولاي التجمع الخامس",
+      "name_en": "Solay New Cairo",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "stone-park-the-oak--roya-developments": {
+      "name_ar": "ذا أوك ستون بارك",
+      "name_en": "Stone Park The OAK New Cairo"
+    },
+    "stride--artal-developments": {
+      "name_ar": "ستريد مول التجمع الخامس",
+      "name_en": "Stride New Cairo"
+    },
+    "sun-capital--arabia-holding-arabia-holding-for-real-estate-development-ar": {
+      "name_ar": "صن كابيتال أكتوبر",
+      "name_en": "Sun Capital October"
+    },
+    "telal-east--pre-group": {
+      "name_ar": "تلال إيست التجمع الخامس",
+      "name_en": "Telal East New Cairo Compound"
+    },
+    "telal-east-prive--roya-developments": {
+      "name_ar": "تلال إيست بريفيه",
+      "name_en": "Telal East Privé New Cairo"
+    },
+    "telal-shores--roya-developments": {
+      "name_ar": "تلال شورز العين السخنة",
+      "name_en": "Telal Shores Ain Sokhna"
+    },
+    "terraces--hydepark-developments": {
+      "name_ar": "هايد بارك تيراسيز التجمع الخامس",
+      "name_en": "Hyde Park Terraces New Cairo"
+    },
+    "the-ark-west--the-ark-development": {
+      "name_ar": "ذا آرك ويست أكتوبر",
+      "name_en": "The Ark West October"
+    },
+    "the-brooks--pre-group": {
+      "name_ar": "ذا بروكس القاهرة الجديدة",
+      "name_en": "The Brooks New Cairo"
+    },
+    "the-loft--living-yards": {
+      "name_ar": "ذا لوفت العاصمة الإدارية",
+      "name_en": "The Loft New Capital R7"
+    },
+    "the-med--people-places": {
+      "name_ar": "ذا ميد الساحل الشمالي",
+      "name_en": "The Med North Coast Ras El Hekma"
+    },
+    "the-red-residence--al-borouj-misr-developments-group-abm": {
+      "name_ar": "ذا ريد ريزيدنس التجمع الخامس",
+      "name_en": "The Red Residence New Cairo, Golden Square",
+      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+    },
+    "tierra--saudi-egyptian-developers-sed": {
+      "name_ar": "تيرا التجمع السادس",
+      "name_en": "Tierra New Cairo"
+    },
+    "valory-mall--menassat-developments": {
+      "name_ar": "فالوري مول التجمع الخامس",
+      "name_en": "Valory Mall New Cairo"
+    },
+    "village-west--dorra": {
+      "name_ar": "فيلدج ويست الشيخ زايد",
+      "name_en": "Village West Sheikh Zayed",
+      "walk": { "photos": [1, 2, 3, 4, 5] }
+    },
+    "wujood-residence--tharaa-developments": {
+      "name_ar": "وجود ريزيدنس التجمع الخامس",
+      "name_en": "Wuud Residence New Cairo"
+    },
+    "yardin--mass-developments": {
+      "name_ar": "ياردين التجمع الخامس",
+      "name_en": "Yardin New Cairo, Fifth Settlement"
+    },
+    "yellow-lane--urbnlanes-development": {
+      "name_ar": "يلو لين التجمع الخامس",
+      "name_en": "Yellow Lane New Cairo"
+    },
+    "zag-east--pre-group": {
+      "name_ar": "زاج ايست التجمع الخامس",
+      "name_en": "ZAG East New Cairo"
+    },
+    "zizina-mostakbal--ardic": {
+      "name_ar": "زيزينيا المستقبل",
+      "name_en": "Zizina Mostakbal, Mostakbal City"
     }
   }
 }

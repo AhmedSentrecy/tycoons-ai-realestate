@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Validate Netlify function entrypoints
         run: node scripts/test-netlify-functions.cjs
       - name: Install dependencies using the existing Netlify policy

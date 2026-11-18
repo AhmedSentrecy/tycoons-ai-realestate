@@ -4,7 +4,7 @@
   functions = "netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "22"
   NODE_ENV = "development"
   YARN_VERSION = "1.22.22"
   YARN_FLAGS = "--production=false --non-interactive"
