@@ -1,6 +1,7 @@
 import { sizedImage } from "@/lib/images";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
+import { useScrollTopOnNavigation } from "@/hooks/useScrollTopOnNavigation";
 import { unitPath } from "@/lib/unitUrl";
 import {
   ArrowLeft,
@@ -59,6 +60,7 @@ function setMeta(selector: string, attribute: "content" | "href", value: string)
 
 export default function UnitPage() {
   const { id = "" } = useParams();
+  useScrollTopOnNavigation(id);
   const [unit, setUnit] = useState<UnitPageData | null>(null);
   const [siblings, setSiblings] = useState<SiblingUnitRow[]>([]);
   const [loadedId, setLoadedId] = useState("");
@@ -113,7 +115,6 @@ export default function UnitPage() {
     setMeta('meta[property="og:title"]', "content", title);
     setMeta('meta[property="og:description"]', "content", description);
     setMeta('meta[property="og:url"]', "content", pageUrl);
-    window.scrollTo(0, 0);
   }, [unit]);
 
   if (loading) return <ServerHtmlOr><main className="grid min-h-screen place-items-center bg-[#f7f2ea]"><p className="font-bold">جاري تحميل الوحدة…</p></main></ServerHtmlOr>;
