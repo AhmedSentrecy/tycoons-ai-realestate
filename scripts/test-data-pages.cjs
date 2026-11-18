@@ -208,7 +208,8 @@ const guideWords = Array.from({ length: 560 }, (_, index) => `كلمة${index}`)
 const guideOnlyProject = {
   ...project,
   id: "guide-only",
-  slug: "park-sight--il-cazar-developments",
+  // A made-up slug: Park Sight itself now has a repo guide, which would replace this fixture.
+  slug: "guide-only-fixture--il-cazar-developments",
   name: "Park Sight",
   developer: "IL Cazar Developments",
   targeting: { localized_content: { ar: {

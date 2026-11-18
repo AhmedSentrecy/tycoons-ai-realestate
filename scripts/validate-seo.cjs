@@ -437,6 +437,8 @@ assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "ut
   const config = require("../content/project-showcase.json").projects;
   for (const [slug, entry] of Object.entries(config)) {
     assert.ok(entry.name_ar && entry.name_en, `${slug}: the showcase needs an Arabic and an English name`);
+    // A project with too few photos gets no walk-through; its plans and calculator still show.
+    if (entry.walk === undefined) continue;
     assert.ok(Array.isArray(entry.walk?.photos) && entry.walk.photos.length >= 5 && !entry.walk.photos.includes(0) && new Set(entry.walk.photos).size === entry.walk.photos.length, `${slug}: the walk-through needs at least five different photos, none of them the page's main photo`);
   }
   assert.match(fs.readFileSync(path.join(root, "src/pages/ProjectPage.tsx"), "utf8"), /<ProjectShowcase /, "The browser project page shows the same showcase block");
