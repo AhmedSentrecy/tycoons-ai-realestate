@@ -103294,7 +103294,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "خليني أبدأ بالعيب: المواقع مش متفقة على مكان المشروع بالظبط ولا على وقت المشوار للعاصمة الإدارية، فمتعتمدش على الأرقام دي. جرّب المشوار بالعربية في مواعيد شغلك قبل ما تحجز."
+          "text": "خليني أبدأ بالعيب: المواقع مش متفقة على وقت المشوار للعاصمة الإدارية، فمتعتمدش على الأرقام دي. جرّب المشوار بالعربية في مواعيد شغلك قبل ما تحجز."
          }
         ]
        },
@@ -103319,6 +103319,14 @@
         "content": [
          {
           "text": "وحسب هدفك، المشوار بيفرق. لو بتشتري للسكن، حدد هتروح شغلك وهتودّي ولادك المدرسة من أنهي طريق الصبح. ولو للإيجار، اسأل مين المستأجر المتوقع: طلبة جامعة ولا موظفين ولا عيلات؟ ولو ناوي تبيع بعد فترة، فكّر المشتري اللي بعدك هيهمه نفس الموقع ولا لأ."
+         }
+        ]
+       },
+       {
+        "type": "paragraph",
+        "content": [
+         {
+          "text": "وعلشان المشروع في التجمع الخامس، اسأل نفسك عن يومك العادي هناك. أقرب مدرسة لولادك فين، وأقرب سوبر ماركت وصيدلية فين، وهتوصلهم في كام دقيقة وقت الزحمة. لما الحاجات دي تبقى قريبة، ده بينعكس على وقتك ومصاريف المواصلات كل شهر."
          }
         ]
        }
@@ -103408,7 +103416,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "وقبل أي حاجة، اطلب من الشركة خريطة بمكان المشروع بالظبط، وروح الأرض بنفسك. لما المواقع مش متفقة على المنطقة، الزيارة هي اللي بتحسم. وشوف الشوارع اللي حوالين الأرض والمشروعات اللي جنبها، لأنها هتبقى جيرانك."
+          "text": "وقبل أي حاجة، اطلب من الشركة خريطة بمكان المشروع بالظبط، وروح الأرض بنفسك. الزيارة بتوضّح لك الحاجات اللي الورق مش بيقولها. وشوف الشوارع اللي حوالين الأرض والمشروعات اللي جنبها، لأنها هتبقى جيرانك."
          }
         ]
        },
@@ -103603,11 +103611,6 @@
          ],
          [
           {
-           "text": "مساحة مش متفق عليها: المواقع مش متفقة على مساحة المشروع. اطلب المخطط من الشركة مكتوب."
-          }
-         ],
-         [
-          {
            "text": "مطور خبرته الأكبر تجارية: أغلب مشروعات الشركة اللي نعرفها تجارية وإدارية، فاسأل عن مشروع سكني اتسلّم."
           }
          ],
@@ -103749,7 +103752,7 @@
     "faq": [
      {
       "question": "كمبوند نوشن القاهرة الجديدة فين بالتحديد؟",
-      "answer": "في القاهرة الجديدة على امتداد المربع الذهبي حسب الشركة، قريب من الطريق الدائري والجامعة الأمريكية."
+      "answer": "في التجمع الخامس بالقاهرة الجديدة، على امتداد المربع الذهبي حسب الشركة، قريب من الطريق الدائري والجامعة الأمريكية."
      },
      {
       "question": "أسعار كمبوند نوشن القاهرة الجديدة 2026 بتبدأ من كام؟",
@@ -103773,7 +103776,7 @@
      },
      {
       "question": "إيه عيوب نوشن؟",
-      "answer": "المشروع لسه تحت الإنشاء، والمواقع مش متفقة على المنطقة والمساحة، والتجمع بيزحم في الذروة."
+      "answer": "المشروع لسه تحت الإنشاء، والتجمع بيزحم في الذروة."
      },
      {
       "question": "كمبوند نوشن القاهرة الجديدة مناسب لمين؟",
@@ -103847,7 +103850,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "The honest catch: portals disagree about the exact area and the time to the New Capital, so treat these numbers carefully and drive it at your working hours before you book."
+          "text": "The honest catch: portals disagree about the time to the New Capital, so treat these numbers carefully and drive it at your working hours before you book."
          }
         ]
        },
@@ -104068,11 +104071,6 @@
          ],
          [
           {
-           "text": "Conflicting information: portals give different areas and sizes. Ask for the address and plan in writing."
-          }
-         ],
-         [
-          {
            "text": "Developer with more commercial experience: ask about a residential project it has delivered."
           }
          ],
@@ -104182,7 +104180,7 @@
     "faq": [
      {
       "question": "Where exactly is Notion New Cairo?",
-      "answer": "In New Cairo on the Golden Square extension according to the company, near the Ring Road and the American University in Cairo."
+      "answer": "In the Fifth Settlement, New Cairo, on the Golden Square extension according to the company, near the Ring Road and the American University in Cairo."
      },
      {
       "question": "What are Notion New Cairo prices in 2026?",
