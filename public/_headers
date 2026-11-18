@@ -5,3 +5,7 @@
 /admin/*
   X-Robots-Tag: noindex, nofollow, noarchive
   Cache-Control: no-store
+
+/reports/new-cairo-prices-2026.pdf
+  Link: <https://tycoons-inv.com/ar/reports/new-cairo-prices-2026>; rel="canonical"
+  Cache-Control: public, max-age=86400

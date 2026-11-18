@@ -1,0 +1,142 @@
+"use strict";
+
+// Dated price reports (Nov 2026): /ar/reports/<slug>.
+// A report is a frozen snapshot, not a live page: every figure below was computed once from
+// Tycoons' own inventory in Supabase (projects + units) on the snapshot date, and reviewed by
+// Ahmed before publishing. The same numbers are in the downloadable PDF in /reports/.
+// Counting rule: the inventory keeps one listing per unit type and size in each project, so
+// counts are "listings" (نماذج) or projects, never the number of homes to be delivered.
+// No external website names anywhere in the text (site rule).
+
+const NEW_CAIRO_PRICES_2026 = {
+  slug: "new-cairo-prices-2026",
+  snapshotDate: "2026-11-17",
+  published: "2026-11-18",
+  pdf: "/reports/new-cairo-prices-2026.pdf",
+  title: "دليل أسعار الشقق في التجمع الخامس 2026: سعر المتر لكل مشروع",
+  h1: "دليل أسعار الشقق في التجمع الخامس والقاهرة الجديدة 2026",
+  description: "سعر متر الشقة في التجمع الخامس نوفمبر 2026: 81,818 جنيه في النص، مع سعر المتر لكل مشروع ونوع وحدة، وأنظمة السداد ومواعيد التسليم.",
+  answer: "سعر متر الشقة في التجمع الخامس والقاهرة الجديدة في نوفمبر 2026 حوالي 81,818 جنيه (الوسيط)، و80% من الشقق سعر مترها بين 48 ألف و146 ألف جنيه. الشقة المتوسطة 120 م² بحوالي 9.5 مليون جنيه، وأرخص شقة متاحة بـ 2.42 مليون. أغلب المشاريع بتبدأ بمقدم 5% وتقسيط 10 سنين.",
+  totals: { listings: 536, projects: 94 },
+  apartments: { ppm: 81818, p10: 47893, p90: 146494, medPrice: 9.5, medArea: 120, minPrice: 2.42, minArea: 59, minProject: "Jadie Residence" },
+  // [label, listings, projects, median price/m², median area, median price (million EGP)]
+  types: [
+    ["شقة", 333, 76, 81818, 120, 9.5],
+    ["دوبلكس / آي فيلا / بنتهاوس", 60, 34, 82710, 220, 18.25],
+    ["تاون هاوس / توين هاوس", 70, 28, 131383, 210, 27.85],
+    ["فيلا مستقلة", 73, 31, 145062, 255, 41.29],
+  ],
+  // Projects counted once: lowest down payment and longest plan on offer in each.
+  downPayment: [["0% مقدم", 3], ["لحد 5%", 61], ["من 6% لـ 10%", 22], ["أكتر من 10%", 5], ["مش محدد", 3]],
+  years: [["10 سنين أو أكتر", 47], ["8 لـ 9 سنين", 26], ["أقل من 8 سنين", 8], ["مش محدد", 13]],
+  // Projects by their nearest announced delivery, counted from Nov 2026.
+  delivery: [["استلام فوري", 11], ["خلال سنتين", 37], ["خلال 3 سنين", 20], ["خلال 4 سنين", 14], ["أكتر من 4 سنين", 5], ["مش محدد", 7]],
+  // [area, area page slug, projects, apartment listings, median price/m², quarter of projects up to, quarter from]
+  areas: [
+    ["العاصمة الإدارية", "new-capital", 18, 71, 44919, 39079, 50812],
+    ["مستقبل سيتي", "mostakbal-city", 15, 63, 78350, 67119, 98166],
+    ["التجمع والقاهرة الجديدة", "new-cairo", 76, 333, 81818, 62629, 116630],
+    ["غرب القاهرة (أكتوبر وزايد)", "sheikh-zayed", 31, 260, 107736, 80643, 119945],
+    ["الساحل الشمالي", "north-coast", 23, 65, 155455, 106248, 198171],
+  ],
+  // [name, project page slug, developer, apartment listings, median price/m², starts from (million), smallest area m²]
+  projects: [
+    ["Queen Valley", "queen-valley--euphoria", "Euphoria", 10, 41119, 2.7, 60],
+    ["Wuud Residence", "wujood-residence--tharaa-developments", "Tharaa Developments", 1, 44513, 4.85, 109],
+    ["Jiwar Residence", "jiwar-residence--concrete-development", "Concrete Development", 6, 45000, 2.62, 71],
+    ["Yardin", "yardin--mass-developments", "Mass Developments", 5, 47000, 3.01, 64],
+    ["Jadie Residence", "jadie-residence--concrete-development", "Concrete Development", 11, 47500, 2.42, 50],
+    ["Soto Residence", "soto-residence--dolmen", "Dolmen", 3, 48000, 4.4, 88],
+    ["Noll", "noll--kleek-developments", "Kleek Developments", 9, 49333, 3.94, 75],
+    ["Lazura New Cairo", "lazura-new-cairo--lazura-developments", "Lazura Developments", 2, 50263, 5.42, 103],
+    ["Icon Garden", "icon-garden--style-home-development", "Style Home Development", 6, 52951, 3.61, 55],
+    ["Amorada Park View", "amorada-park-view--amorada", "Amorada", 1, 53763, 10, 186],
+    ["Lusail Residence", "lusail-residence--margins", "Margins", 3, 55223, 4.47, 78],
+    ["Notion", "notion--town-writers", "Town Writers", 5, 55500, 2.83, 51],
+    ["LifeWise", "lifewise--eons-developments", "Eons Developments", 6, 55567, 3.6, 84],
+    ["Kayan City - Evora Greens", "kayan-city-evora-greens--stm", "STM", 2, 55702, 6.9, 133],
+    ["Vallis", "vallis--sky-ad", "Sky Ad", 7, 57426, 3.64, 65],
+    ["Maliv", "maliv--kulture-developments", "Kulture Developments", 3, 58312, 6, 99],
+    ["Glen", "glen--il-cazar-developments", "IL Cazar Developments", 3, 59542, 5.7, 90],
+    ["Elen Residence", "elen-residence--concrete-development", "Concrete Development", 4, 61993, 5.19, 75],
+    ["Amara Residence", "amara-residence--new-plan", "New Plan", 2, 62400, 6.38, 105],
+    ["Tierra", "tierra--saudi-egyptian-developers-sed", "Saudi Egyptian Developers (SED)", 1, 62705, 5.52, 88],
+    ["Solay", "solay--living-yards-developments", "Living Yards Developments", 9, 66667, 3.3, 48],
+    ["Telal East", "telal-east--pre-group", "PRE Group", 1, 67143, 7.99, 119],
+    ["Nest", "nest--n-developments", "N Developments", 11, 68480, 3.4, 35],
+    ["Garnet Residence", "garnet-residence--jadeer-realestate", "Jadeer Realestate", 8, 69238, 5.05, 72],
+    ["Lush Valley", "lush-valley--city-edge", "City Edge", 8, 72082, 4.7, 60],
+    ["El Patio Riva", "el-patio-riva--la-vista-developments", "La Vista Developments", 2, 74301, 5.95, 85],
+    ["Sarai - Royal Residence", "sarai-royal-residence--madinet-masr", "Madinet Masr", 5, 76000, 3.6, 38],
+    ["Begonia Residence", "begonia-residence--menassat-developments", "Menassat Developments", 4, 76154, 2.95, 39],
+    ["Sarai - Club Views", "sarai--madinet-masr", "Madinet Masr", 6, 76292, 5.03, 62.8],
+    ["Cattleya", "cattleya--arabco-developments", "Arabco Developments", 1, 76493, 9.03, 118],
+    ["El Patio Vida", "el-patio-vida--la-vista-developments", "La Vista Developments", 3, 76905, 11.68, 158],
+    ["White Residence", "white-residence--upwyde", "Upwyde", 2, 77375, 3.54, 45],
+    ["Sarai - Elm Tree Park", "sarai-elm-tree-park--madinet-masr", "Madinet Masr", 3, 79000, 4, 50],
+    ["Jayd", "jayd--saudi-egyptian-developers-sed", "Saudi Egyptian Developers (SED)", 1, 79733, 11.96, 150],
+    ["Sarai - ESSE Residences", "sarai-esse-residences--madinet-masr", "Madinet Masr", 4, 81038, 6.12, 79.41],
+    ["Mayan", "mayan--stm", "STM", 6, 81170, 7, 93],
+    ["Bluetree", "bluetree--sky-ad", "Sky Ad", 4, 81397, 10.29, 115],
+    ["Avelin", "avelin--times-developments", "Times Developments", 7, 81839, 4, 50],
+    ["Creek Town", "creek-town--il-cazar-developments", "IL Cazar Developments", 2, 81923, 10.9, 130],
+    ["The Mornings", "the-mornings--al-ahly-sabbour", "Al Ahly Sabbour", 9, 82803, 4.7, 57],
+    ["One Hyde Park", "one-hyde-park--hyde-park", "Hyde Park Developments", 10, 89588, 6.8, 73],
+    ["Étaje - Taj City", "etaje--madinet-masr", "Madinet Masr", 3, 89908, 5.7, 50],
+    ["Midtown New Cairo", "midtown-new-cairo--better-home", "Better Home", 1, 90000, 23.85, 265],
+    ["Hydepark Central", "hydepark-central--hydepark-developments", "Hyde Park Developments", 4, 90443, 6.41, 70],
+    ["Mountain View Creek View", "mountain-view-creek-view--mountain-view", "Mountain View", 7, 90780, 6.91, 70],
+    ["Saada Boutique", "saada-boutique--horizon-egypt-development", "Horizon Egypt Development", 1, 94337, 7.83, 83],
+    ["El Patio Oro", "el-patio-oro--la-vista-developments", "La Vista Developments", 1, 95000, 15.58, 164],
+    ["Yellow Residence", "yellow-residence--urbnlanes-development", "Urbnlanes Development", 12, 97646, 7.9, 60],
+    ["Zomra East", "zomra-east--nations-of-sky", "Nations of Sky", 9, 100000, 9, 85],
+    ["Taj City - Origami", "taj-city-origami--madinet-masr", "Madinet Masr", 3, 101831, 10.7, 114],
+    ["27 Residence", "27-residence--tameer", "Tameer", 1, 104970, 26.87, 256],
+    ["Hyde Park New Cairo", "hydepark-new-cairo--hydepark-developments", "Hyde Park Developments", 10, 111250, 6.87, 74],
+    ["Mountain View iCity New Cairo", "mountain-view-icity-new-cairo--mountain-view", "Mountain View", 3, 111379, 10.54, 120],
+    ["Crescent Walk", "crescent-walk--marakez", "Marakez", 8, 112571, 8.46, 77],
+    ["Mountain View 1.1", "mountain-view-1-1--mountain-view", "Mountain View", 1, 113727, 15.92, 140],
+    ["Regent's Square", "regent-s-square--al-dawlia-developments", "Al Dawlia Developments", 6, 115534, 13.5, 117],
+    ["W Signature", "w-signature--the-waterway-developments", "The Waterway Developments", 1, 115812, 26.52, 229],
+    ["Galleria Residence", "galleria-residence--arabia-holding", "Arabia Holding", 4, 119083, 13.71, 130],
+    ["Katameya 40", "katameya-40--starlight-development", "Starlight Development", 4, 120450, 10, 83],
+    ["District 5", "district-5--marakez", "Marakez", 6, 126719, 8.21, 82],
+    ["Blanks", "blanks--manaj-developments", "Manaj Developments", 1, 128141, 10, 78],
+    ["Stei8ht", "stei8ht--lmd", "LMD", 1, 129870, 10, 77],
+    ["Azad Walk", "azad-walk--tameer", "Tameer", 3, 132521, 14.3, 87],
+    ["Zed East", "zed-east--ora", "Ora Developers", 4, 138462, 8.9, 65],
+    ["The Waterway - New Cairo", "the-waterway-new-cairo--the-waterway-developments", "The Waterway Developments", 2, 138965, 23.38, 170],
+    ["Solana East", "solana-east--ora", "Ora Developers", 4, 141842, 8.98, 62],
+    ["The View Waterway", "the-view-waterway--the-waterway-developments", "The Waterway Developments", 1, 142635, 22.25, 156],
+    ["The Red Residence", "the-red-residence--al-borouj-misr-developments-group-abm", "Al Borouj Misr Developments (ABM)", 2, 148395, 7.5, 46],
+    ["Palm Hills New Cairo", "palm-hills-new-cairo--palm-hills-developments", "Palm Hills Developments", 16, 150144, 10.29, 70],
+    ["97 Hills", "97-hills--palm-hills-developments", "Palm Hills Developments", 2, 155106, 28.68, 183],
+    ["Ark East", "ark-east--the-ark-development", "The Ark Development", 2, 164744, 8.6, 52],
+    ["Queens", "queens--al-jazi-egypt", "Al Jazi Egypt", 1, 170732, 14, 82],
+    ["Crown Plaza - Yellow Residence Y21", "crown-plaza-yellow-residence-y21--urbnlanes", "Urbnlanes Development", 8, 179266, 11.22, 60],
+    ["Villette", "villette--sodic", "SODIC", 3, 183553, 22.6, 109],
+    ["Az Homes", "az-homes--tameer", "Tameer", 1, 194001, 25.8, 133],
+    ["V Editions", "v-editions--sodic", "SODIC", 1, 243321, 53.04, 218],
+  ],
+  // Serviced, branded apartments: priced with hotel services, so kept out of every figure above.
+  branded: [["The Waterway Branded Residence - WBR1", "the-waterway-branded-residence-wbr1--waterway", "The Waterway Developments", 2, 302111, 45.3, 68]],
+  excludedShorouk: ["Livyn", "Patio Sola", "Patio Casa", "Talala"],
+  highlights: [
+    "سعر المتر بيفرق حوالي 6 أضعاف جوه التجمع نفسه: من حوالي 41 ألف جنيه في Queen Valley لحد 243 ألف في V Editions من سوديك.",
+    "الدوبلكس تقريبًا بنفس سعر متر الشقة (82,710 جنيه)، لكن التاون هاوس أغلى بحوالي 60% والفيلا أغلى بحوالي 77%.",
+    "التجمع في نص السوق: أغلى من العاصمة الإدارية ومستقبل سيتي، وأرخص من غرب القاهرة والساحل الشمالي.",
+    "أنظمة السداد سهلة: 68% من المشاريع بتبدأ بمقدم 5% أو أقل، و47 مشروع بيقسّط على 10 سنين أو أكتر.",
+    "48 مشروع من 94 فيهم استلام فوري أو تسليم خلال سنتين، والاستلام الفوري موجود في 11 مشروع بس.",
+  ],
+  faq: [
+    ["كام سعر متر الشقة في التجمع الخامس 2026؟", "في نوفمبر 2026 سعر متر الشقة في التجمع الخامس والقاهرة الجديدة حوالي 81,818 جنيه (الوسيط)، و80% من الشقق سعر مترها بين 48 ألف و146 ألف جنيه حسب المشروع والمطور."],
+    ["أرخص شقة في التجمع الخامس بكام؟", "أرخص شقة متاحة عندنا في التجمع سعرها 2.42 مليون جنيه بمساحة 59 م² في Jadie Residence. وأرخص سعر متر في المشاريع اللي حسبناها حوالي 41 ألف جنيه في Queen Valley."],
+    ["هل التجمع أغلى من العاصمة الإدارية ومستقبل سيتي؟", "أيوه. سعر متر الشقة في التجمع حوالي 82 ألف جنيه، قدام حوالي 78 ألف في مستقبل سيتي وحوالي 45 ألف في العاصمة الإدارية، حسب المشاريع المتاحة عندنا في كل منطقة."],
+    ["إيه أنظمة السداد المنتشرة في التجمع؟", "61 مشروع من 94 بيبدأ بمقدم لحد 5%، و3 مشاريع فيها 0% مقدم، والتقسيط الشائع 10 سنين ويوصل لـ 12 سنة في بعض المشاريع."],
+    ["الأرقام دي محسوبة إزاي؟", "سعر المتر = سعر البداية ÷ المساحة لكل نموذج شقة متاح، والرقم المعروض هو الوسيط. الأرقام من مخزون Tycoons Investments يوم 17 نوفمبر 2026، ومن غير الوحدات التجاري ومشاريع الشروق والشقق الفندقية."],
+  ],
+};
+
+const PRICE_REPORTS = { [NEW_CAIRO_PRICES_2026.slug]: NEW_CAIRO_PRICES_2026 };
+
+module.exports = { PRICE_REPORTS };

@@ -472,6 +472,11 @@
   status = 200
 
 [[redirects]]
+  from = "/ar/reports/*"
+  to = "/.netlify/functions/seo-page?lang=ar&type=report&slug=:splat"
+  status = 200
+
+[[redirects]]
   from = "/methodology"
   to = "/.netlify/functions/seo-page?lang=ar&type=static&slug=methodology"
   status = 200
