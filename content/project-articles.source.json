@@ -67430,7 +67430,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "الحي اللاتيني العلمين الجديدة (Il Latini SED) مشروع سكني ساحلي من الشركة السعودية المصرية للتعمير (SED)، في قلب مدينة العلمين الجديدة عند الكيلو 109 على طريق الإسكندرية مطروح. والمواقع العقارية بتقول إن مساحته حوالي 650 فدان، ومعمول بطراز أوروبي كلاسيكي وسط بحيرات ومساحات خضرا. وأسعار الوحدات المتاحة عندنا بتبدأ من {{min_price}} جنيه. باختصار: مناسب لو عايز شقة متشطبة في مدينة شغّالة طول السنة مش مصيف بيقفل في الشتا، ومش أحسن اختيار لو حلمك فيلا على البحر، لأن المشروع أغلبه عمارات وشقق."
+          "text": "الحي اللاتيني العلمين الجديدة (Il Latini SED) مشروع سكني ساحلي من الشركة السعودية المصرية للتعمير (SED)، في قلب مدينة العلمين الجديدة عند الكيلو 109 على طريق الإسكندرية مطروح. ومعمول بطراز أوروبي كلاسيكي وسط بحيرات ومساحات خضرا. وأسعار الوحدات المتاحة عندنا بتبدأ من {{min_price}} جنيه. باختصار: مناسب لو عايز شقة متشطبة في مدينة شغّالة طول السنة مش مصيف بيقفل في الشتا، ومش أحسن اختيار لو حلمك فيلا على البحر، لأن المشروع أغلبه عمارات وشقق."
          }
         ]
        },
@@ -67950,10 +67950,6 @@
       "answer": "الشركة السعودية المصرية للتعمير SED، وليها مشروعات في القاهرة الجديدة والعاصمة الإدارية والمعادي."
      },
      {
-      "question": "مساحة الحي اللاتيني العلمين الجديدة كام فدان؟",
-      "answer": "المواقع العقارية بتذكر إن المشروع على حوالي 650 فدان."
-     },
-     {
       "question": "إيه أنواع الوحدات في الحي اللاتيني العلمين الجديدة؟",
       "answer": "استوديوهات وشقق وشاليهات وبنتهاوس، والوحدات بتتسلم متشطبة."
      },
@@ -67988,7 +67984,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "Il Latini SED is a coastal residential project by Saudi Egyptian Developers (SED) in the heart of New Alamein, at km 109 of the Alexandria–Matrouh road. Property portals put it at about 650 feddan, built in a classical European style around lakes and green space. Prices of the units we have available start from EGP {{min_price}}. In short: it suits you if you want a finished apartment in a city that stays alive all year, and it is not the best pick if you dream of a beachfront villa, because the project is mostly apartment buildings."
+          "text": "Il Latini SED is a coastal residential project by Saudi Egyptian Developers (SED) in the heart of New Alamein, at km 109 of the Alexandria–Matrouh road. It is built in a classical European style around lakes and green space. Prices of the units we have available start from EGP {{min_price}}. In short: it suits you if you want a finished apartment in a city that stays alive all year, and it is not the best pick if you dream of a beachfront villa, because the project is mostly apartment buildings."
          }
         ]
        },
@@ -68372,10 +68368,6 @@
       "answer": "Saudi Egyptian Developers (SED), with projects in New Cairo, the New Capital and Maadi."
      },
      {
-      "question": "How big is Il Latini SED?",
-      "answer": "Property portals list it at about 650 feddan."
-     },
-     {
       "question": "What unit types are available in Il Latini SED?",
       "answer": "Studios, apartments, chalets and penthouses, delivered finished."
      },
@@ -68414,7 +68406,7 @@
     },
     {
      "fact": "Land area",
-     "value": "650 feddan (portals agree; developers-eg says 404 – majority value used, worded as portal figure)",
+     "value": "Left out: 650 feddan on portals vs 404 on developers-eg; may describe the whole Latin District",
      "sources": [
       "https://www.nawy.com/compound/493-il-latini-sed",
       "https://aldiyaralasrea.com/new-alameen/latin-district/",
@@ -78030,7 +78022,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "اللي بيدوّر على «لافيستا راس الحكمة» أو «لا فيستا راس الحكمة» أو «لافيستا رأس الحكمة» غالبًا بيقصد القرية دي. ميزتها الأساسية قربها من العلمين الجديدة واسم لافيستا في المصايف. بس رقم الكيلو ومساحة الأرض وميعاد التسليم مش منشورين بأرقام متفق عليها، فاطلبهم من الشركة مكتوبين. تعالى أقولك اللي يهمك قبل ما تقرر."
+          "text": "اللي بيدوّر على «لافيستا راس الحكمة» أو «لا فيستا راس الحكمة» أو «لافيستا رأس الحكمة» غالبًا بيقصد القرية دي. ميزتها الأساسية موقعها في راس الحكمة واسم لافيستا في المصايف. بس رقم الكيلو ومساحة الأرض وميعاد التسليم مش منشورين بأرقام متفق عليها، فاطلبهم من الشركة مكتوبين. تعالى أقولك اللي يهمك قبل ما تقرر."
          }
         ]
        },
@@ -78066,7 +78058,7 @@
           "href": "/ar/areas/north-coast"
          },
          {
-          "text": ". وحسب المواقع العقارية، هي قريبة من سيدي عبد الرحمن والعلمين الجديدة ومطار العلمين."
+          "text": ". وحسب المواقع العقارية، هي قريبة من فوكا وسيدي حنيش والضبعة، وجنبها مشاريع زي هاسيندا ويست وماونتن فيو راس الحكمة."
          }
         ]
        },
@@ -78098,7 +78090,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "لما القرية تبقى قريبة من العلمين الجديدة، ده بينعكس على خروجاتك. عندك مدينة فيها مطاعم وخدمات تروحها لو زهقت من المكان. وقرب المطار بيفيد لو عندك قرايب جايين من برة."
+          "text": "لما القرية تبقى وسط قرى كبيرة في راس الحكمة، ده بينعكس على خروجاتك. عندك مطاعم وخدمات في القرى اللي جنبك في الموسم. بس اسأل إيه اللي بيفضل فاتح بعد الصيف، لأن المنطقة لسه بتتبني."
          }
         ]
        }
@@ -78460,7 +78452,7 @@
          ],
          [
           {
-           "text": "عندك قرايب بييجوا من برة مصر في الصيف؟ القرب من مطار العلمين هيسهّل عليهم."
+           "text": "عندك قرايب بييجوا من برة مصر في الصيف؟ اسأل عن أقرب مطار شغال ومسافته بالعربية."
           }
          ],
          [
@@ -78555,7 +78547,7 @@
     "faq": [
      {
       "question": "لافيستا راس الحكمة فين؟",
-      "answer": "في راس الحكمة على طريق إسكندرية مطروح بالساحل الشمالي، وقريبة من سيدي عبد الرحمن والعلمين الجديدة حسب المواقع العقارية."
+      "answer": "في راس الحكمة على طريق إسكندرية مطروح بالساحل الشمالي، وقريبة من فوكا وسيدي حنيش والضبعة حسب المواقع العقارية."
      },
      {
       "question": "أسعار لافيستا راس الحكمة 2026 بتبدأ من كام؟",
@@ -78644,7 +78636,7 @@
           "href": "/en/areas/north-coast"
          },
          {
-          "text": ". Property sites place it close to Sidi Abdel Rahman, New Alamein, Alamein Airport and Alamein Towers."
+          "text": ". Property sites place it close to Fouka, Sidi Heneish and El Dabaa, next to projects such as Hacienda West and Mountain View Ras El Hikma."
          }
         ]
        },
@@ -78668,7 +78660,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "The area is still developing, so ask what is truly open nearby all year, and where the nearest hospital, supermarket and fuel station are. The plus is New Alamein nearby, with restaurants and services."
+          "text": "The area is still developing, so ask what is truly open nearby all year, and where the nearest hospital, supermarket and fuel station are. The plus is the large villages around it, with restaurants and services in season."
          }
         ]
        }
@@ -78962,7 +78954,7 @@
     "faq": [
      {
       "question": "Where is La Vista Ras El Hikma?",
-      "answer": "In Ras El Hikma on the Alexandria-Matrouh road on the North Coast, near Sidi Abdel Rahman and New Alamein according to property sites."
+      "answer": "In Ras El Hikma on the Alexandria-Matrouh road on the North Coast, near Fouka, Sidi Heneish and El Dabaa according to property sites."
      },
      {
       "question": "What are La Vista Ras El Hikma prices in 2026?",
@@ -79002,7 +78994,7 @@
    "facts": [
     {
      "fact": "Location",
-     "value": "Ras El Hikma, Alexandria-Matrouh road, near Sidi Abdel Rahman and New Alamein",
+     "value": "Ras El Hikma, Alexandria-Matrouh road, near Fouka, Sidi Heneish and El Dabaa",
      "sources": [
       "https://realestate.eg/en/184-vacation-in-north-coast-la-vista-ras-el-hikma-resort-compound",
       "https://aqarmap.com.eg/en/listing/2807589-projects-lavista-ras-elhikma",
@@ -85299,7 +85291,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "المصادر مبتحددش مساحة الفندق نفسه ولا عدد الأدوار ولا عدد الوحدات. وده نقص لازم تسأل عنه قبل ما تقرر. وبعض المصادر بتقول إن المشروع كله حوالي 40 فدان، بس ده غالبًا الرقم الخاص بلوميا لاجونز اللي الفندق جوّاه، فمتعتبرش الرقم ده مساحة الفندق."
+          "text": "المصادر مبتحددش مساحة الفندق نفسه ولا عدد الأدوار ولا عدد الوحدات. وده نقص لازم تسأل عنه قبل ما تقرر."
          }
         ]
        },
@@ -85807,7 +85799,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "Sources do not state the hotel's area, number of floors or number of units, which is a gap to ask about. Some say the whole project is about 40 feddan, but that is probably the Lumia Lagoons figure, so do not treat it as the hotel's area."
+          "text": "Sources do not state the hotel's area, number of floors or number of units, which is a gap to ask about."
          }
         ]
        },
@@ -103265,7 +103257,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "وخلّي بالك إن «نوشن» اسم عام، وفيه مواقع بتكتب إنه في التجمع الخامس ومواقع بتكتب السادس. الصفحة دي عن نوشن بتاع تاون رايترز في القاهرة الجديدة بس."
+          "text": "وخلّي بالك إن «نوشن» اسم عام. الصفحة دي عن نوشن بتاع تاون رايترز في التجمع الخامس بس."
          }
         ]
        }
@@ -103286,7 +103278,7 @@
           "href": "/ar/areas/new-cairo"
          },
          {
-          "text": "، وحسب الشركة هو على امتداد المربع الذهبي، ومكتب المبيعات في كلاود ناين مول على محور محمد نجيب. وفيه مواقع بتقول التجمع الخامس وموقع بيقول التجمع السادس، فاطلب العنوان بالتحديد من الشركة."
+          "text": "، وحسب الشركة هو على امتداد المربع الذهبي، ومكتب المبيعات في كلاود ناين مول على محور محمد نجيب. والمشروع في التجمع الخامس، واطلب العنوان بالتحديد من الشركة عشان تجرب الطريق بنفسك."
          }
         ]
        },
@@ -103611,7 +103603,7 @@
          ],
          [
           {
-           "text": "معلومات متضاربة: المواقع مش متفقة على منطقة المشروع ولا على مساحته. اطلب العنوان والمخطط من الشركة مكتوبين."
+           "text": "مساحة مش متفق عليها: المواقع مش متفقة على مساحة المشروع. اطلب المخطط من الشركة مكتوب."
           }
          ],
          [
@@ -103818,7 +103810,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "Note that \"Notion\" is a generic name and some sites place it in the Fifth Settlement and others in the Sixth. This page covers Town Writers' Notion in New Cairo only."
+          "text": "Note that \"Notion\" is a generic name. This page covers Town Writers' Notion in the Fifth Settlement only."
          }
         ]
        }
@@ -103839,7 +103831,7 @@
           "href": "/en/areas/new-cairo"
          },
          {
-          "text": ". According to the company it is on the Golden Square extension, with its sales office in Cloudnine Mall on the Mohamed Naguib Axis. Some sites say Fifth Settlement and one says Sixth, so ask the company for the exact address."
+          "text": ". According to the company it is on the Golden Square extension, with its sales office in Cloudnine Mall on the Mohamed Naguib Axis. The project is in the Fifth Settlement; ask the company for the exact address so you can test the drive yourself."
          }
         ]
        },
@@ -110657,7 +110649,7 @@
         "type": "paragraph",
         "content": [
          {
-          "text": "الوحدات في الباتيو برايم فلل بس: تاون هاوس وتوين هاوس وفلل مستقلة، وكمان وحدات كاردو. والفلل بتتسلم نص تشطيب حسب المنشور عن المشروع. والاختيار بيتحدد بهدفك:"
+          "text": "الوحدات في الباتيو برايم فلل بس: تاون هاوس وتوين هاوس وفلل مستقلة، وكمان وحدات كوادرو. والفلل بتتسلم نص تشطيب حسب المنشور عن المشروع. والاختيار بيتحدد بهدفك:"
          }
         ]
        },
@@ -110884,7 +110876,7 @@
      },
      {
       "question": "إيه أنواع الوحدات في الباتيو برايم؟",
-      "answer": "فلل بس: تاون هاوس وتوين هاوس وفلل مستقلة ووحدات كاردو."
+      "answer": "فلل بس: تاون هاوس وتوين هاوس وفلل مستقلة ووحدات كوادرو."
      },
      {
       "question": "الباتيو برايم قريب من مستشفى؟",
