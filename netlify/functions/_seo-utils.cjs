@@ -1,4 +1,5 @@
 "use strict";
+const { PRICE_REPORTS } = require("./_price-reports.cjs");
 
 const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, countAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr, availableAr, deliveryInAr } = require("./_display-text.cjs");
 const { imgSrcAttrs, heroSrcAttrs } = require("./_images.cjs");
@@ -2371,7 +2372,7 @@ ${searchMount("ar", "مثال: شقة غرفتين في التجمع تحت 8 م
   <div class="prose">
   ${sections.join("\n  ")}
   <h2 id="faq">أسئلة شائعة عن شقق للبيع في التجمع الخامس</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}
-  <h2>صفحات قريبة</h2><p><a href="/ar/areas/${escapeHtml(areaSlug)}">دليل مشاريع التجمع الخامس والقاهرة الجديدة</a> · <a href="/ar/areas/mostakbal-city">مشاريع مستقبل سيتي</a> · <a href="/guides/">كل الأدلة والمقالات</a></p>
+  <h2>صفحات قريبة</h2><p>${areaSlug === "new-cairo" ? '<a href="/ar/reports/new-cairo-prices-2026">دليل أسعار الشقق في التجمع الخامس 2026 (سعر المتر لكل مشروع)</a> · ' : ""}<a href="/ar/areas/${escapeHtml(areaSlug)}">دليل مشاريع التجمع الخامس والقاهرة الجديدة</a> · <a href="/ar/areas/mostakbal-city">مشاريع مستقبل سيتي</a> · <a href="/guides/">كل الأدلة والمقالات</a></p>
   <p class="note">الأرقام مبنية على الشقق الظاهرة عندنا وليست تقييمًا للسوق بالكامل. السعر النهائي والتوافر بيتأكدوا مع المطور وقت الطلب.</p></div></main>
 <div class="band"><div class="dwrap"><div><h2>عايز شقة في التجمع الخامس في حدود ميزانيتك؟</h2><p>ابعتلنا المساحة والميزانية والمنطقة، ونرشحلك أنسب 3 شقق بسعر المتر لكل واحدة.</p></div><a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>كلمنا على واتساب</span></a></div></div>`;
   return renderPage({
@@ -2405,6 +2406,118 @@ ${searchMount("ar", "مثال: شقة غرفتين في التجمع تحت 8 م
         "@context": "https://schema.org",
         "@type": "FAQPage",
         mainEntity: faq.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
+      },
+    ],
+  });
+}
+
+// /ar/reports/<slug> (Nov 2026): dated price reports, frozen snapshots from _price-reports.cjs.
+// The figures never change after publishing; a new month is a new report.
+function renderPriceReport(slug, lang = "ar") {
+  const report = PRICE_REPORTS[slug];
+  if (lang !== "ar" || !report) return null;
+  const path = `/ar/reports/${report.slug}`;
+  const crumbs = [
+    { name: "الرئيسية", path: "/" },
+    { name: "القاهرة الجديدة والتجمع", path: "/ar/areas/new-cairo" },
+    { name: "دليل أسعار التجمع 2026", path },
+  ];
+  const a = report.apartments;
+  const num = (value) => escapeHtml(fmtNum(value));
+  const million = (value) => `${escapeHtml(String(value))} مليون`;
+  const thousand = (value) => `${escapeHtml(String(Math.round(value / 1000)))} ألف`;
+  const bars = (rows, max, highlight, sub) => `<div class="rbars">${rows.map((row) => `<div class="rbar"><div class="rl">${escapeHtml(row[0])}${sub ? `<small>${sub(row)}</small>` : ""}</div><div class="rt"><i${row[0] === highlight ? ' class="hl"' : ""} style="width:${Math.max(1.5, (row[1] / max) * 100).toFixed(1)}%"></i></div><b>${num(row[1])}</b></div>`).join("")}</div>`;
+  const typeRows = report.types.map(([label, listings, projects, ppm, area, price]) => [label, ppm, listings, projects, area, price]);
+  const areaRows = report.areas.map(([label, areaSlugValue, projects, listings, ppm, low, high]) => [label, ppm, areaSlugValue, projects, listings, low, high]);
+  const projectTable = (rows, withNote) => `<div class="table"><table><thead><tr><th>المشروع</th><th>المطور</th><th>سعر متر الشقة</th><th>يبدأ من</th><th>أصغر مساحة</th><th>نماذج</th></tr></thead><tbody>${rows.map(([name, projectSlug, developer, listings, ppm, from, minArea]) => `<tr><td><a href="/projects/${escapeHtml(projectSlug)}">${escapeHtml(name)}</a>${withNote && listings === 1 ? " *" : ""}</td><td>${escapeHtml(developer)}</td><td>${num(ppm)} جنيه</td><td>${million(from)} جنيه</td><td>${escapeHtml(String(minArea))} م²</td><td>${num(listings)}</td></tr>`).join("")}</tbody></table></div>`;
+  const stat = (value, labelText) => `<div><b>${escapeHtml(value)}</b><span>${escapeHtml(labelText)}</span></div>`;
+  const published = report.published;
+  const body = `<style>${directoryStyles()}.answer-box{margin:22px 0 0;padding:18px 20px;border-radius:16px;background:#fffaf1;border:1px solid var(--line);color:#14352a}.dhero .updated{margin:6px 0 0;color:#d8c9a8;font-size:14px}.dl-pdf{display:inline-flex;gap:8px;align-items:center;margin-top:16px;padding:12px 22px;border-radius:999px;background:#c49b5f;color:#14352a;font-weight:800}.rbars{margin:18px 0 8px}.rbar{display:grid;grid-template-columns:minmax(150px,230px) 1fr 90px;gap:12px;align-items:center;margin-bottom:10px}.rbar .rl{font-weight:700;line-height:1.4}.rbar small{display:block;font-weight:400;color:var(--muted);font-size:12.5px}.rbar .rt{height:22px;background:#f1ece1;border-radius:6px;overflow:hidden}.rbar i{display:block;height:100%;background:#9fb3a8;border-radius:6px}.rbar i.hl{background:#14352a}.rbar b{color:#14352a;text-align:end}.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:28px}@media(max-width:720px){.rgrid{grid-template-columns:1fr}.rbar{grid-template-columns:120px 1fr 60px}}.hl-list li{margin-bottom:8px}</style>
+<section class="dhero"><div class="dwrap"><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" ‹ ")}</p><span class="eyebrow">تقرير أسعار · نوفمبر 2026</span>
+<h1>${escapeHtml(report.h1)}</h1><p class="lead">${escapeHtml(report.description)}</p>
+<p class="updated">الأسعار بتاريخ: <time datetime="${escapeHtml(report.snapshotDate)}">${escapeHtml(arabicDate(report.snapshotDate))}</time> · ${escapeHtml(`${fmtNum(report.totals.listings)} نموذج وحدة سكنية في ${fmtNum(report.totals.projects)} مشروع`)}</p>
+<a class="dl-pdf" href="${escapeHtml(report.pdf)}" download>نزّل الدليل PDF (8 صفحات)</a>
+<div class="stats">${stat(`${fmtNum(a.ppm)} ج`, "سعر متر الشقة في النص")}${stat(`${Math.round(a.p10 / 1000)} لـ ${Math.round(a.p90 / 1000)} ألف`, "سعر المتر لـ 80% من الشقق")}${stat(`${a.medPrice} مليون`, `الشقة المتوسطة (${a.medArea} م²)`)}${stat(`${a.minPrice} مليون`, "أرخص شقة متاحة")}</div></div></section>
+<main class="dmain"><div class="prose">
+  <p class="answer-box"><strong>الإجابة السريعة:</strong> ${escapeHtml(report.answer)}</p>
+  <h2>أهم 5 حاجات تعرفها قبل ما تشتري</h2>
+  <ul class="hl-list">${report.highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+  <h2 id="by-type">سعر المتر في التجمع لكل نوع وحدة</h2>
+  <p>وسيط سعر المتر بالجنيه. تحت كل نوع عدد النماذج والمشاريع ووسيط المساحة والسعر.</p>
+  ${bars(typeRows, 160000, "شقة", (row) => escapeHtml(`${row[2]} نموذج في ${row[3]} مشروع · ${row[4]} م² · ${row[5]} مليون`))}
+  <h2 id="payment">أنظمة السداد في مشاريع التجمع</h2>
+  <p>عدد المشاريع (${num(report.totals.projects)} مشروع)، وكل مشروع محسوب مرة واحدة بأقل مقدم وأطول تقسيط متاحين فيه.</p>
+  <div class="rgrid"><div><h3>المقدم</h3>${bars(report.downPayment, 70, "لحد 5%")}</div><div><h3>سنين التقسيط</h3>${bars(report.years, 70, "10 سنين أو أكتر")}</div></div>
+  <p><strong>يعني إيه الكلام ده للمشتري؟</strong> شقة متوسطة في التجمع بـ ${escapeHtml(String(a.medPrice))} مليون جنيه بمقدم 5% مقدمها حوالي 475 ألف جنيه، والباقي على 10 سنين بقسط سنوي حوالي 900 ألف جنيه، من غير فوايد أو دفعات استلام.</p>
+  <h2 id="delivery">مواعيد التسليم</h2>
+  <p>عدد المشاريع حسب أقرب ميعاد تسليم معلن فيها، محسوب من نوفمبر 2026.</p>
+  ${bars(report.delivery, 45, "خلال سنتين")}
+  <h2 id="areas">سعر متر الشقة في التجمع قدام المناطق التانية</h2>
+  <div class="table"><table><thead><tr><th>المنطقة</th><th>سعر متر الشقة (الوسيط)</th><th>ربع المشاريع الأرخص لحد</th><th>ربع المشاريع الأغلى من</th><th>مشاريع</th><th>نماذج شقق</th></tr></thead><tbody>${areaRows.map(([label, ppm, areaSlugValue, projects, listings, low, high]) => `<tr><td><a href="/ar/areas/${escapeHtml(areaSlugValue)}">${escapeHtml(label)}</a></td><td>${num(ppm)} جنيه</td><td>${thousand(low)}</td><td>${thousand(high)}</td><td>${num(projects)}</td><td>${num(listings)}</td></tr>`).join("")}</tbody></table></div>
+  <p class="note"><strong>ملاحظة مهمة:</strong> الأرقام دي محسوبة من المشاريع المتاحة عندنا في كل منطقة، وأغلبها لمطورين كبار. يعني بتعبّر عن المشاريع اللي بنتعامل معاها، مش عن كل السوق. في غرب القاهرة مثلًا فيه مشاريع أرخص لمطورين أصغر مش داخلة في الحسبة.</p>
+</div>
+  <div class="sh" id="projects"><div><h2>سعر متر الشقة في كل مشروع في التجمع الخامس</h2><p>${escapeHtml(`${fmtNum(report.projects.length)} مشروع مرتبة من الأرخص للأغلى. اضغط على اسم المشروع تشوف كل وحداته وأسعارها.`)}</p></div></div>
+  ${projectTable(report.projects, true)}
+  <p class="note">* المشروع ده محسوب من نموذج شقة واحد بس، فرقمه استرشادي.</p>
+<div class="prose">
+  <h2 id="branded">شقق فندقية بعلامة تجارية (Branded Residences)</h2>
+  <p>الشقق دي بتتباع بخدمات فندقية وإدارة، فسعرها مش بيتقارن بالشقق العادية، وعشان كده مش داخلة في أي رقم فوق.</p>
+</div>
+  ${projectTable(report.branded, false)}
+<div class="prose">
+  <h2 id="methodology">المنهجية</h2>
+  <ul>
+    <li><strong>المصدر:</strong> قاعدة بيانات Tycoons Investments لأسعار المطورين، يوم ${escapeHtml(arabicDate(report.snapshotDate))}.</li>
+    <li><strong>اللي داخل:</strong> الوحدات السكنية المتاحة للبيع في التجمع الخامس والقاهرة الجديدة، اللي ليها سعر ومساحة معلنين.</li>
+    <li><strong>اللي برا:</strong> الوحدات التجاري والإداري والطبي، والوحدات المتباعة، ومشاريع الشروق (${escapeHtml(report.excludedShorouk.join("، "))})، والشقق الفندقية.</li>
+    <li><strong>النماذج:</strong> لكل مشروع بنسجّل نموذج واحد لكل نوع ومساحة معروضة، فالأعداد هنا عدد نماذج أو مشاريع، مش عدد الوحدات اللي هتتبني.</li>
+    <li><strong>الحسبة:</strong> سعر المتر = سعر البداية ÷ المساحة، والرقم المعروض هو الوسيط، يعني الرقم اللي في النص بعد ما نرتب الأسعار.</li>
+    <li>الأسعار دي أسعار بداية من المطورين وبتتغير بسرعة، فراجع السعر الحالي قبل أي قرار. <a href="/methodology">اقرأ منهجية البيانات الكاملة</a>.</li>
+  </ul>
+  <h2 id="faq">أسئلة شائعة عن أسعار الشقق في التجمع الخامس</h2>${report.faq.map(([q, answer]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(answer)}</p></section>`).join("")}
+  <h2>صفحات قريبة</h2><p><a href="/ar/areas/new-cairo/apartments-for-sale">شقق للبيع في التجمع الخامس بأسعار النهارده</a> · <a href="/ar/areas/new-cairo">دليل مشاريع القاهرة الجديدة والتجمع</a> · <a href="/guides/">كل الأدلة والمقالات</a></p>
+</div></main>
+<div class="band"><div class="dwrap"><div><h2>عايز سعر النهارده لوحدة معينة في التجمع؟</h2><p>فريق Tycoons Investments في التجمع الخامس بيقارنلك بين المشاريع وأنظمة السداد.</p></div><a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>كلمنا على واتساب</span></a></div></div>`;
+  const pageUrl = `${SITE_URL}${path}`;
+  return renderPage({
+    lang: "ar",
+    title: report.title,
+    description: report.description,
+    path,
+    alternatePath: "",
+    body,
+    image: `${SITE_URL}/images/logo.png`,
+    schemas: [
+      breadcrumbSchema(crumbs),
+      {
+        "@context": "https://schema.org",
+        "@type": "Report",
+        headline: report.h1,
+        description: report.description,
+        inLanguage: "ar-EG",
+        datePublished: published,
+        dateModified: published,
+        author: { "@id": `${SITE_URL}/#organization` },
+        publisher: { "@id": `${SITE_URL}/#organization` },
+        mainEntityOfPage: { "@type": "WebPage", "@id": pageUrl },
+        about: { "@type": "Place", name: "القاهرة الجديدة والتجمع الخامس", address: { "@type": "PostalAddress", addressLocality: "New Cairo", addressRegion: "Cairo", addressCountry: "EG" } },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        name: "أسعار الشقق في التجمع الخامس والقاهرة الجديدة: نوفمبر 2026",
+        description: `سعر المتر لكل مشروع ونوع وحدة، وأنظمة السداد ومواعيد التسليم، من ${report.totals.listings} نموذج وحدة سكنية في ${report.totals.projects} مشروع في التجمع الخامس والقاهرة الجديدة.`,
+        url: pageUrl,
+        creator: { "@id": `${SITE_URL}/#organization` },
+        temporalCoverage: report.snapshotDate,
+        spatialCoverage: { "@type": "Place", name: "New Cairo, Egypt" },
+        isAccessibleForFree: true,
+        distribution: [{ "@type": "DataDownload", encodingFormat: "application/pdf", contentUrl: `${SITE_URL}${report.pdf}` }],
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: report.faq.map(([name, text]) => ({ "@type": "Question", name, acceptedAnswer: { "@type": "Answer", text } })),
       },
     ],
   });
@@ -2812,6 +2925,7 @@ function notFound(lang = "ar") {
 
 module.exports = {
   renderApartments,
+  renderPriceReport,
   apartmentsPageLinkAr,
   APARTMENT_PAGE_ANCHORS,
   isApartmentUnit,

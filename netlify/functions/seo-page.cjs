@@ -11,6 +11,7 @@ const {
   renderUnit,
   renderCollection,
   renderApartments,
+  renderPriceReport,
   renderGuide,
   renderEditorialArticle,
   renderStaticPage,
@@ -101,6 +102,7 @@ exports.handler = async function handler(event) {
   const unitRoute = originalPath.match(/^\/units\/(.+?)\/?$/);
   const guidesIndexRoute = originalPath.match(/^\/(?:(en)\/)?guides\/?$/);
   const guideRoute = originalPath.match(/^\/(?:(en)\/)?guides\/(.+?)\/?$/);
+  const reportRoute = originalPath.match(/^\/ar\/reports\/(.+?)\/?$/);
   const staticRoute = originalPath.match(/^\/(about|faq|methodology|corrections|contact|privacy)\/?$/);
   const directoryRoute = originalPath.match(/^\/(ar|en)(?:\/directory)?\/?$/);
 
@@ -122,6 +124,9 @@ exports.handler = async function handler(event) {
   } else if (guideRoute) {
     type = "guide";
     rawSlug = guideRoute[2];
+  } else if (reportRoute) {
+    type = "report";
+    rawSlug = reportRoute[1];
   } else if (staticRoute) {
     type = "static";
     rawSlug = staticRoute[1];
@@ -147,6 +152,7 @@ exports.handler = async function handler(event) {
       }
     }
     if (type === "static") html = renderStaticPage(slug);
+    if (type === "report") html = renderPriceReport(slug, "ar");
     if (type === "guides") {
       const [articles, projectsForGuides, unitsForGuides] = await Promise.all([
         fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at,project_id", order: "published_at.desc", limit: "300" }),
@@ -157,7 +163,7 @@ exports.handler = async function handler(event) {
       const projectIdsWithUnits = Array.isArray(unitsForGuides) ? new Set(unitsForGuides.map((unit) => String(unit.project_id || "")).filter(Boolean)) : null;
       html = renderGuidesIndex(lang, articles, projectsForGuides, projectIdsWithUnits);
     }
-    if (!["guide", "guides", "static"].includes(type)) {
+    if (!["guide", "guides", "static", "report"].includes(type)) {
       const [units, projectsMeta] = await Promise.all([
         fetchUnits(),
         fetchProjectsMeta({ strict: type === "project" }),

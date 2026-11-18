@@ -14,6 +14,7 @@ const { indexableUnitIds } = require("./_unit-indexing.cjs");
 const { publishedProjectSlugs } = require("./_project-indexing.cjs");
 const { hasOwnWrittenGuide, attachPublishedGuides, isProjectGuideArticle } = require("./_localized-project-content.cjs");
 const { unitPath } = require("./_unit-url.cjs");
+const { PRICE_REPORTS } = require("./_price-reports.cjs");
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY =
@@ -91,6 +92,10 @@ exports.handler = async function handler() {
       .filter((value, index, list) => list.indexOf(value) === index)
       .slice(0, 5);
 
+    // Dated price reports (frozen snapshots).
+    for (const report of Object.values(PRICE_REPORTS)) {
+      urls.set(`${SITE_URL}/ar/reports/${report.slug}`, report.published);
+    }
     for (const [guideSlug, guide] of Object.entries(GUIDES)) {
       urls.set(`${SITE_URL}/guides/${guideSlug}/`, guide.modified || "2026-07-26");
     }
