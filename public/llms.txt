@@ -1,5 +1,7 @@
 # Tycoons Investments
 
+Last updated: 2026-11-18
+
 > Egyptian real-estate search and comparison platform. Buyers compare currently available developer inventory by project, location, unit type, area, price, payment plan, delivery, and finishing.
 
 Tycoons Investments indexes new-development inventory across Egypt's main growth areas — New Cairo, Mostakbal City, Sheikh Zayed, the New Administrative Capital, October, North Coast, New Alamein, and Ain Sokhna. Listings come from developers directly rather than from resale intermediaries. The site is primarily in Egyptian Arabic, with an English mirror of the project directory.
@@ -13,6 +15,15 @@ Tycoons Investments indexes new-development inventory across Egypt's main growth
 - [Data methodology](https://tycoons-inv.com/methodology): How inventory is collected, updated, and how ROI-style comparisons are calculated.
 - [Corrections policy](https://tycoons-inv.com/corrections): How to report and how we handle inaccurate data.
 - [Contact](https://tycoons-inv.com/contact): Direct contact channels for inquiries.
+
+## Area guides and reports
+
+- [New Cairo and Fifth Settlement guide](https://tycoons-inv.com/en/areas/new-cairo): Area overview with the projects available there.
+- [Mostakbal City guide](https://tycoons-inv.com/en/areas/mostakbal-city): Area overview with the projects available there.
+- [Apartments for sale in New Cairo (Arabic)](https://tycoons-inv.com/ar/areas/new-cairo/apartments-for-sale): Available apartments with price per square metre by project.
+- [New Cairo Prices 2026 report (Arabic)](https://tycoons-inv.com/ar/reports/new-cairo-prices-2026): Dated price report built from the same inventory, with methodology and a PDF.
+- [Buyer guides (Arabic)](https://tycoons-inv.com/guides/): Payment plans, off-plan checklist, and comparison guides.
+- [English directory](https://tycoons-inv.com/en/directory/): English index of projects, areas, and developers.
 
 ## For agents
 

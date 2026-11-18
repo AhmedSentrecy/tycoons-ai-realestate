@@ -998,6 +998,11 @@ function organizationSchema() {
     sameAs: [
       "https://www.facebook.com/tycoonsinvestments/",
       "https://www.instagram.com/tycoonsinvestment/",
+      // Only listings that are published and verified (Brownbook, 17 Nov 2026).
+      // Add the other directories here once each one is live.
+      "https://www.brownbook.net/business/56122776/tycoons-investments",
+      // Egypt Directory confirmation email, 18 Nov 2026.
+      "https://infoeg.com/cairo/page/894606",
     ],
     areaServed: { "@type": "Country", name: "Egypt" },
     knowsLanguage: ["ar-EG", "en"],
