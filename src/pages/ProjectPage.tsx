@@ -38,6 +38,7 @@ import { projectFacts, lastPriceUpdate } from "../../netlify/functions/_project-
 import { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, tidyArabicName } from "../../netlify/functions/_unit-labels.cjs";
 import ProjectFacts from "@/components/ProjectFacts";
 import ProjectShowcase from "@/components/ProjectShowcase";
+import { useScrollTopOnNavigation } from "@/hooks/useScrollTopOnNavigation";
 import PageStructuredData from "@/components/PageStructuredData";
 import { unitPath } from "@/lib/unitUrl";
 import { fitTitle } from "@/lib/fitTitle";
@@ -278,6 +279,7 @@ function sqmPrice(unit: { starting_price?: unknown; area_sqm?: unknown }) {
 export default function ProjectPage() {
   const { slug = "" } = useParams();
   const { units, loading, error } = useInventory();
+  useScrollTopOnNavigation(slug);
   const [content, setContent] = useState<ProjectPageContent | null>(null);
   const [loadedSlug, setLoadedSlug] = useState("");
   // Published buyer-question guides about this project, linked under the FAQ.
@@ -392,7 +394,6 @@ export default function ProjectPage() {
     setMeta('meta[property="og:description"]', "content", localizedDescription);
     setMeta('meta[property="og:url"]', "content", pageUrl);
     setMeta('meta[property="og:type"]', "content", "article");
-    window.scrollTo(0, 0);
   }, [content, isIcityOctober, localizedArabic, project, projectUnits, slug]);
 
   if (loading || contentLoading) {

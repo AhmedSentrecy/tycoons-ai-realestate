@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
+import { useScrollTopOnNavigation } from "@/hooks/useScrollTopOnNavigation";
 import { ArrowLeft, BedDouble, Building2, MapPin, Maximize2, MessageCircle } from "lucide-react";
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
@@ -54,6 +55,7 @@ export default function GuidePage() {
   // Status belongs to the slug it was loaded for; a new slug reads as loading.
   const [loaded, setLoaded] = useState<{ key: string; status: "ready" | "missing" }>({ key: "", status: "missing" });
   const key = `${language}:${slug}`;
+  useScrollTopOnNavigation(key);
   const state = loaded.key === key ? loaded.status : "loading";
   const { units, loading: inventoryLoading } = useInventory();
   // Ids of units that still have a page (null while loading, so no guide link is dropped early).
@@ -104,7 +106,6 @@ export default function GuidePage() {
     setMeta('meta[property="og:description"]', "content", guide.meta_description || guide.excerpt);
     setMeta('meta[property="og:url"]', "content", `${SITE_URL}${path}`);
     setMeta('meta[property="og:locale"]', "content", language === "en" ? "en_US" : "ar_EG");
-    window.scrollTo(0, 0);
   }, [guide, path, language, embeddedInProject, project]);
 
   if (state === "loading") {

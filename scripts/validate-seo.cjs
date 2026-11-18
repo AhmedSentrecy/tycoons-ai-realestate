@@ -407,6 +407,12 @@ assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "ut
   assert.match(live, /170,146/, "The calculator is pre-filled with 2% of the cheapest home");
   assert.doesNotMatch(live + fs.readFileSync(path.join(root, "public/showcase.js"), "utf8"), /is-live/, "The walk-through gets its height from CSS, not from the script, so the page does not shift while it loads");
   assert.doesNotMatch(fs.readFileSync(path.join(root, "src/components/ProjectShowcase.tsx"), "utf8"), /dangerouslySetInnerHTML=/, "The showcase markup is written once per change, so a page re-render does not reset the walk-through");
+  for (const pageFile of ["ProjectPage", "UnitPage", "GuidePage"]) {
+    const pageSource = fs.readFileSync(path.join(root, `src/pages/${pageFile}.tsx`), "utf8");
+    assert.doesNotMatch(pageSource, /scrollTo\(/, `${pageFile} does not jump to the top when its data arrives: the visitor may already be scrolling the server-sent page`);
+    assert.match(pageSource, /useScrollTopOnNavigation\(/, `${pageFile} starts at the top only after a move inside the site`);
+  }
+  assert.match(fs.readFileSync(path.join(root, "src/hooks/useScrollTopOnNavigation.ts"), "utf8"), /navigationType !== "POP"/, "A page opened directly is not scrolled to the top");
   assert.match(live, /data-wa-source="project-showcase-calculator"/, "The showcase WhatsApp button is tracked");
   assert.doesNotMatch(live, /2026-12-31|31 ديسمبر|آخر السنة|نهاية السنة|ساري لحد|<script/, "The offer's end date is never printed, and the block carries no inline script");
   const expired = showcaseHtml({ slug: showcaseSlug, images: showcaseImages, units: showcaseUnits, now: Date.parse("2027-01-01T00:30:00+02:00") });
