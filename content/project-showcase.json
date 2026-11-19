@@ -1,5 +1,5 @@
 {
-  "note": "Projects whose page shows the scroll walk-through, payment plans and the down-payment calculator. walk.photos are positions in the project's photo list (0 is the page's main photo); stops are optional captions, checked against each photo. With an offer (terms confirmed by Ahmed) the page shows the offer's systems; hide_after is internal, the offer stops rendering after that day and the date is never printed. Without an offer, the plans and the calculator come from the payment data of the project's live units, and nothing is shown for a unit whose plan text is vague.",
+  "note": "Projects whose page shows the scroll walk-through, payment plans and the down-payment calculator. walk.photos are positions in the project's photo list (0 is the page's main photo); stops are optional captions, checked against each photo. With an offer (terms confirmed by Ahmed) the page shows the offer's systems; hide_after is internal, the offer stops rendering after that day and the date is never printed. Without an offer, the plans and the calculator come from the payment data of the project's live units, and nothing is shown for a unit whose plan text is vague. A project can carry a fixed plan (plan.down_payment, plan.years) confirmed by Ahmed: it replaces the units' own payment text in this block.",
   "projects": {
     "mountain-view-icity-october--mountain-view": {
       "name_ar": "ماونتن فيو آي سيتي أكتوبر",
@@ -176,6 +176,12 @@
       "name_en": "Mountain View iCity New Cairo",
       "walk": {
         "photos": [1, 2, 4, 6, 7]
+      },
+      "plan": {
+        "down_payment": "5%",
+        "years": 8,
+        "confirmed": "2026-11-19",
+        "source": "Ahmed, 19 Nov 2026: 5% over 8 years; only some homes are on 12 years (a payment file will follow)."
       }
     },
     "mountain-view-1-1--mountain-view": {
@@ -197,6 +203,12 @@
       "name_en": "Mountain View Jirian",
       "walk": {
         "photos": [1, 2, 4, 7, 9, 11]
+      },
+      "plan": {
+        "down_payment": "5%",
+        "years": 8,
+        "confirmed": "2026-11-19",
+        "source": "Ahmed, 19 Nov 2026: 5% over 8 years; only some homes are on 12 years (a payment file will follow)."
       }
     },
     "mountain-view-chillout--mountain-view": {
@@ -331,6 +343,12 @@
       "name_en": "Mountain View Crysta",
       "walk": {
         "photos": [1, 2, 3, 4, 7, 10]
+      },
+      "plan": {
+        "down_payment": "5%",
+        "years": 8,
+        "confirmed": "2026-11-19",
+        "source": "Ahmed, 19 Nov 2026: 5% over 8 years; only some homes are on 12 years (a payment file will follow)."
       }
     },
     "mountain-view-lvls--mountain-view": {
@@ -422,17 +440,23 @@
     "acasa--dar-al-alamia-developments": {
       "name_ar": "اكاسا التجمع الخامس",
       "name_en": "Acasa New Cairo, Fifth Settlement",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "acasa-alma--dar-al-alamia-developments": {
       "name_ar": "اكاسا الما التجمع السادس",
       "name_en": "Acasa Alma New Cairo, Sixth Settlement",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "acasa-mia--dar-al-alamia-developments": {
       "name_ar": "اكاسا ميا التجمع الخامس",
       "name_en": "Acasa Mia New Cairo, Fifth Settlement",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "amazon-diamond-tower--amazon-developments": {
       "name_ar": "كابيتال دايموند تاور العاصمة",
@@ -461,7 +485,9 @@
     "azha--madaar-development": {
       "name_ar": "أزها العين السخنة",
       "name_en": "Azha Ain Sokhna by Madaar Development",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "begonia-residence--menassat-developments": {
       "name_ar": "بيجونيا ريزيدنس التجمع الخامس",
@@ -470,7 +496,9 @@
     "begonia-walk--menassat-developments": {
       "name_ar": "مول بيجونيا ووك التجمع الخامس",
       "name_en": "Begonia Walk New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "bianchi-ilios--al-borouj-misr-developments-group-abm": {
       "name_ar": "بيانكي إيليوس الساحل الشمالي",
@@ -519,7 +547,9 @@
     "cattleya--arabco-developments": {
       "name_ar": "كاتليا التجمع الخامس",
       "name_en": "Cattleya New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "central-point--town-writers": {
       "name_ar": "سنترال بوينت مول العاصمة الإدارية",
@@ -552,7 +582,9 @@
     "d-o-s-e--akam-alrajhi-developments": {
       "name_ar": "دوس الساحل الشمالي",
       "name_en": "D.O.S.E North Coast, Al Dabaa",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "eastshire--al-qamzi-developments": {
       "name_ar": "إيست شاير التجمع الخامس",
@@ -589,12 +621,16 @@
     "ever--cred-developments": {
       "name_ar": "إيفر أكتوبر 2026 من كريد",
       "name_en": "Ever October",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "ever-new-cairo--cred-developments": {
       "name_ar": "ايفر القاهرة الجديدة",
       "name_en": "Ever New Cairo, Sixth Settlement",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "fcc--al-borouj-misr-developments-group-abm": {
       "name_ar": "إف سي سي التجمع الخامس",
@@ -611,7 +647,9 @@
     "garden-lakes--hydepark-developments": {
       "name_ar": "جاردن ليكس أكتوبر",
       "name_en": "Garden Lakes October",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "glare-mall--areva-developments": {
       "name_ar": "جلير مول التجمع الخامس",
@@ -640,17 +678,23 @@
     "hydepark-central--hydepark-developments": {
       "name_ar": "هايد بارك سنترال التجمع السادس",
       "name_en": "Hydepark Central New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "hydepark-seashore--hydepark-developments": {
       "name_ar": "هايد بارك سيشور رأس الحكمة",
       "name_en": "Hydepark Seashore Ras El Hekma",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "icon-garden--style-home-development": {
       "name_ar": "ايكون جاردن التجمع الخامس",
       "name_en": "Icon Garden New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "iguall--upwyde": {
       "name_ar": "إيجوال مول التجمع الخامس",
@@ -663,7 +707,9 @@
     "il-monte-galala-towers--tatweer-misr": {
       "name_ar": "إل مونت جلالة تاورز العين السخنة",
       "name_en": "IL Monte Galala Towers Ain Sokhna",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "it-business-hub--upwyde": {
       "name_ar": "آي تي بيزنس هاب التجمع الخامس",
@@ -684,7 +730,9 @@
     "jefaira--inertia-egypt": {
       "name_ar": "جفيرة الساحل الشمالي",
       "name_en": "Jefaira North Coast",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "la-vista-6--la-vista-developments": {
       "name_ar": "لافيستا 6 العين السخنة",
@@ -697,17 +745,23 @@
     "la-vista-bay-east--la-vista-developments": {
       "name_ar": "لافيستا باي إيست راس الحكمة",
       "name_en": "La Vista Bay East Ras El Hikma",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "la-vista-ras-el-hikma--la-vista-developments": {
       "name_ar": "لافيستا راس الحكمة",
       "name_en": "La Vista Ras El Hikma",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "la-vista-ras-el-hikma-lagoona--la-vista-developments": {
       "name_ar": "لاجونا لافيستا رأس الحكمة",
       "name_en": "La Vista Ras El Hikma Lagoona North Coast",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "la-vista-ray--la-vista-developments": {
       "name_ar": "لافيستا راي العين السخنة",
@@ -720,7 +774,9 @@
     "lifewise--eons-developments": {
       "name_ar": "لايف وايز التجمع الخامس",
       "name_en": "LifeWise New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "linea-commercial-patio-oro--la-vista-developments": {
       "name_ar": "لينيا الباتيو أورو",
@@ -749,7 +805,9 @@
     "lumia-residence-r7--dubai-misr-developments": {
       "name_ar": "لوميا ريزيدنس العاصمة الإدارية",
       "name_en": "Lumia Residence R7 New Capital",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "lynks--living-yards-developments": {
       "name_ar": "مول لينكس التجمع الخامس",
@@ -782,22 +840,30 @@
     "monark-residence--royal-development": {
       "name_ar": "مونارك ريزيدنس مستقبل سيتي",
       "name_en": "Monark Residence Mostakbal City by Royal",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "montenapoleone--reportage-properties": {
       "name_ar": "مونتينابوليوني مستقبل سيتي",
       "name_en": "Montenapoleone Mostakbal City by Reportage",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "moray--main-marks": {
       "name_ar": "مول موراي التجمع الخامس",
       "name_en": "Moray New Cairo Fifth Settlement",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "nest--n-developments": {
       "name_ar": "نست التجمع السادس",
       "name_en": "Nest New Cairo, Sixth Settlement",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "noir--living-yards": {
       "name_ar": "مول نوار التجمع الخامس",
@@ -806,7 +872,9 @@
     "noll--kleek-developments": {
       "name_ar": "نول التجمع السادس",
       "name_en": "Noll New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "notion--town-writers": {
       "name_ar": "نوشن القاهرة الجديدة",
@@ -827,7 +895,9 @@
     "park-sight--il-cazar-developments": {
       "name_ar": "بارك سايت العاصمة الإدارية",
       "name_en": "Park Sight New Capital",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "patio-5-east--la-vista-developments": {
       "name_ar": "الباتيو 5 إيست الشروق",
@@ -864,7 +934,9 @@
     "regent-s-square--al-dawlia-developments": {
       "name_ar": "ريجنتس سكوير التجمع الخامس",
       "name_en": "Regent's Square New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "rosail--khaled-sabry-holding": {
       "name_ar": "روزيل سيتي مستقبل سيتي",
@@ -873,32 +945,44 @@
     "saada--horizon-egypt-development": {
       "name_ar": "سعادة القاهرة الجديدة",
       "name_en": "Saada New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "saada-boutique--horizon-egypt-development": {
       "name_ar": "سعادة بوتيك التجمع السادس",
       "name_en": "Saada Boutique New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "sadaf--new-plan": {
       "name_ar": "صدف الساحل الشمالي",
       "name_en": "Sadaf North Coast by New Plan",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "salt--tatweer-misr": {
       "name_ar": "سولت الساحل الشمالي",
       "name_en": "Salt North Coast Ras El Hekma",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "sea-via--la-vista-developments": {
       "name_ar": "سي فيا رأس الحكمة",
       "name_en": "Sea Via Ras El Hekma North Coast",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "serrano--new-plan": {
       "name_ar": "سيرانو العاصمة الإدارية",
       "name_en": "Serrano New Capital Compound by New Plan",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "sia-lagoons--arab-developers-holding-adh": {
       "name_ar": "سيا لاجونز العلمين الجديدة",
@@ -907,12 +991,16 @@
     "signature--hydepark-developments": {
       "name_ar": "هايد بارك سيجنتشر",
       "name_en": "Hyde Park Signature West Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "solay--living-yards-developments": {
       "name_ar": "سولاي التجمع الخامس",
       "name_en": "Solay New Cairo",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "stone-park-the-oak--roya-developments": {
       "name_ar": "ذا أوك ستون بارك",
@@ -961,7 +1049,9 @@
     "the-red-residence--al-borouj-misr-developments-group-abm": {
       "name_ar": "ذا ريد ريزيدنس التجمع الخامس",
       "name_en": "The Red Residence New Cairo, Golden Square",
-      "walk": { "photos": [1, 2, 3, 4, 5, 6] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5, 6]
+      }
     },
     "tierra--saudi-egyptian-developers-sed": {
       "name_ar": "تيرا التجمع السادس",
@@ -974,7 +1064,9 @@
     "village-west--dorra": {
       "name_ar": "فيلدج ويست الشيخ زايد",
       "name_en": "Village West Sheikh Zayed",
-      "walk": { "photos": [1, 2, 3, 4, 5] }
+      "walk": {
+        "photos": [1, 2, 3, 4, 5]
+      }
     },
     "wujood-residence--tharaa-developments": {
       "name_ar": "وجود ريزيدنس التجمع الخامس",

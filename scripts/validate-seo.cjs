@@ -440,6 +440,10 @@ assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "ut
   const chill = showcaseHtml({ slug: "mountain-view-chillout--mountain-view", images: Array.from({ length: 20 }, (_, index) => `https://coqnjymekrkoausiiytm.supabase.co/storage/v1/object/public/property-images/x/h${index}.webp`), units: [unit("One Villa", 16700000, "3%", "10 years"), unit("Townhouse", 21000000, "10% + 5% after 6 months", "7 years")] });
   assert.equal((chill.match(/<article class="tsc-plan/g) || []).length, 3, "Chillout: the two plans on its live units plus the launch plan from the developer's announcement");
   assert.match(chill.replace(/<[^>]+>/g, ""), /مقدم 10% وتقسيط 8 سنين/, "Chillout: the launch plan is on the page");
+  // A plan confirmed by Ahmed for the whole project replaces the text stored on its units.
+  const jirian = showcaseHtml({ slug: "mountain-view-jirian--mountain-view", images: Array.from({ length: 20 }, (_, index) => `https://coqnjymekrkoausiiytm.supabase.co/storage/v1/object/public/property-images/x/j${index}.webp`), units: [unit("Apartment", 8681153, "3% down payment", "Installments over 12 years"), unit("Villa", 30000000, vague, "x")] }).replace(/<style>[\s\S]*?<\/style>/, "");
+  assert.ok(/مقدم <span class="tsc-n">5%<\/span> وتقسيط <span class="tsc-n">8<\/span> سنين/.test(jirian) && (jirian.match(/<article class="tsc-plan/g) || []).length === 1, "Jirian: one plan, 5% over 8 years");
+  assert.ok(/434,058/.test(jirian) && (jirian.match(/<option /g) || []).length === 2 && !/>3%<|12<\/span> سنة/.test(jirian), "Jirian: the calculator uses 5% for every home, and the old 3% / 12 years is gone from the block");
   const config = require("../content/project-showcase.json").projects;
   for (const [slug, entry] of Object.entries(config)) {
     assert.ok(entry.name_ar && entry.name_en, `${slug}: the showcase needs an Arabic and an English name`);
