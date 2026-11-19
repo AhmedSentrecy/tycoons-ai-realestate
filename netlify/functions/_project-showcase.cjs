@@ -82,6 +82,8 @@ const TEXT = {
     offerEyebrow: "عرض المطور الحالي", plansEyebrow: "أنظمة السداد المتاحة", plansTitle: "أنظمة السداد في {name}",
     plansIntro: "دي أنظمة السداد المسجلة على الوحدات المتاحة عندنا في {name} دلوقتي.",
     plansNote: "الأنظمة دي من بيانات الوحدات المتاحة عندنا وممكن تتغير. الأرقام النهائية بتتأكد وقت الحجز.",
+    plansIntroFixed: "ده نظام السداد الأساسي في {name}. بعض الوحدات ليها نظام بمدة أطول، فاسألنا عن الوحدة اللي عاجباك.",
+    plansNoteFixed: "النظام ممكن يتغير من وحدة لوحدة. الأرقام النهائية بتتأكد وقت الحجز.",
     planTitle: "مقدم {total} وتقسيط {years}", planFirst: "أول دفعة", planSingle: "مقدم", planParts: "المقدم على {count} دفعات: {list}",
     planYears: "تقسيط لحد {years}", planFrom: "أسعار من {price} جنيه",
     calcEyebrow: "احسبها على وحدتك", calcTitle: "مقدم {name} كام؟",
@@ -98,6 +100,8 @@ const TEXT = {
     offerEyebrow: "Current developer offer", plansEyebrow: "Payment plans available", plansTitle: "{name} payment plans",
     plansIntro: "These are the payment plans recorded on the homes we currently have available at {name}.",
     plansNote: "These plans come from our available-homes data and can change. Final figures are confirmed when you book.",
+    plansIntroFixed: "This is the standard payment plan at {name}. Some homes come with a longer term, so ask us about the home you like.",
+    plansNoteFixed: "The plan can differ from one home to another. Final figures are confirmed when you book.",
     planTitle: "{total} down payment, {years} of instalments", planFirst: "first payment", planSingle: "down payment", planParts: "Down payment in {count} parts: {list}",
     planYears: "Instalments over up to {years}", planFrom: "Prices from EGP {price}",
     calcEyebrow: "Work it out for your home", calcTitle: "How much is the down payment at {name}?",
@@ -201,9 +205,11 @@ function showcaseHtml({ slug, images = [], units = [], lang = "ar", now = Date.n
   const offerPlan = offer && Array.isArray(offer.down_payment_parts) && offer.down_payment_parts.length
     ? { years: number(offer.years), parts: offer.down_payment_parts.map((part) => ({ label: part[0], percent: number(part[1]) })) }
     : null;
+  const fixedPlan = !offerPlan && config.plan?.down_payment && config.plan?.years ? config.plan : null;
   const priced = units
     .map((unit) => {
-      const own = offerPlan ? null : unitPlan(unit);
+      // A plan Ahmed confirmed for the whole project wins over the text stored on each unit.
+      const own = offerPlan ? null : unitPlan(fixedPlan ? { down_payment_text: fixedPlan.down_payment, installments_text: `${fixedPlan.years} years` } : unit);
       const plan = offerPlan || (own ? { years: own.years, parts: own.parts.map((part, index) => ({ label: partLabel(part, index, own.parts.length), percent: part.percent, months: part.months })) } : null);
       return { label: unitLabel(unit, en), price: number(unit.starting_price), plan };
     })
@@ -253,9 +259,9 @@ function showcaseHtml({ slug, images = [], units = [], lang = "ar", now = Date.n
     planCards.splice(Math.max(0, 3 - extra.length), planCards.length, ...extra.map((plan) => ({ best: false, tag: plan.tag, title: plan.title, big: plan.big, bigLabel: plan.big_label, items: plan.items || [] })));
   }
   const plans = planCards.length ? `<section class="tsc-sec" id="${offer ? "offer" : "payment-plans"}"><div class="tsc-wrap"><span class="tsc-eyebrow">${esc(offer ? t.offerEyebrow : t.plansEyebrow)}</span>
-<h2 class="tsc-h">${esc(offer ? offer.title : fill(t.plansTitle, { name }))}</h2><p class="tsc-sub">${esc(offer ? offer.intro : fill(t.plansIntro, { name }))}</p>
+<h2 class="tsc-h">${esc(offer ? offer.title : fill(t.plansTitle, { name }))}</h2><p class="tsc-sub">${esc(offer ? offer.intro : fill(fixedPlan ? t.plansIntroFixed : t.plansIntro, { name }))}</p>
 <div class="tsc-plans">${planCards.map((plan) => `<article class="tsc-plan${plan.best ? " is-best" : ""}">${plan.tag ? `<span class="tsc-tag">${esc(plan.tag)}</span>` : ""}<h3>${ltr(plan.title)}</h3><p class="tsc-big">${ltr(plan.big)} <small>${esc(plan.bigLabel)}</small></p><ul>${plan.items.map((item) => `<li>${ltr(item)}</li>`).join("")}</ul></article>`).join("")}</div>
-<p class="tsc-note">${esc(offer ? offer.note || "" : t.plansNote)}</p></div></section>` : "";
+<p class="tsc-note">${esc(offer ? offer.note || "" : fixedPlan ? t.plansNoteFixed : t.plansNote)}</p></div></section>` : "";
 
   const first = withPlan[0];
   const messageTemplate = fill(t.message, { name });
