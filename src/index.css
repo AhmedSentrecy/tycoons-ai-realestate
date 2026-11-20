@@ -247,3 +247,31 @@ body.sales-war-room-active {
     font-size: 16px !important;
   }
 }
+/* Inner pages over the sky (public/site-sky.js, src/lib/useSiteSky.ts): the page background goes
+   away and each top-level block becomes a light panel, like the homepage's SkyPanel. :where()
+   keeps these rules weaker than the blocks' own Tailwind classes, so a dark hero stays dark. */
+html.has-sky [data-sky-page] {
+  background: transparent !important;
+}
+:where(html.has-sky [data-sky-page] > :is(section, div, article, aside):not(.fixed, .sticky, [aria-hidden="true"])) {
+  max-width: 1200px;
+  margin: 12px auto;
+  border-radius: 26px;
+  overflow: clip;
+  background-color: rgb(255 255 255 / 0.95);
+  box-shadow: 0 30px 70px -40px rgb(6 15 28 / 0.6);
+}
+:where(html.has-sky [data-sky-page] > :is(section, div, article, aside):not(.fixed, .sticky, [aria-hidden="true"]):first-of-type) {
+  margin-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+@media (max-width: 800px) {
+  :where(html.has-sky [data-sky-page] > :is(section, div, article, aside):not(.fixed, .sticky, [aria-hidden="true"])) {
+    margin-inline: 10px;
+    border-radius: 20px;
+  }
+}
+html.has-sky [data-sky-page] > footer {
+  margin-top: 22vh;
+}

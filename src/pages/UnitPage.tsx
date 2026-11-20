@@ -1,4 +1,5 @@
 import { sizedImage } from "@/lib/images";
+import { useSiteSky } from "@/lib/useSiteSky";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { useScrollTopOnNavigation } from "@/hooks/useScrollTopOnNavigation";
@@ -59,6 +60,7 @@ function setMeta(selector: string, attribute: "content" | "href", value: string)
 }
 
 export default function UnitPage() {
+  useSiteSky();
   const { id = "" } = useParams();
   useScrollTopOnNavigation(id);
   const [unit, setUnit] = useState<UnitPageData | null>(null);
@@ -194,7 +196,7 @@ export default function UnitPage() {
   const move = (step: number) => setImageIndex((current) => (current + step + images.length) % images.length);
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
+    <main data-sky-page dir="rtl" className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
       <Navbar />
       <section className="bg-[#0a1628] px-5 pb-12 pt-32 text-white lg:px-8">
         <div className="mx-auto max-w-6xl">

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useSiteSky } from "@/lib/useSiteSky";
 import { Link, useParams } from "react-router";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, MessageCircle, BadgeCheck, Banknote } from "lucide-react";
@@ -16,6 +17,7 @@ import {
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function RegionPage() {
+  useSiteSky();
   const { slug } = useParams();
   const region = regions.find((r) => r.slug === slug);
 
@@ -42,7 +44,7 @@ export default function RegionPage() {
   const others = regions.filter((r) => r.slug !== slug);
 
   return (
-    <main className="min-h-screen bg-[#f4f6fa]">
+    <main data-sky-page className="min-h-screen bg-[#f4f6fa]">
       <Navbar />
 
       {/* Hero */}

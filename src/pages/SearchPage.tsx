@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSiteSky } from "@/lib/useSiteSky";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { CheckCircle2, MessageCircle, Search, SlidersHorizontal } from "lucide-react";
 import Navbar from "@/sections/Navbar";
@@ -18,6 +19,7 @@ const EXAMPLES = [
 ];
 
 export default function SearchPage() {
+  useSiteSky();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const q = (params.get("q") ?? "").trim();
@@ -51,7 +53,7 @@ export default function SearchPage() {
   const total = results.totalExact + results.totalAlternatives;
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#f4f6fa] text-[#0f1724]">
+    <div data-sky-page dir="rtl" className="min-h-screen bg-[#f4f6fa] text-[#0f1724]">
       <Navbar />
       <section className="bg-[#0a1628] px-5 pb-8 pt-24 text-white lg:px-8">
         <div className="mx-auto max-w-6xl">
