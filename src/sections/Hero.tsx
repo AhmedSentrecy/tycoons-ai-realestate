@@ -1,8 +1,8 @@
-import { tr } from "@/lib/homeLanguage";
+import { isEnglish, tr } from "@/lib/homeLanguage";
 import { useEffect, useRef, useState } from "react";
 import { animate, motion, useInView } from "framer-motion";
 import SmartSearchBar from "@/components/SmartSearchBar";
-import GuideOrb, { nudgeOrb, orbEnergy } from "@/components/home/GuideOrb";
+import GuideOrb, { nudgeOrb, orbEnergy, wakeOrbs } from "@/components/home/GuideOrb";
 import { HOME_H1_ACCENT, HOME_H1_LEAD } from "@/lib/homeSeo";
 import { useInventory } from "@/lib/inventory";
 
@@ -34,7 +34,7 @@ function Counter({ target, suffix }: { target: number; suffix: string }) {
   }, [inView, target]);
   return (
     <span ref={ref} className="tabular-nums">
-      {tr(value.toLocaleString("ar-EG"))}
+      {value.toLocaleString(isEnglish() ? "en-US" : "ar-EG")}
       {suffix}
     </span>
   );
@@ -69,7 +69,7 @@ export default function Hero() {
         onFocus={() => nudgeOrb(1)}
         onClick={(event) => {
           // The mic button makes the orb ripple while it listens.
-          if ((event.target as HTMLElement).closest('form button[aria-pressed]')) orbEnergy.listening = !orbEnergy.listening;
+          if ((event.target as HTMLElement).closest('form button[aria-pressed]')) { orbEnergy.listening = !orbEnergy.listening; wakeOrbs(); }
         }}
       >
         <GuideOrb size={orbSize} className="mx-auto -mb-2" />
@@ -81,7 +81,7 @@ export default function Hero() {
           className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-[12.5px] backdrop-blur"
         >
           <span className="h-2 w-2 rounded-full bg-[#3ee07f] shadow-[0_0_0_4px_rgba(62,224,127,0.2)]" />
-          {loaded ? <>{tr(stats.units.toLocaleString("ar-EG"))}+ {tr("وحدة متاحة من المطوّرين — متحدّثة النهارده")}</> : tr("بحث عقاري بالذكاء الاصطناعي")}
+          {loaded ? <>{stats.units.toLocaleString(isEnglish() ? "en-US" : "ar-EG")}+ {tr("وحدة متاحة من المطوّرين — الأسعار وطرق الدفع بتتحدّث أول بأول")}</> : tr("بحث عقاري بالذكاء الاصطناعي")}
         </motion.div>
 
         <motion.h1

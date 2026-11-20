@@ -1112,7 +1112,7 @@ ${siteHeader(lang, path, ar ? canonical : alternate, ar ? alternate : canonical)
 <footer><strong>Tycoons Investments</strong><p>${ar ? "بيانات الأسعار والتوفر استرشادية ويتم تأكيدها وقت الطلب. العوائد تقديرية وليست ضمانًا." : "Prices and availability are indicative and reconfirmed on request. Returns are estimates, not guarantees."}</p>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
 <a href="/corrections">${ar ? "سياسة التصحيح" : "Corrections"}</a>
-<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer>${String(body).includes("data-tycoons-search") ? '<script type="module" src="/widget/search-widget.js"></script>' : ""}<script src="/wa-track.js" defer></script><script src="/voice-cta.js" defer></script><script src="/img-fallback.js" defer></script></body></html>`;
+<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer>${String(body).includes("data-tycoons-search") ? '<script type="module" src="/widget/search-widget.js"></script>' : ""}<script src="/wa-track.js" defer></script><script src="/voice-cta.js" defer></script><script src="/guide-orb.js" defer></script><script src="/img-fallback.js" defer></script></body></html>`;
 }
 
 function cards(projects, lang) {

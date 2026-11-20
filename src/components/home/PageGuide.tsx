@@ -64,7 +64,7 @@ export default function PageGuide() {
       ],
       "s-devs": [
         L("الدنيا بتليّل. لسه بدري تلاقي عقارك النهارده.", "Evening already. Still time to find your place today."),
-        ...(stats.developers ? [L(`بنعرض وحدات ${n(stats.developers)} مطوّر مباشرة، والسعر هو سعر المطوّر.`, `We list units from ${n(stats.developers)} developers directly, at the developer's price.`)] : []),
+        ...(stats.developers ? [L(`بنعرض وحدات ${n(stats.developers)} مطوّر، والأسعار وطرق الدفع بتتحدّث أول بأول.`, `We list units from ${n(stats.developers)} developers, with prices and payment plans kept up to date.`)] : []),
         L("عايز تقارن بين مطوّرين في التسليم وخطط السداد؟", "Want to compare developers on delivery and payment plans?", [wa("قارنلي", "Compare for me", "Please help me compare developers on delivery record and payment plans.")]),
       ],
       "s-faq": [

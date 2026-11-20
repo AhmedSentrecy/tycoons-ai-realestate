@@ -132,7 +132,7 @@ const copy: Record<string,string> = {
   "شقق":"Apartments",
   "فيلات":"Villas",
   "شاليهات":"Chalets",
-  "وحدة متاحة من المطوّرين — متحدّثة النهارده":"developer-direct units available, updated today",
+  "وحدة متاحة من المطوّرين — الأسعار وطرق الدفع بتتحدّث أول بأول":"developer-direct units available, with prices and payment plans kept up to date",
   "اكتب أو اتكلم زي ما بتكلم صاحبك — المنطقة والميزانية وعدد الغرف — وهنطلعلك الوحدات المطابقة والبدائل القريبة فورًا.":"Type or say it the way you'd tell a friend — area, budget, bedrooms — and see matching units and close alternatives right away.",
   "أو جرّب:":"Or try:",
   "مثال: شقة 3 غرف في التجمع تحت 10 مليون":"e.g. 3-bed apartment in New Cairo under 10M",

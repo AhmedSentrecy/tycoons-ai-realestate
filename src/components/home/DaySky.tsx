@@ -4,7 +4,12 @@ import { isEnglish } from "@/lib/homeLanguage";
 /**
  * Homepage backdrop: one sky behind the whole page that runs from sunrise (top of the page)
  * to night (footer) as the reader scrolls. A city skyline at the bottom lights up after sunset.
+ * It is drawn only while the page moves (scroll, resize) and for a moment after; then it keeps
+ * one still frame, so a page left open does not keep the phone busy.
  */
+
+// How long the sky keeps moving (twinkling stars, lit windows) after the last scroll.
+const SETTLE_MS = 1500;
 
 // [scroll position, top colour, bottom colour]
 const KEYS: [number, string, string][] = [
@@ -56,6 +61,7 @@ export default function DaySky() {
     let shown = scrollProgress();
     let frame = 0;
     let lastClock = "";
+    let busyUntil = performance.now() + SETTLE_MS;
 
     const size = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -135,15 +141,31 @@ export default function DaySky() {
         lastClock = nextClock;
         setClock(nextClock);
       }
-      frame = requestAnimationFrame(draw);
+      const settled = Math.abs(scrollProgress() - shown) < 0.0005;
+      if (!document.hidden && (!settled || t < busyUntil)) frame = requestAnimationFrame(draw);
+      else frame = 0;
     };
 
+    const wake = () => {
+      busyUntil = performance.now() + SETTLE_MS;
+      if (!frame && !document.hidden) frame = requestAnimationFrame(draw);
+    };
+    const onResize = () => {
+      size();
+      wake();
+    };
+    const onVisible = () => { if (!document.hidden) wake(); };
+
     size();
-    window.addEventListener("resize", size);
+    window.addEventListener("resize", onResize);
+    window.addEventListener("scroll", wake, { passive: true });
+    document.addEventListener("visibilitychange", onVisible);
     frame = requestAnimationFrame(draw);
     return () => {
       cancelAnimationFrame(frame);
-      window.removeEventListener("resize", size);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("scroll", wake);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 

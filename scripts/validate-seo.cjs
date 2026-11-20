@@ -388,6 +388,8 @@ assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/, "The 
 assert.match(index, /hreflang="en" href="https:\/\/tycoons-inv\.com\/en\/"/, "The voice-search homepage declares its English twin");
 assert.match(netlify, /from = "\/assets\/search-widget\.js"\s+to = "\/widget\/search-widget\.js"\s+status = 301/, "The old search widget address must redirect to the new one for cached pages");
 assert.match(index, /<script src="\/voice-cta\.js" defer><\/script>/, "Every page loads the sitewide voice button");
+assert.match(index, /<script src="\/guide-orb\.js" defer><\/script>/, "Every page loads the page guide orb");
+assert.ok(fs.existsSync(path.join(root, "public/guide-orb.js")), "The page guide orb script must ship with the site");
 assert.match(index, /<script src="\/img-fallback\.js" defer><\/script>/, "Every page loads the photo fallback, so a failed resize never leaves an empty image box");
 assert.ok(fs.existsSync(path.join(root, "public/img-fallback.js")), "The photo fallback script must ship with the site");
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);

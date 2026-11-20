@@ -3,8 +3,18 @@ import { scrollProgress } from "@/components/home/DaySky";
 
 /** Shared "energy" so typing, the mic and scrolling all make every orb on the page move more. */
 export const orbEnergy = { value: 0, listening: false };
+
+// Each mounted orb registers here, so a nudge can restart its drawing after it went to sleep.
+const wakers = new Set<() => void>();
+
 export function nudgeOrb(amount = 0.6) {
   orbEnergy.value = Math.min(2, orbEnergy.value + amount);
+  wakers.forEach((wake) => wake());
+}
+
+/** Call after changing orbEnergy.listening, so sleeping orbs wake up (or settle) right away. */
+export function wakeOrbs() {
+  wakers.forEach((wake) => wake());
 }
 
 // Colours follow the sky: gold in the morning, warm at noon, coral at sunset, silver at night.
@@ -15,7 +25,11 @@ function palette(sp: number) {
   return ["#ffffff", "#ffe3a3", "#4f6fd9"];
 }
 
-/** A soft, breathing ball of light drawn on a canvas. */
+/**
+ * A soft, breathing ball of light drawn on a canvas.
+ * It is drawn only while it moves (typing, mic, scrolling); once the energy fades it draws one
+ * still frame and stops, so an idle page costs the phone nothing.
+ */
 export default function GuideOrb({ size, className = "" }: { size: number; className?: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
 
@@ -31,9 +45,8 @@ export default function GuideOrb({ size, className = "" }: { size: number; class
     let frame = 0;
     const start = performance.now();
 
-    const draw = (now: number) => {
+    const paint = (now: number) => {
       const t = reduce ? 0 : now - start;
-      orbEnergy.value *= 0.985;
       const energy = orbEnergy.value;
       const c = size / 2;
       const R = size * 0.3 * (1 + energy * 0.1);
@@ -67,10 +80,32 @@ export default function GuideOrb({ size, className = "" }: { size: number; class
         ctx.fill();
       }
       ctx.globalAlpha = 1;
-      frame = requestAnimationFrame(draw);
     };
-    frame = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(frame);
+
+    const loop = (now: number) => {
+      orbEnergy.value *= 0.985;
+      paint(now);
+      const busy = orbEnergy.listening || orbEnergy.value > 0.03;
+      if (!reduce && busy && !document.hidden) frame = requestAnimationFrame(loop);
+      else frame = 0;
+    };
+
+    const wake = () => {
+      if (!frame && !reduce && !document.hidden) frame = requestAnimationFrame(loop);
+      else if (reduce) paint(performance.now());
+    };
+    const onVisible = () => { if (!document.hidden) wake(); };
+
+    wakers.add(wake);
+    document.addEventListener("visibilitychange", onVisible);
+    paint(performance.now());
+    // A short breath when it first appears, then it rests until something nudges it.
+    nudgeOrb(0.4);
+    return () => {
+      cancelAnimationFrame(frame);
+      wakers.delete(wake);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [size]);
 
   return <canvas ref={canvas} aria-hidden="true" style={{ width: size, height: size }} className={className} />;
