@@ -9,6 +9,7 @@ import { loadHomepageLaunches } from "@/lib/homepageLaunches";
 import DeveloperLogo from "@/components/DeveloperLogo";
 import { openProjectWhatsApp } from "@/lib/whatsapp";
 import { arabicAreaPath } from "@/lib/areaPaths";
+import SeeMore from "@/components/home/SeeMore";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -165,6 +166,9 @@ export default function Projects() {
             </div>
           </motion.article>
         ))}
+      </div>
+      <div className="px-5">
+        <SeeMore href={localeHref("/ar/")} label={tr("المزيد من المشاريع")} tone="dark" />
       </div>
     </section>
   );

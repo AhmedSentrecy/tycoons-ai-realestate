@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight, Clock, Newspaper } from "lucide-react";
 import { isEnglish, tr } from "@/lib/homeLanguage";
 import { guidePath, loadHomeNews, type HomeNewsItem } from "@/lib/editorialGuides";
 import SkyPanel from "@/components/home/SkyPanel";
+import SeeMore from "@/components/home/SeeMore";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -202,6 +203,7 @@ export default function News() {
             )}
           </div>
         </div>
+        <SeeMore href={allHref} label={tr("المزيد من الأخبار")} />
       </div>
     </section>
     </SkyPanel>
@@ -250,6 +252,7 @@ export function NewsMore() {
             </motion.a>
           ))}
         </div>
+        <SeeMore href={english ? "/en/guides/" : "/guides/"} label={tr("المزيد من الأخبار")} />
       </div>
     </section>
     </SkyPanel>

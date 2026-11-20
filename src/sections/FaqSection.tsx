@@ -1,7 +1,6 @@
 import { tr } from "@/lib/homeLanguage";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
-import { Link } from "react-router";
+import SeeMore from "@/components/home/SeeMore";
 import {
   Accordion,
   AccordionContent,
@@ -64,12 +63,7 @@ export default function FaqSection() {
           transition={{ duration: 0.8, delay: 0.3 }}
           className="mt-7 text-center"
         >
-          <Link
-            to="/faq"
-            className="group inline-flex items-center gap-2 text-sm font-semibold text-[#0b1b30] transition-colors hover:text-[#d99a2b]"
-          >
-            {tr("شوف كل الأسئلة الشائعة")}<ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          </Link>
+          <SeeMore href="/faq" label={tr("المزيد من الأسئلة")} />
         </motion.div>
       </div>
     </section>

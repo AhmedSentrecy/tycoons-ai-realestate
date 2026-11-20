@@ -1,6 +1,7 @@
 import { tr, localeHref } from "@/lib/homeLanguage";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import SeeMore from "@/components/home/SeeMore";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -75,6 +76,7 @@ export default function Regions() {
             </motion.div>
           ))}
         </div>
+        <SeeMore href={localeHref("/ar/#areas")} label={tr("المزيد من المناطق")} />
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 import { tr, localeHref } from "@/lib/homeLanguage";
+import SeeMore from "@/components/home/SeeMore";
 import { motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
 
 function slugify(value: string) {
   return value
@@ -61,13 +61,8 @@ export default function Developers() {
         </div>
       </div>
 
-      <div className="mt-8 flex justify-center px-5">
-        <a
-          href={localeHref("/ar/#developers")}
-          className="inline-flex items-center gap-2 rounded-full border border-[#c58a22]/45 bg-white/65 px-5 py-2.5 text-sm font-bold text-[#3f3115] transition hover:border-[#b47c17] hover:bg-white"
-        >
-          {tr("استكشف كل المطورين ومشاريعهم")}<ArrowLeft className="h-4 w-4" />
-        </a>
+      <div className="px-5">
+        <SeeMore href={localeHref("/ar/#developers")} label={tr("المزيد من المطورين")} />
       </div>
     </section>
   );
