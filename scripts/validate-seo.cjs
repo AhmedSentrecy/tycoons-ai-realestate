@@ -391,7 +391,7 @@ assert.match(index, /<script src="\/voice-cta\.js" defer><\/script>/, "Every pag
 assert.match(index, /<script src="\/img-fallback\.js" defer><\/script>/, "Every page loads the photo fallback, so a failed resize never leaves an empty image box");
 assert.ok(fs.existsSync(path.join(root, "public/img-fallback.js")), "The photo fallback script must ship with the site");
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
-assert.match(index, /<h1>ابحث بصوتك/);
+assert.match(index, /<h1>كل عقارات المطوّرين في مصر/);
 assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "utf8"), /host\.style\.minHeight/, "The search box keeps its height while it is upgraded, so the page below does not jump");
 // Project showcase block (photo walk-through, current offer, down-payment calculator).
 {

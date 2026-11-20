@@ -108,3 +108,16 @@ export function buildProjectWhatsAppMessage(
 export function openProjectWhatsApp(project: Project): void {
   openMessage(buildProjectWhatsAppMessage(project, pageUrl()));
 }
+
+/** A WhatsApp link for a question the homepage guide offers (opened from a real link, not a script). */
+export function guideWhatsAppUrl(topic: string): string {
+  const message = [
+    "Hello Tycoons Investments,",
+    clean(topic),
+    "",
+    "Source: homepage_guide",
+    `Page: ${pageUrl()}`,
+    `Tracking ID: ${trackingId()}`,
+  ].join("\n");
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+}

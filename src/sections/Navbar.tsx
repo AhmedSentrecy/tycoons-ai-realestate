@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { Menu, MessageCircle, X } from "lucide-react";
 
-export default function Navbar() {
+export default function Navbar({ solid = false }: { solid?: boolean }) {
 // Same links, order and targets as the server-rendered header (siteHeader in _seo-utils.cjs).
 const links = [
   { label: tr("الرئيسية"), to: isEnglish() ? "/en/" : "/", external: true },
@@ -19,11 +19,11 @@ const links = [
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
+    const onScroll = () => setScrolled(solid || window.scrollY > 60);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [solid]);
 
   return (
     <motion.header

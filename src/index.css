@@ -153,6 +153,13 @@ html { font-size: 15px; }
   }
 }
 
+/* Homepage over the day sky: sections sit in glass panels, so their own backgrounds step aside. */
+.sky-panel > section,
+.sky-panel > footer {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
 @keyframes marquee {
   from {
     transform: translateX(0);

@@ -76,8 +76,17 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
         openResults(text);
       }
     };
+    // Fill the box without searching yet (the hero's unit-type tabs).
+    const onPrefill = (event: Event) => {
+      const text = (event as CustomEvent<string>).detail;
+      if (typeof text === "string") setQuery(text);
+    };
     window.addEventListener("tycoons:quick-search", onQuick);
-    return () => window.removeEventListener("tycoons:quick-search", onQuick);
+    window.addEventListener("tycoons:prefill-search", onPrefill);
+    return () => {
+      window.removeEventListener("tycoons:quick-search", onQuick);
+      window.removeEventListener("tycoons:prefill-search", onPrefill);
+    };
   }, [openResults]);
 
   // The sitewide "search by voice" button (public/voice-cta.js) asks the search bar on the
@@ -107,11 +116,11 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
         onSubmit={onSubmit}
         aria-label={tr("البحث في الوحدات العقارية المتاحة")}
         {...WEBMCP_FORM_ATTRS}
-        className={`flex items-center gap-2 rounded-2xl border border-white/25 bg-white px-3 shadow-[0_18px_55px_-24px_rgba(7,25,17,0.5)] sm:gap-3 sm:px-4 ${
-          compact ? "py-2.5" : "py-3.5"
+        className={`flex items-center gap-2 rounded-2xl border-2 border-[#e3e9f2] bg-white px-2 transition-colors focus-within:border-[#ff5a36] sm:gap-3 sm:px-3 ${
+          compact ? "py-1.5" : "py-1.5"
         } ${listening ? "ring-2 ring-[#d99a2b]/70" : ""}`}
       >
-        <Sparkles aria-hidden="true" className="hidden h-5 w-5 shrink-0 text-[#d99a2b] sm:block" />
+        <Sparkles aria-hidden="true" className="ms-1 h-5 w-5 shrink-0 text-[#d99a2b]" />
         <input
           type="text"
           name="query"
@@ -123,7 +132,7 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
           onChange={(event) => setQuery(event.target.value)}
           placeholder={placeholder || tr("مثال: شقة في التجمع تحت 10 مليون ومقدم 5%")}
           {...WEBMCP_QUERY_ATTRS}
-          className="min-w-0 flex-1 bg-transparent text-[14px] text-[#1e2a3b] outline-none placeholder:text-[#8a93a3] sm:text-[15px]"
+          className="min-w-0 flex-1 bg-transparent text-[16px] text-[#1e2a3b] outline-none placeholder:text-[#8a93a3]"
         />
 
         {query && (
@@ -137,10 +146,10 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
           aria-label={tr("بحث صوتي")}
           aria-pressed={listening || realtimeActive}
           onClick={handleMic}
-          className={`relative grid shrink-0 place-items-center rounded-full border transition-all ${compact ? "h-10 w-10" : "h-11 w-11"} ${
+          className={`relative grid shrink-0 place-items-center rounded-full border-2 transition-all ${compact ? "h-10 w-10" : "h-11 w-11"} ${
             listening || realtimeActive
               ? "border-[#d99a2b] bg-[#d99a2b]/15 text-[#b47c17]"
-              : "border-[#dce3ed] text-[#8a7550] hover:bg-[#f2f5fa]"
+              : "border-[#e3e9f2] text-[#0b1b30] hover:bg-[#f2f5fa]"
           }`}
         >
           {(listening || realtime.state === "connecting" || realtime.state === "speaking") && (
@@ -153,12 +162,12 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
           type="submit"
           disabled={inventory.loading || !query.trim()}
           aria-label={tr("اعرض نتائج البحث")}
-          className={`flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#0b1b30] font-semibold text-[#fbeccb] transition-all hover:bg-[#1c3d6b] disabled:cursor-not-allowed disabled:opacity-50 ${
-            compact ? "h-10 px-4 sm:px-5" : "h-11 px-4 sm:h-auto sm:px-6 sm:py-3"
+          className={`flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#ff5a36] font-extrabold text-white shadow-[0_12px_30px_-12px_rgba(255,90,54,0.75)] transition-all hover:bg-[#e0441f] disabled:cursor-not-allowed disabled:opacity-75 ${
+            compact ? "h-10 px-4 sm:px-5" : "h-12 px-4 sm:px-6"
           }`}
         >
           {inventory.loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-          <span className={compact ? "hidden sm:inline" : "hidden min-[390px]:inline"}>{tr("اعرض النتائج")}</span>
+          <span className={compact ? "hidden sm:inline" : "hidden min-[390px]:inline"}>{compact ? tr("اعرض النتائج") : tr("دوّر")}</span>
         </button>
       </form>
 

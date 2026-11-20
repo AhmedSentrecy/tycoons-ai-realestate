@@ -106,11 +106,15 @@ export const SAFE_GUIDE_LINK = /^\/(?:(?:(?:(?:ar|en)\/)?(?:projects|guides|unit
 
 export interface HomeNewsItem extends GuideLink { published_at: string; image: string; project_name?: string }
 
+export const NEWS_MAX_AGE_DAYS = 30;
+
 /** Latest published articles for the homepage news section, with the project's photo when the article has none. */
 export async function loadHomeNews(language: "ar" | "en" = "ar", limit = 7): Promise<HomeNewsItem[]> {
   const rows = await rest<GuideLink & { published_at: string }>("published_editorial_articles", {
     select: "title,slug,excerpt,language,project_id,hero_image_url,published_at",
     language: `eq.${language}`, order: "published_at.desc", limit: String(limit),
+    // News, not an archive: nothing older than a month. With nothing that recent the section hides.
+    published_at: `gte.${new Date(Date.now() - NEWS_MAX_AGE_DAYS * 86_400_000).toISOString()}`,
   });
   const ids = [...new Set(rows.map((row) => row.project_id).filter(Boolean))] as string[];
   const projects = ids.length

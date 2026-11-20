@@ -3,13 +3,14 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Clock, Newspaper } from "lucide-react";
 import { isEnglish, tr } from "@/lib/homeLanguage";
 import { guidePath, loadHomeNews, type HomeNewsItem } from "@/lib/editorialGuides";
+import SkyPanel from "@/components/home/SkyPanel";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 // One request feeds both news blocks on the homepage.
 const MAIN_COUNT = 5;
 let newsRequest: Promise<HomeNewsItem[]> | null = null;
-function useHomeNews(english: boolean) {
+export function useHomeNews(english: boolean) {
   const [items, setItems] = useState<HomeNewsItem[] | null>(null);
   useEffect(() => {
     let active = true;
@@ -58,6 +59,7 @@ export default function News() {
   const allHref = english ? "/en/guides/" : "/guides/";
 
   return (
+    <SkyPanel id="s-news">
     <section id="news" aria-labelledby="home-news-title" className="relative overflow-hidden bg-[#f4f6fa] py-16 lg:py-20">
       <div className="pointer-events-none absolute -top-32 end-[-10%] h-[420px] w-[420px] rounded-full bg-[#ff5a36]/10 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-[-20%] start-[-10%] h-[380px] w-[380px] rounded-full bg-[#e0a93b]/15 blur-[120px]" />
@@ -202,6 +204,7 @@ export default function News() {
         </div>
       </div>
     </section>
+    </SkyPanel>
   );
 }
 
@@ -213,6 +216,7 @@ export function NewsMore() {
   if (more.length < 2) return null;
   const Arrow = english ? ArrowRight : ArrowLeft;
   return (
+    <SkyPanel id="s-news-more">
     <section aria-labelledby="home-news-more" className="bg-[#f4f6fa] py-14 lg:py-16">
       <div className="mx-auto max-w-6xl px-5 lg:px-8">
         <div className="mb-6 flex items-end justify-between gap-4">
@@ -248,5 +252,6 @@ export function NewsMore() {
         </div>
       </div>
     </section>
+    </SkyPanel>
   );
 }

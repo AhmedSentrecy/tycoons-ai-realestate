@@ -6,6 +6,9 @@ import Regions from "@/sections/Regions";
 import Developers from "@/sections/Developers";
 import FaqSection from "@/sections/FaqSection";
 import Footer from "@/sections/Footer";
+import DaySky from "@/components/home/DaySky";
+import SkyPanel from "@/components/home/SkyPanel";
+import PageGuide from "@/components/home/PageGuide";
 import { useEffect } from "react";
 import { isEnglish, tr } from "@/lib/homeLanguage";
 import { ArrowLeft, ChevronDown } from "lucide-react";
@@ -18,18 +21,21 @@ export default function Home() {
     document.documentElement.dir = english ? "ltr" : "rtl";
   }, [english]);
   return (
-    <main lang={english ? "en" : "ar"} dir={english ? "ltr" : "rtl"} className="min-h-screen bg-[#f4f6fa]">
-      <Navbar />
-      <Hero />
-      {/* Order: search → news → launches → more news → areas → developers → FAQ → buyer guide (collapsed) → about line → footer. */}
+    <main lang={english ? "en" : "ar"} dir={english ? "ltr" : "rtl"} className="relative min-h-screen pt-[70px]">
+      {/* One sky behind the whole page, sunrise at the top to night at the footer; each section is a glass panel over it. */}
+      <DaySky />
+      <Navbar solid />
+      <SkyPanel id="s-hero" tone="dark"><Hero /></SkyPanel>
+      {/* Order: search → news (only when there's news from the last month) → launches → more news → areas → developers → FAQ → buyer guide (collapsed) → about line → footer. */}
       <News />
-      <Projects />
+      <SkyPanel id="s-launch" tone="dark"><Projects /></SkyPanel>
       <NewsMore />
-      <Regions />
-      <Developers />
-      <FaqSection />
+      <SkyPanel id="s-areas"><Regions /></SkyPanel>
+      <SkyPanel id="s-devs"><Developers /></SkyPanel>
+      <SkyPanel id="s-faq"><FaqSection /></SkyPanel>
       {/* Buyer guide: kept in the page for search engines, folded so it doesn't take the screen. */}
-      <section aria-label={tr("دليل قرار الشراء")} className="bg-[#f4f6fa] px-5 pb-12">
+      <SkyPanel id="s-guide">
+      <section aria-label={tr("دليل قرار الشراء")} className="p-3 sm:p-5">
         <details className="group mx-auto max-w-6xl overflow-hidden rounded-2xl bg-white ring-1 ring-[#0b1b30]/10">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 sm:p-6 [&::-webkit-details-marker]:hidden">
             <span>
@@ -117,8 +123,10 @@ export default function Home() {
           </div>
         </details>
       </section>
+      </SkyPanel>
+      <SkyPanel id="s-end" tone="dark">
       {/* Short "who we are" line; keeps the #about anchor the navigation links to. */}
-      <section id="about" className="scroll-mt-20 bg-[#0a1628] px-5 py-8 text-white">
+      <section id="about" className="scroll-mt-20 border-b border-white/10 px-5 py-7 text-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
           <p className="max-w-3xl text-sm leading-relaxed text-white/75">
             {tr("مش موقع إعلانات — مساعد شراء عقاري. بنجمع الوحدات من المطوّر مباشرة ونوصّلك للوحدة الصح بجملة واحدة.")}
@@ -132,6 +140,10 @@ export default function Home() {
         </div>
       </section>
       <Footer cta={false} />
+      </SkyPanel>
+      {/* A little open night sky under the footer, where the city lights up. */}
+      <div aria-hidden="true" className="h-[22vh]" />
+      <PageGuide />
     </main>
   );
 }
