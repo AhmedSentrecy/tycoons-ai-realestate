@@ -20,7 +20,7 @@
   var WHATSAPP = "201110100025";
   var SEEN_KEY = "tycoons_orb_seen";
   var CLOSED_KEY = "tycoons_orb_closed";
-  var SIZE = 56;
+  var SIZE = 60;
 
   var TOPIC_RULES = [
     ["offer", /عرض|خصم|offer|discount|promo/i],
@@ -91,6 +91,21 @@
   }
 
   // ---------- the orb (canvas) ----------
+  // Same orb as the homepage guide: its colours follow the sky — gold in the morning, warm at
+  // noon, coral at sunset, silver-blue at night.
+  function scrollProgress() {
+    if (typeof window.__tycoonsSkyProgress === "function") return window.__tycoonsSkyProgress();
+    var max = (document.documentElement.scrollHeight || 0) - window.innerHeight;
+    var y = window.scrollY || window.pageYOffset || 0;
+    return max > 0 ? Math.min(1, Math.max(0, y / max)) : 0;
+  }
+  function palette(sp) {
+    if (sp < 0.3) return ["#fff3d1", "#f0bd4f", "#d99a2b"];
+    if (sp < 0.62) return ["#fff8e6", "#ffd36b", "#f0a43a"];
+    if (sp < 0.8) return ["#ffe0d4", "#ff8a6a", "#ff5a36"];
+    return ["#ffffff", "#ffe3a3", "#4f6fd9"];
+  }
+
   var energy = 0;
   var frame = 0;
   var reduce = false;
@@ -110,17 +125,18 @@
       if (!ctx) return;
       var t = reduce ? 0 : Date.now() - start;
       var c = SIZE / 2;
-      var R = SIZE * 0.3 * (1 + energy * 0.12);
+      var R = SIZE * 0.3 * (1 + energy * 0.1);
+      var pal = palette(scrollProgress());
       ctx.clearRect(0, 0, SIZE, SIZE);
       var halo = ctx.createRadialGradient(c, c, R * 0.5, c, c, SIZE * 0.5);
-      halo.addColorStop(0, "rgba(255,211,107,.55)");
-      halo.addColorStop(1, "rgba(255,211,107,0)");
+      halo.addColorStop(0, pal[1] + "77");
+      halo.addColorStop(1, pal[1] + "00");
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, SIZE, SIZE);
       for (var layer = 0; layer < 3; layer++) {
         ctx.beginPath();
-        for (var a = 0; a <= Math.PI * 2 + 0.01; a += 0.1) {
-          var n = Math.sin(a * 3 + t / (700 - layer * 120) + layer) * 0.05 * (0.4 + energy) + Math.sin(a * 5 - t / 900) * 0.03 * (1 + energy * 2);
+        for (var a = 0; a <= Math.PI * 2 + 0.01; a += 0.08) {
+          var n = Math.sin(a * 3 + t / (700 - layer * 120) + layer) * 0.06 + Math.sin(a * 5 - t / 900) * 0.04 * (1 + energy * 2);
           var r = R * (1 - layer * 0.16) * (1 + n);
           var x = c + Math.cos(a) * r;
           var y = c + Math.sin(a) * r;
@@ -129,9 +145,9 @@
         }
         var g = ctx.createRadialGradient(c - R * 0.3, c - R * 0.4, 2, c, c, R * 1.1);
         g.addColorStop(0, "#ffffff");
-        g.addColorStop(0.35, "#fff3d1");
-        g.addColorStop(0.75, "#f0bd4f");
-        g.addColorStop(1, "#d99a2b");
+        g.addColorStop(0.35, pal[0]);
+        g.addColorStop(0.75, pal[1]);
+        g.addColorStop(1, pal[2]);
         ctx.globalAlpha = layer ? 0.55 : 1;
         ctx.fillStyle = g;
         ctx.fill();
@@ -142,7 +158,7 @@
     // Animate only while there is energy left; then stop drawing until the next nudge.
     function loop() {
       draw();
-      energy *= 0.95;
+      energy *= 0.97;
       if (!reduce && !document.hidden && energy > 0.02) frame = requestAnimationFrame(loop);
       else { frame = 0; energy = 0; draw(); }
     }
@@ -167,7 +183,7 @@
       "flex-direction:row;max-width:min(360px,calc(100vw - 24px));font:500 13.5px/1.6 Alexandria,Arial,'Noto Sans Arabic',sans-serif;" +
       "opacity:0;transform:translateY(10px);transition:opacity .35s ease,transform .35s ease;pointer-events:none}" +
       ".tgo.on{opacity:1;transform:none;pointer-events:auto}.tgo[dir=ltr]{flex-direction:row-reverse}" +
-      ".tgo-orb{flex:none;border:0;padding:0;background:none;cursor:pointer;border-radius:50%;filter:drop-shadow(0 10px 18px rgba(217,154,43,.45))}" +
+      ".tgo-orb{flex:none;border:0;padding:0;background:none;cursor:pointer;border-radius:50%}" +
       ".tgo-orb:focus-visible{outline:3px solid #d99a2b;outline-offset:2px}" +
       ".tgo-b{position:relative;min-width:0;background:#fff;color:#0f1724;border-radius:18px 18px 4px 18px;padding:10px 14px;" +
       "box-shadow:0 20px 50px -20px rgba(6,15,28,.55);border:1px solid rgba(11,27,48,.08)}" +
@@ -250,9 +266,16 @@
     return fresh[0];
   }
 
+  function firstFresh() {
+    for (var i = 0; i < lines.length; i++) if (!seen[hash(lines[i].text)]) return lines[i];
+    return null;
+  }
+
   function speak(force) {
     if (!lines.length || (closed && !force)) return;
-    var line = pick(shownFirst ? topicInView() : "offer");
+    // The first line is the page's strongest one (the server orders them: the offer on a project
+    // page, what the developer is known for on a developer page); after that, the part in view.
+    var line = shownFirst ? pick(topicInView()) : firstFresh();
     if (!line) return;
     shownFirst = true;
     orb.nudge(1.2);

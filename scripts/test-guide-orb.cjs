@@ -4,7 +4,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { renderProject, groupProjects } = require("../netlify/functions/_seo-utils.cjs");
+const { renderProject, renderCollection, groupProjects } = require("../netlify/functions/_seo-utils.cjs");
 const { parsePath, extractFacts, fallbackLines, checkLine, developerFacts, numbersIn } = require("../netlify/functions/_orb-facts.cjs");
 const { getLines, mergeLines, costUsd, cairoStarts, providerOrder } = require("../netlify/functions/orb-lines.cjs");
 
@@ -47,6 +47,10 @@ ok(!later.some((f) => f.source === "offer" && /14 سنة/.test(f.text)), "expire
 const dev = developerFacts("mountain-view", false);
 ok(dev.length >= 3 && /iVilla/.test(dev[0].text), "developer page leads with what the developer is known for");
 ok(developerFacts("sodic", false).some((f) => /Nobu/.test(f.text)), "SODIC: first Nobu Residences in Egypt");
+const devPage = renderCollection(groupProjects(units, [project]), "developer", "mountain-view", "ar");
+const devFacts = extractFacts(devPage, parsePath("/ar/developers/mountain-view"), { now: NOW }).facts;
+ok(/iVilla/.test(devFacts[0].text), "developer page: the first thing the orb says is what the developer is known for");
+ok(devFacts.every((f) => f.text.length <= 230), "developer facts fit the bubble");
 
 // ---------- free lines ----------
 const free = fallbackLines(facts, false);
@@ -174,5 +178,14 @@ const env = { ANTHROPIC_API_KEY: "a", OPENAI_API_KEY: "o", URL: "https://tycoons
   ok(/guide-orb/.test(fs.readFileSync(path.join(root, "scripts/lib/page-shell.cjs"), "utf8")), "static pages keep the orb script");
   ok(html.includes("/guide-orb.js"), "rendered project page loads the orb");
 
+  // ---------- new theme and sky on server pages ----------
+  ok(/<html lang="ar" dir="rtl" data-sky="on">/.test(html), "server pages ask for the sky");
+  ok(html.includes('<script src="/site-sky.js" defer></script>'), "server pages load the sky script");
+  ok(!/#14352a|#f7f2ea|#c49b5f/i.test(html.replace(/<script\b[\s\S]*?<\/script>/gi, "")), "old green/cream palette is gone from server pages");
+  ok(/#0b1b30/.test(html), "navy ink is used");
+  const sky = fs.readFileSync(path.join(root, "public/site-sky.js"), "utf8");
+  new Function(sky);
+  ok(!/getContext\(|createElement\("canvas"\)/.test(sky), "server-page sky uses no canvas");
+  ok(/data-sky/.test(sky), "sky only where the page asks for it");
   console.log(`Guide orb tests passed (${checks} checks).`);
 })().catch((error) => { console.error(error); process.exit(1); });

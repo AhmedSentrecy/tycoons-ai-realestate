@@ -162,8 +162,8 @@ assert.match(localizedEn, /PRK Vie project guide/);
 assert.match(localizedEn, /A sourced English description/);
 assert.match(localizedEn, /href="\/en\/areas\/new-cairo"/);
 
-assert.match(project, /<html lang="ar" dir="rtl">/);
-assert.match(english, /<html lang="en" dir="ltr">/);
+assert.match(project, /<html lang="ar" dir="rtl" data-sky="on">/);
+assert.match(english, /<html lang="en" dir="ltr" data-sky="on">/);
 assert.match(project, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/projects\//);
 assert.match(project, /hreflang="en" href="https:\/\/tycoons-inv\.com\/en\/projects\//);
 assert.match(english, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/projects\//);
@@ -195,7 +195,7 @@ assert.match(guide, /آخر مراجعة: 30 أكتوبر 2026/);
 assert.match(guide, /"@type":"FAQPage"/, "Buyer guides carry their FAQ as FAQPage");
 assert.equal(renderGuide("new-cairo-property-prices"), null, "The merged New Cairo price guide must not render");
 assert.equal(renderGuide("north-coast-chalet-guide"), null, "The merged chalet guide must not render");
-assert.match(englishPaymentGuide, /<html lang="en" dir="ltr">/);
+assert.match(englishPaymentGuide, /<html lang="en" dir="ltr" data-sky="on">/);
 assert.match(englishPaymentGuide, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/payment-plan-comparison\//);
 assert.match(englishPaymentGuide, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/guides\/payment-plan-comparison\//);
 assert.match(englishPaymentGuide, /Cash needed in the first two years/);
@@ -572,7 +572,7 @@ async function validateRouteRecovery() {
     assert.match(unitResponse.body, /Standalone Villa/);
     assert.equal(englishDirectoryResponse.statusCode, 200);
     assert.equal(englishDirectoryResponse.headers["content-language"], "en");
-    assert.match(englishDirectoryResponse.body, /<html lang="en" dir="ltr">/);
+    assert.match(englishDirectoryResponse.body, /<html lang="en" dir="ltr" data-sky="on">/);
     assert.match(englishDirectoryResponse.body, /canonical" href="https:\/\/tycoons-inv\.com\/en\/directory\//);
     assert.equal(unknownProjectResponse.statusCode, 404);
     assert.equal(unknownProjectResponse.headers["x-robots-tag"], "noindex, follow");

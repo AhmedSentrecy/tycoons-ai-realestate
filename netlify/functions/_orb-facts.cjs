@@ -69,7 +69,7 @@ function sentences(text) {
 const NOISE = /واتساب|whatsapp|اطلب|تواصل|اتصل|contact|call us|book|cookie|سياسة|policy|منهجية|methodology|حقوق|copyright|استرشادية|indicative|ليست ضمان|not a guarantee|يتم التأكيد|confirmed at|اضغط|click/i;
 
 // A long sentence is cut at a comma so it still fits in the orb's bubble.
-function shorten(text, max = 210) {
+function shorten(text, max = 170) {
   if (text.length <= max) return text;
   const cut = text.lastIndexOf("،", max) > 70 ? text.lastIndexOf("،", max) : text.lastIndexOf(",", max);
   return cut > 70 ? `${text.slice(0, cut).trim()}.` : text;
@@ -238,13 +238,15 @@ function extractFacts(html, page, { now = Date.now() } = {}) {
   const facts = [];
   const seen = new Set();
 
+  const developer = page?.type === "developers" ? page.slug : page?.type === "projects" ? String(page.slug).split("--")[1] : "";
   if (page?.type === "projects") for (const f of showcaseFacts(page.slug, name, en, now)) addFact(facts, seen, f.text, f.topic, "offer");
+  // A developer's own page opens with what the developer is known for.
+  if (page?.type === "developers") for (const f of developerFacts(developer, en, 6)) addFact(facts, seen, f.text, f.topic, "developer");
   for (const pair of statPairs(body)) { const f = statFact(pair, name, en); addFact(facts, seen, f.text, f.topic, "page"); }
   for (const f of tableFacts(body, en)) addFact(facts, seen, f.text, f.topic, "page");
   for (const s of proseFacts(body)) { if (facts.length >= MAX_FACTS - 4) break; addFact(facts, seen, s, undefined, "page"); }
 
-  const developer = page?.type === "developers" ? page.slug : page?.type === "projects" ? String(page.slug).split("--")[1] : "";
-  if (developer) for (const f of developerFacts(developer, en, page.type === "developers" ? 6 : 3)) addFact(facts, seen, f.text, f.topic, "developer");
+  if (page?.type === "projects" && developer) for (const f of developerFacts(developer, en, 3)) addFact(facts, seen, f.text, f.topic, "developer");
 
   return { name, facts: facts.slice(0, MAX_FACTS) };
 }
