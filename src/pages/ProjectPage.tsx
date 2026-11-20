@@ -107,11 +107,11 @@ function FinancingDetails({
       <div className="grid gap-3 border-t border-[#e8decd] bg-[#faf7f1] p-5 sm:grid-cols-2">
         <div>
           <p className="text-xs text-[#7b877f]">المقدم الموجود في الصفحة</p>
-          <p className="mt-1 font-extrabold text-[#14352a]">{arabicField(downText, "يُحدد حسب الوحدة")}</p>
+          <p className="mt-1 font-extrabold text-[#0b1b30]">{arabicField(downText, "يُحدد حسب الوحدة")}</p>
         </div>
         <div>
           <p className="text-xs text-[#7b877f]">خطة التقسيط</p>
-          <p className="mt-1 font-extrabold text-[#8a6630]">{arabicField(installmentsText, "تُحدد حسب الوحدة")}</p>
+          <p className="mt-1 font-extrabold text-[#9a640f]">{arabicField(installmentsText, "تُحدد حسب الوحدة")}</p>
           <p className="mt-2 text-xs text-[#7b877f]">القسط الشهري يحتاج تأكيد خطة سداد واحدة محددة.</p>
         </div>
       </div>
@@ -124,17 +124,17 @@ function FinancingDetails({
     <div className="grid gap-3 border-t border-[#e8decd] bg-[#faf7f1] p-5 sm:grid-cols-3">
       <div>
         <p className="text-xs text-[#7b877f]">خطة المقدم</p>
-        <p className="mt-1 font-extrabold text-[#14352a]">{arabicField(downText)}</p>
+        <p className="mt-1 font-extrabold text-[#0b1b30]">{arabicField(downText)}</p>
       </div>
       <div>
         <p className="text-xs text-[#7b877f]">إجمالي المقدم {plan.downPercent}%</p>
-        <p className="mt-1 font-extrabold text-[#14352a]">
+        <p className="mt-1 font-extrabold text-[#0b1b30]">
           {startsFrom ? "يبدأ من " : ""}{formatPrice(downAmount)} جنيه
         </p>
       </div>
       <div>
         <p className="text-xs text-[#7b877f]">القسط الشهري على {yearsAr(String(plan.years))}</p>
-        <p className="mt-1 font-extrabold text-[#8a6630]">
+        <p className="mt-1 font-extrabold text-[#9a640f]">
           {startsFrom ? "يبدأ من " : ""}{formatPrice(monthlyInstallment)} جنيه تقريبًا
         </p>
       </div>
@@ -152,7 +152,7 @@ function replaceTokens(value: string, minPrice: number, minArea: number, maxArea
 function RichSegments({ value, minPrice, minArea, maxArea }: { value: ProjectContentSegment[]; minPrice: number; minArea: number; maxArea: number }) {
   return <>{value.map((segment, index) => {
     const label = replaceTokens(segment.text, minPrice, minArea, maxArea);
-    return segment.href ? <a key={index} href={segment.href} rel={segment.href.startsWith("https://") ? "noopener noreferrer" : undefined} className="font-semibold text-[#8a6630] underline">{label}</a> : <span key={index}>{label}</span>;
+    return segment.href ? <a key={index} href={segment.href} rel={segment.href.startsWith("https://") ? "noopener noreferrer" : undefined} className="font-semibold text-[#9a640f] underline">{label}</a> : <span key={index}>{label}</span>;
   })}</>;
 }
 
@@ -206,7 +206,7 @@ function ProjectGallery({
 
   return (
     <section className="mx-auto max-w-6xl px-5 pb-8 lg:px-8">
-      <div className="relative overflow-hidden rounded-3xl bg-[#0d1f18] shadow-2xl">
+      <div className="relative overflow-hidden rounded-3xl bg-[#0a1628] shadow-2xl">
         <div className="aspect-[4/3] sm:aspect-[16/8]">
           {current.type === "video" ? (
             <video
@@ -399,8 +399,8 @@ export default function ProjectPage() {
   if (loading || contentLoading) {
     return (
       <ServerHtmlOr>
-        <main className="grid min-h-screen place-items-center bg-[#f7f2ea]">
-          <p className="font-bold text-[#1b2420]">جاري تحميل تفاصيل المشروع…</p>
+        <main className="grid min-h-screen place-items-center bg-[#f4f6fa]">
+          <p className="font-bold text-[#0f1724]">جاري تحميل تفاصيل المشروع…</p>
         </main>
       </ServerHtmlOr>
     );
@@ -408,10 +408,10 @@ export default function ProjectPage() {
 
   if (error || (!project && !content)) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f7f2ea] px-5 text-center">
+      <main className="grid min-h-screen place-items-center bg-[#f4f6fa] px-5 text-center">
         <div>
-          <p className="text-xl font-bold text-[#1b2420]">تعذّر فتح المشروع</p>
-          <Link to="/" className="mt-4 inline-block text-[#a3854e] underline">
+          <p className="text-xl font-bold text-[#0f1724]">تعذّر فتح المشروع</p>
+          <Link to="/" className="mt-4 inline-block text-[#b47c17] underline">
             ارجع للرئيسية
           </Link>
         </div>
@@ -427,12 +427,12 @@ export default function ProjectPage() {
       `Hello Tycoons Investments,\nI am interested in ${projectContent.name} by ${projectContent.developer}.\nPlease confirm the latest availability and payment plan.\n\nSource: project_page\nPage: ${pageUrl}`,
     );
     return (
-      <main dir="rtl" className="min-h-screen bg-[#f7f2ea] pb-24 text-[#1b2420] md:pb-0">
+      <main dir="rtl" className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
         <Navbar />
         <section className="mx-auto max-w-4xl px-5 pb-20 pt-36">
-          <Link to="/ar/" className="text-sm font-bold text-[#8a6630] hover:underline">دليل المشاريع</Link>
+          <Link to="/ar/" className="text-sm font-bold text-[#9a640f] hover:underline">دليل المشاريع</Link>
           <h1 className="mt-5 text-3xl font-extrabold sm:text-4xl">{(ownGuide && localizedArabic?.h1) || projectContent.name}</h1>
-          <p className="mt-3 text-[#5c6a62]">{projectContent.developer} · {projectContent.location}</p>
+          <p className="mt-3 text-[#556070]">{projectContent.developer} · {projectContent.location}</p>
           {ownGuide && localizedArabic ? (
             <article className="mt-10">
               {localizedArabic.article_sections.map((section, sectionIndex) => (
@@ -441,19 +441,19 @@ export default function ProjectPage() {
                   {section.blocks.map((block, blockIndex) => block.type === "subheading" ? (
                     <h3 key={blockIndex} className="mt-7 text-xl font-extrabold">{block.text}</h3>
                   ) : block.type === "ordered_list" ? (
-                    <ol key={blockIndex} className="mt-5 list-decimal space-y-3 pr-6 font-light leading-loose text-[#5c6a62]">{block.items.map((item, itemIndex) => <li key={itemIndex}><RichSegments value={item} minPrice={0} minArea={0} maxArea={0} /></li>)}</ol>
+                    <ol key={blockIndex} className="mt-5 list-decimal space-y-3 pr-6 font-light leading-loose text-[#556070]">{block.items.map((item, itemIndex) => <li key={itemIndex}><RichSegments value={item} minPrice={0} minArea={0} maxArea={0} /></li>)}</ol>
                   ) : (
-                    <p key={blockIndex} className="mt-5 font-light leading-loose text-[#5c6a62]"><RichSegments value={block.content} minPrice={0} minArea={0} maxArea={0} /></p>
+                    <p key={blockIndex} className="mt-5 font-light leading-loose text-[#556070]"><RichSegments value={block.content} minPrice={0} minArea={0} maxArea={0} /></p>
                   ))}
                 </section>
               ))}
             </article>
           ) : (
             <>
-              <p className="mt-8 rounded-2xl border border-[#e7ddc8] bg-white p-6 leading-loose">
+              <p className="mt-8 rounded-2xl border border-[#dde4ee] bg-white p-6 leading-loose">
                 معلومات المشروع موجودة، لكن مفيش وحدات متاحة مؤكدة نقدر نعرضها حاليًا. تواصل معنا عشان نراجع أحدث التوافر والأسعار مع المطور.
               </p>
-              {projectContent.description && <p className="mt-7 leading-loose text-[#5c6a62]">{projectContent.description}</p>}
+              {projectContent.description && <p className="mt-7 leading-loose text-[#556070]">{projectContent.description}</p>}
             </>
           )}
           <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`} target="_blank" rel="noreferrer" className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#1faa59] px-6 py-3 font-bold text-white">
@@ -585,10 +585,10 @@ export default function ProjectPage() {
   };
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f7f2ea] pb-24 text-[#1b2420] md:pb-0">
+    <main dir="rtl" className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
       <Navbar />
 
-      <section className="bg-[#0d1f18] px-5 pb-12 pt-32 text-white lg:px-8">
+      <section className="bg-[#0a1628] px-5 pb-12 pt-32 text-white lg:px-8">
         <div className="mx-auto max-w-6xl">
           <Link to="/" className="inline-flex items-center gap-2 text-sm text-white/65 hover:text-white">
             <ArrowRight className="h-4 w-4" />
@@ -596,7 +596,7 @@ export default function ProjectPage() {
           </Link>
           <div className="mt-8 grid items-end gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <div className="flex flex-wrap items-center gap-3 text-sm text-[#d9b87c]">
+              <div className="flex flex-wrap items-center gap-3 text-sm text-[#f0bd4f]">
                 {developerHasPage ? (
                   <a href={`/ar/developers/${slugify(project.developer)}`} className="inline-flex items-center gap-1.5 hover:text-white">
                     <Building2 className="h-4 w-4" />
@@ -648,7 +648,7 @@ export default function ProjectPage() {
         </div>
       </section>
 
-      <div className="-mt-px bg-[#0d1f18] pb-4">
+      <div className="-mt-px bg-[#0a1628] pb-4">
         <ProjectGallery images={images} videos={videos} name={project.project_name} />
       </div>
 
@@ -663,9 +663,9 @@ export default function ProjectPage() {
                 {section.blocks.map((block, blockIndex) => block.type === "subheading" ? (
                   <h3 key={blockIndex} className="mt-7 text-xl font-extrabold">{replaceTokens(block.text, minPrice, minArea, maxArea)}</h3>
                 ) : block.type === "ordered_list" ? (
-                  <ol key={blockIndex} className="mt-5 list-decimal space-y-3 pr-6 font-light leading-loose text-[#5c6a62]">{block.items.map((item, itemIndex) => <li key={itemIndex}><RichSegments value={item} minPrice={minPrice} minArea={minArea} maxArea={maxArea} /></li>)}</ol>
+                  <ol key={blockIndex} className="mt-5 list-decimal space-y-3 pr-6 font-light leading-loose text-[#556070]">{block.items.map((item, itemIndex) => <li key={itemIndex}><RichSegments value={item} minPrice={minPrice} minArea={minArea} maxArea={maxArea} /></li>)}</ol>
                 ) : (
-                  <p key={blockIndex} className="mt-5 font-light leading-loose text-[#5c6a62]"><RichSegments value={block.content} minPrice={minPrice} minArea={minArea} maxArea={maxArea} /></p>
+                  <p key={blockIndex} className="mt-5 font-light leading-loose text-[#556070]"><RichSegments value={block.content} minPrice={minPrice} minArea={minArea} maxArea={maxArea} /></p>
                 ))}
               </section>
             )) : articleSections.map((section, sectionIndex) => (
@@ -676,7 +676,7 @@ export default function ProjectPage() {
                 {section.paragraphs.map((paragraph, paragraphIndex) => (
                   <p
                     key={paragraph}
-                    className={`${paragraphIndex ? "mt-5" : "mt-6"} font-light leading-loose text-[#5c6a62]`}
+                    className={`${paragraphIndex ? "mt-5" : "mt-6"} font-light leading-loose text-[#556070]`}
                   >
                     {replaceTokens(paragraph, minPrice, minArea, maxArea)}
                   </p>
@@ -687,13 +687,13 @@ export default function ProjectPage() {
             {/* Same rule as the pre-rendered page: a project with its own full guide shows no second article. */}
             {projectArticle && !ownGuide && (
               <section className="mt-14" aria-labelledby="project-article" id="article">
-                <p className="text-sm font-bold text-[#a3854e]">دليل Tycoons — تمت مراجعته قبل النشر</p>
+                <p className="text-sm font-bold text-[#b47c17]">دليل Tycoons — تمت مراجعته قبل النشر</p>
                 <h2 id="project-article" className="mt-2 text-3xl font-extrabold leading-snug">{projectArticle.title}</h2>
-                {projectArticle.excerpt && <p className="mt-4 text-lg font-light leading-loose text-[#5c6a62]">{projectArticle.excerpt}</p>}
+                {projectArticle.excerpt && <p className="mt-4 text-lg font-light leading-loose text-[#556070]">{projectArticle.excerpt}</p>}
                 {(projectArticle.key_takeaways ?? []).filter(Boolean).length > 0 && (
-                  <div className="mt-6 rounded-2xl border border-[#e7ddc8] bg-[#fffaf1] p-5">
+                  <div className="mt-6 rounded-2xl border border-[#dde4ee] bg-[#fffaf1] p-5">
                     <h3 className="text-xl font-extrabold">الخلاصة</h3>
-                    <ul className="mt-3 list-disc space-y-2 ps-6 leading-loose text-[#5c6a62]">
+                    <ul className="mt-3 list-disc space-y-2 ps-6 leading-loose text-[#556070]">
                       {(projectArticle.key_takeaways ?? []).filter(Boolean).slice(0, 6).map((item) => <li key={item}>{item}</li>)}
                     </ul>
                   </div>
@@ -703,7 +703,7 @@ export default function ProjectPage() {
                   <GuideBody markdown={publicMarkdown(projectArticle.body_markdown, true)} liveUnitIds={liveUnitIds} />
                 </div>
                 {projectArticle.reviewed_at && (
-                  <p className="mt-6 text-sm text-[#5c6a62]">
+                  <p className="mt-6 text-sm text-[#556070]">
                     آخر مراجعة: {new Date(projectArticle.reviewed_at).toLocaleDateString("ar-EG-u-nu-latn", { year: "numeric", month: "long", day: "numeric" })}
                     {projectArticle.reviewed_by_name ? ` — ${projectArticle.reviewed_by_name}` : ""}
                   </p>
@@ -714,13 +714,13 @@ export default function ProjectPage() {
             {developerBrand?.about_ar && !ownGuide && (
               <section className="mt-14" aria-labelledby="project-developer">
                 <h2 id="project-developer" className="text-2xl font-extrabold">عن المطور: {developerBrand.name_ar || developerBrand.name}</h2>
-                <p className="mt-4 font-light leading-loose text-[#5c6a62]">{developerBrand.about_ar}</p>
-                {developerHasPage && <a href={`/ar/developers/${developerBrand.slug}`} className="mt-3 inline-block font-bold text-[#a3854e] underline">كل مشاريع {developerBrand.name_ar || developerBrand.name}</a>}
+                <p className="mt-4 font-light leading-loose text-[#556070]">{developerBrand.about_ar}</p>
+                {developerHasPage && <a href={`/ar/developers/${developerBrand.slug}`} className="mt-3 inline-block font-bold text-[#b47c17] underline">كل مشاريع {developerBrand.name_ar || developerBrand.name}</a>}
               </section>
             )}
 
             {ownGuide && developerHasPage && developerBrand && (
-              <p className="mt-10"><a href={`/ar/developers/${developerBrand.slug}`} className="font-bold text-[#a3854e] underline">كل مشاريع {developerBrand.name_ar || developerBrand.name}</a></p>
+              <p className="mt-10"><a href={`/ar/developers/${developerBrand.slug}`} className="font-bold text-[#b47c17] underline">كل مشاريع {developerBrand.name_ar || developerBrand.name}</a></p>
             )}
             {visibleFaq.length > 0 && <section className="mt-14" aria-labelledby="project-faq">
               <h2 id="project-faq" className="text-2xl font-extrabold">
@@ -728,11 +728,11 @@ export default function ProjectPage() {
               </h2>
               <div className="mt-6 space-y-4">
                 {visibleFaq.map((item) => (
-                  <details key={item.question} className="group rounded-2xl border border-[#e7ddc8] bg-white/70 p-5">
+                  <details key={item.question} className="group rounded-2xl border border-[#dde4ee] bg-white/70 p-5">
                     <summary className="cursor-pointer list-none font-bold">
                       {replaceTokens(item.question, minPrice, minArea, maxArea)}
                     </summary>
-                    <p className="mt-3 font-light leading-relaxed text-[#5c6a62]">
+                    <p className="mt-3 font-light leading-relaxed text-[#556070]">
                       {replaceTokens(item.answer, minPrice, minArea, maxArea)}
                     </p>
                   </details>
@@ -748,10 +748,10 @@ export default function ProjectPage() {
                   <li key={guide.slug}>
                     <a href={guidePath(guide)} className="group flex items-center justify-between gap-4 rounded-2xl border border-[#e0d3bb] bg-white p-5 transition hover:shadow-md">
                       <span>
-                        <span className="block font-extrabold group-hover:text-[#a3854e]">{guide.title}</span>
-                        {guide.excerpt && <span className="mt-1 block text-sm font-light text-[#5c6a62]">{guide.excerpt}</span>}
+                        <span className="block font-extrabold group-hover:text-[#b47c17]">{guide.title}</span>
+                        {guide.excerpt && <span className="mt-1 block text-sm font-light text-[#556070]">{guide.excerpt}</span>}
                       </span>
-                      <ArrowLeft className="h-5 w-5 shrink-0 text-[#a3854e]" />
+                      <ArrowLeft className="h-5 w-5 shrink-0 text-[#b47c17]" />
                     </a>
                   </li>
                 ))}
@@ -760,18 +760,18 @@ export default function ProjectPage() {
           </article>
 
           <aside className="lg:sticky lg:top-28 lg:self-start">
-            <div className="rounded-3xl bg-[#0d1f18] p-7 text-white">
+            <div className="rounded-3xl bg-[#0a1628] p-7 text-white">
               <p className="text-sm text-white/55">الأسعار تبدأ من</p>
-              <p className="mt-2 text-3xl font-extrabold text-[#ecd9ae]">
+              <p className="mt-2 text-3xl font-extrabold text-[#f8dfa6]">
                 {formatPrice(minPrice)} جنيه
               </p>
               <div className="mt-6 space-y-4 border-t border-white/10 pt-6 text-sm">
                 <div className="flex items-center gap-3">
-                  <WalletCards className="h-5 w-5 text-[#d9b87c]" />
+                  <WalletCards className="h-5 w-5 text-[#f0bd4f]" />
                   {downPaymentAr(project.down_payment_text)}، {arabicField(project.installments_text)}
                 </div>
                 <div className="flex items-center gap-3">
-                  <Maximize2 className="h-5 w-5 text-[#d9b87c]" />
+                  <Maximize2 className="h-5 w-5 text-[#f0bd4f]" />
                   {minArea === maxArea ? `المساحة ${minArea} م²` : `مساحات من ${minArea} إلى ${maxArea} م²`}
                 </div>
               </div>
@@ -780,21 +780,21 @@ export default function ProjectPage() {
         </div>
       </section>
 
-      <section id="units" className="border-y border-[#e7ddc8] bg-[#efe7d8] py-16" aria-labelledby="project-unit-options">
+      <section id="units" className="border-y border-[#dde4ee] bg-[#e8edf5] py-16" aria-labelledby="project-unit-options">
         <div className="mx-auto max-w-6xl px-5 lg:px-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-[#a3854e]">كل اختيارات الطرح الحالي</p>
+              <p className="text-sm font-semibold text-[#b47c17]">كل اختيارات الطرح الحالي</p>
               <h2 id="project-unit-options" className="mt-2 text-3xl font-extrabold">اختار وحدتك واحسب القسط</h2>
             </div>
-            <span className="text-sm text-[#5c6a62]">{totalOptionCount === 1 ? "اختيار واحد" : totalOptionCount === 2 ? "اختيارين" : totalOptionCount <= 10 ? `${totalOptionCount} اختيارات` : `${totalOptionCount} اختيار`}</span>
+            <span className="text-sm text-[#556070]">{totalOptionCount === 1 ? "اختيار واحد" : totalOptionCount === 2 ? "اختيارين" : totalOptionCount <= 10 ? `${totalOptionCount} اختيارات` : `${totalOptionCount} اختيار`}</span>
           </div>
 
           {(priceRanges.length > 0 || villaUnits.length > 0) && (
-            <section className="mt-9 rounded-[2rem] bg-[#0d1f18] p-5 text-white shadow-xl sm:p-8" aria-labelledby="villa-options">
+            <section className="mt-9 rounded-[2rem] bg-[#0a1628] p-5 text-white shadow-xl sm:p-8" aria-labelledby="villa-options">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-[#d9b87c]">
+                  <p className="inline-flex items-center gap-2 text-sm font-semibold text-[#f0bd4f]">
                     <House className="h-4 w-4" />
                     الاختيارات الرئيسية
                   </p>
@@ -806,21 +806,21 @@ export default function ProjectPage() {
                 {priceRanges.map((range) => (
                   <details
                     key={`${range.unit_type}-${range.area_sqm}`}
-                    className="group overflow-hidden rounded-3xl bg-white text-[#1b2420] shadow-sm open:ring-2 open:ring-[#d9b87c]"
+                    className="group overflow-hidden rounded-3xl bg-white text-[#0f1724] shadow-sm open:ring-2 open:ring-[#f0bd4f]"
                   >
                     <summary className="cursor-pointer list-none p-5 [&::-webkit-details-marker]:hidden">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-xs font-semibold text-[#a3854e]">فيلا / تاون هاوس</p>
-                          <h4 className="mt-1 text-lg font-extrabold text-[#14352a]">{unitTypeAr(range.unit_type) || range.unit_type}</h4>
+                          <p className="text-xs font-semibold text-[#b47c17]">فيلا / تاون هاوس</p>
+                          <h4 className="mt-1 text-lg font-extrabold text-[#0b1b30]">{unitTypeAr(range.unit_type) || range.unit_type}</h4>
                         </div>
-                        <span className="rounded-full bg-[#efe7d8] px-3 py-1 text-xs font-bold text-[#6e522c]">{range.area_sqm} م²</span>
+                        <span className="rounded-full bg-[#e8edf5] px-3 py-1 text-xs font-bold text-[#6e522c]">{range.area_sqm} م²</span>
                       </div>
                       <p className="mt-5 text-xs text-[#7b877f]">نطاق السعر</p>
-                      <p className="mt-1 text-xl font-extrabold text-[#14352a]">
+                      <p className="mt-1 text-xl font-extrabold text-[#0b1b30]">
                         {formatPrice(range.min_price / 1_000_000)}–{formatPrice(range.max_price / 1_000_000)} مليون جنيه
                       </p>
-                      <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
+                      <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#9a640f]">
                         اعرض المقدم والقسط
                         <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
                       </span>
@@ -836,27 +836,27 @@ export default function ProjectPage() {
                 {villaUnits.map((unit) => (
                   <details
                     key={unit.id || [unit.unit_type, unit.bedrooms_text, unit.area_sqm].join("|")}
-                    className="group overflow-hidden rounded-3xl bg-white text-[#1b2420] shadow-sm open:ring-2 open:ring-[#d9b87c]"
+                    className="group overflow-hidden rounded-3xl bg-white text-[#0f1724] shadow-sm open:ring-2 open:ring-[#f0bd4f]"
                   >
                     <summary className="cursor-pointer list-none p-5 [&::-webkit-details-marker]:hidden">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          {bedroomsAr(unit.bedrooms_text) ? <p className="text-xs font-semibold text-[#a3854e]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p> : null}
-                          <h4 className="mt-1 text-lg font-extrabold text-[#14352a]">
+                          {bedroomsAr(unit.bedrooms_text) ? <p className="text-xs font-semibold text-[#b47c17]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p> : null}
+                          <h4 className="mt-1 text-lg font-extrabold text-[#0b1b30]">
                             {bedroomsAr(unit.bedrooms_text) || unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}
                           </h4>
-                          <p className="mt-1 text-sm text-[#5c6a62]">{unit.area_sqm} م²</p>
+                          <p className="mt-1 text-sm text-[#556070]">{unit.area_sqm} م²</p>
                         </div>
                         <span className="rounded-full bg-[#e8f5ed] px-3 py-1 text-xs font-bold text-[#14733c]">متاح</span>
                       </div>
                       <p className="mt-5 text-xs text-[#7b877f]">يبدأ من</p>
-                      <p className="mt-1 text-xl font-extrabold text-[#14352a]">
+                      <p className="mt-1 text-xl font-extrabold text-[#0b1b30]">
                         {formatPrice(unit.starting_price)} جنيه
                       </p>
                       {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
-                      {unit.down_payment_text ? <p className="mt-2 text-sm text-[#5c6a62]">{downPaymentAr(unit.down_payment_text)}</p> : null}
+                      {unit.down_payment_text ? <p className="mt-2 text-sm text-[#556070]">{downPaymentAr(unit.down_payment_text)}</p> : null}
                       {bookingLabel(unit.starting_price, unit.down_payment_text) ? <p className="mt-1 text-sm font-bold text-[#14733c]">{bookingLabel(unit.starting_price, unit.down_payment_text)}</p> : null}
-                      <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
+                      <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#9a640f]">
                         اعرض المقدم والقسط
                         <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
                       </span>
@@ -868,7 +868,7 @@ export default function ProjectPage() {
                     />
                     {unit.id && (
                       <div className="bg-[#faf7f1] px-5 pb-5">
-                        <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
+                        <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#9a640f] hover:underline">
                           كل تفاصيل الوحدة
                           <ArrowLeft className="h-4 w-4" />
                         </Link>
@@ -886,48 +886,48 @@ export default function ProjectPage() {
           {otherUnits.length > 0 && <section className="mt-12" aria-labelledby="other-unit-options">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
-                {otherUnits.length > 1 && otherUnits.every((unit) => !/office|clinic|retail|admin|shop|pharmacy|bank|f&b|showroom|مكتب|عيادة|محل/i.test(unit.unit_type || "")) && <p className="text-sm font-semibold text-[#a3854e]">اختيارات سكنية متنوعة</p>}
+                {otherUnits.length > 1 && otherUnits.every((unit) => !/office|clinic|retail|admin|shop|pharmacy|bank|f&b|showroom|مكتب|عيادة|محل/i.test(unit.unit_type || "")) && <p className="text-sm font-semibold text-[#b47c17]">اختيارات سكنية متنوعة</p>}
                 <h3 id="other-unit-options" className="mt-2 text-2xl font-extrabold">
                   {villaUnits.length || priceRanges.length ? "شقق ووحدات أخرى" : otherUnits.length === 1 ? "الوحدة المتاحة" : "الوحدات المتاحة"}
                 </h3>
               </div>
-              <p className="text-sm text-[#5c6a62]">اضغط على الوحدة لعرض المقدم والقسط الشهري</p>
+              <p className="text-sm text-[#556070]">اضغط على الوحدة لعرض المقدم والقسط الشهري</p>
             </div>
             <div className="mt-7 grid gap-5 md:grid-cols-2">
             {otherUnits.map((unit) => (
               <details
                 key={unit.id || [unit.unit_type, unit.bedrooms_text, unit.area_sqm].join("|")}
-                className="group overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white shadow-sm open:border-[#a3854e] open:ring-1 open:ring-[#a3854e]"
+                className="group overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white shadow-sm open:border-[#b47c17] open:ring-1 open:ring-[#b47c17]"
               >
                 <summary className="cursor-pointer list-none p-6 [&::-webkit-details-marker]:hidden">
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      {bedroomsAr(unit.bedrooms_text) ? <p className="text-sm text-[#8a7a58]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p> : null}
+                      {bedroomsAr(unit.bedrooms_text) ? <p className="text-sm text-[#8a7550]">{unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}</p> : null}
                       <h4 className="mt-1 text-xl font-extrabold">
                         {bedroomsAr(unit.bedrooms_text) || unitTypeAr(unit.unit_type) || arabicField(unit.unit_type)}
                       </h4>
                     </div>
                     <span className="rounded-full bg-[#e8f5ed] px-3 py-1 text-xs font-bold text-[#14733c]">متاح</span>
                   </div>
-                  <div className="mt-5 flex items-center gap-5 text-sm text-[#5c6a62]">
+                  <div className="mt-5 flex items-center gap-5 text-sm text-[#556070]">
                     {bedroomsAr(unit.bedrooms_text) && <span className="inline-flex items-center gap-2">
-                      <BedDouble className="h-4 w-4 text-[#a3854e]" />
+                      <BedDouble className="h-4 w-4 text-[#b47c17]" />
                       {bedroomsAr(unit.bedrooms_text)}
                     </span>}
                     <span className="inline-flex items-center gap-2">
-                      <Maximize2 className="h-4 w-4 text-[#a3854e]" />
+                      <Maximize2 className="h-4 w-4 text-[#b47c17]" />
                       {unit.area_sqm} م²
                     </span>
                   </div>
                   <div className="mt-6 border-t border-[#eee5d6] pt-5">
                   <p className="text-xs text-[#7b877f]">يبدأ من</p>
-                  <p className="mt-1 text-2xl font-extrabold text-[#14352a]">
+                  <p className="mt-1 text-2xl font-extrabold text-[#0b1b30]">
                     {formatPrice(unit.starting_price)} جنيه
                   </p>
                   {sqmPrice(unit) ? <p className="mt-1 text-xs text-[#7b877f]">سعر المتر {sqmPrice(unit)} جنيه</p> : null}
-                  <p className="mt-2 text-sm text-[#5c6a62]">{downPaymentAr(unit.down_payment_text)}</p>
+                  <p className="mt-2 text-sm text-[#556070]">{downPaymentAr(unit.down_payment_text)}</p>
                   {bookingLabel(unit.starting_price, unit.down_payment_text) ? <p className="mt-1 text-sm font-bold text-[#14733c]">{bookingLabel(unit.starting_price, unit.down_payment_text)}</p> : null}
-                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#8a6630]">
+                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-bold text-[#9a640f]">
                       اعرض المقدم والقسط
                       <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
                     </span>
@@ -940,7 +940,7 @@ export default function ProjectPage() {
                 />
                 {unit.id && (
                   <div className="bg-[#faf7f1] px-5 pb-5">
-                    <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#8a6630] hover:underline">
+                    <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#9a640f] hover:underline">
                       كل تفاصيل الوحدة
                       <ArrowLeft className="h-4 w-4" />
                     </Link>
@@ -956,7 +956,7 @@ export default function ProjectPage() {
 
       <section className="mx-auto max-w-4xl px-5 py-16 text-center">
         <h2 className="text-3xl font-extrabold">عايز تقارن الوحدات وخطة السداد؟</h2>
-        <p className="mt-4 font-light text-[#5c6a62]">
+        <p className="mt-4 font-light text-[#556070]">
           ابعتلنا على واتساب وهنأكد لك أحدث توافر وأسعار قبل الحجز.
         </p>
         <a

@@ -63,7 +63,7 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
     <article
       className={`h-full overflow-hidden rounded-2xl border transition-all ${
         result.exact
-          ? "border-[#d9cfb9] bg-white hover:border-[#c49b5f]/70"
+          ? "border-[#d9cfb9] bg-white hover:border-[#d99a2b]/70"
           : "border-amber-200 bg-amber-50/55 hover:border-amber-300"
       }`}
     >
@@ -143,11 +143,11 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
         )}
 
         <div>
-          <DeveloperLogo developer={unit.developer} className="mb-2 shadow-none ring-1 ring-[#e7ddc8]" />
+          <DeveloperLogo developer={unit.developer} className="mb-2 shadow-none ring-1 ring-[#dde4ee]" />
           <h4 className="break-words text-[15px] font-black leading-snug text-[#18251f]">
             {unit.project_name}
           </h4>
-          <p className="mt-1 break-words text-[11px] leading-relaxed text-[#6d7a72]">
+          <p className="mt-1 break-words text-[11px] leading-relaxed text-[#6b7585]">
             {detail(unit.developer)}
           </p>
         </div>
@@ -192,7 +192,7 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
             {unit.id && (
               <Link
                 to={unitPath(unit)}
-                className="inline-flex text-xs font-extrabold text-[#8a6630] hover:underline"
+                className="inline-flex text-xs font-extrabold text-[#9a640f] hover:underline"
               >
                 افتح صفحة الوحدة
               </Link>
@@ -200,7 +200,7 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
             {unit.project_slug && (
               <Link
                 to={`/projects/${unit.project_slug}`}
-                className="inline-flex items-center gap-1 text-xs font-extrabold text-[#14352a] hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-extrabold text-[#0b1b30] hover:underline"
               >
                 صفحة المشروع كاملة ←
               </Link>

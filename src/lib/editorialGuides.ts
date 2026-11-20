@@ -103,3 +103,25 @@ export function publicMarkdown(markdown: string, ar: boolean) {
 
 /** Internal links a guide may render as links; anything else stays text. */
 export const SAFE_GUIDE_LINK = /^\/(?:(?:(?:(?:ar|en)\/)?(?:projects|guides|units)|(?:ar|en)\/(?:areas|developers))\/[a-z0-9-]+\/?|(?:about|contact|methodology|corrections)\/?)$/;
+
+export interface HomeNewsItem extends GuideLink { published_at: string; image: string; project_name?: string }
+
+export const NEWS_MAX_AGE_DAYS = 30;
+
+/** Latest published articles for the homepage news section, with the project's photo when the article has none. */
+export async function loadHomeNews(language: "ar" | "en" = "ar", limit = 7): Promise<HomeNewsItem[]> {
+  const rows = await rest<GuideLink & { published_at: string }>("published_editorial_articles", {
+    select: "title,slug,excerpt,language,project_id,hero_image_url,published_at",
+    language: `eq.${language}`, order: "published_at.desc", limit: String(limit),
+    // News, not an archive: nothing older than a month. With nothing that recent the section hides.
+    published_at: `gte.${new Date(Date.now() - NEWS_MAX_AGE_DAYS * 86_400_000).toISOString()}`,
+  });
+  const ids = [...new Set(rows.map((row) => row.project_id).filter(Boolean))] as string[];
+  const projects = ids.length
+    ? await rest<GuideProject>("projects", { select: "id,name,image_url", id: `in.(${ids.join(",")})` }).catch(() => [] as GuideProject[])
+    : [];
+  return rows.map((row) => {
+    const project = projects.find((item) => item.id === row.project_id);
+    return { ...row, image: row.hero_image_url || project?.image_url || "/images/hero.webp", project_name: project?.name };
+  });
+}

@@ -6,19 +6,20 @@ import { regions } from "@/data/content";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function Footer() {
+export default function Footer({ cta = true }: { cta?: boolean }) {
   return (
-    <footer className="bg-[#08130e]">
-      {/* CTA */}
+    <footer className="bg-[#060f1c]">
+      {/* CTA (the homepage leaves it out: it repeats the hero search) */}
+      {cta && (
       <div className="mx-auto max-w-6xl px-5 py-16 lg:px-8 lg:py-20">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-80px" }}
           transition={{ duration: 0.9, ease }}
-          className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-bl from-[#14352a] to-[#0d1f18] px-6 py-11 text-center sm:px-12"
+          className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-bl from-[#0b1b30] to-[#0a1628] px-6 py-11 text-center sm:px-12"
         >
-          <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[480px] -translate-x-1/2 rounded-full bg-[#c49b5f]/15 blur-[100px]" />
+          <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[480px] -translate-x-1/2 rounded-full bg-[#d99a2b]/15 blur-[100px]" />
           <h2 className="relative mx-auto max-w-2xl text-balance text-2xl font-extrabold leading-snug text-white sm:text-4xl sm:leading-snug">
             {tr("عقارك الجاي يبدأ بجملة واحدة")}</h2>
           <p className="relative mx-auto mt-4 max-w-md text-sm font-light leading-relaxed text-white/65">
@@ -27,7 +28,7 @@ export default function Footer() {
             <Link
               to={isEnglish() ? "/en/" : "/"}
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex items-center gap-2.5 rounded-full bg-[#c49b5f] px-7 py-3 text-sm font-bold text-[#231a0c] transition-transform hover:scale-[1.05]"
+              className="flex items-center gap-2.5 rounded-full bg-[#d99a2b] px-7 py-3 text-sm font-bold text-[#231a0c] transition-transform hover:scale-[1.05]"
             >
               <Search aria-hidden="true" className="h-4 w-4" />
               {tr("ابدأ البحث")}</Link>
@@ -45,13 +46,14 @@ export default function Footer() {
             {tr("يدعم البحث الصوتي بالعربي والإنجليزي")}</div>
         </motion.div>
       </div>
+      )}
 
       {/* Links */}
-      <div className="border-t border-white/10">
+      <div className={cta ? "border-t border-white/10" : ""}>
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#14352a]">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#0b1b30]">
                 <img
                   src="/images/logo-badge-gold.png"
                   alt="Tycoons Investments"
@@ -74,7 +76,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">{tr("المنصة")}</h4>
+            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#f0bd4f]">{tr("المنصة")}</h4>
             <ul className="space-y-3.5">
               {[
                 { label: tr("ابدأ البحث"), to: "/" },
@@ -98,7 +100,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">{tr("المناطق")}</h4>
+            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#f0bd4f]">{tr("المناطق")}</h4>
             <ul className="space-y-3.5">
               {regions.map((r) => (
                 <li key={r.slug}>
@@ -114,7 +116,7 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#d9b87c]">Tycoons</h4>
+            <h4 className="mb-5 text-sm font-bold tracking-wide text-[#f0bd4f]">Tycoons</h4>
             <ul className="space-y-3.5">
               {[
                 { label: tr("من نحن"), to: "/about" },
@@ -143,7 +145,7 @@ export default function Footer() {
               ))}
             </ul>
             <details id="voice-privacy" className="mt-5 text-sm leading-7 text-white/70" dir={isEnglish() ? "ltr" : "rtl"}>
-              <summary className="cursor-pointer font-bold text-[#d9b87c]">{tr("الخصوصية والمحادثات الصوتية")}</summary>
+              <summary className="cursor-pointer font-bold text-[#f0bd4f]">{tr("الخصوصية والمحادثات الصوتية")}</summary>
               <div className="mt-3 space-y-3">
                 <p>{tr("المساعد الصوتي يعمل بالذكاء الاصطناعي. يُستخدم صوتك لمعالجة طلبك والرد عليك، وقد يخطئ في فهم الكلام؛ يُرجى تأكيد الأرقام والتفاصيل المهمة. عدم حفظ تسجيل لدينا لا يعني عدم معالجة الصوت لدى مزوّد الخدمة.")}</p>
                 <p>{tr("أثناء المحادثة يُجهّز تسجيل صوتي ونص مؤقتان على جهازك. بعد إنهائها يمكنك مراجعة بيانات التواصل ونص الطلب ثم تأكيد إرسالهما للفريق، وإرفاق الصوت اختياريًا. إغلاق النموذج دون إرسال لا يرفع هذه البيانات إلى لوحة المبيعات. قد لا يكتمل التسجيل عند إغلاق الصفحة أو انقطاع الاتصال.")}</p>

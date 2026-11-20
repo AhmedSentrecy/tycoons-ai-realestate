@@ -51,15 +51,15 @@ export default function SearchPage() {
   const total = results.totalExact + results.totalAlternatives;
 
   return (
-    <div dir="rtl" className="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
+    <div dir="rtl" className="min-h-screen bg-[#f4f6fa] text-[#0f1724]">
       <Navbar />
-      <section className="bg-[#0d1f18] px-5 pb-8 pt-24 text-white lg:px-8">
+      <section className="bg-[#0a1628] px-5 pb-8 pt-24 text-white lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <p className="text-xs font-bold text-[#d9b87c]"><Link to="/" className="hover:underline">الرئيسية</Link> / البحث</p>
+          <p className="text-xs font-bold text-[#f0bd4f]"><Link to="/" className="hover:underline">الرئيسية</Link> / البحث</p>
           <div className="mt-3 grid items-end gap-6 lg:grid-cols-[1fr_0.85fr]">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/70">
-                <Search className="h-3.5 w-3.5 text-[#d9b87c]" /> بحث مباشر في المخزون الحالي
+                <Search className="h-3.5 w-3.5 text-[#f0bd4f]" /> بحث مباشر في المخزون الحالي
               </span>
               <h1 className="mt-3 max-w-3xl text-2xl font-extrabold leading-tight sm:text-4xl">
                 {q ? "الاختيارات الأقرب لطلبك" : "قولنا بتدور على إيه"}
@@ -74,7 +74,7 @@ export default function SearchPage() {
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             {EXAMPLES.map((example) => (
-              <button key={example} type="button" onClick={() => navigate(`/search?q=${encodeURIComponent(example)}`)} className="rounded-full border border-white/15 px-3.5 py-2 text-xs text-white/75 transition hover:border-[#d9b87c]/60 hover:bg-white/10 hover:text-white">
+              <button key={example} type="button" onClick={() => navigate(`/search?q=${encodeURIComponent(example)}`)} className="rounded-full border border-white/15 px-3.5 py-2 text-xs text-white/75 transition hover:border-[#f0bd4f]/60 hover:bg-white/10 hover:text-white">
                 {example}
               </button>
             ))}
@@ -87,8 +87,8 @@ export default function SearchPage() {
           <div className="mb-7 rounded-3xl border border-[#e3d7c0] bg-white p-5 shadow-sm sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-bold text-[#8a6630]">طلب البحث</p>
-                <h2 className="mt-1 text-xl font-extrabold text-[#0d1f18] sm:text-2xl">{q}</h2>
+                <p className="text-xs font-bold text-[#9a640f]">طلب البحث</p>
+                <h2 className="mt-1 text-xl font-extrabold text-[#0a1628] sm:text-2xl">{q}</h2>
                 {results.interpreted && <p className="mt-2 text-sm font-semibold text-[#92733f]">{results.interpreted}</p>}
               </div>
               {!inventory.loading && total > 0 && (
@@ -102,7 +102,7 @@ export default function SearchPage() {
         )}
 
         {inventory.loading && (
-          <p className="py-16 text-center text-sm font-semibold text-[#6d7a72]">بنحمّل المخزون المحدث...</p>
+          <p className="py-16 text-center text-sm font-semibold text-[#6b7585]">بنحمّل المخزون المحدث...</p>
         )}
 
         {!inventory.loading && exactGroups.length > 0 && (
@@ -142,9 +142,9 @@ export default function SearchPage() {
         )}
 
         {!inventory.loading && q && !exactGroups.length && !altGroups.length && (
-          <div className="rounded-3xl border border-[#e7ddc8] bg-white px-6 py-14 text-center">
+          <div className="rounded-3xl border border-[#dde4ee] bg-white px-6 py-14 text-center">
             <p className="text-base font-extrabold">ملقيناش نتيجة قريبة كفاية</p>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#6d7a72]">
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-[#6b7585]">
               ابعتلنا نفس الطلب على واتساب وهنراجع كل الاختيارات المتاحة يدويًا ونرد عليك بأحدث الأسعار.
             </p>
             <button
@@ -158,10 +158,10 @@ export default function SearchPage() {
         )}
 
         {!inventory.loading && !q && (
-          <div className="rounded-3xl border border-[#e7ddc8] bg-white px-6 py-16 text-center">
-            <Search className="mx-auto h-9 w-9 text-[#a3854e]" />
+          <div className="rounded-3xl border border-[#dde4ee] bg-white px-6 py-16 text-center">
+            <Search className="mx-auto h-9 w-9 text-[#b47c17]" />
             <p className="mt-4 text-lg font-extrabold">ابدأ بوصف العقار اللي بتدور عليه</p>
-            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-[#6d7a72]">كل ما تكتب تفاصيل أكتر عن المنطقة والميزانية ونوع الوحدة، ترتيب النتائج يبقى أدق.</p>
+            <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-[#6b7585]">كل ما تكتب تفاصيل أكتر عن المنطقة والميزانية ونوع الوحدة، ترتيب النتائج يبقى أدق.</p>
           </div>
         )}
       </main>

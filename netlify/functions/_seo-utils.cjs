@@ -5,6 +5,7 @@ const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, cou
 const { imgSrcAttrs, heroSrcAttrs } = require("./_images.cjs");
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent, hasOwnWrittenGuide, isProjectGuideArticle } = require("./_localized-project-content.cjs");
 const { showcaseHtml } = require("./_project-showcase.cjs");
+const { retheme, SKY_CSS } = require("./_site-theme.cjs");
 // Arabic H1/title for the top projects (audit SEO-07); shared with the static and React pages.
 const PROJECT_NAMES_AR = require("../../src/content/project-names-ar.json").projects;
 const { developerContent } = require("./_developer-content.cjs");
@@ -1085,8 +1086,8 @@ function renderPage({
   const ar = lang === "ar";
   const canonical = `${SITE_URL}${canonicalPath || path}`;
   const alternate = alternatePath ? `${SITE_URL}${alternatePath}` : "";
-  return `<!doctype html>
-<html lang="${lang}" dir="${ar ? "rtl" : "ltr"}"><head>${GA4_TAG}
+  return retheme(`<!doctype html>
+<html lang="${lang}" dir="${ar ? "rtl" : "ltr"}" data-sky="on"><head>${GA4_TAG}
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/png" href="/images/logo.png">
 <link rel="preconnect" href="${SUPABASE_URL}" crossorigin>
@@ -1107,12 +1108,12 @@ ${[organizationSchema(), ...schemas]
   .join("")}
 ${String(body).includes('class="dhero"') ? '<link rel="preload" as="image" href="/images/hero-bg.webp" fetchpriority="high">' : ""}<link rel="preload" href="/fonts/alexandria-arabic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:'Alexandria';font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/alexandria-arabic-wght-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0897-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}@font-face{font-family:'Alexandria';font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/alexandria-latin-wght-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:'Alexandria';font-style:normal;font-display:swap;font-weight:100 900;src:url(/fonts/alexandria-latin-ext-wght-normal.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}</style>
-<style>${styles()}</style></head><body>
+<style>${styles()}${SKY_CSS}</style></head><body>
 ${siteHeader(lang, path, ar ? canonical : alternate, ar ? alternate : canonical)}${body}
 <footer><strong>Tycoons Investments</strong><p>${ar ? "بيانات الأسعار والتوفر استرشادية ويتم تأكيدها وقت الطلب. العوائد تقديرية وليست ضمانًا." : "Prices and availability are indicative and reconfirmed on request. Returns are estimates, not guarantees."}</p>
 <a href="/methodology">${ar ? "منهجية البيانات" : "Methodology"}</a>
 <a href="/corrections">${ar ? "سياسة التصحيح" : "Corrections"}</a>
-<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer>${String(body).includes("data-tycoons-search") ? '<script type="module" src="/widget/search-widget.js"></script>' : ""}<script src="/wa-track.js" defer></script><script src="/voice-cta.js" defer></script><script src="/img-fallback.js" defer></script></body></html>`;
+<a href="/contact">${ar ? "تواصل معنا" : "Contact"}</a></footer>${String(body).includes("data-tycoons-search") ? '<script type="module" src="/widget/search-widget.js"></script>' : ""}<script src="/wa-track.js" defer></script><script src="/voice-cta.js" defer></script><script src="/site-sky.js" defer></script><script src="/guide-orb.js" defer></script><script src="/img-fallback.js" defer></script></body></html>`);
 }
 
 function cards(projects, lang) {

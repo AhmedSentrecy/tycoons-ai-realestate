@@ -9,6 +9,7 @@ import { loadHomepageLaunches } from "@/lib/homepageLaunches";
 import DeveloperLogo from "@/components/DeveloperLogo";
 import { openProjectWhatsApp } from "@/lib/whatsapp";
 import { arabicAreaPath } from "@/lib/areaPaths";
+import SeeMore from "@/components/home/SeeMore";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -29,9 +30,9 @@ export default function Projects() {
     scroller.current?.scrollBy({ left: dir * 420, behavior: "smooth" });
 
   return (
-    <section className="relative overflow-hidden bg-[#0d1f18] py-16 lg:py-20">
+    <section className="relative overflow-hidden bg-[#0a1628] py-16 lg:py-20">
       {/* subtle glow */}
-      <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-[#1d4a38]/30 blur-[140px]" />
+      <div className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[700px] -translate-x-1/2 rounded-full bg-[#1c3d6b]/30 blur-[140px]" />
 
       <div className="relative mx-auto max-w-6xl px-5 lg:px-8">
         {/* Heading */}
@@ -64,14 +65,14 @@ export default function Projects() {
             <button
               onClick={() => scrollBy(1)}
               aria-label={tr("السابق")}
-              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#c49b5f] hover:bg-[#c49b5f] hover:text-[#231a0c]"
+              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#d99a2b] hover:bg-[#d99a2b] hover:text-[#231a0c]"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
             <button
               onClick={() => scrollBy(-1)}
               aria-label={tr("التالي")}
-              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#c49b5f] hover:bg-[#c49b5f] hover:text-[#231a0c]"
+              className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-white transition-all hover:border-[#d99a2b] hover:bg-[#d99a2b] hover:text-[#231a0c]"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -92,7 +93,7 @@ export default function Projects() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-60px" }}
             transition={{ duration: 0.75, delay: (i % 3) * 0.1, ease }}
-            className="group w-[275px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white/[0.04] ring-1 ring-white/10 transition-all duration-500 hover:-translate-y-1.5 hover:bg-white/[0.07] hover:ring-[#d9b87c]/35 sm:w-[310px]"
+            className="group w-[275px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white/[0.04] ring-1 ring-white/10 transition-all duration-500 hover:-translate-y-1.5 hover:bg-white/[0.07] hover:ring-[#f0bd4f]/35 sm:w-[310px]"
           >
             {/* Image */}
             <div className="relative aspect-[16/10] overflow-hidden">
@@ -109,7 +110,7 @@ export default function Projects() {
               <span
                 className={tr(`absolute right-4 top-4 rounded-full px-3.5 py-1.5 text-xs font-bold shadow-lg ${
                   p.badge === "جديد"
-                    ? "bg-[#c49b5f] text-[#231a0c]"
+                    ? "bg-[#d99a2b] text-[#231a0c]"
                     : "bg-emerald-500/90 text-white"
                 }`)}
               >
@@ -123,14 +124,14 @@ export default function Projects() {
 
             {/* Body */}
             <div className="p-4">
-              <div className="text-xs font-medium text-[#d9b87c]">
+              <div className="text-xs font-medium text-[#f0bd4f]">
                 {tr(p.type)} · {p.developer}
               </div>
               <h3 className="mt-2 text-[17px] font-bold leading-snug text-white">{p.title}</h3>
 
               <div className="mt-3 flex items-baseline gap-2">
                 <span className="text-xs text-white/50">{tr("يبدأ من")}</span>
-                <span className="text-lg font-extrabold text-[#ecd9ae]">{tr(p.price)}</span>
+                <span className="text-lg font-extrabold text-[#f8dfa6]">{tr(p.price)}</span>
               </div>
 
               <div className="mt-3 grid grid-cols-3 gap-2 border-t border-white/10 pt-3 text-center">
@@ -140,7 +141,7 @@ export default function Projects() {
                   { icon: KeyRound, v: p.delivery, l: tr("الاستلام") },
                 ].map(({ icon: Icon, v, l }) => (
                   <div key={l}>
-                    <Icon className="mx-auto h-4 w-4 text-[#c49b5f]/80" />
+                    <Icon className="mx-auto h-4 w-4 text-[#d99a2b]/80" />
                     <div className="mt-1.5 text-[13px] font-semibold text-white/90">{tr(v)}</div>
                     <div className="text-[10px] text-white/45">{l}</div>
                   </div>
@@ -165,6 +166,9 @@ export default function Projects() {
             </div>
           </motion.article>
         ))}
+      </div>
+      <div className="px-5">
+        <SeeMore href={localeHref("/ar/")} label={tr("المزيد من المشاريع")} tone="dark" />
       </div>
     </section>
   );

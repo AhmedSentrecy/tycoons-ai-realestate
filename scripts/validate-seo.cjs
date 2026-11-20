@@ -162,8 +162,8 @@ assert.match(localizedEn, /PRK Vie project guide/);
 assert.match(localizedEn, /A sourced English description/);
 assert.match(localizedEn, /href="\/en\/areas\/new-cairo"/);
 
-assert.match(project, /<html lang="ar" dir="rtl">/);
-assert.match(english, /<html lang="en" dir="ltr">/);
+assert.match(project, /<html lang="ar" dir="rtl" data-sky="on">/);
+assert.match(english, /<html lang="en" dir="ltr" data-sky="on">/);
 assert.match(project, /<link rel="canonical" href="https:\/\/tycoons-inv\.com\/projects\//);
 assert.match(project, /hreflang="en" href="https:\/\/tycoons-inv\.com\/en\/projects\//);
 assert.match(english, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/projects\//);
@@ -195,7 +195,7 @@ assert.match(guide, /آخر مراجعة: 30 أكتوبر 2026/);
 assert.match(guide, /"@type":"FAQPage"/, "Buyer guides carry their FAQ as FAQPage");
 assert.equal(renderGuide("new-cairo-property-prices"), null, "The merged New Cairo price guide must not render");
 assert.equal(renderGuide("north-coast-chalet-guide"), null, "The merged chalet guide must not render");
-assert.match(englishPaymentGuide, /<html lang="en" dir="ltr">/);
+assert.match(englishPaymentGuide, /<html lang="en" dir="ltr" data-sky="on">/);
 assert.match(englishPaymentGuide, /canonical" href="https:\/\/tycoons-inv\.com\/en\/guides\/payment-plan-comparison\//);
 assert.match(englishPaymentGuide, /hreflang="ar-EG" href="https:\/\/tycoons-inv\.com\/guides\/payment-plan-comparison\//);
 assert.match(englishPaymentGuide, /Cash needed in the first two years/);
@@ -388,10 +388,12 @@ assert.match(index, /rel="canonical" href="https:\/\/tycoons-inv\.com\/"/, "The 
 assert.match(index, /hreflang="en" href="https:\/\/tycoons-inv\.com\/en\/"/, "The voice-search homepage declares its English twin");
 assert.match(netlify, /from = "\/assets\/search-widget\.js"\s+to = "\/widget\/search-widget\.js"\s+status = 301/, "The old search widget address must redirect to the new one for cached pages");
 assert.match(index, /<script src="\/voice-cta\.js" defer><\/script>/, "Every page loads the sitewide voice button");
+assert.match(index, /<script src="\/guide-orb\.js" defer><\/script>/, "Every page loads the page guide orb");
+assert.ok(fs.existsSync(path.join(root, "public/guide-orb.js")), "The page guide orb script must ship with the site");
 assert.match(index, /<script src="\/img-fallback\.js" defer><\/script>/, "Every page loads the photo fallback, so a failed resize never leaves an empty image box");
 assert.ok(fs.existsSync(path.join(root, "public/img-fallback.js")), "The photo fallback script must ship with the site");
 assert.match(index, /https:\/\/tycoons-inv\.com\/images\/hero\.webp/);
-assert.match(index, /<h1>ابحث بصوتك/);
+assert.match(index, /<h1>كل عقارات المطوّرين في مصر/);
 assert.match(fs.readFileSync(path.join(root, "src/widget/searchWidget.tsx"), "utf8"), /host\.style\.minHeight/, "The search box keeps its height while it is upgraded, so the page below does not jump");
 // Project showcase block (photo walk-through, current offer, down-payment calculator).
 {
@@ -570,7 +572,7 @@ async function validateRouteRecovery() {
     assert.match(unitResponse.body, /Standalone Villa/);
     assert.equal(englishDirectoryResponse.statusCode, 200);
     assert.equal(englishDirectoryResponse.headers["content-language"], "en");
-    assert.match(englishDirectoryResponse.body, /<html lang="en" dir="ltr">/);
+    assert.match(englishDirectoryResponse.body, /<html lang="en" dir="ltr" data-sky="on">/);
     assert.match(englishDirectoryResponse.body, /canonical" href="https:\/\/tycoons-inv\.com\/en\/directory\//);
     assert.equal(unknownProjectResponse.statusCode, 404);
     assert.equal(unknownProjectResponse.headers["x-robots-tag"], "noindex, follow");

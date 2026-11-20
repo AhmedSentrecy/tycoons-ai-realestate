@@ -109,12 +109,12 @@ export default function GuidePage() {
   }, [guide, path, language, embeddedInProject, project]);
 
   if (state === "loading") {
-    return <ServerHtmlOr><main className="grid min-h-screen place-items-center bg-[#f7f2ea]"><p className="font-bold text-[#1b2420]">{t('جاري تحميل المقال…', 'Loading article…')}</p></main></ServerHtmlOr>;
+    return <ServerHtmlOr><main className="grid min-h-screen place-items-center bg-[#f4f6fa]"><p className="font-bold text-[#0f1724]">{t('جاري تحميل المقال…', 'Loading article…')}</p></main></ServerHtmlOr>;
   }
   if (state === "missing" || !guide) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f7f2ea] px-5 text-center">
-        <div><p className="text-xl font-bold text-[#1b2420]">{t('المقال ده مش متاح', 'This article is not available')}</p><Link to="/" className="mt-4 inline-block text-[#a3854e] underline">{t('ارجع للرئيسية', 'Back to home')}</Link></div>
+      <main className="grid min-h-screen place-items-center bg-[#f4f6fa] px-5 text-center">
+        <div><p className="text-xl font-bold text-[#0f1724]">{t('المقال ده مش متاح', 'This article is not available')}</p><Link to="/" className="mt-4 inline-block text-[#b47c17] underline">{t('ارجع للرئيسية', 'Back to home')}</Link></div>
       </main>
     );
   }
@@ -132,10 +132,10 @@ export default function GuidePage() {
   ];
 
   return (
-    <main lang={language} dir={ar ? "rtl" : "ltr"} className="min-h-screen bg-[#f7f2ea] pb-24 text-[#1b2420] md:pb-0">
+    <main lang={language} dir={ar ? "rtl" : "ltr"} className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
       <Navbar />
 
-      <section className="bg-[#0d1f18] px-5 pb-12 pt-32 text-white lg:px-8">
+      <section className="bg-[#0a1628] px-5 pb-12 pt-32 text-white lg:px-8">
         <div className="mx-auto max-w-4xl">
           <nav aria-label={t("مسار الصفحة", "Breadcrumb")} className="flex flex-wrap items-center gap-2 text-sm text-white/65">
             {crumbs.map((crumb) => (
@@ -146,7 +146,7 @@ export default function GuidePage() {
             ))}
             <span className="text-white/90">{guide.title}</span>
           </nav>
-          <p className="mt-8 text-sm font-bold text-[#d9b87c]">{t('أسئلة المشترين', 'Buyer questions')}</p>
+          <p className="mt-8 text-sm font-bold text-[#f0bd4f]">{t('أسئلة المشترين', 'Buyer questions')}</p>
           <h1 className="mt-3 text-3xl font-extrabold leading-tight sm:text-4xl">{guide.title}</h1>
           <p className="mt-5 text-lg font-light text-white/75">{guide.excerpt}</p>
         </div>
@@ -157,16 +157,16 @@ export default function GuidePage() {
           <div className="grid gap-5 overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white p-4 shadow-lg sm:grid-cols-[180px_1fr_auto] sm:items-center">
             {image && <img src={image} alt={project.name} className="h-40 w-full rounded-2xl object-cover sm:h-28" loading="eager" />}
             <div>
-              <p className="text-xs font-bold text-[#a3854e]">{t('المقال ده عن', 'About this project')}</p>
-              <a href={projectHref} className="mt-1 block text-2xl font-extrabold hover:text-[#a3854e]">{project.name}</a>
-              <p className="mt-2 flex flex-wrap gap-4 text-sm text-[#5c6a62]">
+              <p className="text-xs font-bold text-[#b47c17]">{t('المقال ده عن', 'About this project')}</p>
+              <a href={projectHref} className="mt-1 block text-2xl font-extrabold hover:text-[#b47c17]">{project.name}</a>
+              <p className="mt-2 flex flex-wrap gap-4 text-sm text-[#556070]">
                 <span className="inline-flex items-center gap-1"><Building2 className="h-4 w-4" />{project.developer}</span>
                 <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" />{area.indexable ? (ar ? area.ar : area.en) : project.location}</span>
               </p>
-              {minPrice > 0 && <p className="mt-2 font-bold">{t("الأسعار تبدأ من", "Prices from")} <span className="text-[#a3854e]">{formatPrice(minPrice)} {t("جنيه", "EGP")}</span></p>}
+              {minPrice > 0 && <p className="mt-2 font-bold">{t("الأسعار تبدأ من", "Prices from")} <span className="text-[#b47c17]">{formatPrice(minPrice)} {t("جنيه", "EGP")}</span></p>}
             </div>
             <div className="flex flex-col gap-2">
-              <a href={projectHref} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0d1f18] px-5 py-3 text-sm font-bold text-white">
+              <a href={projectHref} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0a1628] px-5 py-3 text-sm font-bold text-white">
                 {t("شوف الوحدات المتاحة", "View available units")} {projectUnits.length > 0 && `(${projectUnits.length})`}<ArrowLeft className="h-4 w-4" />
               </a>
               <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1faa59] px-5 py-3 text-sm font-bold text-white">
@@ -180,7 +180,7 @@ export default function GuidePage() {
       <article className="mx-auto max-w-4xl px-5 py-12 lg:px-8">
         {guide.hero_image_url && !project && <img src={guide.hero_image_url} alt={guide.title} className="mb-8 w-full rounded-3xl object-cover" />}
         {takeaways.length > 0 && (
-          <section id="key-takeaways" className="rounded-3xl border border-[#e0d3bb] bg-[#efe7d8] p-6">
+          <section id="key-takeaways" className="rounded-3xl border border-[#e0d3bb] bg-[#e8edf5] p-6">
             <h2 className="text-xl font-extrabold">{t('الخلاصة', 'Key takeaways')}</h2>
             <ul className="mt-4 list-disc space-y-2 ps-6 leading-loose">{takeaways.map((item) => <li key={item}>{item}</li>)}</ul>
           </section>
@@ -197,8 +197,8 @@ export default function GuidePage() {
                 <a key={unit.id} href={unitPath(unit)} className="group overflow-hidden rounded-3xl border border-[#e0d3bb] bg-white transition hover:shadow-lg">
                   {unit.images[0] && <img src={unit.images[0]} alt={`${ar ? arabicField(unit.unit_type) : unit.unit_type} في ${project.name}`} className="h-40 w-full object-cover" loading="lazy" />}
                   <div className="p-5">
-                    <p className="text-lg font-extrabold group-hover:text-[#a3854e]">{ar ? arabicField(unit.unit_type) : unit.unit_type}</p>
-                    <p className="mt-2 flex flex-wrap gap-4 text-sm text-[#5c6a62]">
+                    <p className="text-lg font-extrabold group-hover:text-[#b47c17]">{ar ? arabicField(unit.unit_type) : unit.unit_type}</p>
+                    <p className="mt-2 flex flex-wrap gap-4 text-sm text-[#556070]">
                       {unit.area_sqm ? <span className="inline-flex items-center gap-1"><Maximize2 className="h-4 w-4" />{unit.area_sqm} {t("م²", "m²")}</span> : null}
                       {unit.bedrooms_text && <span className="inline-flex items-center gap-1"><BedDouble className="h-4 w-4" />{ar ? arabicField(unit.bedrooms_text) : unit.bedrooms_text}</span>}
                     </p>
@@ -207,7 +207,7 @@ export default function GuidePage() {
                 </a>
               ))}
             </div>
-            {projectUnits.length > 4 && <a href={projectHref} className="mt-5 inline-flex items-center gap-2 font-bold text-[#a3854e] underline underline-offset-4">{t("شوف كل الوحدات", "View all units")} ({projectUnits.length})<ArrowLeft className="h-4 w-4" /></a>}
+            {projectUnits.length > 4 && <a href={projectHref} className="mt-5 inline-flex items-center gap-2 font-bold text-[#b47c17] underline underline-offset-4">{t("شوف كل الوحدات", "View all units")} ({projectUnits.length})<ArrowLeft className="h-4 w-4" /></a>}
           </section>
         )}
 
@@ -216,9 +216,9 @@ export default function GuidePage() {
             <h2 id="guide-faq" className="text-2xl font-extrabold">{t('أسئلة شائعة', 'Frequently asked questions')}</h2>
             <div className="mt-6 space-y-4">
               {faq.map((item) => (
-                <details key={item.question} className="rounded-2xl border border-[#e7ddc8] bg-white/70 p-5">
+                <details key={item.question} className="rounded-2xl border border-[#dde4ee] bg-white/70 p-5">
                   <summary className="cursor-pointer list-none font-bold">{item.question}</summary>
-                  <p className="mt-3 font-light leading-relaxed text-[#5c6a62]">{item.answer}</p>
+                  <p className="mt-3 font-light leading-relaxed text-[#556070]">{item.answer}</p>
                 </details>
               ))}
             </div>
@@ -230,7 +230,7 @@ export default function GuidePage() {
             <h2 id="guide-related" className="text-2xl font-extrabold">{t("أسئلة تانية عن", "More about")} {project.name}</h2>
             <ul className="mt-5 space-y-3">
               {related.map((item) => (
-                <li key={item.slug}><a href={guidePath(item)} className="block rounded-2xl border border-[#e0d3bb] bg-white p-4 font-bold hover:text-[#a3854e]">{item.title}</a></li>
+                <li key={item.slug}><a href={guidePath(item)} className="block rounded-2xl border border-[#e0d3bb] bg-white p-4 font-bold hover:text-[#b47c17]">{item.title}</a></li>
               ))}
             </ul>
           </section>
@@ -245,7 +245,7 @@ export default function GuidePage() {
           </section>
         )}
 
-        <section className="mt-14 rounded-3xl bg-[#0d1f18] p-8 text-center text-white">
+        <section className="mt-14 rounded-3xl bg-[#0a1628] p-8 text-center text-white">
           <h2 className="text-2xl font-extrabold">{t('عايز تعرف الأسعار والمتاح النهارده؟', 'Looking for current prices and availability?')}</h2>
           <p className="mt-3 font-light text-white/70">{t('الأسعار والمتاح بيتغيروا، وفريق Tycoons بيأكدلك آخر تحديث قبل أي قرار.', 'Prices and availability can change. The Tycoons team confirms the latest unit details before you decide.')}</p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">

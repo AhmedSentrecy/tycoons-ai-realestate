@@ -16,7 +16,7 @@ export default function FloatingContact({ message }: { message: string }) {
           <MessageCircle className="h-5 w-5" aria-hidden="true" />
           كلّمنا واتساب
         </a>
-        <a href={`tel:+${WHATSAPP_NUMBER}`} aria-label="اتصل بنا" className="grid h-12 w-12 place-items-center rounded-full border border-[#0d1f18] text-[#0d1f18]">
+        <a href={`tel:+${WHATSAPP_NUMBER}`} aria-label="اتصل بنا" className="grid h-12 w-12 place-items-center rounded-full border border-[#0a1628] text-[#0a1628]">
           <Phone className="h-5 w-5" aria-hidden="true" />
         </a>
       </div>

@@ -1,6 +1,7 @@
 import { tr, localeHref } from "@/lib/homeLanguage";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import SeeMore from "@/components/home/SeeMore";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -14,7 +15,7 @@ const regions = [
 
 export default function Regions() {
   return (
-    <section className="bg-[#f7f2ea] py-16 lg:py-20">
+    <section className="bg-[#f4f6fa] py-16 lg:py-20">
       <div className="mx-auto max-w-6xl px-5 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 26 }}
@@ -24,15 +25,16 @@ export default function Regions() {
           className="mb-9 max-w-xl"
         >
           <div className="mb-4 flex items-center gap-2.5">
-            <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
-            <span className="text-sm font-medium text-[#a3854e]">{tr("استكشف بالمنطقة")}</span>
+            <span className="h-2 w-2 rounded-full bg-[#d99a2b]" />
+            <span className="text-sm font-medium text-[#b47c17]">{tr("استكشف بالمنطقة")}</span>
           </div>
-          <h2 className="text-3xl font-extrabold text-[#1b2420] sm:text-4xl">{tr("مناطق مميّزة")}</h2>
-          <p className="mt-3 text-sm font-light leading-relaxed text-[#6d7a72]">
+          <h2 className="text-3xl font-extrabold text-[#0f1724] sm:text-4xl">{tr("مناطق مميّزة")}</h2>
+          <p className="mt-3 text-sm font-light leading-relaxed text-[#6b7585]">
             {tr("اختار منطقة والمساعد يبدأ البحث فيها فورًا.")}</p>
         </motion.div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Phones: one swipeable row instead of five stacked cards. */}
+        <div className="scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
           {regions.map((r, i) => (
             <motion.div
               key={tr(r.name)}
@@ -40,12 +42,12 @@ export default function Regions() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.75, delay: i * 0.1, ease }}
-              className={r.wide ? "sm:col-span-2 lg:row-span-2 lg:h-full" : ""}
+              className={`w-[78%] shrink-0 snap-start sm:w-auto ${r.wide ? "sm:col-span-2 lg:row-span-2 lg:h-full" : ""}`}
             >
               <a
                 href={localeHref(`/ar/areas/${r.areaSlug}`)}
                 className={`group relative block overflow-hidden rounded-3xl ${
-                  r.wide ? "min-h-[230px] lg:h-full lg:min-h-[430px]" : "min-h-[205px]"
+                  r.wide ? "min-h-[205px] sm:min-h-[230px] lg:h-full lg:min-h-[430px]" : "min-h-[205px]"
                 }`}
               >
                 <img
@@ -57,7 +59,7 @@ export default function Regions() {
                   decoding="async"
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.08]"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a140f]/85 via-[#0a140f]/15 to-transparent transition-opacity duration-500 group-hover:from-[#0a140f]/90" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#07111f]/85 via-[#07111f]/15 to-transparent transition-opacity duration-500 group-hover:from-[#07111f]/90" />
 
                 <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">
                   <div>
@@ -66,7 +68,7 @@ export default function Regions() {
                     </h3>
                     <p className="mt-1.5 text-sm font-light text-white/70">{r.count}</p>
                   </div>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-all duration-300 group-hover:bg-[#c49b5f] group-hover:text-[#231a0c]">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-all duration-300 group-hover:bg-[#d99a2b] group-hover:text-[#231a0c]">
                     <ArrowLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-0.5" />
                   </span>
                 </div>
@@ -74,6 +76,7 @@ export default function Regions() {
             </motion.div>
           ))}
         </div>
+        <SeeMore href={localeHref("/ar/#areas")} label={tr("المزيد من المناطق")} />
       </div>
     </section>
   );
