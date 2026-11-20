@@ -386,7 +386,7 @@ const SHEIKH_ZAYED = {
       [
         "أنظمة السداد والاستلام",
         [
-          "أغلب مشاريع زايد بمقدم 5% وتقسيط من 8 لـ 10 سنين، زي Jirian من Palm Hills (5% على 8 سنين) وRivers من Tatweer Misr (5% + 5% بعد 3 شهور على 10 سنين) ومشاريع SODIC (من 5% لـ 10% على 10 سنين). ومشاريع Mountain View في زايد بمقدم 3% وتقسيط لحد 12 سنة.",
+          "أغلب مشاريع زايد بمقدم 5% وتقسيط من 8 لـ 10 سنين، زي Jirian (شراكة بين Mountain View وPalm Hills، بمقدم 5% على 8 سنين، وفيه وحدات بمدة أطول) وRivers من Tatweer Misr (5% + 5% بعد 3 شهور على 10 سنين) ومشاريع SODIC (من 5% لـ 10% على 10 سنين). ومشاريع Mountain View التانية في زايد بمقدم 3% وتقسيط لحد 12 سنة.",
           "للي محتاج يسكن قريب: Mountain View 4 فيه وحدات جاهزة، وSODIC 464 Acre وVYE استلامهم المعلن في 2026، ومشاريع Hyde Park في زايد استلامها خلال حوالي سنتين. والمشاريع الجديدة في زايد الجديدة أغلب استلامها بين 2028 و2030.",
           "اسأل عن الجدول الكامل: الدفعة التانية بعد المقدم، ودفعة الاستلام لو موجودة، ووديعة الصيانة، وموعد الاستلام في العقد مش في الإعلان."
         ]
@@ -410,7 +410,7 @@ const SHEIKH_ZAYED = {
       ["أسعار الشقق في الشيخ زايد بتبدأ من كام في 2026؟", "الشقق عندنا بتبدأ من حوالي 5.5 مليون، والشقة المتوسطة حوالي 146 متر بحوالي 17 مليون، يعني متر حوالي 120 ألف جنيه. الأسعار بتتأكد وقت الطلب."],
       ["أسعار الفلل والتاون هاوس في زايد كام؟", "التاون هاوس والتوين هاوس من حوالي 14.5 مليون وفي نص المعروض حوالي 26 مليون، والفلل المستقلة من حوالي 16.5 مليون وفي نص المعروض حوالي 43 مليون."],
       ["إيه الفرق بين الشيخ زايد وزايد الجديدة؟", "الشيخ زايد القديمة مسكونة وخدماتها مكتملة والمعروض فيها أغلبه إعادة بيع أو مراحل أخيرة. زايد الجديدة امتداد المدينة على حوالي 10 آلاف فدان، وفيها أغلب الإطلاقات الجديدة، وأرخص في البداية وتقسيطها أطول."],
-      ["أقل مقدم في كمبوندات الشيخ زايد كام؟", "مشاريع Mountain View في زايد بمقدم 3% وتقسيط لحد 12 سنة، وأغلب المشاريع التانية بمقدم 5% على 8 لـ 10 سنين."],
+      ["أقل مقدم في كمبوندات الشيخ زايد كام؟", "فيه مشاريع Mountain View في زايد بمقدم 3% وتقسيط لحد 12 سنة، ما عدا Mountain View Jirian بمقدم 5% على 8 سنين. وأغلب المشاريع التانية بمقدم 5% على 8 لـ 10 سنين."],
       ["فيه وحدات استلام فوري في الشيخ زايد؟", "أيوه، زي Mountain View 4، وفيه مشاريع استلامها المعلن في 2026 زي SODIC 464 Acre وVYE."],
       ["فيه مونوريل في الشيخ زايد؟", "مونوريل غرب النيل قرب يبدأ التشغيل التجريبي، ومن محطاته المعلنة محطة مدينة الشيخ زايد ووصلة دهشور، وبيربط أكتوبر وزايد بوادي النيل."],
       ["الشيخ زايد بعيدة عن وسط البلد قد إيه؟", "حوالي 28 كيلو عن ميدان التحرير و20 كيلو عن المهندسين، يعني من 25 لـ40 دقيقة للمهندسين بالعربية حسب الزحمة على محور 26 يوليو."],
@@ -461,7 +461,7 @@ const SHEIKH_ZAYED = {
       [
         "Payment plans and delivery",
         [
-          "Most Sheikh Zayed projects ask for 5% down over 8–10 years, such as Jirian (5% over 8 years), Rivers (5% + 5% after 3 months over 10 years) and SODIC projects (5–10% over 10 years). Mountain View's Zayed projects offer 3% over up to 12 years.",
+          "Most Sheikh Zayed projects ask for 5% down over 8–10 years, such as Jirian (a joint city by Mountain View and Palm Hills; 5% over 8 years, with some homes on a longer term), Rivers (5% + 5% after 3 months over 10 years) and SODIC projects (5–10% over 10 years). Mountain View's other Zayed projects offer 3% over up to 12 years.",
           "Mountain View 4 has ready units, SODIC 464 Acre and VYE have announced 2026 delivery, and Hyde Park's Zayed projects deliver in about two years. Most New Zayed launches deliver between 2028 and 2030."
         ]
       ],
@@ -475,7 +475,7 @@ const SHEIKH_ZAYED = {
     faq: [
       ["How much does an apartment cost in Sheikh Zayed in 2026?", "Apartments start at about EGP 5.5 million; the typical apartment is about 146 m² at around EGP 17 million (about EGP 120,000 per m²). Prices are confirmed at inquiry time."],
       ["What is the difference between Sheikh Zayed and New Zayed?", "Old Sheikh Zayed is established with complete services and mostly resale supply. New Zayed is the city's extension of about 10,000 feddans, with most new launches, lower entry prices and longer plans."],
-      ["What is the lowest down payment in Sheikh Zayed?", "Mountain View's Zayed projects offer 3% over up to 12 years; most other projects ask for 5% over 8–10 years."],
+      ["What is the lowest down payment in Sheikh Zayed?", "Some Mountain View projects in Zayed offer 3% over up to 12 years, while Mountain View Jirian is 5% over 8 years; most other projects ask for 5% over 8–10 years."],
       ["Are there ready-to-move units in Sheikh Zayed?", "Yes, for example Mountain View 4, while SODIC 464 Acre and VYE have announced 2026 delivery."],
       ["Is there a monorail in Sheikh Zayed?", "The West Nile monorail is close to trial operation, with announced stations including Sheikh Zayed City and the Dahshur link."],
       ["How far is Sheikh Zayed from Downtown Cairo?", "About 28 km from Tahrir Square and 20 km from Mohandessin, roughly 25–40 minutes to Mohandessin by car depending on traffic."],

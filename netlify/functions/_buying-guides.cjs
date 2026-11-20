@@ -54,7 +54,7 @@ const GUIDES = {
         "الجراج ونادي الكمبوند: في بعض المشاريع بيتدفعوا لوحدهم."
       ]],
       ["إيه الأنسب ليك؟", [
-        "لو معاك فلوس قليلة دلوقتي ودخلك ثابت: نظام مقدم صغير ومدة طويلة (زي 3% على 12 سنة في مشاريع ماونتن فيو، أو 2.5% في Hacienda Blue).",
+        "لو معاك فلوس قليلة دلوقتي ودخلك ثابت: نظام مقدم صغير ومدة طويلة (زي 3% على 12 سنة في بعض مراحل ماونتن فيو، أو 2.5% في Hacienda Blue).",
         "لو معاك سيولة كويسة: المدة الأقصر بخصم، أو الكاش لو الخصم كبير.",
         "لو بتشتري للاستثمار وهتبيع قبل الاستلام: اسأل عن رسوم التنازل، وخلي في بالك إن سعر إعادة البيع قبل الاستلام بيتأثر بالأقساط اللي لسه فاضلة.",
         "ابعتلنا الوحدة وأنظمة السداد المعروضة عليك، ونطلعلك جدول مقارنة بالأرقام الخمسة دي."
@@ -166,7 +166,7 @@ const GUIDES = {
         "في الحالتين العائد مش مضمون، واختيار المشروع والمطور بيفرق أكتر من المنطقة."
       ]],
       ["أنظمة السداد", [
-        "المنطقتين فيهم أنظمة سداد طويلة. في التجمع أغلب المشاريع بمقدم 5% على 8 لـ 10 سنين، وفيه 3% على 10 و12 سنة في مشاريع زي Palm Hills New Cairo وMountain View iCity New Cairo. والعاصمة فيها مقدمات قريبة أو أقل في مشاريع كتير.",
+        "المنطقتين فيهم أنظمة سداد طويلة. في التجمع أغلب المشاريع بمقدم 5% على 8 لـ 10 سنين، وفيه 3% على 10 سنين في Palm Hills New Cairo، وMountain View iCity New Cairo بمقدم 5% على 8 سنين وفيه وحدات بمدة أطول. والعاصمة فيها مقدمات قريبة أو أقل في مشاريع كتير.",
         "الفرق الأكبر في ميعاد الاستلام وفي إن التجمع فيه وحدات جاهزة أكتر، زي Mountain View 1.1 وHyde Park New Cairo."
       ]],
       ["مين تناسبه كل منطقة؟", [
@@ -274,7 +274,7 @@ const ENGLISH_GUIDES = {
         "Test the plan against a hard scenario: income down 20%, a delayed sale, an emergency. Ask about late-payment penalties, early-payment discounts and cancellation terms. Watch for hidden payments: delivery payments (10% in Azad Walk, 5% in Zomra East), maintenance deposits usually 8–10% of the price, annual lump sums on top of quarterly installments, and separate garage or club fees."
       ]],
       ["Which plan suits you?", [
-        "Little cash now and a stable income: a small down payment over a long term, such as 3% over 12 years in Mountain View projects or 2.5% in Hacienda Blue. Good liquidity: a shorter plan with a discount, or cash if the discount is large. Buying to resell before delivery: ask about transfer fees, and remember that resale prices before delivery reflect the installments still due. Send us the plans you were offered and we will lay them out on these five numbers."
+        "Little cash now and a stable income: a small down payment over a long term, such as 3% over 12 years in some Mountain View phases or 2.5% in Hacienda Blue. Good liquidity: a shorter plan with a discount, or cash if the discount is large. Buying to resell before delivery: ask about transfer fees, and remember that resale prices before delivery reflect the installments still due. Send us the plans you were offered and we will lay them out on these five numbers."
       ]]
     ],
     faq: [

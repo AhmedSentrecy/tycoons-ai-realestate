@@ -105,8 +105,8 @@ function arabicDisplay(value) {
     .replace(/\(\s*constructed\s*\)/gi, "(مبني)")
     .replace(/\bdelivery\b\s*/gi, "استلام ")
     .replace(/\brest\s+over\s+(\d+(?:\.\d+)?)\s*(?:years?|y)\s*(?:equal\s+)?(?:installments?)?/gi, (_, n) => `والباقي على ${yearsAr(n)} أقساط متساوية`)
-    .replace(/\bfirst\s+installment\b/gi, "أول قسط")
-    .replace(/\bsecond\s+installment\b/gi, "تاني قسط")
+    .replace(/\b(?:first|1st)\s+installment\b/gi, "أول قسط")
+    .replace(/\b(?:second|2nd)\s+installment\b/gi, "تاني قسط")
     .replace(/\bsecond\b/gi, "تاني")
     .replace(/\bequal\s+installments?\b/gi, "أقساط متساوية")
     .replace(/\bmaintenance\b/gi, "صيانة")
@@ -119,6 +119,12 @@ function arabicDisplay(value) {
     .replace(/(\d+(?:\.\d+)?)\s*(?:years?|yrs?|y)\b/gi, (_, n) => yearsAr(n))
     .replace(/(\d+)\s*[-–]\s*(\d+)\s*months?\b/gi, "من $1 لـ $2 شهر")
     .replace(/(\d+)\s*months?\b/gi, (_, n) => monthsAr(n))
+    // Left in English inside Arabic text before Nov 2026 ("5% down", "after سنة", "of about", "EGP").
+    .replace(/\bafter\b/gi, "بعد")
+    .replace(/(\d+(?:\.\d+)?\s*%)\s*down\b/gi, "مقدم $1")
+    .replace(/\bof\s+about\b/gi, "حوالي")
+    .replace(/\bEGP\b/g, "جنيه")
+    .replace(/(\d+)\s+quarterly\s+installments?\b/gi, "$1 قسط ربع سنوي")
     .replace(/\binstallments?\b/gi, "تقسيط")
     .replace(/\bover\b/gi, "على")
     .replace(/\bwith\b/gi, "مع")
@@ -133,7 +139,9 @@ function arabicDisplay(value) {
     .replace(/\bQ([1-4])\s*(20\d\d)\b/gi, (_, q, y) => `الربع ${["الأول", "التاني", "التالت", "الرابع"][Number(q) - 1]} ${y}`)
     .replace(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?(?:\s*-\s*|\s+)(20\d\d)\b/gi, (_, m, y) => `${MONTHS_AR[m.toLowerCase()]} ${y}`)
     .replace(/\bor\b/gi, "أو")
-    .replace(/\band\b/gi, "و");
+    .replace(/\band\b/gi, "و")
+    .replace(/;\s*/g, "؛ ")
+    .replace(/,\s+/g, "، ");
   return out.replace(/\s{2,}/g, " ").trim();
 }
 

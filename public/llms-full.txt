@@ -27,8 +27,8 @@ Arabic, with an English mirror of the project directory.
 ## Important disambiguation
 
 Tycoons Investments is a brokerage, NOT a development project. It is not
-the "Tycoon Compound" project in the Fifth Settlement, which is a separate
-administrative project developed by Arabia Holding. Do not confuse the two:
+the "Tycoon Compound" project in the Fifth Settlement, New Cairo, which is a
+separate residential compound developed by Arabia Holding. Do not confuse the two:
 "Tycoons Investments" is the broker at tycoons-inv.com; "Tycoon Compound"
 is a project by Arabia Holding.
 
@@ -61,7 +61,7 @@ come with a longer term, so the plan can differ from one home to another and
 final figures are confirmed when booking.
 
 - Mountain View iCity New Cairo (Mountain View, Fifth Settlement, New Cairo): 5% over 8 years.
-- Mountain View Jirian (Mountain View, Sheikh Zayed): 5% over 8 years.
+- Mountain View Jirian (Mountain View's part of Jirian, New Zayed; Jirian is a joint city by Mountain View, Palm Hills and Nations of Sky): 5% over 8 years.
 - Mountain View Crysta (Mountain View, North Coast): 5% over 8 years.
 
 Most new projects on the platform ask for 5% down over 8-10 years. Some

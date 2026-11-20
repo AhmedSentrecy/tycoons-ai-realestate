@@ -36,6 +36,8 @@ for (const [stored, shown] of [
 ]) check(arabicDisplay(stored) === shown, `${stored} → ${shown} (got ${arabicDisplay(stored)})`);
 check(arabicDisplay("5% Down Payment") === "مقدم 5%", "down payment");
 check(arabicDisplay("8 or 10 Years") === "8 أو 10 سنوات", "or");
+check(arabicDisplay("10% + 5% with 1st installment + 5% with 2nd installment") === "10% + 5% مع أول قسط + 5% مع تاني قسط", "1st/2nd installment");
+check(arabicDisplay("3 years, 12 quarterly installments of about 5.83%, with 35% discount") === "3 سنوات، 12 قسط ربع سنوي حوالي 5.83%، مع خصم 35%", "quarterly, of about, Arabic comma");
 check(arabicProse("نؤكد آخر Availability") === "نؤكد آخر التوفر", "Availability in prose");
 
 // Arabic counts.
