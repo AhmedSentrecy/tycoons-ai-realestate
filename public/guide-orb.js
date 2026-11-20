@@ -326,12 +326,20 @@
       lines = (data && Array.isArray(data.lines) ? data.lines : []).filter(function (line) { return line && typeof line.text === "string" && line.text.length > 4; });
       loaded = true;
       lastStopY = window.scrollY || 0;
-      // The first line (the strongest one, usually the offer) comes a few seconds after arrival.
-      if (lines.length) setTimeout(function () { if (mine === request) reveal(); }, 3500);
+      // The orb comes in a moment after the lines arrive, with the page's strongest line.
+      if (lines.length) setTimeout(function () { if (mine === request) reveal(); }, 1200);
     };
     if (!window.fetch) return;
-    fetch(ENDPOINT + encodeURIComponent(path), { credentials: "omit" })
-      .then(function (response) { return response.ok ? response.json() : null; })
+    // Never hang: without an answer in 10 seconds, try once more, then give up quietly.
+    var timeout = function (ms) {
+      try { return AbortSignal.timeout(ms); } catch (error) { return undefined; }
+    };
+    var get = function () {
+      return fetch(ENDPOINT + encodeURIComponent(path), { credentials: "omit", signal: timeout(10000) })
+        .then(function (response) { return response.ok ? response.json() : null; });
+    };
+    get()
+      .then(function (data) { return data && data.lines && data.lines.length ? data : get(); }, get)
       .then(done, function () { done(null); });
   }
 

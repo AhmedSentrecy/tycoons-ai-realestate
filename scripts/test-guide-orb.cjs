@@ -6,7 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { renderProject, renderCollection, groupProjects } = require("../netlify/functions/_seo-utils.cjs");
 const { parsePath, extractFacts, fallbackLines, checkLine, developerFacts, numbersIn } = require("../netlify/functions/_orb-facts.cjs");
-const { getLines, mergeLines, costUsd, cairoStarts, providerOrder } = require("../netlify/functions/orb-lines.cjs");
+const { getLines, runJob, mergeLines, costUsd, cairoStarts, providerOrder } = require("../netlify/functions/orb-lines.cjs");
 
 let checks = 0;
 const ok = (value, message) => { assert.ok(value, message); checks += 1; };
@@ -102,6 +102,7 @@ function fakeFetch({ anthropic, openai, calls }) {
   return async (url, init = {}) => {
     calls.push(String(url));
     const json = (status, body) => ({ ok: status < 400, status, headers: { get: (h) => (h === "content-type" ? "application/json" : null) }, json: async () => body, text: async () => JSON.stringify(body) });
+    if (String(url).endsWith("/.netlify/functions/orb-lines-background")) return { ok: true, status: 202, headers: { get: () => null }, json: async () => ({}), text: async () => "" };
     if (String(url).startsWith("https://tycoons-inv.com/")) return { ok: true, status: 200, headers: { get: () => "text/html; charset=utf-8" }, text: async () => html };
     if (String(url).includes("api.anthropic.com")) {
       const body = JSON.parse(init.body);
@@ -118,39 +119,61 @@ const aiReply = (text) => ({ ok: true, status: 200, headers: { get: () => null }
 const env = { ANTHROPIC_API_KEY: "a", OPENAI_API_KEY: "o", URL: "https://tycoons-inv.com" };
 
 (async () => {
-  // First visitor: Claude writes the lines once, the cost is logged.
+  // First visitor: free lines at once; the AI job is handed to the background function.
   let calls = [];
   const db = fakeDb();
-  let result = await getLines(`/projects/${slug}`, { env, now: NOW, db, fetchImpl: fakeFetch({ calls, anthropic: () => aiReply("تعرف إن أليفا فيها عرض بتقسيط لحد 14 سنة؟"), openai: () => { throw new Error("not needed"); } }) });
-  eq(result.body.source, "ai", "first visit: AI lines");
-  ok(result.body.lines[0].ai && /14 سنة/.test(result.body.lines[0].text), "AI line first");
+  const noAi = () => { throw new Error("visitor must not wait for the AI"); };
+  let result = await getLines(`/projects/${slug}`, { env, now: NOW, db, fetchImpl: fakeFetch({ calls, anthropic: noAi, openai: noAi }) });
+  eq(result.body.source, "free", "first visit: free lines right away");
+  ok(result.body.lines.length > 0 && /14 سنة/.test(result.body.lines[0].text), "first visit already has the offer line");
+  ok(calls.some((u) => u.endsWith("/.netlify/functions/orb-lines-background")), "AI job handed to the background function");
+  ok(!calls.some((u) => /anthropic|openai/.test(u)), "the visitor's request never calls the AI");
+  eq(Object.values(db.rows)[0].status, "pending", "page marked pending");
+
+  // A second visitor meanwhile: free lines, no second job.
+  calls = [];
+  result = await getLines(`/projects/${slug}`, { env, now: NOW, db, fetchImpl: fakeFetch({ calls, anthropic: noAi, openai: noAi }) });
+  eq(result.body.source, "free", "while the job runs: free lines");
+  ok(!calls.some((u) => /orb-lines-background/.test(u)), "no second AI job for the same page");
+
+  // The background job: Claude writes the lines once, the cost is logged.
+  calls = [];
+  let job = await runJob(`/projects/${slug}`, { env, now: NOW, db, fetchImpl: fakeFetch({ calls, anthropic: () => aiReply("تعرف إن أليفا فيها عرض بتقسيط لحد 14 سنة؟"), openai: noAi }) });
+  ok(job.done && job.provider === "anthropic", "background job: Claude wrote the lines");
   eq(db.usage.length, 1, "one AI call logged");
   eq(db.usage[0].provider, "anthropic", "logged provider");
   eq(db.usage[0].cost_usd, costUsd("anthropic", 2100, 700, {}), "logged cost");
-  ok(Object.values(db.saved)[0].status === "ready", "lines saved to the cache");
+  ok(Object.values(db.saved).pop().status === "ready", "lines saved to the cache");
 
-  // Next visitor: from the cache, no AI call.
+  // Next visitor: from the cache, no AI call, no job.
   calls = [];
-  result = await getLines(`/projects/${slug}`, { env, now: NOW, db, fetchImpl: fakeFetch({ calls, anthropic: () => { throw new Error("must not call"); }, openai: () => { throw new Error("must not call"); } }) });
-  eq(result.body.source, "cache", "second visit: from the cache");
-  ok(!calls.some((u) => /anthropic|openai/.test(u)), "no AI call for a cached page");
-  eq(db.usage.length, 1, "still one AI call");
+  result = await getLines(`/projects/${slug}`, { env, now: NOW, db, fetchImpl: fakeFetch({ calls, anthropic: noAi, openai: noAi }) });
+  eq(result.body.source, "cache", "next visit: from the cache");
+  ok(result.body.lines[0].ai && /14 سنة/.test(result.body.lines[0].text), "AI line first");
+  ok(!calls.some((u) => /anthropic|openai|orb-lines-background/.test(u)), "nothing spent for a cached page");
 
-  // Claude fails → OpenAI writes the lines; both calls are logged.
-  calls = [];
+  // A stranger calling the background function cannot make it spend (no pending row).
+  job = await runJob(`/projects/${slug}`, { env, now: NOW, db: fakeDb(), fetchImpl: fakeFetch({ calls: [], anthropic: noAi, openai: noAi }) });
+  eq(job.reason, "not_pending", "background job only runs for a pending page");
+
+  // Claude fails (e.g. no credit) → OpenAI writes the lines; both calls are logged.
   const db2 = fakeDb();
+  await getLines(`/projects/${slug}`, { env, now: NOW, db: db2, fetchImpl: fakeFetch({ calls: [], anthropic: noAi, openai: noAi }) });
+  let openaiBody = null;
   const openaiReply = () => ({ ok: true, status: 200, headers: { get: () => null }, json: async () => ({ output_text: JSON.stringify({ lines: [{ fact_ids: [facts[1].id], topic: "offer", text: "احجز بأول دفعة 2% بس." }] }), usage: { input_tokens: 2000, output_tokens: 500 } }) });
-  result = await getLines(`/projects/${slug}`, { env, now: NOW, db: db2, fetchImpl: fakeFetch({ calls, anthropic: () => ({ ok: false, status: 529, headers: { get: () => null }, json: async () => ({ error: { message: "overloaded" } }) }), openai: openaiReply }) });
-  eq(result.body.source, "ai", "OpenAI fallback wrote the lines");
+  const spy = fakeFetch({ calls: [], anthropic: () => ({ ok: false, status: 400, headers: { get: () => null }, json: async () => ({ error: { message: "Your credit balance is too low" } }) }), openai: openaiReply });
+  job = await runJob(`/projects/${slug}`, { env, now: NOW, db: db2, fetchImpl: async (url, init) => { if (String(url).includes("openai")) openaiBody = JSON.parse(init.body); return spy(url, init); } });
+  ok(job.done && job.provider === "openai", "OpenAI backup wrote the lines");
+  eq(openaiBody.reasoning, { effort: "minimal" }, "OpenAI asked to answer fast");
   eq(db2.usage.map((u) => [u.provider, u.ok]), [["anthropic", false], ["openai", true]], "both attempts logged");
+  ok(/credit balance/.test(db2.usage[0].error), "the reason Claude failed is logged");
   eq(db2.usage[1].cost_usd, costUsd("openai", 2000, 500, {}), "OpenAI cost logged");
 
-  // Over the daily budget: free lines, no AI call.
-  calls = [];
+  // Over the daily budget: no AI call.
   const db3 = fakeDb({ spent: 1.5 });
-  result = await getLines(`/projects/${slug}`, { env, now: NOW, db: db3, fetchImpl: fakeFetch({ calls, anthropic: () => { throw new Error("must not call"); }, openai: () => { throw new Error("must not call"); } }) });
-  eq(result.body.source, "free", "over budget: free lines");
-  ok(result.body.lines.length === facts.length, "all free lines returned");
+  await getLines(`/projects/${slug}`, { env, now: NOW, db: db3, fetchImpl: fakeFetch({ calls: [], anthropic: noAi, openai: noAi }) });
+  job = await runJob(`/projects/${slug}`, { env, now: NOW, db: db3, fetchImpl: fakeFetch({ calls: [], anthropic: noAi, openai: noAi }) });
+  eq(job.reason, "budget", "over budget: the job stops");
   eq(db3.usage.length, 0, "nothing spent over budget");
 
   // No database key: free lines only (no AI without a cost log).
@@ -161,6 +184,8 @@ const env = { ANTHROPIC_API_KEY: "a", OPENAI_API_KEY: "o", URL: "https://tycoons
   // ORB_AI=off.
   result = await getLines(`/projects/${slug}`, { env: { ...env, ORB_AI: "off" }, now: NOW, db: fakeDb(), fetchImpl: fakeFetch({ calls: [], anthropic: () => { throw new Error("off"); }, openai: () => { throw new Error("off"); } }) });
   eq(result.body.source, "free", "AI switched off");
+
+  ok(/signal: timeout\(10000\)/.test(fs.readFileSync(path.join(__dirname, "..", "public/guide-orb.js"), "utf8")), "the orb never waits more than 10 seconds for its lines");
 
   // Unsupported path.
   result = await getLines("/admin", { env, db: fakeDb(), fetchImpl: async () => { throw new Error("must not fetch"); } });

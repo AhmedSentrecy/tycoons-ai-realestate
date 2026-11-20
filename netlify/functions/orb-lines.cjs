@@ -10,6 +10,8 @@
 // 2. Once per page per version of its facts, an AI rewrites the facts as short, catchy lines in
 //    Egyptian Arabic (or English). Claude Haiku first, OpenAI if Claude fails, or the other way
 //    round with ORB_PROVIDER=openai. Lines whose numbers are not in the facts are thrown away.
+//    The visitor never waits for the AI: they get the free lines at once, and the AI runs in
+//    orb-lines-background (up to 15 minutes) and saves its lines for the next visitors.
 // 3. The lines are saved in public.orb_lines, so the next visitors get them from the cache, and
 //    every AI call is written to public.orb_ai_usage with its tokens and cost in dollars.
 //    A daily and a monthly budget stop AI calls; the orb then keeps the free lines.
@@ -106,7 +108,7 @@ async function askAnthropic({ system, user }, env, fetchImpl) {
       messages: [{ role: "user", content: user }],
       output_config: { format: { type: "json_schema", schema: LINE_SCHEMA } },
     }),
-    signal: AbortSignal.timeout(25000),
+    signal: AbortSignal.timeout(90000),
   });
   const data = await response.json().catch(() => ({}));
   const usage = { input: Number(data?.usage?.input_tokens || 0) + Number(data?.usage?.cache_read_input_tokens || 0), output: Number(data?.usage?.output_tokens || 0) };
@@ -124,9 +126,11 @@ async function askOpenAi({ system, user }, env, fetchImpl) {
       model,
       input: [{ role: "system", content: system }, { role: "user", content: user }],
       text: { format: { type: "json_schema", name: "orb_lines", strict: true, schema: LINE_SCHEMA } },
-      max_output_tokens: 4000,
+      // Short rewording, not a puzzle: little thinking keeps it fast and cheap.
+      reasoning: { effort: env.ORB_OPENAI_REASONING || "minimal" },
+      max_output_tokens: 6000,
     }),
-    signal: AbortSignal.timeout(25000),
+    signal: AbortSignal.timeout(90000),
   });
   const data = await response.json().catch(() => ({}));
   const usage = { input: Number(data?.usage?.input_tokens || 0), output: Number(data?.usage?.output_tokens || 0) };
@@ -239,17 +243,57 @@ async function getLines(rawPath, { env = process.env, fetchImpl = fetch, now = D
   } catch { mine = false; }
   if (!mine) return reply(row?.lines?.length ? row.lines : fallback, "free", "short");
 
+  // The AI writes the lines in the background; this visitor gets the free lines now.
+  await startJob(page.path, env, fetchImpl);
+  return reply(fallback, "free", "short");
+}
+
+/** Ask orb-lines-background to write a page's lines. Does not wait for the AI. */
+async function startJob(path, env, fetchImpl) {
+  const site = String(env.URL || env.SITE_URL || "https://tycoons-inv.com").replace(/\/$/, "");
+  try {
+    await fetchImpl(`${site}/.netlify/functions/orb-lines-background`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path }),
+      signal: AbortSignal.timeout(3000),
+    });
+  } catch {
+    // The row stays "pending" and is taken again after PENDING_WAIT_MS.
+  }
+}
+
+/**
+ * The AI job for one page (run by orb-lines-background). Only runs for a page whose current facts
+ * have a "pending" row, so a stranger calling the background function cannot make it spend.
+ */
+async function runJob(rawPath, { env = process.env, fetchImpl = fetch, now = Date.now(), db } = {}) {
+  const page = parsePath(rawPath);
+  if (!page) return { done: false, reason: "unsupported_path" };
+  const store = db === undefined ? createDb(env, fetchImpl) : db;
+  const providers = String(env.ORB_AI || "").toLowerCase() === "off" ? [] : providerOrder(env);
+  if (!store || !providers.length) return { done: false, reason: "no_ai" };
+  const html = await fetchPage(page, env, fetchImpl).catch(() => "");
+  if (!html) return { done: false, reason: "no_page" };
+  const { name, facts } = extractFacts(html, page, { now });
+  if (!facts.length) return { done: false, reason: "no_facts" };
+  const lang = page.en ? "en" : "ar";
+  const hash = crypto.createHash("sha256").update(JSON.stringify([VERSION, lang, facts.map((f) => f.text)])).digest("hex").slice(0, 32);
+  const row = await store.get(page.path, hash).catch(() => null);
+  if (!row || row.status !== "pending" || now - Date.parse(row.updated_at) > PENDING_WAIT_MS + 60_000) return { done: false, reason: "not_pending" };
+  const fallback = fallbackLines(facts, page.en);
+
   // Budget: today's and this month's spend so far.
   try {
     const starts = cairoStarts(now);
     const [today, month] = await Promise.all([store.spentSince(starts.day), store.spentSince(starts.month)]);
     if (today >= rate(env, "ORB_DAILY_BUDGET_USD", 1) || month >= rate(env, "ORB_MONTHLY_BUDGET_USD", 10)) {
       await store.save(page.path, hash, { status: "failed", lines: fallback, provider: null, model: "budget" }).catch(() => {});
-      return reply(fallback, "free", "short");
+      return { done: false, reason: "budget" };
     }
   } catch {
     await store.save(page.path, hash, { status: "failed", lines: fallback }).catch(() => {});
-    return reply(fallback, "free", "short");
+    return { done: false, reason: "budget_unknown" };
   }
 
   const ask = prompt(name, facts, page.en);
@@ -263,7 +307,7 @@ async function getLines(rawPath, { env = process.env, fetchImpl = fetch, now = D
         cost_usd: costUsd(provider, result.usage.input, result.usage.output, env), ok: true, lines_kept: merged.kept, lines_dropped: merged.dropped,
       }).catch(() => {});
       await store.save(page.path, hash, { status: "ready", lines: merged.lines, provider, model: result.model }).catch(() => {});
-      return reply(merged.lines, "ai");
+      return { done: true, provider, kept: merged.kept };
     } catch (error) {
       const usage = error?.usage || { input: 0, output: 0 };
       await store.logUsage({
@@ -273,7 +317,7 @@ async function getLines(rawPath, { env = process.env, fetchImpl = fetch, now = D
     }
   }
   await store.save(page.path, hash, { status: "failed", lines: fallback }).catch(() => {});
-  return reply(fallback, "free", "short");
+  return { done: false, reason: "providers_failed" };
 }
 
 const CACHE = {
@@ -298,6 +342,7 @@ exports.handler = async (event) => {
 };
 
 exports.getLines = getLines;
+exports.runJob = runJob;
 exports.mergeLines = mergeLines;
 exports.costUsd = costUsd;
 exports.cairoStarts = cairoStarts;
