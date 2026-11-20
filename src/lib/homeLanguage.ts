@@ -132,6 +132,10 @@ const copy: Record<string,string> = {
   "كل الأخبار":"All news",
   "مميز":"Featured",
   "اقرأ الخبر":"Read the story",
+  "تحديثات تانية تهمك":"More updates",
+  "دليل قرار الشراء":"Buyer decision guide",
+  "قارن التكلفة الحقيقية قبل ما تختار — مناطق، مطورين، وإيه اللي تسأل عنه":"Compare the real cost before you choose — areas, developers and what to ask",
+  "مش موقع إعلانات — مساعد شراء عقاري. بنجمع الوحدات من المطوّر مباشرة ونوصّلك للوحدة الصح بجملة واحدة.":"More than a listing site — a property buying assistant. We list developer-direct units and get you to the right one in a sentence.",
 };
 export function tr(text: string): string {
   if (!isEnglish()) return text;

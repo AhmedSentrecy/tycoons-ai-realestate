@@ -6,6 +6,20 @@ import { guidePath, loadHomeNews, type HomeNewsItem } from "@/lib/editorialGuide
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
+// One request feeds both news blocks on the homepage.
+const MAIN_COUNT = 5;
+let newsRequest: Promise<HomeNewsItem[]> | null = null;
+function useHomeNews(english: boolean) {
+  const [items, setItems] = useState<HomeNewsItem[] | null>(null);
+  useEffect(() => {
+    let active = true;
+    newsRequest ??= loadHomeNews(english ? "en" : "ar", 11).catch(() => []);
+    newsRequest.then((rows) => { if (active) setItems(rows); });
+    return () => { active = false; };
+  }, [english]);
+  return items;
+}
+
 function formatDate(value: string, english: boolean) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -32,15 +46,8 @@ function SkeletonCard({ big = false }: { big?: boolean }) {
 
 export default function News() {
   const english = isEnglish();
-  const [items, setItems] = useState<HomeNewsItem[] | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    loadHomeNews(english ? "en" : "ar", 7)
-      .then((rows) => { if (active) setItems(rows); })
-      .catch(() => { if (active) setItems([]); });
-    return () => { active = false; };
-  }, [english]);
+  const all = useHomeNews(english);
+  const items = all ? all.slice(0, MAIN_COUNT) : null;
 
   // Nothing published (or the request failed): leave the section out rather than show an empty box.
   if (items && !items.length) return null;
@@ -192,6 +199,52 @@ export default function News() {
               )
             )}
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Second news row (older stories), placed further down the homepage. */
+export function NewsMore() {
+  const english = isEnglish();
+  const all = useHomeNews(english);
+  const more = all ? all.slice(MAIN_COUNT) : [];
+  if (more.length < 2) return null;
+  const Arrow = english ? ArrowRight : ArrowLeft;
+  return (
+    <section aria-labelledby="home-news-more" className="bg-[#f4f6fa] py-14 lg:py-16">
+      <div className="mx-auto max-w-6xl px-5 lg:px-8">
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <h2 id="home-news-more" className="text-2xl font-extrabold text-[#0f1724] sm:text-3xl">{tr("تحديثات تانية تهمك")}</h2>
+          <a href={english ? "/en/guides/" : "/guides/"} className="inline-flex items-center gap-1.5 text-sm font-bold text-[#e0441f] hover:underline">
+            {tr("كل الأخبار")}<Arrow className="h-4 w-4" />
+          </a>
+        </div>
+        <div className="scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 lg:grid-cols-3">
+          {more.slice(0, 6).map((item, index) => (
+            <motion.a
+              key={item.slug}
+              href={guidePath(item)}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.6, delay: index * 0.08, ease }}
+              className="group w-[80%] shrink-0 snap-start overflow-hidden rounded-2xl bg-white ring-1 ring-[#0b1b30]/5 transition-all hover:-translate-y-1 hover:shadow-[0_22px_50px_-26px_rgba(11,27,48,0.5)] sm:w-auto"
+            >
+              <div className="relative aspect-[16/10] overflow-hidden">
+                <img src={item.image} alt={item.title} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                {isFresh(item.published_at) && (
+                  <span className="absolute start-3 top-3 rounded-full bg-[#ff5a36] px-2.5 py-0.5 text-[11px] font-extrabold text-white">{tr("جديد")}</span>
+                )}
+              </div>
+              <div className="p-4">
+                <div className="text-[11px] text-[#8a93a3]">{formatDate(item.published_at, english)}</div>
+                <h3 className="mt-1.5 line-clamp-2 font-bold leading-snug text-[#0f1724] transition-colors group-hover:text-[#e0441f]">{item.title}</h3>
+                {item.excerpt && <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-[#556070]">{item.excerpt}</p>}
+              </div>
+            </motion.a>
+          ))}
         </div>
       </div>
     </section>

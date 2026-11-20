@@ -1,15 +1,14 @@
 import Navbar from "@/sections/Navbar";
 import Hero from "@/sections/Hero";
-import News from "@/sections/News";
+import News, { NewsMore } from "@/sections/News";
 import Projects from "@/sections/Projects";
 import Regions from "@/sections/Regions";
-import AboutSection from "@/sections/AboutSection";
 import Developers from "@/sections/Developers";
-import WhyUs from "@/sections/WhyUs";
 import FaqSection from "@/sections/FaqSection";
 import Footer from "@/sections/Footer";
 import { useEffect } from "react";
-import { isEnglish } from "@/lib/homeLanguage";
+import { isEnglish, tr } from "@/lib/homeLanguage";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import englishHomeSections from "@/content/english-home-sections.json";
 
 export default function Home() {
@@ -22,20 +21,30 @@ export default function Home() {
     <main lang={english ? "en" : "ar"} dir={english ? "ltr" : "rtl"} className="min-h-screen bg-[#f4f6fa]">
       <Navbar />
       <Hero />
-      {/* Order: search → what's new (news, launches) → where & who (areas, developers) → trust (why us, about) → questions. */}
+      {/* Order: search → news → launches → more news → areas → developers → FAQ → buyer guide (collapsed) → about line → footer. */}
       <News />
       <Projects />
+      <NewsMore />
       <Regions />
       <Developers />
-      <WhyUs />
-      <AboutSection />
       <FaqSection />
+      {/* Buyer guide: kept in the page for search engines, folded so it doesn't take the screen. */}
+      <section aria-label={tr("دليل قرار الشراء")} className="bg-[#f4f6fa] px-5 pb-12">
+        <details className="group mx-auto max-w-6xl overflow-hidden rounded-2xl bg-white ring-1 ring-[#0b1b30]/10">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 sm:p-6 [&::-webkit-details-marker]:hidden">
+            <span>
+              <span className="block text-xs font-bold uppercase tracking-wider text-[#b47c17]">{tr("دليل قرار الشراء")}</span>
+              <span className="mt-1 block text-lg font-extrabold text-[#0f1724] sm:text-xl">{tr("قارن التكلفة الحقيقية قبل ما تختار — مناطق، مطورين، وإيه اللي تسأل عنه")}</span>
+            </span>
+            <ChevronDown aria-hidden="true" className="h-6 w-6 shrink-0 text-[#0b1b30] transition-transform duration-300 group-open:rotate-180" />
+          </summary>
+          <div className="border-t border-[#dde4ee]">
       {english && (
         // Same buyer sections as the crawlable /en/ HTML (prices per m², 13 project guides,
         // payment plans, who writes the guides), so they stay after JavaScript loads (audit SEO-01).
         <section
           aria-label="Buyer guide"
-          className="bg-[#f4f6fa] px-5 py-12 text-[#0f1724]"
+          className="px-5 py-8 text-[#0f1724] sm:px-6"
         >
           <div
             className="mx-auto max-w-6xl leading-relaxed text-[#4a5568] [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-[#0f1724] first:[&_h2]:mt-0 md:[&_h2]:text-3xl [&_p]:mt-4 [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:ps-6 [&_li]:mt-2 [&_nav]:mt-4 [&_nav]:leading-loose [&_a]:font-semibold [&_a]:text-[#9a640f] [&_a]:underline [&_a]:underline-offset-4"
@@ -43,7 +52,7 @@ export default function Home() {
           />
         </section>
       )}
-      <section aria-labelledby="property-comparison-guides" className="bg-[#e9eef6] px-5 py-12 text-[#0f1724]">
+      <section aria-labelledby="property-comparison-guides" className="px-5 py-8 text-[#0f1724] sm:px-6">
         <div className="mx-auto max-w-6xl">
           <p className="text-sm font-semibold uppercase tracking-wider text-[#9a640f]">
             {english ? "Buyer decision guide" : "دليل قرار الشراء"}
@@ -105,7 +114,24 @@ export default function Home() {
           </p>
         </div>
       </section>
-      <Footer />
+          </div>
+        </details>
+      </section>
+      {/* Short "who we are" line; keeps the #about anchor the navigation links to. */}
+      <section id="about" className="scroll-mt-20 bg-[#0a1628] px-5 py-8 text-white">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4">
+          <p className="max-w-3xl text-sm leading-relaxed text-white/75">
+            {tr("مش موقع إعلانات — مساعد شراء عقاري. بنجمع الوحدات من المطوّر مباشرة ونوصّلك للوحدة الصح بجملة واحدة.")}
+          </p>
+          {!english && (
+            <a href="/about" className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-2 text-sm font-bold text-[#f0bd4f] hover:bg-white/10">
+              {tr("اعرف أكتر عن تايكونز")}
+              <ArrowLeft className="h-4 w-4" />
+            </a>
+          )}
+        </div>
+      </section>
+      <Footer cta={false} />
     </main>
   );
 }

@@ -6,10 +6,11 @@ import { regions } from "@/data/content";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export default function Footer() {
+export default function Footer({ cta = true }: { cta?: boolean }) {
   return (
     <footer className="bg-[#060f1c]">
-      {/* CTA */}
+      {/* CTA (the homepage leaves it out: it repeats the hero search) */}
+      {cta && (
       <div className="mx-auto max-w-6xl px-5 py-16 lg:px-8 lg:py-20">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -45,9 +46,10 @@ export default function Footer() {
             {tr("يدعم البحث الصوتي بالعربي والإنجليزي")}</div>
         </motion.div>
       </div>
+      )}
 
       {/* Links */}
-      <div className="border-t border-white/10">
+      <div className={cta ? "border-t border-white/10" : ""}>
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 sm:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
             <div className="flex items-center gap-3">

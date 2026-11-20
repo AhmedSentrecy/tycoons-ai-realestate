@@ -32,7 +32,8 @@ export default function Regions() {
             {tr("اختار منطقة والمساعد يبدأ البحث فيها فورًا.")}</p>
         </motion.div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Phones: one swipeable row instead of five stacked cards. */}
+        <div className="scrollbar-hide -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4">
           {regions.map((r, i) => (
             <motion.div
               key={tr(r.name)}
@@ -40,12 +41,12 @@ export default function Regions() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.75, delay: i * 0.1, ease }}
-              className={r.wide ? "sm:col-span-2 lg:row-span-2 lg:h-full" : ""}
+              className={`w-[78%] shrink-0 snap-start sm:w-auto ${r.wide ? "sm:col-span-2 lg:row-span-2 lg:h-full" : ""}`}
             >
               <a
                 href={localeHref(`/ar/areas/${r.areaSlug}`)}
                 className={`group relative block overflow-hidden rounded-3xl ${
-                  r.wide ? "min-h-[230px] lg:h-full lg:min-h-[430px]" : "min-h-[205px]"
+                  r.wide ? "min-h-[205px] sm:min-h-[230px] lg:h-full lg:min-h-[430px]" : "min-h-[205px]"
                 }`}
               >
                 <img
