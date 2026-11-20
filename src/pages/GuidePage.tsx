@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSiteSky } from "@/lib/useSiteSky";
 import { Link, useLocation, useParams } from "react-router";
 import { useScrollTopOnNavigation } from "@/hooks/useScrollTopOnNavigation";
 import { ArrowLeft, BedDouble, Building2, MapPin, Maximize2, MessageCircle } from "lucide-react";
@@ -38,6 +39,7 @@ function setMeta(selector: string, attribute: "content" | "href", value: string)
 }
 
 export default function GuidePage() {
+  useSiteSky();
   const { slug = "" } = useParams();
   const { pathname } = useLocation();
   const language: "ar" | "en" = pathname.startsWith("/en/") ? "en" : "ar";
@@ -132,7 +134,7 @@ export default function GuidePage() {
   ];
 
   return (
-    <main lang={language} dir={ar ? "rtl" : "ltr"} className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
+    <main data-sky-page lang={language} dir={ar ? "rtl" : "ltr"} className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
       <Navbar />
 
       <section className="bg-[#0a1628] px-5 pb-12 pt-32 text-white lg:px-8">

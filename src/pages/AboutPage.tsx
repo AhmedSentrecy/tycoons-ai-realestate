@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useSiteSky } from "@/lib/useSiteSky";
 import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { ArrowRight, Target, Eye, HeartHandshake, Mic, FileCheck, Users } from "lucide-react";
@@ -32,6 +33,7 @@ const milestones = [
 ];
 
 export default function AboutPage() {
+  useSiteSky();
   useEffect(() => {
     document.title = "من نحن — تايكونز للاستثمار العقاري";
     window.scrollTo(0, 0);
@@ -41,7 +43,7 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#f4f6fa]">
+    <main data-sky-page className="min-h-screen bg-[#f4f6fa]">
       <Navbar />
 
       {/* Hero */}

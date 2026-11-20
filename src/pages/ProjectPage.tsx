@@ -1,4 +1,5 @@
 import { sizedImage } from "@/lib/images";
+import { useSiteSky } from "@/lib/useSiteSky";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import {
@@ -277,6 +278,7 @@ function sqmPrice(unit: { starting_price?: unknown; area_sqm?: unknown }) {
 }
 
 export default function ProjectPage() {
+  useSiteSky();
   const { slug = "" } = useParams();
   const { units, loading, error } = useInventory();
   useScrollTopOnNavigation(slug);
@@ -427,7 +429,7 @@ export default function ProjectPage() {
       `Hello Tycoons Investments,\nI am interested in ${projectContent.name} by ${projectContent.developer}.\nPlease confirm the latest availability and payment plan.\n\nSource: project_page\nPage: ${pageUrl}`,
     );
     return (
-      <main dir="rtl" className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
+      <main data-sky-page dir="rtl" className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
         <Navbar />
         <section className="mx-auto max-w-4xl px-5 pb-20 pt-36">
           <Link to="/ar/" className="text-sm font-bold text-[#9a640f] hover:underline">دليل المشاريع</Link>
@@ -585,7 +587,7 @@ export default function ProjectPage() {
   };
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
+    <main data-sky-page dir="rtl" className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
       <Navbar />
 
       <section className="bg-[#0a1628] px-5 pb-12 pt-32 text-white lg:px-8">

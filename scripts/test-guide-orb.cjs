@@ -212,5 +212,12 @@ const env = { ANTHROPIC_API_KEY: "a", OPENAI_API_KEY: "o", URL: "https://tycoons
   new Function(sky);
   ok(!/getContext\(|createElement\("canvas"\)/.test(sky), "server-page sky uses no canvas");
   ok(/data-sky/.test(sky), "sky only where the page asks for it");
+  ok(/MutationObserver/.test(sky) && /tsky-style/.test(sky), "sky follows React page changes and brings its own styles");
+  ok(fs.readFileSync(path.join(root, "index.html"), "utf8").includes('<script src="/site-sky.js" defer></script>'), "React shell loads the sky");
+  for (const page of ["ProjectPage", "UnitPage", "RegionPage", "GuidePage", "AboutPage", "FaqPage", "SearchPage"]) {
+    const src = fs.readFileSync(path.join(root, `src/pages/${page}.tsx`), "utf8");
+    ok(/useSiteSky\(\);/.test(src) && /data-sky-page/.test(src), `${page} shows the sky`);
+  }
+  ok(!/useSiteSky/.test(fs.readFileSync(path.join(root, "src/pages/Home.tsx"), "utf8")), "homepage keeps its own sky");
   console.log(`Guide orb tests passed (${checks} checks).`);
 })().catch((error) => { console.error(error); process.exit(1); });

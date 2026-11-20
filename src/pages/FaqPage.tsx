@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useSiteSky } from "@/lib/useSiteSky";
 import { motion } from "framer-motion";
 import { MessageCircle, ArrowRight } from "lucide-react";
 import { Link } from "react-router";
@@ -15,6 +16,7 @@ import {
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export default function FaqPage() {
+  useSiteSky();
   useEffect(() => {
     document.title = "الأسئلة الشائعة — كل حاجة عن الشراء من المطور مباشرة | تايكونز";
     window.scrollTo(0, 0);
@@ -24,7 +26,7 @@ export default function FaqPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#f4f6fa]">
+    <main data-sky-page className="min-h-screen bg-[#f4f6fa]">
       <Navbar />
 
       <section className="bg-[#0a1628] pb-20 pt-40">
