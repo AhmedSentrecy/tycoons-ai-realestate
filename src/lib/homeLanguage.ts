@@ -124,7 +124,14 @@ const copy: Record<string,string> = {
   "بحث صوتي":"Voice search",
   "اعرض نتائج البحث":"Show search results",
   "اعرض النتائج":"View results",
-  "فيلا":"Villa", "تاون هاوس":"Townhouse", "شاليه":"Chalet", "شقة":"Apartment", "بنتهاوس":"Penthouse", "سنة واحدة":"1 year", "سنتين":"2 years", "استلام فوري":"Ready to move", "٣ سنين":"3 years"
+  "فيلا":"Villa", "تاون هاوس":"Townhouse", "شاليه":"Chalet", "شقة":"Apartment", "بنتهاوس":"Penthouse", "سنة واحدة":"1 year", "سنتين":"2 years", "استلام فوري":"Ready to move", "٣ سنين":"3 years",
+  "عاجل":"Latest",
+  "أخبار وتحديثات السوق":"Market news & updates",
+  "آخر الأخبار العقارية":"Latest property news",
+  "إطلاقات جديدة، أسعار محدثة وأنظمة سداد — مكتوبة ببساطة ومراجعة من فريقنا.":"New launches, updated prices and payment plans — written simply and reviewed by our team.",
+  "كل الأخبار":"All news",
+  "مميز":"Featured",
+  "اقرأ الخبر":"Read the story",
 };
 export function tr(text: string): string {
   if (!isEnglish()) return text;

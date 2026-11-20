@@ -62,8 +62,8 @@ export default function Hero() {
         transition={{ duration: 2.2, ease }}
         className="absolute inset-0 h-full w-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#08130e]/70 via-[#08130e]/35 to-[#08130e]/85" />
-      <div className="absolute inset-0 bg-gradient-to-l from-[#08130e]/45 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#060f1c]/70 via-[#060f1c]/35 to-[#060f1c]/85" />
+      <div className="absolute inset-0 bg-gradient-to-l from-[#060f1c]/45 to-transparent" />
 
       <div className="relative z-10 mx-auto flex min-h-[86svh] max-w-6xl flex-col justify-center px-5 pb-14 pt-24 sm:pb-16 sm:pt-28 lg:px-8">
         <motion.div
@@ -72,8 +72,8 @@ export default function Hero() {
           transition={{ delay: 0.35, duration: 0.9, ease }}
           className="mb-7 flex items-center gap-2.5"
         >
-          <span className="h-2 w-2 animate-pulse-dot rounded-full bg-[#d9b87c]" />
-          <span className="text-sm font-medium tracking-wide text-[#e3cfa0]">
+          <span className="h-2 w-2 animate-pulse-dot rounded-full bg-[#f0bd4f]" />
+          <span className="text-sm font-medium tracking-wide text-[#f6d68d]">
             {tr("بحث عقاري بالذكاء الاصطناعي")}</span>
         </motion.div>
 
@@ -113,7 +113,7 @@ export default function Hero() {
                 onClick={() =>
                   window.dispatchEvent(new CustomEvent("tycoons:quick-search", { detail: chip }))
                 }
-                className="rounded-full border border-white/20 px-3.5 py-1.5 text-xs text-white/85 transition-colors hover:border-[#d9b87c]/60 hover:bg-white/10 hover:text-white"
+                className="rounded-full border border-white/20 px-3.5 py-1.5 text-xs text-white/85 transition-colors hover:border-[#f0bd4f]/60 hover:bg-white/10 hover:text-white"
               >
                 {chip}
               </button>

@@ -109,9 +109,9 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
         {...WEBMCP_FORM_ATTRS}
         className={`flex items-center gap-2 rounded-2xl border border-white/25 bg-white px-3 shadow-[0_18px_55px_-24px_rgba(7,25,17,0.5)] sm:gap-3 sm:px-4 ${
           compact ? "py-2.5" : "py-3.5"
-        } ${listening ? "ring-2 ring-[#c49b5f]/70" : ""}`}
+        } ${listening ? "ring-2 ring-[#d99a2b]/70" : ""}`}
       >
-        <Sparkles aria-hidden="true" className="hidden h-5 w-5 shrink-0 text-[#c49b5f] sm:block" />
+        <Sparkles aria-hidden="true" className="hidden h-5 w-5 shrink-0 text-[#d99a2b] sm:block" />
         <input
           type="text"
           name="query"
@@ -123,11 +123,11 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
           onChange={(event) => setQuery(event.target.value)}
           placeholder={placeholder || tr("مثال: شقة في التجمع تحت 10 مليون ومقدم 5%")}
           {...WEBMCP_QUERY_ATTRS}
-          className="min-w-0 flex-1 bg-transparent text-[14px] text-[#22312b] outline-none placeholder:text-[#8c9891] sm:text-[15px]"
+          className="min-w-0 flex-1 bg-transparent text-[14px] text-[#1e2a3b] outline-none placeholder:text-[#8a93a3] sm:text-[15px]"
         />
 
         {query && (
-          <button type="button" aria-label={tr("مسح البحث")} onClick={() => setQuery("")} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#8c9891] transition-colors hover:bg-[#f1ebdc]">
+          <button type="button" aria-label={tr("مسح البحث")} onClick={() => setQuery("")} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#8a93a3] transition-colors hover:bg-[#ecf0f6]">
             <X aria-hidden="true" className="h-4 w-4" />
           </button>
         )}
@@ -139,12 +139,12 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
           onClick={handleMic}
           className={`relative grid shrink-0 place-items-center rounded-full border transition-all ${compact ? "h-10 w-10" : "h-11 w-11"} ${
             listening || realtimeActive
-              ? "border-[#c49b5f] bg-[#c49b5f]/15 text-[#a3854e]"
-              : "border-[#e5dcc8] text-[#8a7a58] hover:bg-[#f6efe0]"
+              ? "border-[#d99a2b] bg-[#d99a2b]/15 text-[#b47c17]"
+              : "border-[#dce3ed] text-[#8a7550] hover:bg-[#f2f5fa]"
           }`}
         >
           {(listening || realtime.state === "connecting" || realtime.state === "speaking") && (
-            <span className="absolute -inset-1 animate-pulse rounded-full bg-[#c49b5f]/20" />
+            <span className="absolute -inset-1 animate-pulse rounded-full bg-[#d99a2b]/20" />
           )}
           <Mic aria-hidden="true" className={`relative ${compact ? "h-4 w-4" : "h-5 w-5"}`} />
         </button>
@@ -153,7 +153,7 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
           type="submit"
           disabled={inventory.loading || !query.trim()}
           aria-label={tr("اعرض نتائج البحث")}
-          className={`flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#14352a] font-semibold text-[#efe3c6] transition-all hover:bg-[#1d4839] disabled:cursor-not-allowed disabled:opacity-50 ${
+          className={`flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#0b1b30] font-semibold text-[#fbeccb] transition-all hover:bg-[#1c3d6b] disabled:cursor-not-allowed disabled:opacity-50 ${
             compact ? "h-10 px-4 sm:px-5" : "h-11 px-4 sm:h-auto sm:px-6 sm:py-3"
           }`}
         >
@@ -163,7 +163,7 @@ export default function SmartSearchBar({ compact = false, initialQuery = "", onS
       </form>
 
       {(listening || realtime.state === "connecting" || realtime.state === "speaking") && (
-        <p className="mt-2 px-2 text-xs font-semibold text-[#d9b87c]">{voiceStatus}</p>
+        <p className="mt-2 px-2 text-xs font-semibold text-[#f0bd4f]">{voiceStatus}</p>
       )}
       {busyError && !listening && realtime.state !== "connecting" && (
         <p className="mt-2 px-2 text-xs font-semibold text-amber-700">{busyError}</p>

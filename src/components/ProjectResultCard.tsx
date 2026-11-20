@@ -48,8 +48,8 @@ export default function ProjectResultCard({ group, query }: Props) {
   const projectPath = group.projectSlug ? `/projects/${group.projectSlug}` : unit.id ? unitPath(unit) : "";
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-[#e7ddc8] bg-white">
-      <div className="relative h-[125px] bg-gradient-to-br from-[#2a4a3a] to-[#0d1f18]">
+    <article className="overflow-hidden rounded-2xl border border-[#dde4ee] bg-white">
+      <div className="relative h-[125px] bg-gradient-to-br from-[#2a4a3a] to-[#0a1628]">
         <img {...sizedImageProps(image, 400)} alt={group.projectName} loading="lazy" decoding="async" className="h-full w-full object-cover" />
         <span
           className={`absolute right-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10.5px] font-extrabold ${
@@ -58,7 +58,7 @@ export default function ProjectResultCard({ group, query }: Props) {
         >
           {group.exact ? "مطابقة" : "بديل قريب"}
         </span>
-        <span className="absolute bottom-2.5 left-2.5 rounded-full bg-[#0d1f18]/85 px-2.5 py-1 text-[11px] font-bold text-[#ecd9ae]">
+        <span className="absolute bottom-2.5 left-2.5 rounded-full bg-[#0a1628]/85 px-2.5 py-1 text-[11px] font-bold text-[#f8dfa6]">
           {unitsCountLabel(group.unitsCount)}
         </span>
         <DeveloperLogo developer={group.developer} className="absolute bottom-2.5 right-2.5" />
@@ -66,10 +66,10 @@ export default function ProjectResultCard({ group, query }: Props) {
       <div className="p-3.5">
         <div className="text-lg font-black text-[#9b793f]">
           {formatMillionsRange(group.minPrice, group.maxPrice)}
-          <span className="mr-1 text-[11px] font-semibold text-[#6d7a72]"> جنيه{group.maxPrice <= group.minPrice ? " · يبدأ من" : ""}</span>
+          <span className="mr-1 text-[11px] font-semibold text-[#6b7585]"> جنيه{group.maxPrice <= group.minPrice ? " · يبدأ من" : ""}</span>
         </div>
-        <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0d1f18]">{group.projectName}</h3>
-        <p className="text-xs text-[#6d7a72]">
+        <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a1628]">{group.projectName}</h3>
+        <p className="text-xs text-[#6b7585]">
           {group.developer} · {group.location}
         </p>
 
@@ -89,7 +89,7 @@ export default function ProjectResultCard({ group, query }: Props) {
           bestLabel && (
             <div className="mt-2.5 flex items-center justify-between border-t border-dashed border-[#e8dfcd] pt-2 text-xs text-[#536058]">
               <span>أقرب وحدة لطلبك:</span>
-              <b className="text-[#0d1f18]">
+              <b className="text-[#0a1628]">
                 {bestLabel} · {formatMillions(unit.starting_price)}
               </b>
             </div>
@@ -112,7 +112,7 @@ export default function ProjectResultCard({ group, query }: Props) {
           {projectPath && (
             <Link
               to={projectPath}
-              className="flex-1 rounded-full bg-[#14352a] py-2.5 text-center text-[12.5px] font-extrabold text-[#efe3c6] transition-transform hover:scale-[1.02]"
+              className="flex-1 rounded-full bg-[#0b1b30] py-2.5 text-center text-[12.5px] font-extrabold text-[#fbeccb] transition-transform hover:scale-[1.02]"
             >
               صفحة المشروع والوحدات
             </Link>

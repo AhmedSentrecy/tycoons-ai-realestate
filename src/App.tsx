@@ -29,7 +29,7 @@ export default function App() {
       fallback={
         // Keep the server-rendered page on screen while the page code loads (see ServerHtmlOr).
         <ServerHtmlOr>
-          <main className="grid min-h-screen place-items-center bg-[#f7f2ea] text-[#1b2420]">
+          <main className="grid min-h-screen place-items-center bg-[#f4f6fa] text-[#0f1724]">
             <p className="font-bold">جاري تحميل الصفحة…</p>
           </main>
         </ServerHtmlOr>

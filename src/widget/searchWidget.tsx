@@ -24,7 +24,7 @@ function Widget({ placeholder }: { placeholder: string }) {
       {voiceQuery && (
         <a
           href={`/search?q=${encodeURIComponent(voiceQuery)}`}
-          className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#c49b5f] px-5 py-2.5 text-sm font-bold text-white shadow-lg"
+          className="mt-3 inline-flex items-center gap-2 rounded-full bg-[#d99a2b] px-5 py-2.5 text-sm font-bold text-white shadow-lg"
         >
           {tr("اعرض النتائج")}: {voiceQuery}
         </a>

@@ -39,7 +39,7 @@ const links = [
         <a href={isEnglish() ? "/en/" : "/"} className="flex items-center gap-3">
           <span
             className={`grid h-10 w-10 place-items-center rounded-xl transition-colors ${
-              scrolled ? "bg-[#14352a]" : "glass"
+              scrolled ? "bg-[#0b1b30]" : "glass"
             }`}
           >
             <img
@@ -54,14 +54,14 @@ const links = [
           <span className="hidden leading-tight min-[360px]:block">
             <span
               className={`block text-[17px] font-bold tracking-[0.18em] transition-colors ${
-                scrolled ? "text-[#182420]" : "text-white"
+                scrolled ? "text-[#0f1724]" : "text-white"
               }`}
             >
               TYCOONS
             </span>
             <span
               className={`block text-[10px] font-light tracking-[0.42em] transition-colors ${
-                scrolled ? "text-[#8a7a58]" : "text-white/60"
+                scrolled ? "text-[#8a7550]" : "text-white/60"
               }`}
             >
               INVESTMENTS
@@ -76,8 +76,8 @@ const links = [
               <a
                 key={l.to}
                 href={l.to}
-                className={`text-sm font-medium transition-colors hover:text-[#c49b5f] ${
-                  scrolled ? "text-[#3d4a43]" : "text-white/85"
+                className={`text-sm font-medium transition-colors hover:text-[#d99a2b] ${
+                  scrolled ? "text-[#3b4658]" : "text-white/85"
                 }`}
               >
                 {l.label}
@@ -86,8 +86,8 @@ const links = [
               <Link
                 key={l.to}
                 to={l.to}
-                className={`text-sm font-medium transition-colors hover:text-[#c49b5f] ${
-                  scrolled ? "text-[#3d4a43]" : "text-white/85"
+                className={`text-sm font-medium transition-colors hover:text-[#d99a2b] ${
+                  scrolled ? "text-[#3b4658]" : "text-white/85"
                 }`}
               >
                 {l.label}
@@ -101,7 +101,7 @@ const links = [
           <div
             aria-label={tr("اختيار اللغة")}
             className={`flex items-center rounded-full p-1 text-[11px] font-semibold transition-colors ${
-              scrolled ? "bg-[#ece3d0] text-[#5c4f33]" : "glass text-white/90"
+              scrolled ? "bg-[#e3e9f2] text-[#4a3a1a]" : "glass text-white/90"
             }`}
           >
             <a
@@ -141,7 +141,7 @@ const links = [
             aria-controls="mobile-menu"
             onClick={() => setMenuOpen((open) => !open)}
             className={`grid h-10 w-10 place-items-center rounded-xl transition-colors lg:hidden ${
-              scrolled || menuOpen ? "bg-[#ece3d0] text-[#14352a]" : "glass text-white"
+              scrolled || menuOpen ? "bg-[#e3e9f2] text-[#0b1b30]" : "glass text-white"
             }`}
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -159,7 +159,7 @@ const links = [
               key={l.to}
               href={l.to}
               onClick={() => setMenuOpen(false)}
-              className="rounded-xl px-4 py-3 text-[15px] font-semibold text-[#3d4a43] hover:bg-[#f6f1e7] hover:text-[#14352a]"
+              className="rounded-xl px-4 py-3 text-[15px] font-semibold text-[#3b4658] hover:bg-[#f1f4f9] hover:text-[#0b1b30]"
             >
               {l.label}
             </a>

@@ -117,8 +117,8 @@ export default function UnitPage() {
     setMeta('meta[property="og:url"]', "content", pageUrl);
   }, [unit]);
 
-  if (loading) return <ServerHtmlOr><main className="grid min-h-screen place-items-center bg-[#f7f2ea]"><p className="font-bold">جاري تحميل الوحدة…</p></main></ServerHtmlOr>;
-  if (!unit) return <main className="grid min-h-screen place-items-center bg-[#f7f2ea] px-5 text-center"><div><p className="text-xl font-bold">الوحدة غير متاحة</p><Link to="/" className="mt-4 inline-block text-[#a3854e] underline">ارجع للرئيسية</Link></div></main>;
+  if (loading) return <ServerHtmlOr><main className="grid min-h-screen place-items-center bg-[#f4f6fa]"><p className="font-bold">جاري تحميل الوحدة…</p></main></ServerHtmlOr>;
+  if (!unit) return <main className="grid min-h-screen place-items-center bg-[#f4f6fa] px-5 text-center"><div><p className="text-xl font-bold">الوحدة غير متاحة</p><Link to="/" className="mt-4 inline-block text-[#b47c17] underline">ارجع للرئيسية</Link></div></main>;
 
   const pageUrl = `${SITE_URL}${unitPath(unit)}`;
   const unitTypeAr = arabicField(unit.unit_type);
@@ -194,9 +194,9 @@ export default function UnitPage() {
   const move = (step: number) => setImageIndex((current) => (current + step + images.length) % images.length);
 
   return (
-    <main dir="rtl" className="min-h-screen bg-[#f7f2ea] pb-24 text-[#1b2420] md:pb-0">
+    <main dir="rtl" className="min-h-screen bg-[#f4f6fa] pb-24 text-[#0f1724] md:pb-0">
       <Navbar />
-      <section className="bg-[#0d1f18] px-5 pb-12 pt-32 text-white lg:px-8">
+      <section className="bg-[#0a1628] px-5 pb-12 pt-32 text-white lg:px-8">
         <div className="mx-auto max-w-6xl">
           <nav aria-label="مسار التصفح" className="mb-4 flex flex-wrap items-center gap-2 text-sm text-white/65">
             <Link to="/" className="hover:text-white">الرئيسية</Link><span>/</span>
@@ -207,7 +207,7 @@ export default function UnitPage() {
           <Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="inline-flex items-center gap-2 text-sm text-white/65 hover:text-white"><ArrowRight className="h-4 w-4" />{unit.project_name}</Link>
           <div className="mt-8 grid items-end gap-8 lg:grid-cols-[1fr_auto]">
             <div>
-              <div className="flex flex-wrap gap-4 text-sm text-[#d9b87c]"><a href={`/ar/developers/${slugify(unit.developer)}`} className="inline-flex items-center gap-2 hover:text-white"><Building2 className="h-4 w-4" />{unit.developer}</a><a href={`/ar/areas/${area.slug}`} className="inline-flex items-center gap-2 hover:text-white"><MapPin className="h-4 w-4" />{unit.location}</a></div>
+              <div className="flex flex-wrap gap-4 text-sm text-[#f0bd4f]"><a href={`/ar/developers/${slugify(unit.developer)}`} className="inline-flex items-center gap-2 hover:text-white"><Building2 className="h-4 w-4" />{unit.developer}</a><a href={`/ar/areas/${area.slug}`} className="inline-flex items-center gap-2 hover:text-white"><MapPin className="h-4 w-4" />{unit.location}</a></div>
               <h1 className="mt-4 text-3xl font-extrabold leading-tight sm:text-4xl">{unitTypeAr} {unit.area_sqm} م² في {unit.project_name}</h1>
             </div>
             <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1faa59] px-6 py-3.5 font-bold"><MessageCircle className="h-5 w-5" />تأكيد السعر والمتاح</a>
@@ -215,34 +215,34 @@ export default function UnitPage() {
         </div>
       </section>
 
-      {images.length > 0 && <section className="bg-[#0d1f18] px-5 pb-9"><div className="relative mx-auto max-w-6xl overflow-hidden rounded-2xl bg-[#0d1f18]"><img src={sizedImage(images[imageIndex], 1200)} alt={`${unit.project_name} ${unit.unit_type}`} className="aspect-[16/7] max-h-[500px] w-full object-contain" fetchPriority="high" />{images.length > 1 && <><button type="button" aria-label="الصورة السابقة" onClick={() => move(1)} className="absolute right-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white"><ChevronRight /></button><button type="button" aria-label="الصورة التالية" onClick={() => move(-1)} className="absolute left-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white"><ChevronLeft /></button><span className="absolute bottom-4 left-4 rounded-full bg-black/60 px-3 py-1 text-xs text-white">{imageIndex + 1} / {images.length}</span></>}</div></section>}
+      {images.length > 0 && <section className="bg-[#0a1628] px-5 pb-9"><div className="relative mx-auto max-w-6xl overflow-hidden rounded-2xl bg-[#0a1628]"><img src={sizedImage(images[imageIndex], 1200)} alt={`${unit.project_name} ${unit.unit_type}`} className="aspect-[16/7] max-h-[500px] w-full object-contain" fetchPriority="high" />{images.length > 1 && <><button type="button" aria-label="الصورة السابقة" onClick={() => move(1)} className="absolute right-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white"><ChevronRight /></button><button type="button" aria-label="الصورة التالية" onClick={() => move(-1)} className="absolute left-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/50 text-white"><ChevronLeft /></button><span className="absolute bottom-4 left-4 rounded-full bg-black/60 px-3 py-1 text-xs text-white">{imageIndex + 1} / {images.length}</span></>}</div></section>}
 
       <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8"><div className="grid gap-7 lg:grid-cols-[1fr_0.75fr]">
-        <article><h2 className="text-3xl font-extrabold">تفاصيل الوحدة</h2><p className="mt-5 font-light leading-loose text-[#5c6a62]">{intro}</p><div className="mt-8 grid gap-4 sm:grid-cols-2">{[
+        <article><h2 className="text-3xl font-extrabold">تفاصيل الوحدة</h2><p className="mt-5 font-light leading-loose text-[#556070]">{intro}</p><div className="mt-8 grid gap-4 sm:grid-cols-2">{[
           [BedDouble, "الغرف", arabicField(unit.bedrooms_text, "غير محدد")],
           [Maximize2, "المساحة", `${unit.area_sqm} م²`],
           [WalletCards, "خطة السداد", arabicField(unit.installments_text, "حسب آخر تحديث")],
           [Building2, "التشطيب", arabicField(unit.finishing, "حسب نوع الوحدة")],
-        ].map(([Icon, label, value]) => { const DetailIcon = Icon as typeof BedDouble; return <div key={String(label)} className="rounded-2xl border border-[#e7ddc8] bg-white/70 p-5"><DetailIcon className="h-5 w-5 text-[#a3854e]" /><p className="mt-3 text-xs text-[#7b877f]">{String(label)}</p><p className="mt-1 font-bold">{String(value)}</p></div>; })}</div></article>
-        <aside className="rounded-3xl bg-[#0d1f18] p-7 text-white lg:sticky lg:top-28 lg:self-start"><p className="text-sm text-white/55">السعر يبدأ من</p><p className="mt-2 text-3xl font-extrabold text-[#ecd9ae]">{formatPrice(unit.starting_price)} جنيه</p><p className="mt-5 text-sm text-white/70">{unit.down_payment_text}</p>{bookingLabel(unit.starting_price, unit.down_payment_text) ? <p className="mt-1 text-base font-bold text-[#ecd9ae]">{bookingLabel(unit.starting_price, unit.down_payment_text)}</p> : null}<Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#d9b87c]">شوف المشروع بالكامل <ArrowLeft className="h-4 w-4" /></Link></aside>
+        ].map(([Icon, label, value]) => { const DetailIcon = Icon as typeof BedDouble; return <div key={String(label)} className="rounded-2xl border border-[#dde4ee] bg-white/70 p-5"><DetailIcon className="h-5 w-5 text-[#b47c17]" /><p className="mt-3 text-xs text-[#7b877f]">{String(label)}</p><p className="mt-1 font-bold">{String(value)}</p></div>; })}</div></article>
+        <aside className="rounded-3xl bg-[#0a1628] p-7 text-white lg:sticky lg:top-28 lg:self-start"><p className="text-sm text-white/55">السعر يبدأ من</p><p className="mt-2 text-3xl font-extrabold text-[#f8dfa6]">{formatPrice(unit.starting_price)} جنيه</p><p className="mt-5 text-sm text-white/70">{unit.down_payment_text}</p>{bookingLabel(unit.starting_price, unit.down_payment_text) ? <p className="mt-1 text-base font-bold text-[#f8dfa6]">{bookingLabel(unit.starting_price, unit.down_payment_text)}</p> : null}<Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#f0bd4f]">شوف المشروع بالكامل <ArrowLeft className="h-4 w-4" /></Link></aside>
       </div></section>
 
       <section className="mx-auto max-w-6xl px-5 pb-12 lg:px-8">
         <h2 className="text-2xl font-extrabold">عن المنطقة — {area.ar}</h2>
-        <p className="mt-4 font-light leading-loose text-[#5c6a62]">{facts.context}</p>
+        <p className="mt-4 font-light leading-loose text-[#556070]">{facts.context}</p>
         <p className="mt-2 text-sm text-[#7b877f]">{facts.buyerNote}</p>
       </section>
 
       {alternates.length > 0 && (
         <section className="mx-auto max-w-6xl px-5 pb-12 lg:px-8">
           <h2 className="text-2xl font-extrabold">بدائل قريبة داخل {unit.project_name}</h2>
-          <div className="mt-5 overflow-auto rounded-2xl border border-[#e7ddc8]">
+          <div className="mt-5 overflow-auto rounded-2xl border border-[#dde4ee]">
             <table className="w-full min-w-[520px] border-collapse text-sm">
-              <thead className="bg-[#efe7d8] text-[#5c6a62]"><tr><th className="p-3 text-start">النوع</th><th className="p-3 text-start">الغرف / المساحة</th><th className="p-3 text-start">السعر</th></tr></thead>
+              <thead className="bg-[#e8edf5] text-[#556070]"><tr><th className="p-3 text-start">النوع</th><th className="p-3 text-start">الغرف / المساحة</th><th className="p-3 text-start">السعر</th></tr></thead>
               <tbody>
                 {alternates.map((row) => (
-                  <tr key={row.id} className="border-t border-[#e7ddc8]">
-                    <td className="p-3"><Link to={unitPath({ ...row, project_slug: unit.project_slug, project_name: unit.project_name })} className="font-bold text-[#8a6630] hover:underline">{arabicField(row.unit_type, row.unit_type)}</Link></td>
+                  <tr key={row.id} className="border-t border-[#dde4ee]">
+                    <td className="p-3"><Link to={unitPath({ ...row, project_slug: unit.project_slug, project_name: unit.project_name })} className="font-bold text-[#9a640f] hover:underline">{arabicField(row.unit_type, row.unit_type)}</Link></td>
                     <td className="p-3">{arabicField(row.bedrooms_text, "غير محدد")}{row.area_sqm ? ` · ${row.area_sqm} م²` : ""}</td>
                     <td className="p-3"><Link to={unitPath({ ...row, project_slug: unit.project_slug, project_name: unit.project_name })} className="hover:underline">{formatPrice(row.starting_price)} جنيه</Link></td>
                   </tr>
@@ -250,7 +250,7 @@ export default function UnitPage() {
               </tbody>
             </table>
           </div>
-          <Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="mt-4 inline-block text-sm font-bold text-[#a3854e] underline">شوف كل وحدات {unit.project_name}</Link>
+          <Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="mt-4 inline-block text-sm font-bold text-[#b47c17] underline">شوف كل وحدات {unit.project_name}</Link>
         </section>
       )}
 
@@ -258,7 +258,7 @@ export default function UnitPage() {
         <h2 className="text-2xl font-extrabold">أسئلة شائعة</h2>
         <div className="mt-5 space-y-5">
           {faq.map(([q, a]) => (
-            <div key={q}><h3 className="font-bold">{q}</h3><p className="mt-1 font-light leading-relaxed text-[#5c6a62]">{a}</p></div>
+            <div key={q}><h3 className="font-bold">{q}</h3><p className="mt-1 font-light leading-relaxed text-[#556070]">{a}</p></div>
           ))}
         </div>
       </section>

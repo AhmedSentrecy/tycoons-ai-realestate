@@ -17,7 +17,7 @@ export default function AboutSection() {
   const { stats } = useInventory();
   const unitsLabel = stats.units > 0 ? `+${stats.units.toLocaleString("en-US")}` : "+1,300";
   return (
-    <section id="about" className="scroll-mt-20 overflow-hidden bg-[#f7f2ea] py-16 lg:py-20">
+    <section id="about" className="scroll-mt-20 overflow-hidden bg-[#f4f6fa] py-16 lg:py-20">
       <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 lg:grid-cols-2 lg:px-8">
         {/* Text */}
         <motion.div
@@ -27,13 +27,13 @@ export default function AboutSection() {
           transition={{ duration: 0.8, ease }}
         >
           <div className="mb-4 flex items-center gap-2.5">
-            <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
-            <span className="text-sm font-medium text-[#a3854e]">{tr("مين إحنا؟")}</span>
+            <span className="h-2 w-2 rounded-full bg-[#d99a2b]" />
+            <span className="text-sm font-medium text-[#b47c17]">{tr("مين إحنا؟")}</span>
           </div>
-          <h2 className="text-3xl font-extrabold leading-snug text-[#1b2420] sm:text-4xl sm:leading-snug">
-            {tr("مش موقع إعلانات.")}<span className="block text-[#a3854e]">{tr("مساعد شراء عقاري.")}</span>
+          <h2 className="text-3xl font-extrabold leading-snug text-[#0f1724] sm:text-4xl sm:leading-snug">
+            {tr("مش موقع إعلانات.")}<span className="block text-[#b47c17]">{tr("مساعد شراء عقاري.")}</span>
           </h2>
-          <p className="mt-4 max-w-lg text-sm font-light leading-relaxed text-[#5c6a62]">
+          <p className="mt-4 max-w-lg text-sm font-light leading-relaxed text-[#556070]">
             {tr("تايكونز اتعملت عشان تحل المشكلة اللي كلنا عدينا بيها: آلاف الإعلانات المكررة، سماسرة بأسعار وهمية، وساعات ضايعة في المكالمات. إحنا بنجمع الوحدات من المطوّر مباشرة، ونخليك توصف اللي عايزه بجملة واحدة — والمساعد يوصّلك للوحدة الصح.")}</p>
 
           <div className="mt-6 space-y-3">
@@ -46,17 +46,17 @@ export default function AboutSection() {
                 transition={{ duration: 0.6, delay: 0.2 + i * 0.12, ease }}
                 className="flex items-center gap-4"
               >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#14352a]/10 text-[#14352a] ring-1 ring-[#14352a]/15">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#0b1b30]/10 text-[#0b1b30] ring-1 ring-[#0b1b30]/15">
                   <p.icon className="h-5 w-5" />
                 </span>
-                <span className="font-medium text-[#2a3731]">{p.text}</span>
+                <span className="font-medium text-[#283447]">{p.text}</span>
               </motion.div>
             ))}
           </div>
 
           <Link
             to="/about"
-            className="group mt-7 inline-flex items-center gap-2 rounded-full bg-[#14352a] px-6 py-3 text-sm font-bold text-[#efe3c6] transition-transform hover:scale-[1.04]"
+            className="group mt-7 inline-flex items-center gap-2 rounded-full bg-[#0b1b30] px-6 py-3 text-sm font-bold text-[#fbeccb] transition-transform hover:scale-[1.04]"
           >
             {tr("اعرف أكتر عن تايكونز")}<ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
           </Link>
@@ -82,12 +82,12 @@ export default function AboutSection() {
             />
           </div>
           <div className="glass-light absolute -bottom-6 right-6 rounded-2xl px-7 py-5 shadow-xl sm:right-10">
-            <div className="text-3xl font-extrabold text-[#14352a]">{tr("٢٠٢٤")}</div>
-            <div className="mt-1 text-sm font-light text-[#6d7a72]">{tr("سنة التأسيس")}</div>
+            <div className="text-3xl font-extrabold text-[#0b1b30]">{tr("٢٠٢٤")}</div>
+            <div className="mt-1 text-sm font-light text-[#6b7585]">{tr("سنة التأسيس")}</div>
           </div>
           <div className="glass-light absolute -top-6 left-6 rounded-2xl px-7 py-5 shadow-xl sm:left-10">
-            <div className="text-3xl font-extrabold text-[#14352a]">{unitsLabel}</div>
-            <div className="mt-1 text-sm font-light text-[#6d7a72]">{tr("وحدة متاحة بآخر مراجعة")}</div>
+            <div className="text-3xl font-extrabold text-[#0b1b30]">{unitsLabel}</div>
+            <div className="mt-1 text-sm font-light text-[#6b7585]">{tr("وحدة متاحة بآخر مراجعة")}</div>
           </div>
         </motion.div>
       </div>

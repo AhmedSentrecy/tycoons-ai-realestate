@@ -9,5 +9,5 @@ export default function PriceDateNote({ markdown, reviewedAt, ar = true, unitsHr
 }) {
   const html = priceDateNoteHtml({ markdown, reviewedAt, ar, unitsHref });
   if (!html) return null;
-  return <div className="mt-6 rounded-2xl border border-[#e7ddc8] bg-[#fffaf1] p-4 text-[#5c6a62] [&_a]:font-bold [&_a]:text-[#a3854e] [&_a]:underline" dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div className="mt-6 rounded-2xl border border-[#dde4ee] bg-[#fffaf1] p-4 text-[#556070] [&_a]:font-bold [&_a]:text-[#b47c17] [&_a]:underline" dangerouslySetInnerHTML={{ __html: html }} />;
 }

@@ -29,7 +29,7 @@ export default function Developers() {
   const row = [...developers, ...developers];
 
   return (
-    <section id="developers" className="overflow-hidden border-y border-[#e3d9c4] bg-[#efe7d8] py-11">
+    <section id="developers" className="overflow-hidden border-y border-[#d9e0eb] bg-[#e8edf5] py-11">
       <motion.div
         initial={{ opacity: 0, y: 22 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -38,24 +38,24 @@ export default function Developers() {
         className="mb-7 text-center"
       >
         <div className="mb-3 flex items-center justify-center gap-2.5">
-          <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
-          <span className="text-sm font-medium text-[#a3854e]">{tr("شركاء موثوقون")}</span>
+          <span className="h-2 w-2 rounded-full bg-[#d99a2b]" />
+          <span className="text-sm font-medium text-[#b47c17]">{tr("شركاء موثوقون")}</span>
         </div>
-        <h2 className="text-2xl font-extrabold text-[#1b2420] sm:text-3xl">{tr("مطوّرون موثوقون")}</h2>
-        <p className="mx-auto mt-3 max-w-md font-light text-[#6d7a72]">
+        <h2 className="text-2xl font-extrabold text-[#0f1724] sm:text-3xl">{tr("مطوّرون موثوقون")}</h2>
+        <p className="mx-auto mt-3 max-w-md font-light text-[#6b7585]">
           {tr("كل الوحدات مباشرة من المطوّر — بيانات وأسعار موثّقة، من غير وسطاء وهميين.")}</p>
       </motion.div>
 
       <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-32 bg-gradient-to-l from-[#efe7d8] to-transparent" />
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-32 bg-gradient-to-r from-[#efe7d8] to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-32 bg-gradient-to-l from-[#e8edf5] to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-32 bg-gradient-to-r from-[#e8edf5] to-transparent" />
         <div className="flex w-max animate-marquee gap-14 pl-14">
           {row.map((d, i) => (
             <div key={i} className="flex items-center gap-14">
-              <a href={localeHref(`/ar/developers/${slugify(d)}`)} className="whitespace-nowrap text-xl font-bold tracking-wide text-[#3a4a41]/55 transition-colors hover:text-[#14352a]">
+              <a href={localeHref(`/ar/developers/${slugify(d)}`)} className="whitespace-nowrap text-xl font-bold tracking-wide text-[#384558]/55 transition-colors hover:text-[#0b1b30]">
                 {d}
               </a>
-              <span className="h-2 w-2 rotate-45 bg-[#c49b5f]/50" />
+              <span className="h-2 w-2 rotate-45 bg-[#d99a2b]/50" />
             </div>
           ))}
         </div>
@@ -64,7 +64,7 @@ export default function Developers() {
       <div className="mt-8 flex justify-center px-5">
         <a
           href={localeHref("/ar/#developers")}
-          className="inline-flex items-center gap-2 rounded-full border border-[#b9995f]/45 bg-white/65 px-5 py-2.5 text-sm font-bold text-[#493d27] transition hover:border-[#a3854e] hover:bg-white"
+          className="inline-flex items-center gap-2 rounded-full border border-[#c58a22]/45 bg-white/65 px-5 py-2.5 text-sm font-bold text-[#3f3115] transition hover:border-[#b47c17] hover:bg-white"
         >
           {tr("استكشف كل المطورين ومشاريعهم")}<ArrowLeft className="h-4 w-4" />
         </a>

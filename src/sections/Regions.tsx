@@ -14,7 +14,7 @@ const regions = [
 
 export default function Regions() {
   return (
-    <section className="bg-[#f7f2ea] py-16 lg:py-20">
+    <section className="bg-[#f4f6fa] py-16 lg:py-20">
       <div className="mx-auto max-w-6xl px-5 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 26 }}
@@ -24,11 +24,11 @@ export default function Regions() {
           className="mb-9 max-w-xl"
         >
           <div className="mb-4 flex items-center gap-2.5">
-            <span className="h-2 w-2 rounded-full bg-[#c49b5f]" />
-            <span className="text-sm font-medium text-[#a3854e]">{tr("استكشف بالمنطقة")}</span>
+            <span className="h-2 w-2 rounded-full bg-[#d99a2b]" />
+            <span className="text-sm font-medium text-[#b47c17]">{tr("استكشف بالمنطقة")}</span>
           </div>
-          <h2 className="text-3xl font-extrabold text-[#1b2420] sm:text-4xl">{tr("مناطق مميّزة")}</h2>
-          <p className="mt-3 text-sm font-light leading-relaxed text-[#6d7a72]">
+          <h2 className="text-3xl font-extrabold text-[#0f1724] sm:text-4xl">{tr("مناطق مميّزة")}</h2>
+          <p className="mt-3 text-sm font-light leading-relaxed text-[#6b7585]">
             {tr("اختار منطقة والمساعد يبدأ البحث فيها فورًا.")}</p>
         </motion.div>
 
@@ -57,7 +57,7 @@ export default function Regions() {
                   decoding="async"
                   className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.08]"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a140f]/85 via-[#0a140f]/15 to-transparent transition-opacity duration-500 group-hover:from-[#0a140f]/90" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#07111f]/85 via-[#07111f]/15 to-transparent transition-opacity duration-500 group-hover:from-[#07111f]/90" />
 
                 <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">
                   <div>
@@ -66,7 +66,7 @@ export default function Regions() {
                     </h3>
                     <p className="mt-1.5 text-sm font-light text-white/70">{r.count}</p>
                   </div>
-                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-all duration-300 group-hover:bg-[#c49b5f] group-hover:text-[#231a0c]">
+                  <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-all duration-300 group-hover:bg-[#d99a2b] group-hover:text-[#231a0c]">
                     <ArrowLeft className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-0.5" />
                   </span>
                 </div>

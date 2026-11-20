@@ -1,5 +1,6 @@
 import Navbar from "@/sections/Navbar";
 import Hero from "@/sections/Hero";
+import News from "@/sections/News";
 import Projects from "@/sections/Projects";
 import Regions from "@/sections/Regions";
 import AboutSection from "@/sections/AboutSection";
@@ -18,37 +19,39 @@ export default function Home() {
     document.documentElement.dir = english ? "ltr" : "rtl";
   }, [english]);
   return (
-    <main lang={english ? "en" : "ar"} dir={english ? "ltr" : "rtl"} className="min-h-screen bg-[#f7f2ea]">
+    <main lang={english ? "en" : "ar"} dir={english ? "ltr" : "rtl"} className="min-h-screen bg-[#f4f6fa]">
       <Navbar />
       <Hero />
+      {/* Order: search → what's new (news, launches) → where & who (areas, developers) → trust (why us, about) → questions. */}
+      <News />
       <Projects />
       <Regions />
-      <AboutSection />
       <Developers />
       <WhyUs />
+      <AboutSection />
       <FaqSection />
       {english && (
         // Same buyer sections as the crawlable /en/ HTML (prices per m², 13 project guides,
         // payment plans, who writes the guides), so they stay after JavaScript loads (audit SEO-01).
         <section
           aria-label="Buyer guide"
-          className="bg-[#f7f2ea] px-5 py-12 text-[#1b2420]"
+          className="bg-[#f4f6fa] px-5 py-12 text-[#0f1724]"
         >
           <div
-            className="mx-auto max-w-6xl leading-relaxed text-[#536056] [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-[#1b2420] first:[&_h2]:mt-0 md:[&_h2]:text-3xl [&_p]:mt-4 [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:ps-6 [&_li]:mt-2 [&_nav]:mt-4 [&_nav]:leading-loose [&_a]:font-semibold [&_a]:text-[#8a6630] [&_a]:underline [&_a]:underline-offset-4"
+            className="mx-auto max-w-6xl leading-relaxed text-[#4a5568] [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:text-[#0f1724] first:[&_h2]:mt-0 md:[&_h2]:text-3xl [&_p]:mt-4 [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:ps-6 [&_li]:mt-2 [&_nav]:mt-4 [&_nav]:leading-loose [&_a]:font-semibold [&_a]:text-[#9a640f] [&_a]:underline [&_a]:underline-offset-4"
             dangerouslySetInnerHTML={{ __html: englishHomeSections.html }}
           />
         </section>
       )}
-      <section aria-labelledby="property-comparison-guides" className="bg-[#f0e8d9] px-5 py-12 text-[#1b2420]">
+      <section aria-labelledby="property-comparison-guides" className="bg-[#e9eef6] px-5 py-12 text-[#0f1724]">
         <div className="mx-auto max-w-6xl">
-          <p className="text-sm font-semibold uppercase tracking-wider text-[#8a6630]">
+          <p className="text-sm font-semibold uppercase tracking-wider text-[#9a640f]">
             {english ? "Buyer decision guide" : "دليل قرار الشراء"}
           </p>
           <h2 id="property-comparison-guides" className="mt-3 text-2xl font-bold md:text-3xl">
             {english ? "Compare property projects, not just advertised prices" : "قارن التكلفة الحقيقية مش سعر البداية بس"}
           </h2>
-          <p className="mt-4 max-w-4xl leading-relaxed text-[#536056]">
+          <p className="mt-4 max-w-4xl leading-relaxed text-[#4a5568]">
             {english
               ? "Find a home in Egypt by location, developer, property type and size. Compare the total price, down payment, instalment schedule, delivery timing and finishing condition before choosing a project. A lower initial payment does not always mean a lower total purchase cost. Check maintenance fees and contract terms as well."
               : "لما تقارن بين وحدتين، بص على السعر الإجمالي والمقدم وعدد سنين التقسيط ومساحة الوحدة وسعر المتر ونوع التشطيب وموعد الاستلام مع بعض. المقدم الأقل مش معناه إن الوحدة أرخص في الآخر، واسأل دايمًا عن وديعة الصيانة والجراج والنادي وأي مصاريف مش داخلة في السعر المعلن."}
@@ -77,7 +80,7 @@ export default function Home() {
           <div className="mt-8 grid gap-6 md:grid-cols-2">
             <div>
               <h3 className="font-bold">{english ? "Buying for your own home?" : "بتشتري عشان تسكن؟"}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#536056]">
+              <p className="mt-2 text-sm leading-relaxed text-[#4a5568]">
                 {english
                   ? "Compare available and near-delivery homes, construction and finishing status, nearby services and the developer's delivery record. Choose a shortlist based on the way you plan to use the property."
                   : "ركز على الوحدات الجاهزة أو القريبة من الاستلام، وحالة التشطيب، والخدمات حوالين المشروع، وسجل المطور في التسليم في مواعيده."}
@@ -85,14 +88,14 @@ export default function Home() {
             </div>
             <div>
               <h3 className="font-bold">{english ? "Evaluating an investment?" : "بتشتري للاستثمار؟"}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-[#536056]">
+              <p className="mt-2 text-sm leading-relaxed text-[#4a5568]">
                 {english
                   ? "Compare total ownership costs and location demand, not promised returns. Rental yield and resale value are scenarios, not guarantees; a listing price is not evidence of a completed market transaction."
                   : "قارن إجمالي تكلفة الامتلاك والطلب في المنطقة، مش العائد الموعود. العائد الإيجاري وسعر إعادة البيع سيناريوهات تقديرية مش ضمان، وسعر الإعلان مش دليل على سعر بيع فعلي."}
               </p>
             </div>
           </div>
-          <p className="mt-7 text-sm leading-relaxed text-[#536056]">
+          <p className="mt-7 text-sm leading-relaxed text-[#4a5568]">
             {english ? "Prices and availability can change. Confirm the exact unit and payment schedule before reserving. Review our " : "الأسعار والتوفر بيتغيروا، فأكد الوحدة ونظام السداد قبل الحجز. اقرا "}
             <a className="underline underline-offset-4" href={english ? "/en/guides/" : "/guides/"}>{english ? "buying guides" : "أدلة شراء العقار"}</a>
             {english ? ", " : "، "}
