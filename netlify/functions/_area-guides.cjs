@@ -20,7 +20,7 @@ const NEW_CAIRO = {
         [
           "القاهرة الجديدة مدينة في شرق القاهرة اتعملت بقرار جمهوري رقم 191 لسنة 2000، اللي جمع التجمع الأول والتجمع التالت والتجمع الخامس في مدينة واحدة تابعة لهيئة المجتمعات العمرانية الجديدة. مساحتها النهاردة حوالي 343 كيلومتر مربع، وده بيخليها من أكبر المدن الجديدة حوالين القاهرة.",
           "لما الناس بتقول \"التجمع\" غالبًا بتقصد التجمع الخامس، وهو الجزء الأكبر والأغلى في المدينة، وفيه أغلب الكمبوندات الجديدة والجامعات والمولات. وعلشان كده الصفحة دي بتتكلم عن القاهرة الجديدة والتجمع الخامس مع بعض، لأن المشتري بيدور عليهم بالاسمين.",
-          "في Tycoons عندنا وقت كتابة الصفحة (أكتوبر 2026) حوالي 100 مشروع متاح في القاهرة الجديدة لأكتر من 50 مطور، وأكتر من 400 وحدة بأسعارها. الصفحة دي بتشرح المناطق جوه المدينة، والطرق والمونوريل، والخدمات، ومستويات الأسعار حسب نوع الوحدة، وأنظمة السداد، والاستلام، وإزاي تختار. وتحت الصفحة كل المشاريع المتاحة بأسعارها."
+          "في Tycoons عندنا وقت كتابة الصفحة (نوفمبر 2026) حوالي 140 مشروع متاح في القاهرة الجديدة لأكتر من 50 مطور، وأكتر من 400 وحدة بأسعارها. الصفحة دي بتشرح المناطق جوه المدينة، والطرق والمونوريل، والخدمات، ومستويات الأسعار حسب نوع الوحدة، وأنظمة السداد، والاستلام، وإزاي تختار. وتحت الصفحة كل المشاريع المتاحة بأسعارها."
         ]
       ],
       [
@@ -61,7 +61,7 @@ const NEW_CAIRO = {
       [
         "أنظمة السداد والاستلام",
         [
-          "أغلب المشاريع الجديدة في القاهرة الجديدة بمقدم 5% وتقسيط من 8 لـ 10 سنين. وفيه مطورين بيقدموا مقدمات أقل: Palm Hills New Cairo بمقدم 3% على 10 سنين، وMountain View iCity New Cairo بمقدم 3% على 12 سنة، و97 Hills بمقدم حوالي 2.8%. وفيه مشاريع تقسيطها أطول، زي The Mornings من الأهلي صبور لحد 14 سنة.",
+          "أغلب المشاريع الجديدة في القاهرة الجديدة بمقدم 5% وتقسيط من 8 لـ 10 سنين. وفيه مطورين بيقدموا مقدمات أقل: Palm Hills New Cairo بمقدم 3% على 10 سنين، وMountain View iCity New Cairo بمقدم 5% على 8 سنين، وفيه وحدات بمدة أطول، و97 Hills بمقدم حوالي 2.8%. وفيه مشاريع تقسيطها أطول، زي The Mornings من الأهلي صبور لحد 14 سنة.",
           "خد بالك إن مقدم 5% كتير بيبقى بعده دفعة تانية بعد شهور قليلة، زي \"5% + 5% بعد 3 شهور\"، وإن فيه دفعة استلام في بعض المشاريع. اسأل عن الجدول الكامل مش المقدم بس، واحسب إجمالي اللي هتدفعه أول سنة.",
           "لو محتاج تسكن قريب، فيه وحدات جاهزة أو قريبة من الاستلام: Mountain View 1.1 وMountain View iCity New Cairo فيهم وحدات استلام فوري، وHyde Park New Cairo فيه وحدات استلام خلال سنة. الوحدات الجاهزة غالبًا مقدمها أعلى ومدة تقسيطها أقصر، بس بتوفر عليك الإيجار ومخاطرة التأخير.",
           "المشاريع اللي استلامها بعد 3 لـ 4 سنين بتبقى أرخص في البداية وتقسيطها أطول. بس راجع سجل المطور في التسليم في مشاريعه اللي فاتت، لأن ده أهم من خصم أو مقدم أقل."
@@ -93,7 +93,7 @@ const NEW_CAIRO = {
       ["القاهرة الجديدة والتجمع الخامس هما نفس الحاجة؟", "التجمع الخامس جزء من مدينة القاهرة الجديدة، وهو الأكبر والأشهر فيها. المدينة اتعملت سنة 2000 بقرار جمع التجمع الأول والتالت والخامس، ومساحتها حوالي 343 كيلومتر مربع."],
       ["أسعار الشقق في التجمع الخامس بتبدأ من كام في 2026؟", "عندنا استوديوهات وشقق صغيرة من حوالي 2.8 لـ 4 مليون، والشقة المتوسطة حوالي 127 متر بحوالي 12 مليون، يعني متر حوالي 100 ألف جنيه. وفي كمبوندات المطورين الكبار الشقق بتبدأ من حوالي 9 لـ 16 مليون. الأسعار بتتأكد وقت الطلب."],
       ["أسعار الفلل والتاون هاوس في القاهرة الجديدة كام؟", "التاون هاوس والتوين هاوس من حوالي 13 مليون، وفي نص المعروض حوالي 30 مليون. والفلل المستقلة أغلبها بين 30 و60 مليون، وفيه فلل في مشاريع محدودة من حوالي 13 مليون."],
-      ["أقل مقدم في مشاريع التجمع الخامس كام؟", "أغلب المشاريع بمقدم 5%، وفيه مشاريع بمقدم 3% زي Palm Hills New Cairo على 10 سنين وMountain View iCity New Cairo على 12 سنة. وفيه تقسيط لحد 14 سنة في The Mornings."],
+      ["أقل مقدم في مشاريع التجمع الخامس كام؟", "أغلب المشاريع بمقدم 5%، وفيه مشاريع بمقدم 3% زي Palm Hills New Cairo على 10 سنين. وMountain View iCity New Cairo بمقدم 5% على 8 سنين، وفيه وحدات بمدة أطول. وفيه تقسيط لحد 14 سنة في The Mornings."],
       ["فيه وحدات استلام فوري في القاهرة الجديدة؟", "أيوه، زي Mountain View 1.1 وMountain View iCity New Cairo، وفيه وحدات استلام خلال سنة في Hyde Park New Cairo. الجاهز غالبًا مقدمه أعلى وتقسيطه أقصر."],
       ["المونوريل بيعدي على القاهرة الجديدة؟", "أيوه. المرحلة الأولى من مونوريل شرق النيل اشتغلت يوم 6 مايو 2026 بـ16 محطة، من محطة المشير طنطاوي لحد مدينة العدالة في العاصمة الإدارية، ومارة بالقاهرة الجديدة."],
       ["القاهرة الجديدة بعيدة عن المطار ووسط البلد قد إيه؟", "حوالي 20 دقيقة لمطار القاهرة، و20 لـ30 دقيقة لمدينة نصر ومصر الجديدة، و30 دقيقة للعاصمة الإدارية، ومن 40 دقيقة لساعة لوسط البلد حسب الزحمة."],
@@ -113,7 +113,7 @@ const NEW_CAIRO = {
         [
           "New Cairo is a city in East Cairo created by Presidential Decree 191 of 2000, which merged the First, Third and Fifth Settlements into one city under the New Urban Communities Authority. It covers about 343 km², which makes it one of the largest new cities around Cairo.",
           "When people say \"El Tagamoa\" they usually mean the Fifth Settlement, the largest and most expensive part of the city, home to most new compounds, universities and malls. This guide covers New Cairo and the Fifth Settlement together, because buyers search for both names.",
-          "As of October 2026, Tycoons lists around 100 available projects in New Cairo from more than 50 developers, with more than 400 priced units. Below you will find the districts, roads and monorail, services, price levels by unit type, payment plans, delivery and how to choose, followed by every available project."
+          "As of November 2026, Tycoons lists around 140 available projects in New Cairo from more than 50 developers, with more than 400 priced units. Below you will find the districts, roads and monorail, services, price levels by unit type, payment plans, delivery and how to choose, followed by every available project."
         ]
       ],
       [
@@ -152,7 +152,7 @@ const NEW_CAIRO = {
       [
         "Payment plans and delivery",
         [
-          "Most new New Cairo projects ask for 5% down over 8–10 years. Some offer less: Palm Hills New Cairo at 3% over 10 years, Mountain View iCity New Cairo at 3% over 12 years and 97 Hills at about 2.8%. The Mornings by Al Ahly Sabbour runs up to 14 years.",
+          "Most new New Cairo projects ask for 5% down over 8–10 years. Some offer less: Palm Hills New Cairo at 3% over 10 years and 97 Hills at about 2.8%. Mountain View iCity New Cairo is 5% over 8 years, with some homes on a longer term. The Mornings by Al Ahly Sabbour runs up to 14 years.",
           "A 5% down payment is often followed by a second payment a few months later, and some projects add a delivery payment, so ask for the full schedule. Ready or near-ready units are available in Mountain View 1.1, Mountain View iCity New Cairo and Hyde Park New Cairo; they usually need a higher down payment and a shorter plan.",
           "For projects delivering in 3–4 years, check the developer's delivery record on past projects; it matters more than a discount."
         ]
@@ -167,7 +167,7 @@ const NEW_CAIRO = {
     faq: [
       ["Are New Cairo and the Fifth Settlement the same?", "The Fifth Settlement is the largest and best-known part of New Cairo. The city was created in 2000 by merging the First, Third and Fifth Settlements and covers about 343 km²."],
       ["How much does an apartment cost in New Cairo in 2026?", "Studios and small apartments start at about EGP 2.8–4 million. The typical apartment is about 127 m² at around EGP 12 million (about EGP 100,000 per m²). In major developers' compounds apartments start at about EGP 9–16 million. Prices are confirmed at inquiry time."],
-      ["What is the lowest down payment in New Cairo?", "Most projects ask for 5%. Palm Hills New Cairo offers 3% over 10 years and Mountain View iCity New Cairo 3% over 12 years."],
+      ["What is the lowest down payment in New Cairo?", "Most projects ask for 5%. Palm Hills New Cairo offers 3% over 10 years, and Mountain View iCity New Cairo is 5% over 8 years, with some homes on a longer term."],
       ["Are there ready-to-move units in New Cairo?", "Yes, for example in Mountain View 1.1 and Mountain View iCity New Cairo, with units delivering within a year in Hyde Park New Cairo."],
       ["Does the monorail serve New Cairo?", "Yes. Phase one of the East Nile monorail opened on 6 May 2026 with 16 stations from El Moshir Tantawy station to Madinet El Adala in the New Capital, passing through New Cairo."],
       ["How far is New Cairo from the airport?", "About 20 minutes by car to Cairo Airport, 20–30 minutes to Nasr City and Heliopolis and about 30 minutes to the New Capital."],
@@ -229,7 +229,7 @@ const NORTH_COAST = {
       [
         "أنظمة السداد والاستلام في الساحل",
         [
-          "أغلب مشاريع الساحل بمقدم 5% وتقسيط من 8 لـ 10 سنين. وفيه مقدمات أقل: مشاريع Mountain View في الساحل زي Crysta وRas El Hekma وLVLS بمقدم 3% على 12 سنة، وHacienda Blue من Palm Hills بمقدم 2.5% على 12 سنة.",
+          "أغلب مشاريع الساحل بمقدم 5% وتقسيط من 8 لـ 10 سنين. وفيه مقدمات أقل: مشاريع Mountain View في الساحل زي Ras El Hekma وLVLS بمقدم 3% على 12 سنة، وHacienda Blue من Palm Hills بمقدم 2.5% على 12 سنة. وCrysta بمقدم 5% على 8 سنين، وفيه وحدات بمدة أطول.",
           "كتير من المشاريع بيبقى فيها دفعة تانية بعد المقدم بشهور (زي 5% + 5% بعد 3 شهور)، وبعضها فيه دفعة استلام. والمشاريع الجاهزة أو القريبة من الاستلام غالبًا مقدمها أعلى ومدتها أقصر، زي La Vista Ras El Hikma بمقدم 20% على 4 سنين.",
           "فيه وحدات استلام فوري أو قريب في Mountain View Ras El Hekma وLa Vista Ras El Hikma وLa Vista Cascada وDowntown New Alamein. ومعظم المشاريع الجديدة استلامها بين 2027 و2030.",
           "متنساش وديعة الصيانة: في الساحل بتبقى أعلى من القاهرة لأنها بتغطي الشواطئ وحمامات السباحة والأمن طول السنة، وفي بعض المشاريع بتوصل 10% من سعر الوحدة. اسأل عنها قبل الحجز."
@@ -254,7 +254,7 @@ const NORTH_COAST = {
     faq: [
       ["أسعار الشاليهات في الساحل الشمالي بتبدأ من كام في 2026؟", "الشاليه بيبدأ من حوالي 5 مليون، وفي نص المعروض عندنا حوالي 22 مليون لمساحة حوالي 136 متر، يعني متر حوالي 170 ألف جنيه. والاستوديو والشقة الصغيرة من حوالي 4 مليون. الأسعار بتتأكد وقت الطلب."],
       ["أسعار الفلل في الساحل الشمالي كام؟", "التاون هاوس والتوين هاوس من حوالي 13 مليون وفي نص المعروض حوالي 36 مليون، والفلل المستقلة أغلبها من 40 لأكتر من 100 مليون."],
-      ["أقل مقدم في مشاريع الساحل كام؟", "فيه مشاريع بمقدم 2.5% زي Hacienda Blue على 12 سنة، ومشاريع Mountain View في الساحل بمقدم 3% على 12 سنة. وأغلب المشاريع بمقدم 5% على 8 لـ 10 سنين."],
+      ["أقل مقدم في مشاريع الساحل كام؟", "فيه مشاريع بمقدم 2.5% زي Hacienda Blue على 12 سنة، ومشاريع Mountain View في الساحل بمقدم 3% على 12 سنة، وCrysta بمقدم 5% على 8 سنين، وفيه وحدات بمدة أطول. وأغلب المشاريع بمقدم 5% على 8 لـ 10 سنين."],
       ["إيه أحسن منطقة في الساحل الشمالي؟", "على حسب هدفك: العلمين وسيدي عبد الرحمن أقرب ومسكونة أكتر، والضبعة لسه أسعارها أقل نسبيًا، ورأس الحكمة الأحدث وعليها أعلى طلب بسبب مشروع مدينة رأس الحكمة، بس أبعد."],
       ["إيه هو مشروع رأس الحكمة؟", "صفقة اتوقعت في فبراير 2024 مع شركة ADQ الإماراتية لتطوير مدينة على حوالي 170 مليون متر مربع، ومدن القابضة هي المطور الرئيسي. المخطط فيه سكن وفنادق ومارينا ومنطقة حرة ومطار دولي، والاستثمارات المستهدفة حوالي 110 مليار دولار بحلول 2045."],
       ["الساحل الشمالي بعيد عن القاهرة قد إيه؟", "حوالي ساعتين ونص لـ3 ساعات بالعربية للعلمين وسيدي عبد الرحمن، وحوالي 3 لـ3.5 ساعة لرأس الحكمة عن طريق الضبعة، في الأيام العادية."],
@@ -312,7 +312,7 @@ const NORTH_COAST = {
       [
         "Payment plans, delivery and maintenance",
         [
-          "Most North Coast projects ask for 5% down over 8–10 years. Mountain View's coastal projects (Crysta, Ras El Hekma, LVLS) offer 3% over 12 years and Palm Hills' Hacienda Blue 2.5% over 12 years. Ready or near-ready units exist in Mountain View Ras El Hekma, La Vista Ras El Hikma, La Vista Cascada and Downtown New Alamein, usually with a higher down payment and shorter plan; most new projects deliver between 2027 and 2030.",
+          "Most North Coast projects ask for 5% down over 8–10 years. Mountain View's coastal projects Ras El Hekma and LVLS offer 3% over 12 years and Palm Hills' Hacienda Blue 2.5% over 12 years. Crysta is 5% over 8 years, with some homes on a longer term. Ready or near-ready units exist in Mountain View Ras El Hekma, La Vista Ras El Hikma, La Vista Cascada and Downtown New Alamein, usually with a higher down payment and shorter plan; most new projects deliver between 2027 and 2030.",
           "Maintenance deposits on the coast are usually higher than in Cairo and reach 10% of the unit price in some projects, so ask before reserving."
         ]
       ],
@@ -325,7 +325,7 @@ const NORTH_COAST = {
     ],
     faq: [
       ["How much does a chalet cost on the North Coast in 2026?", "Chalets start at about EGP 5 million; the typical chalet we list is around EGP 22 million for about 136 m² (roughly EGP 170,000 per m²). Studios and small apartments start at about EGP 4 million. Prices are confirmed at inquiry time."],
-      ["What is the lowest down payment on the North Coast?", "Hacienda Blue by Palm Hills offers 2.5% over 12 years, and Mountain View's coastal projects 3% over 12 years. Most projects ask for 5% over 8–10 years."],
+      ["What is the lowest down payment on the North Coast?", "Hacienda Blue by Palm Hills offers 2.5% over 12 years, and Mountain View's coastal projects Ras El Hekma and LVLS offer 3% over 12 years; Crysta is 5% over 8 years, with some homes on a longer term. Most projects ask for 5% over 8–10 years."],
       ["Which North Coast area is best?", "Alamein and Sidi Abdel Rahman are closer and more established, El Dabaa is relatively cheaper, and Ras El Hekma is the newest and in highest demand but furthest from Cairo."],
       ["What is the Ras El Hekma project?", "A city development signed in February 2024 with Abu Dhabi's ADQ on about 170 million m², with Modon Holding as master developer, planned housing, hotels, a marina, a free zone and an international airport, targeting about USD 110 billion of investment by 2045."],
       ["How far is the North Coast from Cairo?", "About 2.5–3 hours by car to Alamein and Sidi Abdel Rahman, and 3–3.5 hours to Ras El Hekma via the Dabaa road, on a normal day."],

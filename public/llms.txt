@@ -1,6 +1,8 @@
 # Tycoons Investments
 
-Last updated: 2026-11-18
+Last updated: 2026-11-20
+
+- [Full llms file](https://tycoons-inv.com/llms-full.txt): Expanded version of this file, with full company details, area guides, confirmed payment plans, and agent endpoints.
 
 > Egyptian real-estate search and comparison platform. Buyers compare currently available developer inventory by project, location, unit type, area, price, payment plan, delivery, and finishing.
 

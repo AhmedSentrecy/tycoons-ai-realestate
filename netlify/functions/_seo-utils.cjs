@@ -1189,7 +1189,7 @@ function deliveryTag(project, ar) {
   const years = texts.map((t) => (t.match(/20\d\d/) || [])[0]).filter(Boolean).sort();
   if (years.length) return ar ? `استلام ${years[0]}` : `Delivery ${years[0]}`;
   const inYears = texts.map((t) => Number((t.match(/(\d+)\s*years?/i) || [])[1])).filter(Boolean).sort((x, y) => x - y)[0];
-  if (inYears) return ar ? deliveryInAr(inYears) : `Delivery in ${inYears} years`;
+  if (inYears) return ar ? deliveryInAr(inYears) : inYears === 1 ? "Delivery in 1 year" : `Delivery in ${inYears} years`;
   return "";
 }
 
@@ -2904,7 +2904,7 @@ function renderStaticPage(type) {
     title: page.title,
     description: page.description,
     path: `/${type}`,
-    body: `<main><section class="hero">${page.body}<p class="updated">آخر مراجعة: 26 يوليو 2026</p></section></main>`,
+    body: `<main><section class="hero">${page.body}<p class="updated">آخر مراجعة: 20 نوفمبر 2026</p></section></main>`,
     schemas: [
       breadcrumbSchema([
         { name: "الرئيسية", path: "/" },
