@@ -854,7 +854,9 @@ async function handleRpc(body, access, protocolHeader) {
 
 export default async function warRoomMcp(request, context) {
   const origin = request.headers.get("origin");
-  const originOk = !origin || ALLOWED_ORIGINS.has(origin) || /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin);
+  const sameOrigin = origin && origin === new URL(request.url).origin;
+  const originOk =
+    !origin || sameOrigin || ALLOWED_ORIGINS.has(origin) || /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin);
   const corsOrigin = origin && originOk ? origin : null;
   if (!originOk) return new Response(JSON.stringify(jsonRpcError(null, -32600, "Origin not allowed")), { status: 403, headers: headers() });
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: headers(undefined, corsOrigin) });
