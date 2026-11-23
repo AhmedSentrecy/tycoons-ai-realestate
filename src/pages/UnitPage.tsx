@@ -3,6 +3,7 @@ import { useSiteSky } from "@/lib/useSiteSky";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { useScrollTopOnNavigation } from "@/hooks/useScrollTopOnNavigation";
+import { unitInquiry } from "../../netlify/functions/_inventory-facts.cjs";
 import { unitPath } from "@/lib/unitUrl";
 import {
   ArrowLeft,
@@ -38,7 +39,7 @@ const UNIT_INTRO_BANK: Array<(vars: Record<string, string>) => string> = [
 ];
 
 const SITE_URL = "https://tycoons-inv.com";
-const WHATSAPP_NUMBER = "201110100025";
+
 
 function slugify(value: string) {
   return value
@@ -125,9 +126,7 @@ export default function UnitPage() {
   const pageUrl = `${SITE_URL}${unitPath(unit)}`;
   const unitTypeAr = arabicField(unit.unit_type);
   const projectUrl = unit.project_slug ? `${SITE_URL}/projects/${unit.project_slug}` : SITE_URL;
-  const message = encodeURIComponent(
-    `Hello Tycoons Investments,\nI am interested in this available unit:\n\nProject: ${unit.project_name}\nDeveloper: ${unit.developer}\nLocation: ${unit.location}\nUnit type: ${unit.unit_type}\nBedrooms: ${unit.bedrooms_text || "Not specified"}\nArea: ${unit.area_sqm} sqm\nStarting price: ${formatPrice(unit.starting_price)} EGP\nDelivery: ${unit.delivery_text}\nFinishing: ${unit.finishing}\n\nURL: ${pageUrl}\nBrochure: ${unit.brochure_url}\n\nPlease send me the latest availability and payment plan.\n\nSource: unit_page\nPage: ${pageUrl}\nTracking ID: wa_${unit.id.slice(0, 8)}`,
-  );
+  const inquiry = unitInquiry(unit, unit.project_slug);
   const area = areaFor(unit.location);
   const facts = areaFacts(area.slug);
   const stats = computeUnitStats(unit.starting_price, unit.area_sqm, siblings);
@@ -153,6 +152,7 @@ export default function UnitPage() {
       `السعر يبدأ من ${formatPrice(unit.starting_price)} جنيه لمساحة ${unit.area_sqm} م²، حسب آخر تحديث. السعر والتوفر يحتاجان تأكيد وقت الطلب.`,
     ],
     ["إيه خطة السداد المتاحة؟", `${arabicField(unit.down_payment_text, "المقدم يُحدَّد حسب المشروع.")} ${arabicField(unit.installments_text, "الأقساط تُحدَّد حسب المشروع وموعد الاستلام.")}`],
+    ["إيه التشطيب؟", arabicField(unit.finishing, "قيد التأكيد مع المطور.")],
     ["امتى الاستلام؟", arabicField(unit.delivery_text, "موعد الاستلام يتأكد مع المطور وقت الطلب.")],
     [`هل ${area.ar} مكان مناسب للسكن أو الاستثمار؟`, facts.buyerNote],
   ];
@@ -212,7 +212,7 @@ export default function UnitPage() {
               <div className="flex flex-wrap gap-4 text-sm text-[#f0bd4f]"><a href={`/ar/developers/${slugify(unit.developer)}`} className="inline-flex items-center gap-2 hover:text-white"><Building2 className="h-4 w-4" />{unit.developer}</a><a href={`/ar/areas/${area.slug}`} className="inline-flex items-center gap-2 hover:text-white"><MapPin className="h-4 w-4" />{unit.location}</a></div>
               <h1 className="mt-4 text-3xl font-extrabold leading-tight sm:text-4xl">{unitTypeAr} {unit.area_sqm} م² في {unit.project_name}</h1>
             </div>
-            <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1faa59] px-6 py-3.5 font-bold"><MessageCircle className="h-5 w-5" />تأكيد السعر والمتاح</a>
+            <a href={inquiry} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1faa59] px-6 py-3.5 font-bold"><MessageCircle className="h-5 w-5" />تأكيد السعر والمتاح</a>
           </div>
         </div>
       </section>
@@ -221,10 +221,11 @@ export default function UnitPage() {
 
       <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8"><div className="grid gap-7 lg:grid-cols-[1fr_0.75fr]">
         <article><h2 className="text-3xl font-extrabold">تفاصيل الوحدة</h2><p className="mt-5 font-light leading-loose text-[#556070]">{intro}</p><div className="mt-8 grid gap-4 sm:grid-cols-2">{[
-          [BedDouble, "الغرف", arabicField(unit.bedrooms_text, "غير محدد")],
+          ...(/office|admin|clinic|retail|shop|commercial|مكتب|محل|عيادة/i.test(unit.unit_type) ? [] : [[BedDouble, "الغرف", arabicField(unit.bedrooms_text, "غير محدد")]]),
+          [Building2, "الاستلام", arabicField(unit.delivery_text, "قيد التأكيد")],
           [Maximize2, "المساحة", `${unit.area_sqm} م²`],
           [WalletCards, "خطة السداد", arabicField(unit.installments_text, "حسب آخر تحديث")],
-          [Building2, "التشطيب", arabicField(unit.finishing, "حسب نوع الوحدة")],
+          [Building2, "التشطيب", arabicField(unit.finishing, "قيد التأكيد")],
         ].map(([Icon, label, value]) => { const DetailIcon = Icon as typeof BedDouble; return <div key={String(label)} className="rounded-2xl border border-[#dde4ee] bg-white/70 p-5"><DetailIcon className="h-5 w-5 text-[#b47c17]" /><p className="mt-3 text-xs text-[#7b877f]">{String(label)}</p><p className="mt-1 font-bold">{String(value)}</p></div>; })}</div></article>
         <aside className="rounded-3xl bg-[#0a1628] p-7 text-white lg:sticky lg:top-28 lg:self-start"><p className="text-sm text-white/55">السعر يبدأ من</p><p className="mt-2 text-3xl font-extrabold text-[#f8dfa6]">{formatPrice(unit.starting_price)} جنيه</p><p className="mt-5 text-sm text-white/70">{unit.down_payment_text}</p>{bookingLabel(unit.starting_price, unit.down_payment_text) ? <p className="mt-1 text-base font-bold text-[#f8dfa6]">{bookingLabel(unit.starting_price, unit.down_payment_text)}</p> : null}<Link to={unit.project_slug ? `/projects/${unit.project_slug}` : "/"} className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#f0bd4f]">شوف المشروع بالكامل <ArrowLeft className="h-4 w-4" /></Link></aside>
       </div></section>
@@ -266,7 +267,7 @@ export default function UnitPage() {
       </section>
 
       <Footer />
-      <FloatingContact message={decodeURIComponent(message)} />
+      <FloatingContact message={new URL(inquiry).searchParams.get("text") || ""} />
       <PageStructuredData value={structuredData} />
     </main>
   );

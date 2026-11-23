@@ -1,6 +1,6 @@
 import { tr, isEnglish } from "@/lib/homeLanguage";
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import { motion } from "framer-motion";
 import { Menu, MessageCircle, X } from "lucide-react";
 
@@ -15,6 +15,11 @@ const links = [
   { label: tr("من نحن"), to: isEnglish() ? "/en/#about" : "/about", external: true },
 ];
 
+  const { pathname, search } = useLocation();
+  const projectPath = pathname.match(/^\/(?:en\/)?projects\/([^/]+)\/?$/);
+  const localized = pathname.match(/^\/(?:ar|en)\/(areas|developers|reports)\/(.+)$/);
+  const arabicPath = projectPath ? "/projects/" + projectPath[1] : localized ? "/ar/" + localized[1] + "/" + localized[2] + search : "/";
+  const englishPath = projectPath ? "/en/projects/" + projectPath[1] : localized ? "/en/" + localized[1] + "/" + localized[2] + search : "/en/";
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -105,7 +110,7 @@ const links = [
             }`}
           >
             <a
-              href="/"
+              href={arabicPath}
               hrefLang="ar"
               lang="ar"
               aria-current={!isEnglish() ? "page" : undefined}
@@ -113,10 +118,10 @@ const links = [
             >
               {tr("عربي")}</a>
             <a
-              href="/en/"
+              href={englishPath}
               hrefLang="en"
               lang="en"
-              aria-label="English homepage"
+              aria-label={englishPath === "/en/" ? "English homepage" : "English version"}
               aria-current={isEnglish() ? "page" : undefined}
               className="rounded-full px-2 py-1 transition-colors hover:bg-white/20"
             >

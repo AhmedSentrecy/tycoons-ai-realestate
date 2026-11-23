@@ -18,5 +18,5 @@ export function unitTitle(unitType: string, bedroomsRaw: string | null | undefin
   const area = Number(areaSqm) > 0 ? ` ${Number(areaSqm)} م²` : "";
   // The price tells apart units of the same type and size (and earns the click).
   const priceLabel = priceShortAr(price);
-  return `${unitType}${beds ? ` ${beds}` : ""}${area} في ${projectName}${priceLabel ? ` بـ ${priceLabel}` : ""} | Tycoons`;
+  return `${unitType}${beds ? ` ${beds}` : ""}${area} في ${projectName}${priceLabel ? ` بـ ${priceLabel} جنيه` : ""} | Tycoons`;
 }

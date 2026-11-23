@@ -63,6 +63,8 @@ function describe(lead: Json) {
     : String(lead.unit_path || lead.page_path || "/").slice(0, 80);
   const parts = [
     `Website lead: ${where}`,
+    lead.unit_path ? `Unit: ${String(lead.unit_path).split("/").pop()?.split("-")[0]}` : null,
+    lead.placement ? `Page: ${String(lead.placement).slice(0, 32)}` : null,
     lead.traffic_source ? `Src: ${lead.traffic_source}${lead.utm_campaign ? `/${String(lead.utm_campaign).slice(0, 30)}` : ""}` : null,
     lead.tracking_id ? `Ref: ${lead.tracking_id}` : null,
     lead.device ? String(lead.device) : null,
@@ -143,7 +145,7 @@ async function createLead(body: Json) {
     page_url: text(body.page_url, 500),
     project_slug: text(body.project_slug, 160),
     project_name: text(body.project_name, 160),
-    unit_path: /^\/units\//.test(String(body.page_path || "")) ? text(body.page_path, 300) : null,
+    unit_path: /^\/units\/[a-z0-9-]+$/i.test(String(body.unit_path || "")) ? text(body.unit_path, 300) : /^\/units\//.test(String(body.page_path || "")) ? text(body.page_path, 300) : null,
     button_label: text(body.button_label, 120),
     placement: text(body.placement, 60),
     lang: text(body.lang, 10),

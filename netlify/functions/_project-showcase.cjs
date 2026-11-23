@@ -54,6 +54,8 @@ function unitLabel(unit, en) {
 // list of percentages ("5%", "2% + 2% + 2%", "5% down payment + 5% after 3 months") and the term is
 // a plain number of years, so a vague line ("المقدمات تبدأ من 3% في بعض المشاريع") shows nothing
 // instead of a wrong number.
+const { unitInquiry } = require("./_inventory-facts.cjs");
+const { unitPath } = require("./_unit-url.cjs");
 const VAGUE = /حسب|قد تصل|تبدأ من|يبدأ من|starts? from|up to|varies|options?|depending|where applicable|egp|جنيه|:/i;
 function unitPlan(unit) {
   const down = String(unit?.down_payment_text ?? "").trim();
@@ -211,7 +213,7 @@ function showcaseHtml({ slug, images = [], units = [], lang = "ar", now = Date.n
       // A plan Ahmed confirmed for the whole project wins over the text stored on each unit.
       const own = offerPlan ? null : unitPlan(fixedPlan ? { down_payment_text: fixedPlan.down_payment, installments_text: `${fixedPlan.years} years` } : unit);
       const plan = offerPlan || (own ? { years: own.years, parts: own.parts.map((part, index) => ({ label: partLabel(part, index, own.parts.length), percent: part.percent, months: part.months })) } : null);
-      return { label: unitLabel(unit, en), price: number(unit.starting_price), plan };
+      return { inquiry: unit.id ? unitInquiry({ ...unit, project_name: unit.project_name || name }, slug, lang) : "", path: unit.id ? unitPath({ ...unit, project_slug: slug }) : "", label: unitLabel(unit, en), price: number(unit.starting_price), plan };
     })
     .filter((unit) => unit.label && unit.price > 0)
     .sort((a, b) => a.price - b.price);
@@ -271,9 +273,9 @@ function showcaseHtml({ slug, images = [], units = [], lang = "ar", now = Date.n
   const calculator = first ? `<section class="tsc-sec" style="padding-top:0" id="down-payment"><div class="tsc-wrap"><span class="tsc-eyebrow">${esc(t.calcEyebrow)}</span>
 <h2 class="tsc-h">${esc(fill(t.calcTitle, { name }))}</h2><p class="tsc-sub">${ltr(offerPlan ? fill(t.calcSub, { percent: percentText(offerPlan.parts[0].percent), years: yearsText(offerPlan.years, en) }) : t.calcSubPlans)}</p>
 <div class="tsc-calc" data-tsc-calc data-whatsapp="${WHATSAPP_NUMBER}" data-message="${esc(messageTemplate)}">
-<div class="tsc-pick"><label for="tsc-home">${esc(t.pick)}</label><select id="tsc-home" data-tsc-select>${withPlan.map((unit) => `<option value="${unit.price}" data-label="${esc(unit.label)}" data-parts="${esc(partsData(unit))}" data-term="${esc(yearsText(unit.plan.years, en))}">${esc(unit.label)} · ${esc(fill(t.money, { amount: money(unit.price) }))}</option>`).join("")}</select>
+<div class="tsc-pick"><label for="tsc-home">${esc(t.pick)}</label><select id="tsc-home" data-tsc-select>${withPlan.map((unit) => `<option value="${unit.price}" data-inquiry="${esc(unit.inquiry)}" data-unit-path="${esc(unit.path)}" data-label="${esc(unit.label)}" data-parts="${esc(partsData(unit))}" data-term="${esc(yearsText(unit.plan.years, en))}">${esc(unit.label)} · ${esc(fill(t.money, { amount: money(unit.price) }))}</option>`).join("")}</select>
 <p class="tsc-note">${esc(t.calcNote)}</p>
-<a class="tsc-btn" data-tsc-cta data-wa-source="project-showcase-calculator" rel="noopener" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(fill(messageTemplate, { unit: first.label, price: money(first.price) }))}">${esc(t.cta)}</a></div>
+<a class="tsc-btn" data-tsc-cta data-unit-path="${esc(first.path)}" data-wa-source="project-showcase-calculator" rel="noopener" href="${esc(first.inquiry || `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(fill(messageTemplate, { unit: first.label, price: money(first.price) }))}`)}">${esc(t.cta)}</a></div>
 <div class="tsc-steps" aria-live="polite"><div class="tsc-step"><span>${esc(t.price)}</span><b>${amount(first.price).replace('class="tsc-n"', 'class="tsc-n" data-tsc-price')}</b></div>
 ${Array.from({ length: rows }, (_, index) => { const part = first.plan.parts[index]; return `<div class="tsc-step" data-tsc-row="${index}"${part ? "" : " hidden"}><span data-tsc-label="${index}">${part ? `${esc(part.label)} (${ltr(percentText(part.percent))})` : ""}</span><b>${amount(part ? first.price * part.percent / 100 : 0).replace('class="tsc-n"', `class="tsc-n" data-tsc-part="${index}"`)}</b></div>`; }).join("")}
 <div class="tsc-step is-total"><span>${esc(t.total)} (<span class="tsc-n" data-tsc-totalpct>${percentText(totalOf(first))}</span>)</span><b>${amount(first.price * totalOf(first) / 100).replace('class="tsc-n"', 'class="tsc-n" data-tsc-total')}</b></div>

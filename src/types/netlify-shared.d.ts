@@ -57,3 +57,9 @@ declare module "*/_project-showcase.cjs" {
   export function showcaseHtml(input: { slug: string; images?: string[]; units?: ShowcaseUnit[]; lang?: "ar" | "en"; now?: number }): string;
   export function showcaseConfig(slug: string): Record<string, unknown> | null;
 }
+
+declare module "*netlify/functions/_inventory-facts.cjs" {
+  export function publicUnit(row: Record<string, unknown>): Record<string, unknown>;
+  export function canonicalProjectSlug(slug: string): string;
+  export function unitInquiry(unit: { id: string; starting_price: number; area_sqm?: number | null }, slug?: string, lang?: string): string;
+}

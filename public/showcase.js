@@ -74,7 +74,8 @@
       if (totalEl) totalEl.textContent = money(price * total / 100);
       if (totalPct) totalPct.textContent = Number(total.toFixed(2)) + "%";
       if (term) term.textContent = option.getAttribute("data-term") || "";
-      if (cta) cta.href = "https://wa.me/" + calc.getAttribute("data-whatsapp") + "?text=" + encodeURIComponent((calc.getAttribute("data-message") || "").replace("{unit}", option.getAttribute("data-label")).replace("{price}", money(price)));
+      if (cta) cta.setAttribute("data-unit-path", option.getAttribute("data-unit-path") || "");
+      if (cta) cta.href = option.getAttribute("data-inquiry") || "https://wa.me/" + calc.getAttribute("data-whatsapp") + "?text=" + encodeURIComponent((calc.getAttribute("data-message") || "").replace("{unit}", option.getAttribute("data-label")).replace("{price}", money(price)));
     }
     select.addEventListener("change", render);
     return function () { select.removeEventListener("change", render); };

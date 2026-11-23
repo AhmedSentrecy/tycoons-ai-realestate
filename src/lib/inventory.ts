@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { publicUnit, canonicalProjectSlug } from "../../netlify/functions/_inventory-facts.cjs";
+
 const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {};
 
 const SUPABASE_URL =
@@ -218,7 +220,7 @@ async function fetchPage(offset: number): Promise<InventoryPage> {
 
   const rows = (await response.json()) as Record<string, unknown>[];
   return {
-    units: rows.map(normalizeUnit).filter((unit): unit is InventoryUnit => Boolean(unit)),
+    units: rows.map(publicUnit).map(normalizeUnit).filter((unit): unit is InventoryUnit => Boolean(unit)),
     rawCount: rows.length,
   };
 }
@@ -245,7 +247,7 @@ async function fetchProjectSlugs(): Promise<Map<string, ProjectMediaRef>> {
       const rows = (await response.json()) as Record<string, unknown>[];
       for (const row of rows) {
         const id = text(row.id);
-        const slug = text(row.slug);
+        const slug = canonicalProjectSlug(text(row.slug));
         if (id) map.set(id, { slug, images: parseImages(text(row.image_url), text(row.gallery_urls)) });
       }
       if (rows.length < PAGE_SIZE) break;

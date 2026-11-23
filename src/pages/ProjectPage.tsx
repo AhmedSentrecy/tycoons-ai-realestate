@@ -1,3 +1,4 @@
+import { unitInquiry } from "../../netlify/functions/_inventory-facts.cjs";
 import { sizedImage } from "@/lib/images";
 import { useSiteSky } from "@/lib/useSiteSky";
 import { useEffect, useMemo, useState } from "react";
@@ -644,7 +645,7 @@ export default function ProjectPage() {
               className="inline-flex items-center justify-center gap-2 rounded-full bg-[#1faa59] px-6 py-3.5 font-bold text-white shadow-lg transition hover:scale-[1.02]"
             >
               <MessageCircle className="h-5 w-5" />
-              اطلب آخر الأسعار والمتاح
+              اسأل عن المشروع
             </a>
           </div>
         </div>
@@ -870,7 +871,8 @@ export default function ProjectPage() {
                     />
                     {unit.id && (
                       <div className="bg-[#faf7f1] px-5 pb-5">
-                        <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#9a640f] hover:underline">
+                        <a className="me-4 font-bold text-[#14733c]" data-wa-source="project-unit" data-unit-path={unitPath({ ...unit, project_slug: slug })} href={unitInquiry(unit, slug)}>اسأل عن الوحدة دي</a>
+                    <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#9a640f] hover:underline">
                           كل تفاصيل الوحدة
                           <ArrowLeft className="h-4 w-4" />
                         </Link>
@@ -942,6 +944,7 @@ export default function ProjectPage() {
                 />
                 {unit.id && (
                   <div className="bg-[#faf7f1] px-5 pb-5">
+                    <a className="me-4 font-bold text-[#14733c]" data-wa-source="project-unit" data-unit-path={unitPath({ ...unit, project_slug: slug })} href={unitInquiry(unit, slug)}>اسأل عن الوحدة دي</a>
                     <Link to={unitPath({ ...unit, project_slug: slug })} className="inline-flex items-center gap-2 text-sm font-bold text-[#9a640f] hover:underline">
                       كل تفاصيل الوحدة
                       <ArrowLeft className="h-4 w-4" />
