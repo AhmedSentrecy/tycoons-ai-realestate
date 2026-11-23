@@ -155,7 +155,7 @@ exports.handler = async function handler(event) {
     if (type === "report") html = renderPriceReport(slug, lang);
     if (type === "guides") {
       const [articles, projectsForGuides, unitsForGuides] = await Promise.all([
-        fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at,project_id,target_type", order: "published_at.desc", limit: "300" }),
+        fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at,project_id,target_type,body_markdown", language: `eq.${lang}`, order: "published_at.desc", limit: "300" }),
         fetchProjectsMeta().catch(() => []),
         fetchUnits().catch(() => null),
       ]);

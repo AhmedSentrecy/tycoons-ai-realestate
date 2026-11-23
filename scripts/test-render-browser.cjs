@@ -43,6 +43,20 @@ if (process.argv.includes("--serve")) {
       assert.match(home, /<html[^>]*lang="en"/);
       assert.match(home, /id="property-comparison-guides"/,'English React content must mount, not only its static fallback');
       results.push({page:'/en/', test:'React mounted and English buyer navigation visible', passed:true});
+      const maz = "/projects/mazarine--city-edge";
+      if (fs.existsSync(path.join(root, maz.slice(1) + ".html"))) {
+        const page = readPage(maz, "mazarine-mobile");
+        const inquiries = [...page.matchAll(/<a\b[^>]*data-wa-source="project-unit"[^>]*>/g)].map(([tag]) => {
+          const href = tag.match(/href="([^"]+)"/)?.[1];
+          assert.ok(href, "unit inquiry needs a link");
+          return new URL(href).searchParams.get("text") || "";
+        });
+        assert.ok(inquiries.length, "mobile unit inquiries exist");
+        assert.match(page, /href="\/en\/projects\/mazarine--city-edge"/, "language switch keeps project");
+        for (const message of inquiries) assert.match(message, /https:\/\/tycoons-inv.com\/units\/[0-9a-f]{8}-/);
+        if (page.includes("7,598,000")) assert.ok(inquiries.some(m => m.includes("127") && m.includes("7,598,000") && m.includes("7219bb19")));
+        results.push({page:maz, test:"Mobile unit inquiry, selected price and project language switch", passed:true});
+      }
       const projectFile = path.join(root, 'projects/hydepark-new-cairo--hydepark-developments.html');
       if (fs.existsSync(projectFile)) {
         const project = readPage('/projects/hydepark-new-cairo--hydepark-developments', 'project-mobile');

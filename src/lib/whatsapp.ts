@@ -1,4 +1,5 @@
 import type { InventoryUnit } from "@/lib/inventory";
+import { unitPath } from "./unitUrl";
 import type { Project } from "@/data/projects";
 
 const WHATSAPP_NUMBER = "201110100025";
@@ -29,7 +30,7 @@ export function buildUnitWhatsAppMessage(
   searchRequest: string,
   currentPageUrl: string,
 ): string {
-  const preferredUrl = unit.image_url || unit.brochure_url || currentPageUrl;
+  const preferredUrl = unit.id ? "https://tycoons-inv.com" + unitPath(unit) : currentPageUrl;
   const lines = [
     "Hello Tycoons Investments,",
     "I am interested in this available unit:",
@@ -38,7 +39,8 @@ export function buildUnitWhatsAppMessage(
     `Developer: ${clean(unit.developer)}`,
     `Location: ${clean(unit.location)}`,
     `Unit type: ${clean(unit.unit_type)}`,
-    `Bedrooms: ${clean(unit.bedrooms_text)}`,
+    `Unit ID: ${unit.id}`,
+    ...(/office|clinic|retail|admin|commercial|shop|مكتب|عيادة|محل/i.test(unit.unit_type) ? [] : [`Bedrooms: ${clean(unit.bedrooms_text)}`]),
     `Area: ${unit.area_sqm ? `${unit.area_sqm} sqm` : "Not specified"}`,
     `Starting price: ${price(unit.starting_price)}`,
     `Down payment: ${clean(unit.down_payment_text)}`,

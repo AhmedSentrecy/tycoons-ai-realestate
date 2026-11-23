@@ -161,10 +161,10 @@ export default function SearchResultCard({ result, query, expanded, onToggle }: 
             <Building2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span className="break-words">{unit.unit_type}</span>
           </span>
-          <span className="flex min-w-0 items-start gap-1.5 rounded-lg bg-[#f6f2e9] px-2.5 py-2 leading-relaxed">
+          {!/office|clinic|retail|admin|commercial|shop|مكتب|عيادة|محل/i.test(unit.unit_type) && <span className="flex min-w-0 items-start gap-1.5 rounded-lg bg-[#f6f2e9] px-2.5 py-2 leading-relaxed">
             <BedDouble className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span className="break-words">{detail(unit.bedrooms_text)}</span>
-          </span>
+          </span>}
           <span className="flex min-w-0 items-start gap-1.5 rounded-lg bg-[#f6f2e9] px-2.5 py-2 leading-relaxed">
             <Ruler className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>{unit.area_sqm ? `${unit.area_sqm} م²` : "غير محدد"}</span>

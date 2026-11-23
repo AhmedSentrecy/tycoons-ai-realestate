@@ -63,6 +63,8 @@ function describe(lead: Json) {
     : String(lead.unit_path || lead.page_path || "/").slice(0, 80);
   const parts = [
     `Website lead: ${where}`,
+    lead.unit_path ? `Unit: ${String(lead.unit_path).split("/").pop()?.split("-")[0]}` : null,
+    lead.placement ? `Page: ${String(lead.placement).slice(0, 32)}` : null,
     lead.traffic_source ? `Src: ${lead.traffic_source}${lead.utm_campaign ? `/${String(lead.utm_campaign).slice(0, 30)}` : ""}` : null,
     lead.tracking_id ? `Ref: ${lead.tracking_id}` : null,
     lead.device ? String(lead.device) : null,

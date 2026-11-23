@@ -1,7 +1,7 @@
 "use strict";
 
 const { localizedProjectContent, renderSections: renderLocalizedSections, hasIndexableContent } = require("../../netlify/functions/_localized-project-content.cjs");
-const { showcaseHtml } = require("../../netlify/functions/_project-showcase.cjs");
+const { showcaseHtml, unitPlan } = require("../../netlify/functions/_project-showcase.cjs");
 // Buyer FAQ computed from the live units (shared with the React project page; needs `node --import tsx`).
 const { buildProjectFaq, isCuratedFaq, cleanPublicFaq } = require("../../src/lib/projectFaq.ts");
 const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, countAr, priceShortAr } = require("../../netlify/functions/_display-text.cjs");
@@ -291,8 +291,15 @@ const NEW_TAG = '<span class="ms-2 inline-block rounded-full bg-[#1faa59] px-2.5
 const { unitInquiry } = require("../../netlify/functions/_inventory-facts.cjs");
 
 function staticUnitCard(unit, projectSlug = "") {
+  const financing = unitPlan(unit);
+  let estimate = "";
+  if (financing && financing.parts.length === 1 && financing.parts[0].months === 0) {
+    const down = Number(unit.starting_price) * financing.parts[0].percent / 100;
+    const monthly = (Number(unit.starting_price) - down) / (12 * financing.years);
+    estimate = `<p>المقدم ${formatPrice(Math.round(down))} جنيه · القسط الشهري التقريبي ${formatPrice(Math.round(monthly))} جنيه بافتراض أقساط متساوية وبدون رسوم إضافية.</p>`;
+  }
   const plan = [text(unit.down_payment_text).replace(/^(\d+(?:\.\d+)?\s*%)$/, "$1 مقدم"), text(unit.installments_text)].filter(Boolean).map(arabicField).join(" · ").replace(/(\d+(?:\.\d+)?\s*%) مقدم/, "مقدم $1");
-  return `<details class="overflow-hidden rounded-3xl border border-[#dde4ee] bg-white p-6"><summary class="cursor-pointer list-none"><h3 class="text-xl font-extrabold">${escapeHtml([unitTypeAr(unit.unit_type) || arabicField(unit.unit_type), bedroomsAr(unit.bedrooms_text)].filter(Boolean).join(" · "))}${isNewUnit(unit) ? NEW_TAG : ""}</h3>${arDate(unit.created_at) ? `<p class="mt-1 text-xs text-[#556070]">اتضافت ${escapeHtml(arDate(unit.created_at))}</p>` : ""}<p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه${Number(unit.starting_price) > 0 && Number(unit.area_sqm) >= 20 ? ` · سعر المتر ${new Intl.NumberFormat("en-EG").format(Math.round(Number(unit.starting_price) / Number(unit.area_sqm)))} جنيه` : ""}</p><span class="mt-4 inline-block font-bold text-[#9a640f]">اعرض المقدم وخطة التقسيط</span></summary>${plan ? `<p class="mt-5 border-t border-[#ecf0f6] pt-5 text-[#556070]">${escapeHtml(plan)}</p>` : ""}${unit.id ? `<a href="${escapeHtml(unitPath({ ...unit, project_slug: projectSlug }))}" class="mt-4 inline-block font-bold text-[#9a640f]">كل تفاصيل الوحدة</a> · <a data-wa-source="project-unit" data-unit-path="${escapeHtml(unitPath({ ...unit, project_slug: projectSlug }))}" href="${escapeHtml(unitInquiry(unit, projectSlug))}">اسأل عن الوحدة دي</a>` : ""}</details>`;
+  return `<details class="overflow-hidden rounded-3xl border border-[#dde4ee] bg-white p-6"><summary class="cursor-pointer list-none"><h3 class="text-xl font-extrabold">${escapeHtml([unitTypeAr(unit.unit_type) || arabicField(unit.unit_type), bedroomsAr(unit.bedrooms_text)].filter(Boolean).join(" · "))}${isNewUnit(unit) ? NEW_TAG : ""}</h3>${arDate(unit.created_at) ? `<p class="mt-1 text-xs text-[#556070]">اتضافت ${escapeHtml(arDate(unit.created_at))}</p>` : ""}<p class="mt-3">${escapeHtml(unit.area_sqm)} م² · ${formatPrice(unit.starting_price)} جنيه${Number(unit.starting_price) > 0 && Number(unit.area_sqm) >= 20 ? ` · سعر المتر ${new Intl.NumberFormat("en-EG").format(Math.round(Number(unit.starting_price) / Number(unit.area_sqm)))} جنيه` : ""}</p><span class="mt-4 inline-block font-bold text-[#9a640f]">اعرض المقدم وخطة التقسيط</span></summary>${estimate}${plan ? `<p class="mt-5 border-t border-[#ecf0f6] pt-5 text-[#556070]">${escapeHtml(plan)}</p>` : ""}${unit.id ? `<a href="${escapeHtml(unitPath({ ...unit, project_slug: projectSlug }))}" class="mt-4 inline-block font-bold text-[#9a640f]">كل تفاصيل الوحدة</a> · <a data-wa-source="project-unit" data-unit-path="${escapeHtml(unitPath({ ...unit, project_slug: projectSlug }))}" href="${escapeHtml(unitInquiry(unit, projectSlug))}">اسأل عن الوحدة دي</a>` : ""}</details>`;
 }
 
 // Turn other projects' names inside already-escaped text into links to their pages
@@ -607,6 +614,9 @@ function renderUnitStatic(shell, unit, project, siblings = [], { indexable = tru
   // Media is uploaded per project; a unit without its own photos shows its project's gallery.
   const imageList = ownImages.length ? ownImages : urls(project.image_url, project.gallery_urls);
   const faqItems = renderUnitFaq(introVars, unit.id);
+  if (!text(unit.installments_text)) faqItems[1] = { q: "إيه خطة السداد المتاحة؟", a: "مدة التقسيط قيد التأكيد مع المطور." };
+  faqItems.push({ q: "امتى الاستلام؟", a: arabicField(unit.delivery_text, "قيد التأكيد مع المطور.") },
+    { q: "إيه التشطيب؟", a: arabicField(unit.finishing, "قيد التأكيد مع المطور.") });
   const alternates = siblings
     .slice()
     .sort((a, b) => Math.abs(numberValue(a.starting_price) - numberValue(unit.starting_price)) - Math.abs(numberValue(b.starting_price) - numberValue(unit.starting_price)))

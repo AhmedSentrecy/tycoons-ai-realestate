@@ -2685,6 +2685,8 @@ function embeddedGuidePaths(articles, projects, projectIdsWithUnits, lang = "ar"
   for (const article of Array.isArray(articles) ? articles : []) {
     if (!article || !article.project_id || !article.slug || (article.language || "ar") !== lang) continue;
     const key = String(article.project_id);
+    const owner = byId.get(key);
+    if (owner?.slug && isProjectGuideArticle(article)) paths.set(article.slug, `${lang === "en" ? "/en" : ""}/projects/${owner.slug}`);
     const current = newest.get(key);
     if (!current || String(article.published_at || "") > String(current.published_at || "")) newest.set(key, article);
   }
