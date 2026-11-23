@@ -102,11 +102,11 @@ exports.handler = async function handler(event) {
   const unitRoute = originalPath.match(/^\/units\/(.+?)\/?$/);
   const guidesIndexRoute = originalPath.match(/^\/(?:(en)\/)?guides\/?$/);
   const guideRoute = originalPath.match(/^\/(?:(en)\/)?guides\/(.+?)\/?$/);
-  const reportRoute = originalPath.match(/^\/ar\/reports\/(.+?)\/?$/);
+  const reportRoute = originalPath.match(/^\/(ar|en)\/reports\/(.+?)\/?$/);
   const staticRoute = originalPath.match(/^\/(about|faq|methodology|corrections|contact|privacy)\/?$/);
   const directoryRoute = originalPath.match(/^\/(ar|en)(?:\/directory)?\/?$/);
 
-  const lang = route?.[1] === "en" || directoryRoute?.[1] === "en" || guideRoute?.[1] === "en" || guidesIndexRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
+  const lang = reportRoute?.[1] === "en" || route?.[1] === "en" || directoryRoute?.[1] === "en" || guideRoute?.[1] === "en" || guidesIndexRoute?.[1] === "en" || params.lang === "en" ? "en" : "ar";
   let type = String(params.type || "home");
   let rawSlug = String(params.slug || "");
 
@@ -126,7 +126,7 @@ exports.handler = async function handler(event) {
     rawSlug = guideRoute[2];
   } else if (reportRoute) {
     type = "report";
-    rawSlug = reportRoute[1];
+    rawSlug = reportRoute[2];
   } else if (staticRoute) {
     type = "static";
     rawSlug = staticRoute[1];
@@ -152,10 +152,10 @@ exports.handler = async function handler(event) {
       }
     }
     if (type === "static") html = renderStaticPage(slug);
-    if (type === "report") html = renderPriceReport(slug, "ar");
+    if (type === "report") html = renderPriceReport(slug, lang);
     if (type === "guides") {
       const [articles, projectsForGuides, unitsForGuides] = await Promise.all([
-        fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at,project_id", order: "published_at.desc", limit: "300" }),
+        fetchRest("published_editorial_articles", { select: "title,slug,language,excerpt,published_at,project_id,target_type", order: "published_at.desc", limit: "300" }),
         fetchProjectsMeta().catch(() => []),
         fetchUnits().catch(() => null),
       ]);
@@ -204,7 +204,7 @@ exports.handler = async function handler(event) {
       // /ar/areas/<area>/apartments-for-sale: the apartments page next to the area guide.
       const apartmentsRoute = type === "area" ? slug.match(/^([a-z0-9-]+)\/apartments-for-sale$/) : null;
       if (apartmentsRoute) {
-        html = renderApartments(projects, apartmentsRoute[1], lang);
+        html = renderApartments(projects, apartmentsRoute[1], lang, { ...Object.fromEntries(new URLSearchParams((event.rawUrl || "").split("?")[1])), ...params });
       } else if (type === "area") {
         const guides = await fetchRest("published_editorial_articles", { select: "title,slug,language,project_id,area_name,target_type,published_at", language: `eq.${lang}`, order: "published_at.desc", limit: "200" });
         html = renderCollection(projects, "area", slug, lang, guides);

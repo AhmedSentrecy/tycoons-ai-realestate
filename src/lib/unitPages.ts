@@ -1,5 +1,7 @@
 import { parseUnitParam } from "@/lib/unitUrl";
 
+import { publicUnit, canonicalProjectSlug } from "../../netlify/functions/_inventory-facts.cjs";
+
 const viteEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env ?? {};
 
 const SUPABASE_URL =
@@ -107,7 +109,7 @@ export async function loadUnitPage(id: string): Promise<UnitPageData | null> {
   }
   const rows = await getRows("units", unitParams);
   if (rows.length !== 1) return null;
-  const [unit] = rows;
+  const unit = publicUnit(rows[0]);
 
   const projectId = text(unit.project_id);
   const projectParams = new URLSearchParams({
@@ -121,7 +123,7 @@ export async function loadUnitPage(id: string): Promise<UnitPageData | null> {
     id: text(unit.id),
     project_id: projectId,
     project_slug:
-      text(project?.slug) ||
+      canonicalProjectSlug(text(project?.slug)) ||
       `${slugify(project?.name || unit.project_name)}--${slugify(unit.developer)}`,
     project_name: text(unit.project_name),
     developer: text(unit.developer),

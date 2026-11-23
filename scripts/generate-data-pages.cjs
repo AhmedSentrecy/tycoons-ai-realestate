@@ -15,6 +15,8 @@ const dist = path.join(root, "dist");
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_6VFTijqKQB6RD7nIsSj_JQ_eEdoibGg";
 
+const { publicUnit, canonicalProjectSlug } = require("../netlify/functions/_inventory-facts.cjs");
+
 async function fetchRows(table, columns, filters = {}) {
   const all = [];
   for (let offset = 0; offset < 5000; offset += 1000) {
@@ -29,7 +31,7 @@ async function fetchRows(table, columns, filters = {}) {
     all.push(...rows);
     if (rows.length < 1000) break;
   }
-  return all;
+  return table === "units" ? all.map(publicUnit) : all;
 }
 
 async function writePage(relativePath, html) {
@@ -55,16 +57,29 @@ async function main() {
   // Only rows with a stored slug become pages: legacy duplicate rows without a
   // slug would otherwise collide with the canonical row via the generated slug
   // and overwrite its rich page.
+  const { groupProjects } = require("../netlify/functions/_seo-utils.cjs");
+  const existing = new Set(projects.map((project) => project.slug).filter(Boolean));
+  for (const group of groupProjects(units, projects)) {
+    if (existing.has(group.slug) || !group.units.length) continue;
+    const project = projects.find((item) => item.id === group.units[0].project_id);
+    if (project && !project.slug) {
+      project.slug = group.slug;
+      existing.add(group.slug);
+    }
+  }
   const normalizedProjects = projects
     .filter((project) => String(project.slug || "").trim())
     .map((project) => ({ ...project, slug: String(project.slug).trim() }))
     // Developer logo (Supabase brand-logos) on every project; pages render without it.
     .map((project) => ({ ...project, logo: projectLogo(project) }));
+  const bySlug = new Map(normalizedProjects.map((p) => [p.slug, p]));
   const projectById = new Map(normalizedProjects.map((project) => [project.id, project]));
   const indexableIds = indexableUnitIds(units);
   const unitsByProject = new Map();
   for (const unit of units) {
-    if (!projectById.has(unit.project_id)) continue;
+    const source = projectById.get(unit.project_id);
+    if (!source) continue;
+    unit.project_id = (bySlug.get(canonicalProjectSlug(source.slug)) || source).id;
     const list = unitsByProject.get(unit.project_id) || [];
     list.push(unit);
     unitsByProject.set(unit.project_id, list);

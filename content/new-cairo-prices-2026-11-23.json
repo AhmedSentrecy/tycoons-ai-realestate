@@ -1,0 +1,674 @@
+{
+  "date": "2026-11-23",
+  "slug": "new-cairo-average-prices-2026-11-23",
+  "count": 354,
+  "sqmCount": 349,
+  "average": 12321068,
+  "sqm": 93077,
+  "projects": [
+    {
+      "name": "27 Residence",
+      "slug": "27-residence--tameer",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 26872299,
+      "sqm": 104970
+    },
+    {
+      "name": "97 Hills",
+      "slug": "97-hills--palm-hills-developments",
+      "count": 3,
+      "sqmCount": 3,
+      "average": 28338333,
+      "sqm": 149622
+    },
+    {
+      "name": "Acasa Mia",
+      "slug": "acasa-mia--dar-al-alamia-developments",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 13953263,
+      "sqm": 63424
+    },
+    {
+      "name": "Amara Residence",
+      "slug": "amara-residence--new-plan",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 7832000,
+      "sqm": 62400
+    },
+    {
+      "name": "Ark East",
+      "slug": "ark-east--the-ark-development",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 10700000,
+      "sqm": 164744
+    },
+    {
+      "name": "Avelin",
+      "slug": "avelin--times-developments",
+      "count": 6,
+      "sqmCount": 6,
+      "average": 9016667,
+      "sqm": 80490
+    },
+    {
+      "name": "Az Homes",
+      "slug": "az-homes--tameer",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 25802152,
+      "sqm": 194001
+    },
+    {
+      "name": "Azad Walk",
+      "slug": "azad-walk--tameer",
+      "count": 3,
+      "sqmCount": 3,
+      "average": 16850204,
+      "sqm": 141659
+    },
+    {
+      "name": "Begonia Residence",
+      "slug": "begonia-residence--menassat-developments",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 6405000,
+      "sqm": 76327
+    },
+    {
+      "name": "Blanks",
+      "slug": "blanks--manaj-developments",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 9995000,
+      "sqm": 128141
+    },
+    {
+      "name": "Bluetree",
+      "slug": "bluetree--sky-ad",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 14313250,
+      "sqm": 86035
+    },
+    {
+      "name": "Cattleya",
+      "slug": "cattleya--arabco-developments",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 9026200,
+      "sqm": 76493
+    },
+    {
+      "name": "Collage",
+      "slug": "collage--pre-group",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 14794000,
+      "sqm": 79538
+    },
+    {
+      "name": "Creek Town",
+      "slug": "creek-town--il-cazar-developments",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 12250000,
+      "sqm": 81923
+    },
+    {
+      "name": "Crescent Walk",
+      "slug": "crescent-walk--marakez",
+      "count": 8,
+      "sqmCount": 8,
+      "average": 14483719,
+      "sqm": 114064
+    },
+    {
+      "name": "Crown Plaza – Yellow Residence Y21",
+      "slug": "crown-plaza-yellow-residence-y21--urbnlanes",
+      "count": 8,
+      "sqmCount": 8,
+      "average": 14323102,
+      "sqm": 172375
+    },
+    {
+      "name": "DISTRICT 5",
+      "slug": "district-5--marakez",
+      "count": 6,
+      "sqmCount": 6,
+      "average": 16149167,
+      "sqm": 117422
+    },
+    {
+      "name": "El Patio Oro",
+      "slug": "el-patio-oro--la-vista-developments",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 17790000,
+      "sqm": 108476
+    },
+    {
+      "name": "El Patio Riva",
+      "slug": "el-patio-riva--la-vista-developments",
+      "count": 4,
+      "sqmCount": 2,
+      "average": 8443250,
+      "sqm": 74301
+    },
+    {
+      "name": "El Patio Vida",
+      "slug": "el-patio-vida--la-vista-developments",
+      "count": 5,
+      "sqmCount": 5,
+      "average": 13270000,
+      "sqm": 83014
+    },
+    {
+      "name": "Elen Residence",
+      "slug": "elen-residence--concrete-development",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 5666250,
+      "sqm": 59555
+    },
+    {
+      "name": "ÉTAJE - Taj City",
+      "slug": "etaje--madinet-masr",
+      "count": 3,
+      "sqmCount": 3,
+      "average": 9100000,
+      "sqm": 97543
+    },
+    {
+      "name": "Galleria Residence",
+      "slug": "galleria-residence--arabia-holding",
+      "count": 5,
+      "sqmCount": 5,
+      "average": 18850847,
+      "sqm": 122752
+    },
+    {
+      "name": "Garnet Residence",
+      "slug": "garnet-residence--jadeer-realestate",
+      "count": 8,
+      "sqmCount": 8,
+      "average": 11173977,
+      "sqm": 72561
+    },
+    {
+      "name": "Glen",
+      "slug": "glen--il-cazar-developments",
+      "count": 3,
+      "sqmCount": 3,
+      "average": 7100000,
+      "sqm": 59530
+    },
+    {
+      "name": "Hydepark Central",
+      "slug": "hydepark-central--hydepark-developments",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 10607500,
+      "sqm": 91308
+    },
+    {
+      "name": "Hyde Park New Cairo",
+      "slug": "hydepark-new-cairo--hydepark-developments",
+      "count": 10,
+      "sqmCount": 10,
+      "average": 10800000,
+      "sqm": 108705
+    },
+    {
+      "name": "Icon Garden",
+      "slug": "icon-garden--style-home-development",
+      "count": 8,
+      "sqmCount": 8,
+      "average": 7829561,
+      "sqm": 54334
+    },
+    {
+      "name": "Ivoire East",
+      "slug": "ivoire-east--pre-group",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 22278500,
+      "sqm": 97560
+    },
+    {
+      "name": "Jadie Residence",
+      "slug": "jadie-residence--concrete-development",
+      "count": 11,
+      "sqmCount": 11,
+      "average": 5016627,
+      "sqm": 47717
+    },
+    {
+      "name": "Jayd",
+      "slug": "jayd--saudi-egyptian-developers-sed",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 11960000,
+      "sqm": 79733
+    },
+    {
+      "name": "Jiwar Residence",
+      "slug": "jiwar-residence--concrete-development",
+      "count": 5,
+      "sqmCount": 5,
+      "average": 5666260,
+      "sqm": 47545
+    },
+    {
+      "name": "Katameya 40",
+      "slug": "katameya-40--starlight-development",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 15750000,
+      "sqm": 120460
+    },
+    {
+      "name": "Kayan City - Evora Greens",
+      "slug": "kayan-city-evora-greens--stm",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 7700000,
+      "sqm": 55702
+    },
+    {
+      "name": "Lazura New Cairo",
+      "slug": "lazura-new-cairo--lazura-developments",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 6302000,
+      "sqm": 50263
+    },
+    {
+      "name": "LifeWise",
+      "slug": "lifewise--eons-developments",
+      "count": 5,
+      "sqmCount": 5,
+      "average": 5974925,
+      "sqm": 52272
+    },
+    {
+      "name": "LUSH VALLEY",
+      "slug": "lush-valley--city-edge",
+      "count": 8,
+      "sqmCount": 8,
+      "average": 7829451,
+      "sqm": 71450
+    },
+    {
+      "name": "Maliv",
+      "slug": "maliv--kulture-developments",
+      "count": 3,
+      "sqmCount": 3,
+      "average": 7315667,
+      "sqm": 59002
+    },
+    {
+      "name": "Mayan",
+      "slug": "mayan--stm",
+      "count": 3,
+      "sqmCount": 3,
+      "average": 8733333,
+      "sqm": 75737
+    },
+    {
+      "name": "Midtown New Cairo",
+      "slug": "midtown-new-cairo--better-home",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 23850000,
+      "sqm": 90000
+    },
+    {
+      "name": "Mountain View 1.1",
+      "slug": "mountain-view-1-1--mountain-view",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 15921837,
+      "sqm": 113727
+    },
+    {
+      "name": "Mountain View Creek View",
+      "slug": "mountain-view-creek-view--mountain-view",
+      "count": 7,
+      "sqmCount": 7,
+      "average": 10478880,
+      "sqm": 90593
+    },
+    {
+      "name": "Mountain View iCity New Cairo",
+      "slug": "mountain-view-icity-new-cairo--mountain-view",
+      "count": 5,
+      "sqmCount": 5,
+      "average": 40544941,
+      "sqm": 144516
+    },
+    {
+      "name": "Nest",
+      "slug": "nest--n-developments",
+      "count": 14,
+      "sqmCount": 14,
+      "average": 11057929,
+      "sqm": 71406
+    },
+    {
+      "name": "Noll",
+      "slug": "noll--kleek-developments",
+      "count": 9,
+      "sqmCount": 9,
+      "average": 8352021,
+      "sqm": 53799
+    },
+    {
+      "name": "Notion",
+      "slug": "notion--town-writers",
+      "count": 5,
+      "sqmCount": 5,
+      "average": 7188000,
+      "sqm": 58329
+    },
+    {
+      "name": "One Hyde Park",
+      "slug": "one-hyde-park--hyde-park",
+      "count": 10,
+      "sqmCount": 10,
+      "average": 11489000,
+      "sqm": 90033
+    },
+    {
+      "name": "Palm Hills New Cairo",
+      "slug": "palm-hills-new-cairo--palm-hills-developments",
+      "count": 9,
+      "sqmCount": 9,
+      "average": 20489778,
+      "sqm": 152014
+    },
+    {
+      "name": "QUEEN VALLEY",
+      "slug": "queen-valley--euphoria",
+      "count": 10,
+      "sqmCount": 10,
+      "average": 4880516,
+      "sqm": 42266
+    },
+    {
+      "name": "Queens",
+      "slug": "queens--al-jazi-egypt",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 14000000,
+      "sqm": 170732
+    },
+    {
+      "name": "Regent's Square",
+      "slug": "regent-s-square--al-dawlia-developments",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 19778250,
+      "sqm": 110092
+    },
+    {
+      "name": "Rock Vera",
+      "slug": "rock-vera--rock-developments",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 13500000,
+      "sqm": 83333
+    },
+    {
+      "name": "Saada Boutique",
+      "slug": "saada-boutique--horizon-egypt-development",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 7830000,
+      "sqm": 94337
+    },
+    {
+      "name": "Sarai - Club Views",
+      "slug": "sarai--madinet-masr",
+      "count": 6,
+      "sqmCount": 6,
+      "average": 10129908,
+      "sqm": 74637
+    },
+    {
+      "name": "Sarai - Elm Tree Park",
+      "slug": "sarai-elm-tree-park--madinet-masr",
+      "count": 3,
+      "sqmCount": 3,
+      "average": 7033333,
+      "sqm": 77533
+    },
+    {
+      "name": "Sarai - ESSE Residences",
+      "slug": "sarai-esse-residences--madinet-masr",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 11280360,
+      "sqm": 82904
+    },
+    {
+      "name": "Sarai - Royal Residence",
+      "slug": "sarai-royal-residence--madinet-masr",
+      "count": 5,
+      "sqmCount": 5,
+      "average": 5540000,
+      "sqm": 82741
+    },
+    {
+      "name": "Solana East",
+      "slug": "solana-east--ora",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 13956250,
+      "sqm": 141138
+    },
+    {
+      "name": "Solay",
+      "slug": "solay--living-yards-developments",
+      "count": 11,
+      "sqmCount": 11,
+      "average": 5240909,
+      "sqm": 63881
+    },
+    {
+      "name": "SOTO RESIDENCE",
+      "slug": "soto-residence--dolmen",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 7350000,
+      "sqm": 48885
+    },
+    {
+      "name": "Stei8ht",
+      "slug": "stei8ht--lmd",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 10000000,
+      "sqm": 129870
+    },
+    {
+      "name": "Taj City - Origami",
+      "slug": "taj-city-origami--madinet-masr",
+      "count": 3,
+      "sqmCount": 3,
+      "average": 14138875,
+      "sqm": 105391
+    },
+    {
+      "name": "Telal East",
+      "slug": "telal-east--pre-group",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 12100000,
+      "sqm": 71095
+    },
+    {
+      "name": "The Median",
+      "slug": "the-median--egygab-developments",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 9634500,
+      "sqm": 71535
+    },
+    {
+      "name": "THE MORNINGS",
+      "slug": "the-mornings--al-ahly-sabbour",
+      "count": 9,
+      "sqmCount": 9,
+      "average": 10188889,
+      "sqm": 84337
+    },
+    {
+      "name": "The Phoenix Residences",
+      "slug": "the-phoenix-residences--hassan-allam",
+      "count": 3,
+      "sqmCount": 0,
+      "average": 24766667,
+      "sqm": null
+    },
+    {
+      "name": "The Red Residence",
+      "slug": "the-red-residence--al-borouj-misr-developments-group-abm",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 9835500,
+      "sqm": 148395
+    },
+    {
+      "name": "The Residence",
+      "slug": "the-residence--salam-properties",
+      "count": 5,
+      "sqmCount": 5,
+      "average": 9398612,
+      "sqm": 112586
+    },
+    {
+      "name": "The View Waterway",
+      "slug": "the-view-waterway--the-waterway-developments",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 22747750,
+      "sqm": 141646
+    },
+    {
+      "name": "The Waterway Branded Residence - WBR1",
+      "slug": "the-waterway-branded-residence-wbr1--waterway",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 56650000,
+      "sqm": 302111
+    },
+    {
+      "name": "The Waterway - New Cairo",
+      "slug": "the-waterway-new-cairo--the-waterway-developments",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 29662500,
+      "sqm": 138965
+    },
+    {
+      "name": "Tierra",
+      "slug": "tierra--saudi-egyptian-developers-sed",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 5518000,
+      "sqm": 62705
+    },
+    {
+      "name": "Town Square Residence",
+      "slug": "town-square-residence--belcon-developments",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 5020000,
+      "sqm": 40000
+    },
+    {
+      "name": "V Editions",
+      "slug": "v-editions--sodic",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 53044000,
+      "sqm": 243321
+    },
+    {
+      "name": "Vallis",
+      "slug": "vallis--sky-ad",
+      "count": 7,
+      "sqmCount": 7,
+      "average": 7770286,
+      "sqm": 61967
+    },
+    {
+      "name": "Villette",
+      "slug": "villette--sodic",
+      "count": 5,
+      "sqmCount": 5,
+      "average": 37968800,
+      "sqm": 211976
+    },
+    {
+      "name": "W signature",
+      "slug": "w-signature--the-waterway-developments",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 26521000,
+      "sqm": 115812
+    },
+    {
+      "name": "White Residence",
+      "slug": "white-residence--upwyde",
+      "count": 2,
+      "sqmCount": 2,
+      "average": 7172725,
+      "sqm": 77375
+    },
+    {
+      "name": "Wuud Residence",
+      "slug": "wujood-residence--tharaa-developments",
+      "count": 1,
+      "sqmCount": 1,
+      "average": 4851900,
+      "sqm": 44513
+    },
+    {
+      "name": "Yardin",
+      "slug": "yardin--mass-developments",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 4724864,
+      "sqm": 50437
+    },
+    {
+      "name": "Yellow Residence",
+      "slug": "yellow-residence--urbnlanes-development",
+      "count": 12,
+      "sqmCount": 12,
+      "average": 11839868,
+      "sqm": 119160
+    },
+    {
+      "name": "Zed East",
+      "slug": "zed-east--ora",
+      "count": 4,
+      "sqmCount": 4,
+      "average": 15075000,
+      "sqm": 145385
+    },
+    {
+      "name": "Zomra East",
+      "slug": "zomra-east--nations-of-sky",
+      "count": 8,
+      "sqmCount": 8,
+      "average": 13812500,
+      "sqm": 95774
+    }
+  ]
+}

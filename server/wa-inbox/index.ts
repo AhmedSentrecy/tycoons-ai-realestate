@@ -279,6 +279,12 @@ function mostCommon(units: Json[], field: string): string {
   return best;
 }
 
+function validInventoryField(field: string, value: string) {
+  if (field === "delivery_text" && /installments?|down payment|payment plan|تقسيط|مقدم|أقساط/i.test(value)) return "";
+  if (field === "finishing" && /^(?:within\s+)?\d+(?:\.\d+)?\s*(?:years?|months?|سنوات|سنين|شهور)$|^[a-z]{2,4}-[a-z]{2,4}$/i.test(value.trim())) return "";
+  return value;
+}
+
 /**
  * Fills the details the message left empty, never the ones it gave:
  * 1. the unit on the site this one updates, 2. the project's own down payment / installments /
@@ -289,7 +295,10 @@ function fillGaps(row: Json, match: Json | null, project: Json | null, units: Js
   const filled: Record<string, FillSource> = {};
   const sameTypeUnits = units.filter((unit) => sameType(unit.unit_type, row.unit_type));
   for (const field of FILL_FIELDS) {
-    if (text(row[field])) continue;
+    if (text(row[field])) {
+      row[field] = validInventoryField(field, text(row[field]));
+      continue;
+    }
     let value = text(match?.[field]);
     let source: FillSource = "unit";
     if (!value && project && PROJECT_FILL_FIELDS.has(field)) {
@@ -304,6 +313,7 @@ function fillGaps(row: Json, match: Json | null, project: Json | null, units: Js
       }
       source = "units";
     }
+    value = validInventoryField(field, value);
     if (value) {
       row[field] = value;
       filled[field] = source;

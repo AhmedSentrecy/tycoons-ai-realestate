@@ -14,6 +14,7 @@ function projectAliases(projects, unitsByProject) {
   const aliases = new Map([
     ["creekview--mountain-view", "mountain-view-creek-view--mountain-view"],
     ["mountain-view-creekview--mountain-view", "mountain-view-creek-view--mountain-view"],
+    ["regents-square--al-dawlia-boutique-developments", "regent-s-square--al-dawlia-developments"],
     ["regent-s-square--al-dawlia-boutique-developments", "regent-s-square--al-dawlia-developments"],
     // Oct 2026: the "New Launch" listing was merged into the main Hyde Park New Cairo page.
     ["hyde-park-new-cairo-new-launch", "hydepark-new-cairo--hydepark-developments"],

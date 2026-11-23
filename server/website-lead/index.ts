@@ -143,7 +143,7 @@ async function createLead(body: Json) {
     page_url: text(body.page_url, 500),
     project_slug: text(body.project_slug, 160),
     project_name: text(body.project_name, 160),
-    unit_path: /^\/units\//.test(String(body.page_path || "")) ? text(body.page_path, 300) : null,
+    unit_path: /^\/units\/[a-z0-9-]+$/i.test(String(body.unit_path || "")) ? text(body.unit_path, 300) : /^\/units\//.test(String(body.page_path || "")) ? text(body.page_path, 300) : null,
     button_label: text(body.button_label, 120),
     placement: text(body.placement, 60),
     lang: text(body.lang, 10),

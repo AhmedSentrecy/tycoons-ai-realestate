@@ -31,7 +31,7 @@ check(fs.existsSync(path.join(__dirname, "..", "public", report.pdf)), "the PDF 
 // Rendered page.
 const html = u.renderPriceReport("new-cairo-prices-2026", "ar");
 check(html, "page renders");
-check(u.renderPriceReport("new-cairo-prices-2026", "en") === null, "Arabic only");
+check(u.renderPriceReport("new-cairo-prices-2026", "en").includes("Historical New Cairo"), "English archive");
 check(u.renderPriceReport("unknown", "ar") === null, "unknown report is a 404");
 const text = html.replace(/<script[^]*?<\/script>|<style[^]*?<\/style>/g, "").replace(/<[^>]+>/g, " ");
 check(/<title>دليل أسعار الشقق في التجمع الخامس 2026/.test(html), "title starts with the target search");

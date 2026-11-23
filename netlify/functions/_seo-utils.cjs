@@ -1,4 +1,7 @@
 "use strict";
+const { unitPlan } = require("./_project-showcase.cjs");
+const { publicUnit, hasInstallmentPrice, mean, uniqueUnits, unitInquiry, canonicalProjectSlug } = require("./_inventory-facts.cjs");
+const averageReport = require("../../content/new-cairo-prices-2026-11-23.json");
 const { PRICE_REPORTS } = require("./_price-reports.cjs");
 
 const { stripInternalNotes, arabicDisplay, arabicProse, unitsAr, projectsAr, countAr, isCommercialUnit, fitTitle, priceShortAr, yearsAr, availableAr, deliveryInAr } = require("./_display-text.cjs");
@@ -70,6 +73,11 @@ const CACHE_HEADERS = {
 };
 
 const AREAS = [
+  { slug: "al-shorouk", ar: "الشروق", en: "Al Shorouk", match: /^al shorouk$/i },
+  { slug: "el-shorouk", ar: "الشروق", en: "El Shorouk", match: /^el shorouk$/i },
+  { slug: "alexandria", ar: "الإسكندرية", en: "Alexandria", match: /^alexandria$/i },
+  { slug: "downtown-cairo", ar: "وسط القاهرة", en: "Downtown Cairo", match: /^downtown cairo$/i },
+  { slug: "el-gouna", ar: "الجونة", en: "El Gouna", match: /^el gouna$/i },
   {
     slug: "mostakbal-city",
     ar: "مستقبل سيتي",
@@ -784,7 +792,7 @@ async function fetchUnits() {
       if (!response.ok) throw new Error(`inventory ${response.status}`);
       const page = await response.json();
       if (!Array.isArray(page)) throw new Error("inventory invalid");
-      rows.push(...page);
+      rows.push(...page.map(publicUnit));
       if (page.length < 1000) break;
     }
     if (!rows.length) throw new Error("inventory empty");
@@ -891,10 +899,12 @@ async function fetchProjectsMeta({ strict = false } = {}) {
 function groupProjects(units, projectsMeta = []) {
   const grouped = new Map();
   const metaById = new Map();
-  for (const meta of projectsMeta) {
+  const canonicalMeta = new Map(projectsMeta.map((p) => [p.slug, p]));
+  for (const source of projectsMeta) {
+    const meta = canonicalMeta.get(canonicalProjectSlug(source.slug)) || source;
     const slug = clean(meta.slug, "");
     if (!slug || !meta.id) continue;
-    metaById.set(meta.id, { ...meta, slug });
+    metaById.set(source.id, { ...meta, slug });
     if (!grouped.has(slug)) {
       grouped.set(slug, {
         id: meta.id,
@@ -911,7 +921,7 @@ function groupProjects(units, projectsMeta = []) {
       });
     }
   }
-  for (const unit of units) {
+  for (const unit of uniqueUnits(units)) {
     const meta = unit.project_id ? metaById.get(unit.project_id) : null;
     if (meta) {
       grouped.get(meta.slug).units.push(unit);
@@ -1135,7 +1145,7 @@ function cards(projects, lang) {
 function pricePerSqm(unit) {
   const price = numberValue(unit.starting_price);
   const area = numberValue(unit.area_sqm);
-  return price > 0 && area >= 20 ? Math.round(price / area) : 0;
+  return price > 0 && area > 0 ? price / area : 0;
 }
 function percentValue(text) {
   const match = String(text || "").match(/(\d+(?:\.\d+)?)\s*%/);
@@ -1146,11 +1156,11 @@ function yearsValue(text) {
   return match ? Number(match[1]) : null;
 }
 function projectBuyerStats(units) {
-  const perSqm = units.map(pricePerSqm).filter(Boolean).sort((a, b) => a - b);
+  const perSqm = units.filter(hasInstallmentPrice).map(pricePerSqm).filter(Boolean).sort((a, b) => a - b);
   const downs = units.map((unit) => percentValue(unit.down_payment_text)).filter((v) => v !== null && v >= 0 && v <= 100);
   const years = units.map((unit) => yearsValue(unit.installments_text)).filter((v) => v && v <= 20);
-  const median = perSqm.length ? perSqm[Math.floor((perSqm.length - 1) / 2)] : 0;
-  return { minSqm: perSqm[0] || 0, medianSqm: median, minDown: downs.length ? Math.min(...downs) : null, maxYears: years.length ? Math.max(...years) : null, sqmCount: perSqm.length };
+  const average = Math.round(mean(perSqm));
+  return { minSqm: perSqm[0] || 0, averageSqm: average, minDown: downs.length ? Math.min(...downs) : null, maxYears: years.length ? Math.max(...years) : null, sqmCount: perSqm.length };
 }
 function millions(value) {
   const m = numberValue(value) / 1e6;
@@ -1410,7 +1420,7 @@ function areaRows(areaList) {
   return areaList.map((entry) => {
     const units = entry.projects.flatMap((project) => project.units).filter((unit) => !isCommercialUnit(unit));
     const prices = units.map((unit) => numberValue(unit.starting_price)).filter((v) => v > 0).sort((a, b) => a - b);
-    const sqm = units.map(pricePerSqm).filter(Boolean).sort((a, b) => a - b);
+    const sqm = units.filter(hasInstallmentPrice).map(pricePerSqm).filter(Boolean).sort((a, b) => a - b);
     const downs = units.map((unit) => percentValue(unit.down_payment_text)).filter((v) => v !== null && v > 0 && v <= 100);
     const years = units.map((unit) => yearsValue(unit.installments_text)).filter((v) => v && v <= 20);
     return {
@@ -1418,7 +1428,7 @@ function areaRows(areaList) {
       projects: entry.projects.length,
       units: units.length,
       minPrice: prices[0] || 0,
-      medianSqm: sqm.length >= 10 ? sqm[Math.floor((sqm.length - 1) / 2)] : 0,
+      averageSqm: sqm.length >= 10 ? Math.round(mean(sqm)) : 0,
       minDown: robustMin(downs, 3),
       maxYears: robustMax(years, 3),
     };
@@ -1457,7 +1467,7 @@ function homeTakeaways(projectCount, unitCount, facts, rows) {
 function homeBuyerGuide(facts, rows) {
   const down = facts.minDown !== null ? `${facts.minDown}%` : "5%";
   const years = facts.maxYears ? yearsAr(facts.maxYears) : "10 سنين";
-  const tableRows = rows.map((row) => `<tr><th scope="row"><a href="/ar/areas/${escapeHtml(row.area.slug)}">${escapeHtml(row.area.ar)}</a>${apartmentsPageLinkAr(row.area.slug, "<br><small>", "</small>")}</th><td>${row.projects}</td><td>${row.minPrice ? escapeHtml(priceShortAr(row.minPrice)) : "—"}</td><td>${row.medianSqm ? `${fmtNum(row.medianSqm)} جنيه` : "—"}</td><td>${row.minDown !== null ? `${row.minDown}%` : "—"}</td><td>${row.maxYears ? escapeHtml(yearsAr(row.maxYears)) : "—"}</td></tr>`).join("");
+  const tableRows = rows.map((row) => `<tr><th scope="row"><a href="/ar/areas/${escapeHtml(row.area.slug)}">${escapeHtml(row.area.ar)}</a>${apartmentsPageLinkAr(row.area.slug, "<br><small>", "</small>")}</th><td>${row.projects}</td><td>${row.minPrice ? escapeHtml(priceShortAr(row.minPrice)) : "—"}</td><td>${row.averageSqm ? `${fmtNum(row.averageSqm)} جنيه` : "—"}</td><td>${row.minDown !== null ? `${row.minDown}%` : "—"}</td><td>${row.maxYears ? escapeHtml(yearsAr(row.maxYears)) : "—"}</td></tr>`).join("");
   const readyLinks = [...facts.ready].sort((a, b) => b.units.length - a.units.length).slice(0, 5)
     .map((project) => `<a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(project.name)}</a>`).join("، ");
   const block = (id, h2, answer, rest = "") => `<section class="qa" id="${id}"><h2>${h2}</h2><p class="ans">${answer}</p>${rest}</section>`;
@@ -1678,15 +1688,15 @@ function renderProject(projects, slug, lang, article = null) {
   ${image ? `<img ${heroSrcAttrs(image, 960)} alt="${escapeHtml(`${project.name} — ${location}`)}" width="960" height="540" style="width:100%;max-height:460px;object-fit:contain;background:#0d1f18;border-radius:20px" fetchpriority="high">` : ""}
   <div class="facts">${hasUnits ? `<div class="fact"><small>${ar ? "يبدأ من" : "Starting from"}</small><strong>${escapeHtml(formatPrice(minPrice, lang))}</strong></div>
   <div class="fact"><small>${ar ? "أعلى سعر ظاهر" : "Highest listed price"}</small><strong>${escapeHtml(formatPrice(projectMaxPrice(project), lang))}</strong></div>
-  <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.medianSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Median price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.medianSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
+  <div class="fact"><small>${ar ? "الخيارات" : "Options"}</small><strong>${units.length}</strong></div>${buyer.averageSqm ? `<div class="fact"><small>${ar ? "متوسط سعر المتر" : "Average price per m²"}</small><strong>${escapeHtml(formatPrice(buyer.averageSqm, lang))}</strong></div>` : ""}${buyer.minDown !== null ? `<div class="fact"><small>${ar ? "أقل مقدم" : "Lowest down payment"}</small><strong>${buyer.minDown}%</strong></div>` : ""}${buyer.maxYears ? `<div class="fact"><small>${ar ? "أطول فترة تقسيط" : "Longest instalment plan"}</small><strong>${buyer.maxYears} ${ar ? (buyer.maxYears > 2 && buyer.maxYears < 11 ? "سنين" : "سنة") : "years"}</strong></div>` : ""}` : `<div class="fact"><small>${ar ? "الأسعار" : "Pricing"}</small><strong>${ar ? "تواصل معنا لأحدث سعر" : "Contact us for the latest price"}</strong></div>`}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(formatDate(updated, lang))}</strong></div></div>
-  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اطلب أحدث الأسعار والتوفر" : "Request current availability"}</a></section>${showcase ? `<div style="margin:28px 0 8px;border-radius:24px;overflow:clip">${showcase}</div><script src="/showcase.js" defer></script>` : ""}${extraSections}
+  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "اسأل عن المشروع" : "Ask about the project"}</a></section>${showcase ? `<div style="margin:28px 0 8px;border-radius:24px;overflow:clip">${showcase}</div><script src="/showcase.js" defer></script>` : ""}${extraSections}
   ${ownGuide && article && article.slug ? `<p><a href="${lang === "en" ? "/en" : ""}/guides/${escapeHtml(article.slug)}/">${escapeHtml(article.title)}</a></p>` : ""}${!ownGuide && article && article.body_markdown ? `<section id="article"><span class="eyebrow">${ar ? "دليل Tycoons — تمت مراجعته قبل النشر" : "Tycoons guide — reviewed before publication"}</span><h2>${escapeHtml(article.title)}</h2>${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ""}${priceDateNoteHtml({ markdown: article.body_markdown, reviewedAt: article.reviewed_at, ar, unitsHref: hasUnits ? "#units" : "" })}${renderSafeMarkdown(publicEditorialMarkdown(article.body_markdown, ar), { liveUnitIds: liveUnitIdsOf(projects) })}</section>` : ""}
   ${(() => { const info = developerHasPage ? developerInfo(project.developer) : null; const about = info && (ar ? info.about_ar : info.about_en); if (ownGuide) return info ? `<p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? `كل مشاريع ${escapeHtml(info.name_ar || info.name)}` : `All projects by ${escapeHtml(info.name)}`}</a></p>` : ""; return about ? `<section><h2>${ar ? `عن المطور: ${escapeHtml(info.name_ar || info.name)}` : `About the developer: ${escapeHtml(info.name)}`}</h2><p>${escapeHtml(about)}</p><p><a href="/${lang}/developers/${escapeHtml(info.slug)}">${ar ? "كل مشاريع المطور" : "All projects by this developer"}</a></p></section>` : ""; })()}
   ${!hasUnits && ownGuide ? "" : `<h2 id="units">${ar ? "الوحدات المتاحة" : "Available units"}</h2>`}${
     hasUnits
       ? `<div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "سعر المتر" : "Per m²"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
-  ${units.map((unit) => `<tr><td>${escapeHtml(clean(unit.unit_type))}</td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(pricePerSqm(unit))) : "—"}</td><td>${escapeHtml(payText(unit.down_payment_text, lang))}</td><td>${escapeHtml(payText(unit.installments_text, lang))}</td><td>${escapeHtml(payText(unit.delivery_text, lang))}</td></tr>`).join("")}
+  ${units.map((unit) => `<tr><td><a href="${escapeHtml(unitInquiry(unit, project.slug, lang))}">${escapeHtml(clean(unit.unit_type))} · ${ar ? "اسأل عن الوحدة دي" : "Ask about this unit"}</a></td><td>${isCommercialUnit(unit) ? "" : escapeHtml(clean(unit.bedrooms_text, ""))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(Math.round(pricePerSqm(unit)))) : "—"}</td><td>${escapeHtml(payText(unit.down_payment_text, lang))}</td><td>${escapeHtml(payText(unit.installments_text, lang))}</td><td>${escapeHtml(payText(unit.delivery_text, lang))}</td></tr>`).join("")}
   </tbody></table></div>`
       : ownGuide ? "" : `<p class="note">${ar ? `لا توجد وحدات منشورة بأسعار تفصيلية لـ${project.name} حاليًا. تواصل معنا على واتساب وسنرسل لك أحدث قائمة أسعار وخطط سداد متاحة من ${project.developer}.` : `No units with detailed pricing are published for ${project.name} right now. Message us on WhatsApp and we'll send the latest price list and payment plans from ${project.developer}.`}</p>`
   }<p class="note">${ar ? "الأسعار والتوفر يتغيران؛ يتم التأكيد مع المطور وقت الطلب." : "Prices and availability change and are reconfirmed with the developer on request."}</p>
@@ -1807,6 +1817,7 @@ function renderUnitFaq(unit, project, stats, area, unitTypeAr, priceFmt, updated
       "إيه خطة السداد المتاحة؟",
       `${payText(unit.down_payment_text, "ar", "المقدم يُحدَّد حسب المشروع.")} ${payText(unit.installments_text, "ar", "الأقساط تُحدَّد حسب المشروع وموعد الاستلام.")}`,
     ],
+    ["إيه التشطيب؟", payText(unit.finishing, "ar", "التشطيب قيد التأكيد مع المطور.")],
     ["امتى الاستلام؟", payText(unit.delivery_text, "ar", "موعد الاستلام يتأكد مع المطور وقت الطلب.")],
     [
       `هل ${area.ar} مكان مناسب للسكن أو الاستثمار؟`,
@@ -1858,7 +1869,7 @@ function renderUnit(projects, unitId, lang = "ar") {
   };
   const intro = pick(UNIT_INTRO_BANK, seed, "intro")(introVars);
 
-  const title = `${unitTypeAr} ${clean(unit.area_sqm, "")} م² في ${project.name}${priceShortAr(unit.starting_price) ? ` بـ ${priceShortAr(unit.starting_price)}` : ""} | Tycoons`;
+  const title = `${unitTypeAr} ${clean(unit.area_sqm, "")} م² في ${project.name}${priceShortAr(unit.starting_price) ? ` بـ ${priceShortAr(unit.starting_price)} جنيه` : ""} | Tycoons`;
   const description = `${unitTypeAr} في ${project.name} بسعر يبدأ من ${priceFmt}. اعرف المساحة وخطة السداد والتشطيب والبدائل القريبة.`;
 
   const crumbs = [
@@ -1875,19 +1886,18 @@ function renderUnit(projects, unitId, lang = "ar") {
 
   const faq = renderUnitFaq(unit, project, stats, area, unitTypeAr, priceFmt, updatedText);
 
-  const message = encodeURIComponent(
-    `Hello Tycoons Investments,\nI am interested in this available unit:\n\nProject: ${project.name}\nDeveloper: ${project.developer}\nLocation: ${location}\nUnit type: ${unit.unit_type}\nBedrooms: ${clean(unit.bedrooms_text, "Not specified")}\nArea: ${unit.area_sqm} sqm\nStarting price: ${formatPrice(unit.starting_price, "en")}\n\nURL: ${SITE_URL}${path}\n\nPlease send me the latest availability and payment plan.\n\nSource: unit_page\nPage: ${SITE_URL}${path}`,
-  );
+  const inquiry = unitInquiry(unit, project.slug, lang);
+
 
   const body = `<main><p class="crumbs">${crumbs.map((item) => `<a href="${item.path}">${escapeHtml(item.name)}</a>`).join(" / ")}</p>
   <section class="hero"><span class="eyebrow">${escapeHtml(project.developer)} · ${escapeHtml(area.ar)}</span><h1>${escapeHtml(`${unitTypeAr} ${clean(unit.area_sqm, "")} م² في ${project.name}`)}${isNew ? ` <span class="tag" style="position:static;background:#1faa59;vertical-align:middle">${ar ? "جديد" : "New"}</span>` : ""}</h1>
   <p class="lead">${escapeHtml(intro)}</p>
   <div class="facts"><div class="fact"><small>${ar ? "السعر يبدأ من" : "Starting from"}</small><strong>${escapeHtml(priceFmt)}</strong></div>
   <div class="fact"><small>${ar ? "المساحة" : "Area"}</small><strong>${escapeHtml(clean(unit.area_sqm, "—"))} م²</strong></div>
-  <div class="fact"><small>${ar ? "الغرف" : "Bedrooms"}</small><strong>${escapeHtml(clean(unit.bedrooms_text, "غير محدد"))}</strong></div>
+  ${isCommercialUnit(unit) ? "" : `<div class="fact"><small>${ar ? "الغرف" : "Bedrooms"}</small><strong>${escapeHtml(clean(unit.bedrooms_text, "غير محدد"))}</strong></div>`}
   ${addedText ? `<div class="fact"><small>${ar ? "اتضافت على الموقع" : "Listed on"}</small><strong>${escapeHtml(addedText)}</strong></div>` : ""}
   <div class="fact"><small>${ar ? "آخر تحديث" : "Last updated"}</small><strong>${escapeHtml(updatedText)}</strong></div></div>
-  <a class="cta" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}">${ar ? "تأكيد السعر والمتاح" : "Confirm price and availability"}</a></section>
+  <a class="cta" href="${escapeHtml(inquiry)}">${ar ? "تأكيد السعر والمتاح" : "Confirm price and availability"}</a></section>
 
   <h2>عن المنطقة — ${escapeHtml(area.ar)}</h2><p>${escapeHtml(areaFacts.context)}</p><p class="note">${escapeHtml(areaFacts.buyerNote)}</p>
 
@@ -1905,6 +1915,7 @@ function renderUnit(projects, unitId, lang = "ar") {
     title,
     description,
     path,
+    robots: require("./_unit-indexing.cjs").indexableUnitIds(project.units).has(String(unit.id)) ? undefined : "noindex,follow",
     body: `${entityNavigation}${body}`,
     image: clean(unit.image_url, "") || clean(project.image_url, ""),
     schemas: [
@@ -2243,25 +2254,23 @@ function unitDeliveryAr(unit) {
   const months = text.match(/(\d+)\s*(?:months?|شهور|شهر)/i);
   return months ? `استلام بعد ${months[1]} شهور` : "";
 }
-function median(values) {
-  const sorted = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
-  return sorted.length ? sorted[Math.floor((sorted.length - 1) / 2)] : 0;
-}
-
-function renderApartments(projects, areaSlug, lang = "ar") {
+function renderApartments(projects, areaSlug, lang = "ar", params = {}) {
   const guide = APARTMENT_GUIDES[areaSlug];
-  if (lang !== "ar" || !guide) return null; // Arabic page only for now
+  if (!guide) return null;
+  const en = lang === "en";
   const areaProjects = projects.filter((project) => hasAvailableUnits(project) && areaFor(projectLocation(project)).slug === areaSlug);
   const rows = areaProjects.flatMap((project) => project.units
     .filter((unit) => isApartmentUnit(unit) && numberValue(unit.starting_price) > 0)
     .map((unit) => ({ unit, project, price: numberValue(unit.starting_price), area: numberValue(unit.area_sqm), sqm: pricePerSqm(unit) })));
   if (rows.length < 5) return null;
   const area = areaFor(projectLocation(rows[0].project));
-  const path = `/ar/areas/${areaSlug}/apartments-for-sale`;
+  const basePath = `/${lang}/areas/${areaSlug}/apartments-for-sale`;
   const prices = rows.map((row) => row.price);
   const min = Math.min(...prices);
   const max = Math.max(...prices);
-  const withArea = rows.filter((row) => row.area >= 20);
+  const comparable = rows.filter(({ unit }) => hasInstallmentPrice(unit));
+  const withArea = comparable.filter((row) => row.area > 0);
+  const averagePrice = mean(comparable.map((row) => row.price));
   const downs = rows.map((row) => percentValue(row.unit.down_payment_text)).filter((value) => value !== null && value > 0 && value <= 50);
   const years = rows.map((row) => yearsValue(row.unit.installments_text)).filter((value) => value && value <= 20);
   const lastUpdated = rows.map((row) => row.unit.last_updated_at).filter((value) => value && !Number.isNaN(Date.parse(value))).sort().pop() || "";
@@ -2276,9 +2285,11 @@ function renderApartments(projects, areaSlug, lang = "ar") {
     minFmt: formatPrice(min, "ar"),
     maxFmt: formatPrice(max, "ar"),
     minShort: priceShortAr(min),
-    medSqmFmt: fmtNum(Math.round(median(rows.map((row) => row.sqm).filter(Boolean)) / 100) * 100),
-    medArea: fmtNum(Math.round(median(withArea.map((row) => row.area)))),
-    medPriceFmt: `${priceShortAr(median(prices))} جنيه`,
+    medSqmFmt: withArea.length ? fmtNum(Math.round(mean(withArea.map((row) => row.sqm)))) : "البيانات غير كافية",
+    sqmCount: withArea.length,
+    medArea: fmtNum(Math.round(mean(withArea.map((row) => row.area)))),
+    priceCount: comparable.length,
+    medPriceFmt: comparable.length ? formatPrice(Math.round(averagePrice), "ar") : "البيانات غير كافية",
     readyCount: apartmentsAr(readyNumber),
     under5: apartmentsAr(count((row) => row.price < 5e6)),
     from5to10: apartmentsAr(count((row) => row.price >= 5e6 && row.price < 10e6)),
@@ -2287,8 +2298,8 @@ function renderApartments(projects, areaSlug, lang = "ar") {
     small: apartmentsAr(withArea.filter((row) => row.area < 100).length),
     mid: apartmentsAr(withArea.filter((row) => row.area >= 100 && row.area <= 150).length),
     large: apartmentsAr(withArea.filter((row) => row.area > 150).length),
-    minDown: downs.length ? `${Math.min(...downs)}%` : "5%",
-    maxYears: years.length ? yearsAr(Math.max(...years)) : "8 سنوات",
+    minDown: downs.length ? `${Math.min(...downs)}%` : "قيد التأكيد",
+    maxYears: years.length ? yearsAr(Math.max(...years)) : "قيد التأكيد",
     dateText: lastUpdated ? formatDate(lastUpdated, "ar") : "مع آخر تحديث للمخزون",
   };
   const title = guide.title(s);
@@ -2296,7 +2307,7 @@ function renderApartments(projects, areaSlug, lang = "ar") {
   const crumbs = [
     { name: "الرئيسية", path: "/" },
     { name: area.ar, path: `/ar/areas/${areaSlug}` },
-    { name: "شقق للبيع", path },
+    { name: "شقق للبيع", path: basePath },
   ];
 
   // Units: the cheapest apartment of each project first, then the next one, so the first
@@ -2307,11 +2318,26 @@ function renderApartments(projects, areaSlug, lang = "ar") {
     list.push(row);
     byProject.set(row.project.slug, list);
   }
-  const ordered = [];
-  for (let round = 0; ordered.length < 36 && round < 4; round += 1) {
-    for (const list of byProject.values()) if (list[round] && ordered.length < 36) ordered.push(list[round]);
+  const filter = params.filter || "";
+  if (!["", "ready", "installments"].includes(filter)) return null;
+  const resultRows = rows.filter(({ unit }) => {
+    if (filter === "ready") return unitDeliveryAr(unit) === "استلام فوري";
+    if (filter === "installments") return Boolean(unitPlan(unit));
+    return true;
+  }).sort((a, b) => a.price - b.price || String(a.unit.id).localeCompare(String(b.unit.id)));
+  const page = Number(params.page || 1);
+  const pages = Math.max(1, Math.ceil(resultRows.length / 36));
+  if (!Number.isSafeInteger(page) || page < 1 || page > pages) return null;
+  function listPath(p, f) {
+    const query = new URLSearchParams();
+    if (f) query.set("filter", f);
+    if (p > 1) query.set("page", String(p));
+    return basePath + (query.size ? "?" + query.toString() : "");
   }
-  ordered.sort((a, b) => a.price - b.price);
+  const path = listPath(page, filter);
+  const alternatePath = path.replace("/" + lang + "/", en ? "/ar/" : "/en/");
+  const ordered = resultRows.slice((page - 1) * 36, page * 36);
+  const nav = `<p>${en ? "Showing" : "تم عرض"} ${ordered.length ? (page - 1) * 36 + 1 : 0}–${Math.min(page * 36, resultRows.length)} ${en ? "of" : "من"} ${resultRows.length}</p><nav aria-label="${en ? "Pages" : "الصفحات"}">${Array.from({ length: pages }, (_, i) => `<a href="${escapeHtml(listPath(i + 1, filter))}#units"${i + 1 === page ? ' aria-current="page"' : ''}>${i + 1}</a>`).join(" · ")}</nav>`;
   const unitCard = ({ unit, project, area: sqmArea }) => {
     const href = unitPath({ ...unit, project_slug: project.slug });
     const label = `${apartmentLabelAr(unit)}${sqmArea ? ` ${fmtNum(sqmArea)} م²` : ""} في ${project.name}`;
@@ -2319,26 +2345,34 @@ function renderApartments(projects, areaSlug, lang = "ar") {
     const down = percentValue(unit.down_payment_text);
     const yrs = yearsValue(unit.installments_text);
     const image = String(unit.image_url || "").split(",")[0].trim() || projectImage(project);
-    const message = encodeURIComponent(`أهلاً Tycoons، مهتم بـ ${label}\n${SITE_URL}${href}`);
+    const inquiry = unitInquiry(unit, project.slug);
     return `<article class="pcard"${delivery === "استلام فوري" ? " data-ready" : ""}>
 <div class="pimg"><a href="${escapeHtml(href)}" tabindex="-1" aria-hidden="true"><img ${imgSrcAttrs(image, 400)} alt="${escapeHtml(`${label} — ${area.ar}`)}" loading="lazy" decoding="async" width="400" height="190"></a>${delivery ? `<span class="tag">${escapeHtml(delivery)}</span>` : ""}${logoBadge(projectLogo(project), 28)}</div>
 <div class="pbody"><h3><a href="${escapeHtml(href)}">${escapeHtml(label)}</a></h3><p class="ploc">${escapeHtml(area.ar)} · ${escapeHtml(devDisplayName(project.developer, "ar"))}</p>
-<p class="pprice">يبدأ من <b>${escapeHtml(fmtNum(unit.starting_price))}</b> ج.م${pricePerSqm(unit) ? ` · ${escapeHtml(fmtNum(pricePerSqm(unit)))} ج.م/م²` : ""}</p>
+<p class="pprice">يبدأ من <b>${escapeHtml(fmtNum(unit.starting_price))}</b> ج.م${pricePerSqm(unit) ? ` · ${escapeHtml(fmtNum(Math.round(pricePerSqm(unit))))} ج.م/م²` : ""}</p>
 <div class="pmeta">${down !== null && down > 0 ? `<span>مقدم ${escapeHtml(String(down))}%</span>` : ""}${yrs ? `<span>تقسيط ${escapeHtml(yearsAr(yrs))}</span>` : ""}<span><a href="/projects/${escapeHtml(project.slug)}">${escapeHtml(project.name)}</a></span></div>
-<div class="pcta"><a class="go" href="${escapeHtml(href)}">التفاصيل والسعر</a><a class="w" href="https://wa.me/${WHATSAPP_NUMBER}?text=${message}" rel="noopener">واتساب</a></div></div></article>`;
+<div class="pcta"><a class="go" href="${escapeHtml(href)}">التفاصيل والسعر</a><a class="w" href="${escapeHtml(inquiry)}" rel="noopener">واتساب</a></div></div></article>`;
   };
 
   // Price per m² per project, from the listed apartments only.
+  if (en) {
+    const metric = withArea.length ? fmtNum(Math.round(mean(withArea.map((r) => r.sqm)))) + " EGP/m²" : "insufficient data";
+    const answer = `Average price per m² is ${metric}, based on ${withArea.length} priced apartments with a known area. Average apartment price is ${comparable.length ? "EGP " + fmtNum(Math.round(averagePrice)) : "unavailable"} across ${comparable.length} installment listings in Tycoons inventory. Latest inventory update: ${lastUpdated.slice(0, 10) || "unavailable"}.`;
+    const question = "What is the average apartment price in New Cairo?";
+    const title = "New Cairo apartments for sale and average prices";
+    const cards = ordered.map(({ unit, project, price, area }) => `<article class="pcard"><h2><a href="${escapeHtml(unitPath({ ...unit, project_slug: project.slug }))}">${escapeHtml(project.name)} · ${escapeHtml(unit.unit_type)}</a></h2><p>${area ? fmtNum(area) + " m² · " : ""}EGP ${fmtNum(price)}</p><p>Down payment: ${escapeHtml(unit.down_payment_text || "awaiting confirmation")} · Term: ${escapeHtml(unit.installments_text || "awaiting confirmation")}</p><a href="${escapeHtml(unitInquiry(unit, project.slug, lang))}">Ask about this unit</a></article>`).join("");
+    return renderPage({ lang, path, alternatePath, title, description: answer, body: `<main><h1>${title}</h1><h2>${question}</h2><p>${escapeHtml(answer)}</p><p><a href="/en/reports/${averageReport.slug}">Dated averages and methodology</a></p><nav><a href="${basePath}#units">All apartments</a> · <a href="${basePath}?filter=ready#units">Ready to move</a> · <a href="${basePath}?filter=installments#units">Installment plans</a></nav><section id="units">${cards}</section>${nav}</main>`, schemas: [{ "@type": "FAQPage", mainEntity: [{ "@type": "Question", name: question, acceptedAnswer: { "@type": "Answer", text: answer } }] }] });
+  }
   const projectRows = [...byProject.entries()].map(([slugValue, list]) => {
-    const sqmValues = list.map((row) => row.sqm).filter(Boolean);
+    const sqmValues = list.filter(({ unit }) => hasInstallmentPrice(unit)).map((row) => row.sqm).filter(Boolean);
     const projectDowns = list.map((row) => percentValue(row.unit.down_payment_text)).filter((value) => value !== null && value > 0);
     return {
       slug: slugValue, project: list[0].project, count: list.length, from: Math.min(...list.map((row) => row.price)),
-      sqm: median(sqmValues), down: projectDowns.length ? Math.min(...projectDowns) : null,
+      sqm: mean(sqmValues), down: projectDowns.length ? Math.min(...projectDowns) : null,
       ready: list.some((row) => unitDeliveryAr(row.unit) === "استلام فوري"),
     };
   }).filter((row) => row.sqm).sort((a, b) => a.sqm - b.sqm);
-  const priceTable = `<div class="table"><table><thead><tr><th>المشروع</th><th>المطور</th><th>شقق متاحة</th><th>يبدأ من</th><th>متوسط سعر المتر</th><th>أقل مقدم</th></tr></thead><tbody>${projectRows.map((row) => `<tr><td><a href="/projects/${escapeHtml(row.slug)}">${escapeHtml(row.project.name)}</a>${row.ready ? " <small>(فيه استلام فوري)</small>" : ""}</td><td>${escapeHtml(devDisplayName(row.project.developer, "ar"))}</td><td>${escapeHtml(fmtNum(row.count))}</td><td>${escapeHtml(formatPrice(row.from, "ar"))}</td><td>${escapeHtml(fmtNum(Math.round(row.sqm / 100) * 100))} جنيه</td><td>${row.down !== null ? `${escapeHtml(String(row.down))}%` : "—"}</td></tr>`).join("")}</tbody></table></div><p class="note">سعر المتر = سعر البداية ÷ المساحة لكل شقة متاحة، والرقم في الجدول هو الوسيط لكل مشروع. أسعار بداية بالتقسيط وبتتأكد مع المطور وقت الطلب.</p>`;
+  const priceTable = `<div class="table"><table><thead><tr><th>المشروع</th><th>المطور</th><th>شقق متاحة</th><th>يبدأ من</th><th>متوسط سعر المتر</th><th>أقل مقدم</th></tr></thead><tbody>${projectRows.map((row) => `<tr><td><a href="/projects/${escapeHtml(row.slug)}">${escapeHtml(row.project.name)}</a>${row.ready ? " <small>(فيه استلام فوري)</small>" : ""}</td><td>${escapeHtml(devDisplayName(row.project.developer, "ar"))}</td><td>${escapeHtml(fmtNum(row.count))}</td><td>${escapeHtml(formatPrice(row.from, "ar"))}</td><td>${escapeHtml(fmtNum(Math.round(row.sqm)))} جنيه</td><td>${row.down !== null ? `${escapeHtml(String(row.down))}%` : "—"}</td></tr>`).join("")}</tbody></table></div><p class="note">سعر المتر = سعر البداية ÷ المساحة لكل شقة متاحة، والرقم في الجدول هو الوسيط لكل مشروع. أسعار بداية بالتقسيط وبتتأكد مع المطور وقت الطلب.</p>`;
 
   // Filter links (crawlable, no JavaScript): developers with apartments here, and jumps inside the page.
   const devCounts = new Map();
@@ -2352,8 +2386,8 @@ function renderApartments(projects, areaSlug, lang = "ar") {
   const devChips = [...devCounts.entries()].sort((a, b) => b[1].count - a[1].count).slice(0, 16)
     .map(([key, entry]) => `<a class="dchip" href="/ar/developers/${escapeHtml(devGroups.get(key) || slugify(entry.name))}">${escapeHtml(devDisplayName(entry.name, "ar"))} <span>${escapeHtml(apartmentsAr(entry.count))}</span></a>`).join("");
   const jumpChips = [
-    ["#units", `الشقق المتاحة (${fmtNum(rows.length)})`], ["#price-per-sqm", "سعر المتر لكل مشروع"], ["#budget", "حسب الميزانية"],
-    ["#ready", `استلام فوري (${fmtNum(readyNumber)})`], ["#installments", "التقسيط"], ["#faq", "أسئلة شائعة"],
+    [basePath + "#units", `الشقق المتاحة (${fmtNum(rows.length)})`], ["#price-per-sqm", "سعر المتر لكل مشروع"], ["#budget", "حسب الميزانية"],
+    [listPath(1, "ready") + "#units", `استلام فوري (${fmtNum(readyNumber)})`], [listPath(1, "installments") + "#units", "شقق بالتقسيط"], ["#faq", "أسئلة شائعة"],
   ].map(([href, text]) => `<a class="dchip" href="${href}">${escapeHtml(text)}</a>`).join("");
 
   const sectionIds = { "أسعار الشقق حسب الميزانية": "budget", "استلام فوري ولا تحت الإنشاء؟": "ready", "أنظمة السداد والتقسيط": "installments" };
@@ -2369,16 +2403,17 @@ ${searchMount("ar", "مثال: شقة غرفتين في التجمع تحت 8 م
 <main class="dmain">
   <div class="prose"><p class="answer-box"><strong>الإجابة السريعة:</strong> ${escapeHtml(guide.answer(s))}</p></div>
   ${voiceBox()}
+  <p><a href="/methodology">منهجية حساب متوسط سعر الشقة ومتوسط سعر المتر</a></p>
   <nav class="jump" aria-label="اختصارات الصفحة">${jumpChips}</nav>
   <div class="sh" id="units"><div><h2>شقق متاحة للبيع في التجمع الخامس الآن</h2><p>مرتبة من الأرخص للأغلى — اضغط على أي شقة تشوف تفاصيلها وخطة السداد</p></div></div>
-  <input type="checkbox" id="show-all" hidden><div class="pgrid lim">${ordered.map(unitCard).join("")}</div>${ordered.length > 12 ? `<div class="showall"><label class="more" for="show-all">اعرض شقق أكتر (${ordered.length})</label></div>` : ""}
+  <div class="pgrid">${ordered.map(unitCard).join("")}</div>${nav}
   <div class="sh" id="price-per-sqm"><div><h2>سعر متر الشقق في كل مشروع في التجمع الخامس</h2><p>${escapeHtml(`${projectsAr(projectRows.length)} مرتبة من أقل سعر متر لأعلى سعر متر`)}</p></div></div>
   ${priceTable}
   <div class="sh" id="by-developer"><div><h2>شقق التجمع الخامس حسب المطور</h2></div></div><div class="dchips">${devChips}</div>
   <div class="prose">
   ${sections.join("\n  ")}
   <h2 id="faq">أسئلة شائعة عن شقق للبيع في التجمع الخامس</h2>${faq.map(([q, a]) => `<section><h3>${escapeHtml(q)}</h3><p>${escapeHtml(a)}</p></section>`).join("")}
-  <h2>صفحات قريبة</h2><p>${areaSlug === "new-cairo" ? '<a href="/ar/reports/new-cairo-prices-2026">دليل أسعار الشقق في التجمع الخامس 2026 (سعر المتر لكل مشروع)</a> · ' : ""}<a href="/ar/areas/${escapeHtml(areaSlug)}">دليل مشاريع التجمع الخامس والقاهرة الجديدة</a> · <a href="/ar/areas/mostakbal-city">مشاريع مستقبل سيتي</a> · <a href="/guides/">كل الأدلة والمقالات</a></p>
+  <h2>صفحات قريبة</h2><p>${areaSlug === "new-cairo" ? '<a href="/ar/reports/new-cairo-average-prices-2026-11-23">تقرير متوسط سعر الشقة والمتر</a> · <a href="/ar/reports/new-cairo-prices-2026">دليل أسعار الشقق في التجمع الخامس 2026 (سعر المتر لكل مشروع)</a> · ' : ""}<a href="/ar/areas/${escapeHtml(areaSlug)}">دليل مشاريع التجمع الخامس والقاهرة الجديدة</a> · <a href="/ar/areas/mostakbal-city">مشاريع مستقبل سيتي</a> · <a href="/guides/">كل الأدلة والمقالات</a></p>
   <p class="note">الأرقام مبنية على الشقق الظاهرة عندنا وليست تقييمًا للسوق بالكامل. السعر النهائي والتوافر بيتأكدوا مع المطور وقت الطلب.</p></div></main>
 <div class="band"><div class="dwrap"><div><h2>عايز شقة في التجمع الخامس في حدود ميزانيتك؟</h2><p>ابعتلنا المساحة والميزانية والمنطقة، ونرشحلك أنسب 3 شقق بسعر المتر لكل واحدة.</p></div><a class="wa" href="https://wa.me/${WHATSAPP_NUMBER}" rel="noopener">${WA_ICON}<span>كلمنا على واتساب</span></a></div></div>`;
   return renderPage({
@@ -2386,9 +2421,9 @@ ${searchMount("ar", "مثال: شقة غرفتين في التجمع تحت 8 م
     title,
     description,
     path,
-    alternatePath: "",
+    alternatePath,
     body,
-    image: projectImage(ordered[0].project),
+    image: projectImage(rows[0].project),
     schemas: [
       breadcrumbSchema(crumbs),
       {
@@ -2419,9 +2454,35 @@ ${searchMount("ar", "مثال: شقة غرفتين في التجمع تحت 8 م
 
 // /ar/reports/<slug> (Nov 2026): dated price reports, frozen snapshots from _price-reports.cjs.
 // The figures never change after publishing; a new month is a new report.
+function renderAverageReport(lang) {
+  const en = lang === "en";
+  const r = averageReport;
+  const path = `/${lang}/reports/${r.slug}`;
+  const title = en ? "New Cairo average apartment prices, 23 November 2026" : "متوسط سعر الشقة والمتر في التجمع الخامس، ٢٣ نوفمبر ٢٠٢٦";
+  const answer = en
+    ? `Average price per m² was EGP ${fmtNum(r.sqm)} across ${r.sqmCount} apartments with a recorded area. Average apartment price was EGP ${fmtNum(r.average)} across ${r.count} listings. Both figures describe installment listings in Tycoons inventory on ${r.date}.`
+    : `متوسط سعر المتر ${fmtNum(r.sqm)} جنيه على عينة من ${r.sqmCount} شقة بمساحة مسجلة. ومتوسط سعر الشقة ${fmtNum(r.average)} جنيه على عينة من ${r.count} عرض تقسيط في مخزون Tycoons بالتجمع الخامس والقاهرة الجديدة بتاريخ ${r.date}.`;
+  const method = en ? "Each available apartment listing with a positive asking price and a recorded installment term counts once. Divide each price by its own area, then average those results. Listings with missing areas count toward the total-price average only. Quoted prices exclude unrecorded fees." : "الحساب بيشمل كل عرض شقة متاح بسعر موجب ومدة تقسيط مسجلة مرة واحدة. بنقسم سعر كل شقة على مساحتها، وبعدين نحسب المتوسط الحسابي للنواتج. الشقة اللي مساحتها ناقصة بتدخل في متوسط سعر الشقة فقط. الأرقام حسب السعر المسجل قبل أي رسوم إضافية غير مدرجة.";
+  const pdf = `/reports/${r.slug}-${lang}.pdf`;
+  const question = en ? "What was the average apartment price per m² in New Cairo?" : "كام متوسط سعر متر الشقق في التجمع الخامس؟";
+  const table = r.projects.map(p => `<tr><th><a href="${en ? "/en" : ""}/projects/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a></th><td>${p.count}</td><td>${fmtNum(p.average)}</td><td>${p.sqmCount}</td><td>${p.sqm ? fmtNum(p.sqm) : "—"}</td></tr>`).join("");
+  const body = `<main><h1>${title}</h1><time datetime="${r.date}">${r.date}</time><h2>${question}</h2><p>${answer}</p><h2>${en ? "Methodology" : "طريقة الحساب"}</h2><p>${method}</p><p><a href="${pdf}" download>${en ? "Download the dated report (PDF)" : "تنزيل التقرير المؤرخ PDF"}</a></p><div class="table"><table><thead><tr>${(en ? ["Project","Price sample","Average apartment price (EGP)","Area sample","Average price per m² (EGP)"] : ["المشروع","عينة السعر","متوسط سعر الشقة بالجنيه","عينة المساحة","متوسط سعر المتر بالجنيه"]).map(label => `<th>${label}</th>`).join("")}</tr></thead><tbody>${table}</tbody></table></div><p><a href="/${lang}/areas/new-cairo/apartments-for-sale">${en ? "View current apartments and prices" : "شوف الشقق المتاحة والأسعار الحالية"}</a> · <a href="/${lang}/reports/new-cairo-prices-2026">${en ? "Historical median report, 17 November" : "التقرير التاريخي بالوسيط، ١٧ نوفمبر"}</a></p></main>`;
+  return renderPage({ lang, title, description: answer, path, alternatePath: `/${en ? "ar" : "en"}/reports/${r.slug}`, body, schemas: [
+    { "@type": "Report", headline: title, description: answer, datePublished: r.date, inLanguage: lang, publisher: { "@id": SITE_URL + "/#organization" } },
+    { "@type": "FAQPage", mainEntity: [{ "@type": "Question", name: question, acceptedAnswer: { "@type": "Answer", text: answer } }] },
+  ] });
+}
+
 function renderPriceReport(slug, lang = "ar") {
+  if (slug === averageReport.slug) return renderAverageReport(lang);
   const report = PRICE_REPORTS[slug];
-  if (lang !== "ar" || !report) return null;
+  if (!report) return null;
+  if (lang === "en") {
+    const title = "Historical New Cairo apartment prices, November 2026";
+    const answer = `In the Tycoons snapshot of ${report.snapshotDate}, the median price per m² was EGP ${fmtNum(report.apartments.ppm)}. The middle 80% ranged from EGP ${fmtNum(report.apartments.p10)} to ${fmtNum(report.apartments.p90)} per m². This publication used medians.`;
+    const rows = report.projects.map(([name, slug, , count, sqm]) => `<tr><th><a href="/en/projects/${escapeHtml(slug)}">${escapeHtml(name)}</a></th><td>${count}</td><td>${fmtNum(sqm)}</td></tr>`).join("");
+    return renderPage({ lang, title, description: answer, path: "/en/reports/" + slug, alternatePath: "/ar/reports/" + slug, body: `<main><h1>${title}</h1><p>${answer}</p><p><a href="/en/reports/${averageReport.slug}">Average prices on 23 November 2026</a> · <a href="${report.pdf}">Original Arabic report (PDF)</a></p><div class="table"><table><thead><tr><th>Project</th><th>Listings</th><th>Median EGP/m²</th></tr></thead><tbody>${rows}</tbody></table></div></main>`, schemas: [{ "@type": "Report", headline: title, datePublished: report.published, inLanguage: "en" }] });
+  }
   const path = `/ar/reports/${report.slug}`;
   const crumbs = [
     { name: "الرئيسية", path: "/" },
@@ -2445,6 +2506,7 @@ function renderPriceReport(slug, lang = "ar") {
 <a class="dl-pdf" href="${escapeHtml(report.pdf)}" download>نزّل الدليل PDF (8 صفحات)</a>
 <div class="stats">${stat(`${fmtNum(a.ppm)} ج`, "سعر متر الشقة في النص")}${stat(`${Math.round(a.p10 / 1000)} لـ ${Math.round(a.p90 / 1000)} ألف`, "سعر المتر لـ 80% من الشقق")}${stat(`${a.medPrice} مليون`, `الشقة المتوسطة (${a.medArea} م²)`)}${stat(`${a.minPrice} مليون`, "أرخص شقة متاحة")}</div></div></section>
 <main class="dmain"><div class="prose">
+  <p><a href="/ar/reports/${averageReport.slug}">تقرير ٢٣ نوفمبر بمتوسط سعر الشقة ومتوسط سعر المتر</a></p>
   <p class="answer-box"><strong>الإجابة السريعة:</strong> ${escapeHtml(report.answer)}</p>
   <h2>أهم 5 حاجات تعرفها قبل ما تشتري</h2>
   <ul class="hl-list">${report.highlights.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
@@ -2490,7 +2552,7 @@ function renderPriceReport(slug, lang = "ar") {
     title: report.title,
     description: report.description,
     path,
-    alternatePath: "",
+    alternatePath: "/en/reports/" + slug,
     body,
     image: `${SITE_URL}/images/logo.png`,
     schemas: [
@@ -2616,12 +2678,12 @@ function publicEditorialMarkdown(markdown, ar) {
 // The newest Arabic guide of a project with units is shown in full on the project page, and its
 // /guides/ URL 301s there (scripts/generate-data-pages.cjs). Links to it go to the project page
 // directly instead of through the redirect. projectIdsWithUnits: Set of project ids with units.
-function embeddedGuidePaths(articles, projects, projectIdsWithUnits) {
+function embeddedGuidePaths(articles, projects, projectIdsWithUnits, lang = "ar") {
   const paths = new Map();
   const byId = new Map((Array.isArray(projects) ? projects : []).filter((project) => project && project.id).map((project) => [String(project.id), project]));
   const newest = new Map();
   for (const article of Array.isArray(articles) ? articles : []) {
-    if (!article || !article.project_id || !article.slug || (article.language || "ar") === "en") continue;
+    if (!article || !article.project_id || !article.slug || (article.language || "ar") !== lang) continue;
     const key = String(article.project_id);
     const current = newest.get(key);
     if (!current || String(article.published_at || "") > String(current.published_at || "")) newest.set(key, article);
@@ -2631,10 +2693,10 @@ function embeddedGuidePaths(articles, projects, projectIdsWithUnits) {
     const slug = String(project?.slug || "").trim();
     if (!slug) continue;
     // A writing-tool guide is the project page itself, with or without units.
-    if (isProjectGuideArticle(article)) { paths.set(article.slug, `/projects/${slug}`); continue; }
-    if (hasOwnWrittenGuide(project, "ar")) continue;
+    if (isProjectGuideArticle(article)) { paths.set(article.slug, `${lang === "en" ? "/en" : ""}/projects/${slug}`); continue; }
+    if (hasOwnWrittenGuide(project, lang)) continue;
     if (projectIdsWithUnits && !projectIdsWithUnits.has(projectId)) continue;
-    paths.set(article.slug, `/projects/${slug}`);
+    paths.set(article.slug, `${lang === "en" ? "/en" : ""}/projects/${slug}`);
   }
   return paths;
 }
@@ -2663,9 +2725,10 @@ function renderGuidesIndex(lang = "ar", articles = [], projects = [], projectIds
   const staticGuides = Object.entries(ar ? GUIDES : ENGLISH_GUIDES).map(([slug, guide]) => ({
     title: guide.title, description: guide.description, href: ar ? `/guides/${slug}/` : `/en/guides/${slug}/`,
   }));
+  const guidePaths = embeddedGuidePaths(articles, projects, projectIdsWithUnits, lang);
   const published = (Array.isArray(articles) ? articles : [])
     .filter((article) => article && article.slug && article.title && (ar ? article.language !== "en" : article.language === "en"))
-    .map((article) => ({ title: article.title, description: article.excerpt || "", href: (ar && projectIdsWithUnits && embeddedGuidePaths(articles, projects, projectIdsWithUnits).get(article.slug)) || editorialGuidePath(article), projectId: article.project_id || null }));
+    .map((article) => ({ title: article.title, description: article.excerpt || "", href: (projectIdsWithUnits && guidePaths.get(article.slug)) || editorialGuidePath(article), projectId: article.project_id || null }));
   const items = [...staticGuides, ...published];
   // Project guides grouped by the project's area, so the page has real sections (H2s) and
   // readers (and crawlers) see which guides belong to which market.
@@ -2734,7 +2797,7 @@ function guideUnitsTableHtml(units, project, lang) {
   const updated = rows.map((unit) => String(unit.last_updated_at || "")).filter(Boolean).sort().pop();
   const projectPath = ar ? `/projects/${project.slug}` : `/en/projects/${project.slug}`;
   return `<section aria-labelledby="guide-prices"><h2 id="guide-prices">${ar ? `أسعار ${escapeHtml(project.name)} المتاحة دلوقتي` : `${escapeHtml(project.name)} prices available now`}</h2><div class="table"><table><thead><tr><th>${ar ? "النوع" : "Type"}</th><th>${ar ? "الغرف / المساحة" : "Beds / area"}</th><th>${ar ? "السعر" : "Price"}</th><th>${ar ? "سعر المتر" : "Per m²"}</th><th>${ar ? "المقدم" : "Down payment"}</th><th>${ar ? "التقسيط" : "Installments"}</th><th>${ar ? "الاستلام" : "Delivery"}</th></tr></thead><tbody>
-  ${rows.map((unit) => `<tr><td><a href="${escapeHtml(unitPath({ ...unit, project_slug: project.slug }))}">${escapeHtml(clean(unit.unit_type))}</a></td><td>${escapeHtml(clean(unit.bedrooms_text))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(pricePerSqm(unit))) : "—"}</td><td>${escapeHtml(payText(unit.down_payment_text, lang))}</td><td>${escapeHtml(payText(unit.installments_text, lang))}</td><td>${escapeHtml(payText(unit.delivery_text, lang))}</td></tr>`).join("")}
+  ${rows.map((unit) => `<tr><td><a href="${escapeHtml(unitPath({ ...unit, project_slug: project.slug }))}">${escapeHtml(clean(unit.unit_type))}</a></td><td>${isCommercialUnit(unit) ? "" : escapeHtml(clean(unit.bedrooms_text, ""))}${unit.area_sqm ? ` · ${escapeHtml(unit.area_sqm)} m²` : ""}</td><td>${escapeHtml(formatPrice(unit.starting_price, lang))}</td><td>${pricePerSqm(unit) ? escapeHtml(new Intl.NumberFormat("en-EG").format(Math.round(pricePerSqm(unit)))) : "—"}</td><td>${escapeHtml(payText(unit.down_payment_text, lang))}</td><td>${escapeHtml(payText(unit.installments_text, lang))}</td><td>${escapeHtml(payText(unit.delivery_text, lang))}</td></tr>`).join("")}
   </tbody></table></div><p class="note">${ar ? `الأسعار من وحدات Tycoons المتاحة${updated ? `، آخر تحديث ${escapeHtml(formatDate(updated, lang))}` : ""}، وبتتأكد مع المطور وقت الطلب.` : `Prices from Tycoons' available units${updated ? `, last updated ${escapeHtml(formatDate(updated, lang))}` : ""}; reconfirmed with the developer on request.`} <a href="${escapeHtml(projectPath)}#units">${ar ? "كل الوحدات" : "All units"}</a></p></section>`;
 }
 
@@ -2874,7 +2937,7 @@ function renderStaticPage(type) {
     methodology: {
       title: "منهجية بيانات Tycoons Investments",
       description: "كيف نجمع ونراجع ونعرض الأسعار والوحدات وخطط السداد وحسابات المقارنة.",
-      body: `<h1>منهجية البيانات والحسابات</h1><div class="answer">نعرض الوحدات المتاحة فقط من قاعدة بيانات Tycoons، ونستخدم أقل سعر داخل كل مجموعة مقارنة. كل سعر أو توفر يحتاج إعادة تأكيد وقت الطلب.</div><h2>مصادر البيانات</h2><p>ملفات التوفر (Availability) وقوائم الأسعار والبروشورات ورسائل فرق المطورين، مع حفظ مرجع المصدر وتاريخ آخر تحديث داخل قاعدة البيانات عند توفرهما.</p><h2>المقارنات</h2><p>السكني يُقارن حسب المشروع ونوع الوحدة وعدد الغرف. الإداري والتجاري يُقارن حسب نوع الوحدة ونطاق المساحة. لا نخلط بين تشطيب أو تسليم مختلفين في استنتاج واحد بدون تنبيه.</p><h2>العائد</h2><p>أي ROI أو عائد إيجاري تقديري يعتمد على افتراضات معلنة: سعر الشراء الكامل، الإيجار، الإشغال، الصيانة، والتكاليف. النتائج ليست ضمانًا.</p><h2>التحديث</h2><p>تاريخ آخر تحديث يظهر على صفحات المشاريع. البيانات القديمة أو غير المؤكدة لا تُعامل كعرض نهائي.</p>`,
+      body: `<h1>منهجية البيانات والحسابات</h1><div class="answer">نعرض الوحدات المتاحة من مخزون Tycoons. «يبدأ من» هو أقل سعر متاح. متوسط سعر الشقة هو مجموع أسعار عروض التقسيط المؤهلة مقسومًا على عددها. متوسط سعر المتر هو المتوسط الحسابي لسعر كل وحدة مقسومًا على مساحتها، مع استبعاد المساحة الناقصة أو غير الموجبة. لكل وحدة وزن واحد ويظهر حجم عينة كل مؤشر في التقرير المؤرخ. كل سعر أو توفر يحتاج إعادة تأكيد وقت الطلب.</div><h2>مصادر البيانات</h2><p>ملفات التوفر (Availability) وقوائم الأسعار والبروشورات ورسائل فرق المطورين، مع حفظ مرجع المصدر وتاريخ آخر تحديث داخل قاعدة البيانات عند توفرهما.</p><h2>المقارنات</h2><p>السكني يُقارن حسب المشروع ونوع الوحدة وعدد الغرف. الإداري والتجاري يُقارن حسب نوع الوحدة ونطاق المساحة. لا نخلط بين تشطيب أو تسليم مختلفين في استنتاج واحد بدون تنبيه.</p><h2>العائد</h2><p>أي ROI أو عائد إيجاري تقديري يعتمد على افتراضات معلنة: سعر الشراء الكامل، الإيجار، الإشغال، الصيانة، والتكاليف. النتائج ليست ضمانًا.</p><h2>التحديث</h2><p>تاريخ آخر تحديث يظهر على صفحات المشاريع. البيانات القديمة أو غير المؤكدة لا تُعامل كعرض نهائي.</p>`,
     },
     corrections: {
       title: "سياسة التصحيح والتحديث | Tycoons Investments",

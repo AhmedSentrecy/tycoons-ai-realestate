@@ -11,6 +11,8 @@ const {
 } = require("./_seo-utils.cjs");
 const { developerGroups, developerKey, isApartmentUnit, APARTMENT_PAGE_AREAS } = require("./_seo-utils.cjs");
 const { indexableUnitIds } = require("./_unit-indexing.cjs");
+const { canonicalProjectSlug } = require("./_inventory-facts.cjs");
+const { groupProjects } = require("./_seo-utils.cjs");
 const { publishedProjectSlugs } = require("./_project-indexing.cjs");
 const { hasOwnWrittenGuide, attachPublishedGuides, isProjectGuideArticle } = require("./_localized-project-content.cjs");
 const { unitPath } = require("./_unit-url.cjs");
@@ -24,9 +26,10 @@ const SUPABASE_KEY =
 
 async function fetchRows(table, select, filters = {}) {
   const rows = [];
-  for (let offset = 0; offset < 5000; offset += 1000) {
+  for (let offset = 0; ; offset += 1000) {
     const params = new URLSearchParams({
       select,
+      order: table === "published_editorial_articles" ? "slug.asc,language.asc" : "id.asc",
       limit: "1000",
       offset: String(offset),
       ...filters,
@@ -67,6 +70,11 @@ exports.handler = async function handler() {
       fetchPublishedArticles(),
     ]);
     attachPublishedGuides(projects, articles, new Set(units.map((unit) => String(unit.project_id))));
+    // Mirror the directory's name-derived URLs for live units whose project has no stored slug.
+    const fallbackGroups = groupProjects(units, projects);
+    for (const p of projects) {
+      if (!p.slug) p.slug = fallbackGroups.find((group) => group.units.some((unit) => unit.project_id === p.id))?.slug || "";
+    }
     const projectsById = new Map(projects.map((project) => [project.id, project]));
     const publishedSlugs = publishedProjectSlugs(projects, units);
     const indexableIds = indexableUnitIds(units);
@@ -93,7 +101,10 @@ exports.handler = async function handler() {
       .slice(0, 5);
 
     // Dated price reports (frozen snapshots).
+    const latest = require("../../content/new-cairo-prices-2026-11-23.json");
+    for (const lang of ["ar","en"]) urls.set(`${SITE_URL}/${lang}/reports/${latest.slug}`, latest.date);
     for (const report of Object.values(PRICE_REPORTS)) {
+      urls.set(`${SITE_URL}/en/reports/${report.slug}`, report.published);
       urls.set(`${SITE_URL}/ar/reports/${report.slug}`, report.published);
     }
     for (const [guideSlug, guide] of Object.entries(GUIDES)) {
@@ -154,7 +165,7 @@ exports.handler = async function handler() {
     for (const unit of units) {
       if (!projectsById.has(unit.project_id)) continue;
       if (!indexableIds.has(String(unit.id))) continue;
-      urls.set(`${SITE_URL}${unitPath({ ...unit, project_slug: projectsById.get(unit.project_id)?.slug })}`, unit.last_updated_at || null);
+      urls.set(`${SITE_URL}${unitPath({ ...unit, project_slug: canonicalProjectSlug(projectsById.get(unit.project_id)?.slug) })}`, unit.last_updated_at || null);
     }
 
     // /ar/areas/<area>/apartments-for-sale, listed when the area has apartments to show
@@ -166,6 +177,7 @@ exports.handler = async function handler() {
       if (apartments.length < 5) continue;
       const newest = apartments.map((unit) => unit.last_updated_at).filter(Boolean).sort().pop() || null;
       urls.set(`${SITE_URL}/ar/areas/${areaSlug}/apartments-for-sale`, newest);
+      urls.set(`${SITE_URL}/en/areas/${areaSlug}/apartments-for-sale`, newest);
     }
 
     const body = `<?xml version="1.0" encoding="UTF-8"?>

@@ -50,7 +50,7 @@ check(html.includes('href="/ar/areas/new-cairo"'), "links back to the area guide
 check(html.includes("آخر تحديث للأسعار"), "visible last-updated date");
 check(!/\d+ (شقة|مشروع)[^ا]/.test(text.replace(/\d{2,} شقة/g, "")), "Arabic counted nouns (no '4 شقة')");
 check(!/propertyfinder|bayut|aqarmap|dubizzle|nawy/i.test(html), "no other real-estate website in the page");
-check(u.renderApartments(grouped, "new-cairo", "en") === null, "Arabic only for now");
+check(u.renderApartments(grouped, "new-cairo", "en").includes("Average price per m²"), "English counterpart");
 check(u.renderApartments(grouped, "north-coast", "ar") === null, "areas without a written guide 404");
 check(u.renderApartments(u.groupProjects(units.slice(0, 3), projects), "new-cairo", "ar") === null, "fewer than 5 apartments 404s");
 const area = u.renderCollection(grouped, "area", "new-cairo", "ar", []);
@@ -76,3 +76,27 @@ const crumbSchema = [...aptUnitHtml.matchAll(/<script type="application\/ld\+jso
 check(crumbSchema && crumbSchema.itemListElement[2].item.endsWith("/ar/areas/new-cairo/apartments-for-sale") && crumbSchema.itemListElement.every((item, i) => item.position === i + 1), "unit BreadcrumbList includes the apartments page with positions 1..n");
 check(!renderUnitStatic(shell, sVilla, sProject, []).includes("apartments-for-sale"), "villa unit breadcrumb unchanged");
 console.log(`Apartments page validation passed (${checks} checks).`);
+
+// Arithmetic, eligibility and crawlable list navigation exercise the actual renderer.
+const { publicUnit, mean, uniqueUnits, unitInquiry } = require("../netlify/functions/_inventory-facts.cjs");
+assert.equal(mean([50000, 60000, 100000]), 70000);
+const fixture = Array.from({ length: 74 }, (_, i) => ({
+  ...units[0], id: "00000000-0000-4000-8000-" + String(i + 100).padStart(12, "0"),
+  starting_price: (50000 + i) * 100, area_sqm: 100, installments_text: "8 years",
+  down_payment_text: "5%", delivery_text: i % 2 ? "Ready to move" : "2029",
+}));
+assert.equal(uniqueUnits([...fixture, fixture[0]]).length, 74);
+const listed = u.groupProjects([...fixture, fixture[0]], projects);
+for (const [params, expected] of [[{},36],[{page:"2"},36],[{page:"3"},2],[{filter:"ready", page:"2"},1],[{filter:"installments", page:"3"},2]]) {
+  const page = u.renderApartments(listed, "new-cairo", "ar", params);
+  assert.equal((page.match(/class="pcard"/g) || []).length, expected);
+}
+assert.equal(u.renderApartments(listed, "new-cairo", "ar", {page:"4"}), null);
+const crossed = publicUnit({delivery_text:"up to 10 Years with 15% Down Payment", installments_text:"8 years", finishing:"AP-FFI"});
+assert.equal(crossed.delivery_text + crossed.installments_text + crossed.finishing, "");
+assert.deepEqual(publicUnit(crossed), crossed);
+const selected = { ...fixture[0], project_name:"Mazarine", area_sqm:127, starting_price:7598000 };
+for (const lang of ["ar","en"]) {
+  const message = new URL(unitInquiry(selected, "mazarine", lang)).searchParams.get("text");
+  for (const fact of [selected.id, "127", "7,598,000", "5%", "/units/"]) assert.ok(message.includes(fact));
+}

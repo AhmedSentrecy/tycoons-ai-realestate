@@ -7,6 +7,9 @@ export function fitTitle(value: string, max = 60): string {
   if (title.length <= max) return title;
   title = title.replace(/\s*\|\s*Tycoons(?: Investments)?\s*$/i, "").trim();
   if (title.length <= max) return title;
+  const priceStart = title.search(/\s+بـ\s+[\d.,]+\s+(?:مليون|ألف)/);
+  if (priceStart > 0) title = title.slice(0, priceStart).trim();
+  if (title.length <= max) return title;
   const head = title.slice(0, max + 1);
   const cut = Math.max(head.lastIndexOf(" — "), head.lastIndexOf(" | "), head.lastIndexOf(": "));
   // a separator cut that keeps most of the title reads best; otherwise cut at a word
