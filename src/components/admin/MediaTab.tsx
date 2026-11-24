@@ -74,14 +74,14 @@ export default function MediaTab({
           />
         )}
         {project && (
-          <div className="rounded-3xl border border-[#e7ddc8] bg-white">
-            <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] p-4">
-              <button onClick={() => onSelect("")} className="rounded-full bg-[#f7f2ea] px-3 py-1.5 text-sm font-bold lg:hidden">
+          <div className="rounded-3xl border border-[#e3e9f2] bg-white">
+            <div className="flex flex-wrap items-center gap-2 border-b border-[#ecf0f6] p-4">
+              <button onClick={() => onSelect("")} className="rounded-full bg-[#f4f6fa] px-3 py-1.5 text-sm font-bold lg:hidden">
                 → رجوع
               </button>
               <div className="me-auto min-w-0">
                 <h2 className="truncate text-xl font-black">{project.name}</h2>
-                <p className="text-xs text-[#5c6a62]">
+                <p className="text-xs text-[#556070]">
                   {project.developer} · {project.location} · {mediaImages(project).length} صورة · {project.units_count} وحدة
                 </p>
               </div>
@@ -90,7 +90,7 @@ export default function MediaTab({
                   href={`${SITE_URL}/projects/${project.slug}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-[#d8c9ab] px-3 py-1.5 text-sm font-bold text-[#8a6630]"
+                  className="rounded-full border border-[#c9d3e1] px-3 py-1.5 text-sm font-bold text-[#9a640f]"
                 >
                   افتح صفحة المشروع ↗
                 </a>

@@ -100,9 +100,9 @@ function Preview({ article }: { article: ArticleValues }) {
   const faq = (article.faq ?? []).filter((item) => item.question.trim() && item.answer.trim());
   return <div dir={article.language === "ar" ? "rtl" : "ltr"} className="prose max-w-none">
     <h1 className="text-3xl font-black">{article.title || "عنوان المقال"}</h1>
-    <p className="mt-2 text-lg text-[#5c6a62]">{article.excerpt}</p>
+    <p className="mt-2 text-lg text-[#556070]">{article.excerpt}</p>
     {article.hero_image_url && <img src={article.hero_image_url} alt={article.title} className="mt-3 w-full rounded-2xl" />}
-    {takeaways.length > 0 && <div className="mt-5 rounded-2xl border border-[#e7ddc8] bg-[#fffaf1] p-4"><h2 className="text-xl font-black">{article.language === "ar" ? "الخلاصة" : "Key takeaways"}</h2><ul className="mt-2 list-disc ps-5">{takeaways.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
+    {takeaways.length > 0 && <div className="mt-5 rounded-2xl border border-[#e3e9f2] bg-[#f7f9fc] p-4"><h2 className="text-xl font-black">{article.language === "ar" ? "الخلاصة" : "Key takeaways"}</h2><ul className="mt-2 list-disc ps-5">{takeaways.map((item, index) => <li key={index}>{item}</li>)}</ul></div>}
     <div className="mt-6 space-y-3">
       {article.body_markdown.split(/\n+/).filter(Boolean).map((line, index) => {
         if (line.startsWith("## ")) return <h2 key={index} className="pt-3 text-2xl font-black"><InlineText text={line.slice(3)} /></h2>;
@@ -112,7 +112,7 @@ function Preview({ article }: { article: ArticleValues }) {
       })}
     </div>
     {faq.length > 0 && <div className="mt-8"><h2 className="text-2xl font-black">{article.language === "ar" ? "أسئلة شائعة" : "Frequently asked questions"}</h2>{faq.map((item, index) => <div key={index} className="mt-3"><h3 className="font-black">{item.question}</h3><p className="leading-8">{item.answer}</p></div>)}</div>}
-    {article.source_refs.length > 0 && <div className="mt-8 rounded-2xl bg-[#f7f2ea] p-4"><strong>المصادر العامة المستخدمة</strong><ul>{article.source_refs.map((source) => <li key={source.id}>{source.label} — {source.url}</li>)}</ul></div>}
+    {article.source_refs.length > 0 && <div className="mt-8 rounded-2xl bg-[#f4f6fa] p-4"><strong>المصادر العامة المستخدمة</strong><ul>{article.source_refs.map((source) => <li key={source.id}>{source.label} — {source.url}</li>)}</ul></div>}
   </div>;
 }
 
@@ -123,7 +123,7 @@ function InlineText({ text }: { text: string }) {
   for (const match of text.matchAll(pattern)) {
     const index = match.index ?? 0;
     if (index > last) parts.push(text.slice(last, index));
-    parts.push(match[1] ? <span key={index} className="font-bold text-[#a3854e] underline" title={match[2]}>{match[1]}</span> : <strong key={index}>{match[3]}</strong>);
+    parts.push(match[1] ? <span key={index} className="font-bold text-[#b47c17] underline" title={match[2]}>{match[1]}</span> : <strong key={index}>{match[3]}</strong>);
     last = index + match[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
@@ -135,7 +135,7 @@ function SerpPreview({ article }: { article: ArticleValues }) {
   const description = (article.meta_description || article.excerpt || "وصف المقال هيظهر هنا").trim();
   const path = article.language === "en" ? "en › guides" : "guides";
   return <div dir={article.language === "ar" ? "rtl" : "ltr"} className="rounded-2xl border bg-white p-4">
-    <p className="text-xs text-[#5c6a62]">شكل المقال في نتايج جوجل (تقريبي)</p>
+    <p className="text-xs text-[#556070]">شكل المقال في نتايج جوجل (تقريبي)</p>
     <p dir="ltr" className="mt-2 truncate text-xs text-[#202124]">tycoons-inv.com › {path} › {article.slug || "slug"}</p>
     <p className="mt-1 text-lg leading-6 text-[#1a0dab]">{title.length > 60 ? `${title.slice(0, 60)}…` : title}</p>
     <p className="mt-1 text-sm leading-6 text-[#4d5156]">{description.length > 158 ? `${description.slice(0, 158)}…` : description}</p>
@@ -145,19 +145,19 @@ function SerpPreview({ article }: { article: ArticleValues }) {
 function SeoScorePanel({ checks }: { checks: SeoCheck[] }) {
   const score = seoScore(checks);
   const tone = score >= 80 ? "bg-emerald-700" : score >= 60 ? "bg-amber-500" : "bg-red-600";
-  return <div className="rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-4">
+  return <div className="rounded-2xl border border-[#e3e9f2] bg-[#f7f9fc] p-4">
     <div className="flex items-center justify-between gap-3">
       <h3 className="font-black">تقييم SEO / GEO</h3>
       <span className={`rounded-full px-3 py-1 text-lg font-black text-white ${tone}`}>{score}/100</span>
     </div>
-    <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#eee7da]"><div className={`h-full ${tone}`} style={{ width: `${score}%` }} /></div>
+    <div className="mt-2 h-2 overflow-hidden rounded-full bg-[#ecf0f6]"><div className={`h-full ${tone}`} style={{ width: `${score}%` }} /></div>
     <ul className="mt-3 space-y-2 text-sm">
       {checks.map((item) => <li key={item.id} className="flex items-start gap-2">
         <span aria-hidden className={item.earned === item.weight ? "text-emerald-700" : item.earned > 0 ? "text-amber-600" : "text-red-600"}>{item.earned === item.weight ? "✓" : item.earned > 0 ? "◐" : "✗"}</span>
-        <span><strong>{item.label}</strong> <small className="text-[#5c6a62]">({item.earned}/{item.weight})</small>{item.earned < item.weight && <span className="block text-xs text-[#5c6a62]">{item.hint}</span>}</span>
+        <span><strong>{item.label}</strong> <small className="text-[#556070]">({item.earned}/{item.weight})</small>{item.earned < item.weight && <span className="block text-xs text-[#556070]">{item.hint}</span>}</span>
       </li>)}
     </ul>
-    <p className="mt-3 text-xs text-[#5c6a62]">التقييم بيقيس شكل المقال وهيكله بس، مش صحة المعلومات. الأفضل توصل 80+ قبل النشر.</p>
+    <p className="mt-3 text-xs text-[#556070]">التقييم بيقيس شكل المقال وهيكله بس، مش صحة المعلومات. الأفضل توصل 80+ قبل النشر.</p>
   </div>;
 }
 
@@ -171,12 +171,12 @@ function SeoBriefPanel({ brief }: { brief: SeoBrief }) {
         <strong>تحليل جوجل:</strong>
         <span>الكلمة المفتاحية <b>«{brief.keyword}»</b></span>
         <Badge tone={brief.source === "dataforseo" ? "ok" : "gold"}>{brief.source === "dataforseo" ? "من أرقام جوجل (DataForSEO)" : "من غير أرقام بحث"}</Badge>
-        <span className="text-xs text-[#5c6a62]">الطول المستهدف: {format(brief.target_words)} كلمة</span>
+        <span className="text-xs text-[#556070]">الطول المستهدف: {format(brief.target_words)} كلمة</span>
       </div>
       {brief.notes.includes("dataforseo_not_configured") && <p className="mt-1 text-xs text-amber-700">بيانات DataForSEO مش متحطة في Netlify، فالكلمة اتختارت من غير أرقام بحث.</p>}
       {brief.notes.filter((note) => /_failed/.test(note)).map((note) => <p key={note} className="mt-1 text-xs text-amber-700" dir="auto">{/40100|401\b/.test(note) ? "DataForSEO رفض الدخول: راجع DATAFORSEO_LOGIN و DATAFORSEO_PASSWORD (الـ API password من صفحة API Access، مش باسورد الحساب). " : /40200|402\b/.test(note) ? "رصيد DataForSEO خلص. " : ""}({note})</p>)}
-      {brief.volumes.length > 0 && <table className="mt-2 w-full text-xs"><thead><tr className="text-[#5c6a62]"><th className="text-start">الكلمة</th><th className="text-start">بحث/شهر في مصر</th></tr></thead><tbody>{brief.volumes.slice(0, 8).map((row) => <tr key={row.keyword} className={row.keyword === brief.keyword ? "font-black" : ""}><td className="text-start"><span dir="auto">{row.keyword}</span></td><td className="text-start">{format(row.volume)}</td></tr>)}</tbody></table>}
-      {brief.competitors.length > 0 && <details className="mt-2 text-xs"><summary className="cursor-pointer font-bold">أول نتايج في جوجل ({brief.competitors.length})</summary><ul className="mt-1 space-y-2">{brief.competitors.map((page) => <li key={page.url}><a href={page.url} target="_blank" rel="noopener noreferrer" className="font-bold text-[#a3854e] underline" dir="auto">#{page.rank} {page.domain}</a> — {page.words ? `${format(page.words)} كلمة` : "الطول غير معروف"}{page.headings.length > 0 && <span className="block text-[#5c6a62]" dir="auto">{page.headings.slice(0, 12).map((heading) => heading.text).join(" • ")}</span>}</li>)}</ul></details>}
+      {brief.volumes.length > 0 && <table className="mt-2 w-full text-xs"><thead><tr className="text-[#556070]"><th className="text-start">الكلمة</th><th className="text-start">بحث/شهر في مصر</th></tr></thead><tbody>{brief.volumes.slice(0, 8).map((row) => <tr key={row.keyword} className={row.keyword === brief.keyword ? "font-black" : ""}><td className="text-start"><span dir="auto">{row.keyword}</span></td><td className="text-start">{format(row.volume)}</td></tr>)}</tbody></table>}
+      {brief.competitors.length > 0 && <details className="mt-2 text-xs"><summary className="cursor-pointer font-bold">أول نتايج في جوجل ({brief.competitors.length})</summary><ul className="mt-1 space-y-2">{brief.competitors.map((page) => <li key={page.url}><a href={page.url} target="_blank" rel="noopener noreferrer" className="font-bold text-[#b47c17] underline" dir="auto">#{page.rank} {page.domain}</a> — {page.words ? `${format(page.words)} كلمة` : "الطول غير معروف"}{page.headings.length > 0 && <span className="block text-[#556070]" dir="auto">{page.headings.slice(0, 12).map((heading) => heading.text).join(" • ")}</span>}</li>)}</ul></details>}
     </div>
   );
 }
@@ -509,13 +509,13 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
   const translationValue = translationChoice ?? pairedId;
   return <><EditorialWorkflowPanel projects={projects} /><ArticleQueue projects={projects} articles={articles} busy={Boolean(busy)} activeProjectId={values.target_type === "project" ? values.project_id ?? null : null} onWrite={writeFor} onOpen={(id) => { void openArticle(id); editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); }} onBatchSaved={refresh} /><div className="grid gap-4 lg:grid-cols-[300px_1fr]">
     <aside className="rounded-3xl bg-white p-4 shadow-sm">
-      <button disabled={Boolean(busy)} onClick={newArticle} className="w-full rounded-xl bg-[#0d1f18] px-4 py-3 font-black text-white disabled:opacity-50">مقال جديد</button>
+      <button disabled={Boolean(busy)} onClick={newArticle} className="w-full rounded-xl bg-[#060f1c] px-4 py-3 font-black text-white disabled:opacity-50">مقال جديد</button>
       <div className="mt-3 space-y-2">
         {loading ? <p>جارٍ التحميل…</p> : articles.length === 0 ? <EmptyState title="لا توجد مقالات بعد" /> : articles.map((article) =>
-          <button disabled={Boolean(busy)} key={article.id} onClick={() => void openArticle(article.id)} className={`w-full rounded-xl border p-3 text-start disabled:opacity-50 ${selectedId === article.id ? "border-[#a3854e] bg-[#fbf8f2]" : "border-[#eee7da]"}`}>
+          <button disabled={Boolean(busy)} key={article.id} onClick={() => void openArticle(article.id)} className={`w-full rounded-xl border p-3 text-start disabled:opacity-50 ${selectedId === article.id ? "border-[#b47c17] bg-[#f7f9fc]" : "border-[#ecf0f6]"}`}>
             <span className="block font-black">{article.title}</span>
             <span className="mt-1 flex flex-wrap gap-2"><Badge tone={article.status === "published" ? "ok" : "pending"}>{article.status === "published" ? "منشور" : "مسودة"}</Badge><Badge tone="muted">{article.language === "ar" ? "عربي" : "EN"}</Badge>{article.translation_key && <Badge tone="gold">مربوط بالترجمة</Badge>}<small>{article.updated_at.slice(0, 10)}</small></span>
-            {article.focus_keyword && <small className="mt-1 block truncate text-[#5c6a62]">🔑 {article.focus_keyword}</small>}
+            {article.focus_keyword && <small className="mt-1 block truncate text-[#556070]">🔑 {article.focus_keyword}</small>}
           </button>)}
       </div>
     </aside>
@@ -525,46 +525,46 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
         <label className="text-sm font-bold">النطاق<select disabled={Boolean(busy)} className={inputClass} value={values.target_type} onChange={(event) => patchValues({ target_type: event.target.value as "project" | "area", project_id: null, area_name: null }, true)}><option value="project">مشروع</option><option value="area">منطقة</option></select></label>
         {values.target_type === "project" ? <label className="text-sm font-bold">المشروع<select disabled={Boolean(busy)} className={inputClass} value={values.project_id || ""} onChange={(event) => patchValues({ project_id: event.target.value || null }, true)}><option value="">اختر مشروعاً</option>{articleProjects(projects).map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}{values.project_id && !articleProjects(projects).some((project) => project.id === values.project_id) && <option value={values.project_id}>{projects.find((project) => project.id === values.project_id)?.name ?? "مشروع"} (نسخة قديمة — دوس صلّح)</option>}</select></label> : <label className="text-sm font-bold">المنطقة<select disabled={Boolean(busy)} className={inputClass} value={values.area_name || ""} onChange={(event) => patchValues({ area_name: event.target.value || null }, true)}><option value="">اختر منطقة</option>{areas.map((area) => <option key={area}>{area}</option>)}</select></label>}
       </div>
-      <div className="mt-4 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-4">
+      <div className="mt-4 rounded-2xl border border-[#e3e9f2] bg-[#f7f9fc] p-4">
         {values.target_type === "project" && <div className="flex flex-wrap items-center gap-3">
-          <button disabled={!canGenerate || Boolean(busy)} onClick={() => void writeArticle()} className="rounded-xl bg-[#0d1f18] px-5 py-3 font-black text-white disabled:opacity-50">{busy === "write" ? "جارٍ كتابة المقال… (3–6 دقايق، سيب الصفحة مفتوحة)" : "اكتب المقال"}</button>
-          <small className="max-w-md text-[#5c6a62]">بيحلل جوجل بالأرقام (الكلمة اللي الناس بتدوّر بيها وإيه اللي واخد أول ترتيب)، يبحث في النت، يكتب المقال ويحفظه مسودة. مفيش حاجة بتتنشر غير لما تراجعها.</small>
+          <button disabled={!canGenerate || Boolean(busy)} onClick={() => void writeArticle()} className="rounded-xl bg-[#060f1c] px-5 py-3 font-black text-white disabled:opacity-50">{busy === "write" ? "جارٍ كتابة المقال… (3–6 دقايق، سيب الصفحة مفتوحة)" : "اكتب المقال"}</button>
+          <small className="max-w-md text-[#556070]">بيحلل جوجل بالأرقام (الكلمة اللي الناس بتدوّر بيها وإيه اللي واخد أول ترتيب)، يبحث في النت، يكتب المقال ويحفظه مسودة. مفيش حاجة بتتنشر غير لما تراجعها.</small>
         </div>}
         {seoBrief && <SeoBriefPanel brief={seoBrief} />}
         <details className="mt-3" open={values.target_type !== "project"}>
-          <summary className="cursor-pointer text-sm font-bold text-[#5c6a62]">{values.target_type === "project" ? "مقال بموضوع تاني (خطوات يدوية، اختياري)" : "خطوات كتابة مقال المنطقة"}</summary>
+          <summary className="cursor-pointer text-sm font-bold text-[#556070]">{values.target_type === "project" ? "مقال بموضوع تاني (خطوات يدوية، اختياري)" : "خطوات كتابة مقال المنطقة"}</summary>
           <div className="mt-3">
-        <div className="flex flex-wrap gap-2"><button disabled={!canGenerate || Boolean(busy)} onClick={() => void suggestTopics()} className="rounded-xl bg-[#d9b87c] px-4 py-2 font-black disabled:opacity-50">{busy === "topics" ? "جارٍ الاقتراح…" : "اقترح موضوعات"}</button></div>
-        {ideas.length > 0 && <div className="mt-3 grid gap-2 md:grid-cols-2">{ideas.map((idea) => <button disabled={Boolean(busy)} key={idea.title} onClick={() => setTopic(idea.title)} className="rounded-xl border bg-white p-3 text-start disabled:opacity-50"><strong>{idea.title}</strong><span className="mt-1 block text-xs text-[#5c6a62]">{idea.rationale}</span>{idea.angle && <span className="mt-1 block text-xs text-[#a3854e]">{idea.angle}</span>}</button>)}</div>}
-        <div className="mt-3 flex gap-2"><input disabled={Boolean(busy)} className={inputClass} value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="موضوع المقال" /><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void researchTopic()} className="shrink-0 rounded-xl bg-[#d9b87c] px-4 py-2 font-black disabled:opacity-50">{busy === "research" ? "جارٍ البحث في النت… (حتى دقيقتين)" : "ابحث في النت"}</button><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void generateDraft()} className="shrink-0 rounded-xl bg-[#0d1f18] px-4 py-2 font-black text-white disabled:opacity-50">{busy === "draft" ? "جارٍ كتابة المسودة… (2–5 دقايق، سيب الصفحة مفتوحة)" : "أنشئ مسودة"}</button></div>
+        <div className="flex flex-wrap gap-2"><button disabled={!canGenerate || Boolean(busy)} onClick={() => void suggestTopics()} className="rounded-xl bg-[#f0bd4f] px-4 py-2 font-black disabled:opacity-50">{busy === "topics" ? "جارٍ الاقتراح…" : "اقترح موضوعات"}</button></div>
+        {ideas.length > 0 && <div className="mt-3 grid gap-2 md:grid-cols-2">{ideas.map((idea) => <button disabled={Boolean(busy)} key={idea.title} onClick={() => setTopic(idea.title)} className="rounded-xl border bg-white p-3 text-start disabled:opacity-50"><strong>{idea.title}</strong><span className="mt-1 block text-xs text-[#556070]">{idea.rationale}</span>{idea.angle && <span className="mt-1 block text-xs text-[#b47c17]">{idea.angle}</span>}</button>)}</div>}
+        <div className="mt-3 flex gap-2"><input disabled={Boolean(busy)} className={inputClass} value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="موضوع المقال" /><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void researchTopic()} className="shrink-0 rounded-xl bg-[#f0bd4f] px-4 py-2 font-black disabled:opacity-50">{busy === "research" ? "جارٍ البحث في النت… (حتى دقيقتين)" : "ابحث في النت"}</button><button disabled={!canGenerate || !topic.trim() || Boolean(busy)} onClick={() => void generateDraft()} className="shrink-0 rounded-xl bg-[#060f1c] px-4 py-2 font-black text-white disabled:opacity-50">{busy === "draft" ? "جارٍ كتابة المسودة… (2–5 دقايق، سيب الصفحة مفتوحة)" : "أنشئ مسودة"}</button></div>
           </div>
         </details>
         {research && <div className="mt-3 rounded-xl border bg-white p-3">
-          <div className="flex flex-wrap items-center justify-between gap-2"><strong>معلومات من النت ({selectedFacts().length} من {research.facts.length} مختارة)</strong><small className="text-[#5c6a62]">الأسعار والسداد والتسليم والمتاح بتيجي من بيانات الموقع بس، مش من النت.</small></div>
-          {research.facts.length === 0 ? <p className="mt-2 text-sm text-[#5c6a62]">مفيش معلومات موثوقة من مصدرين أو من موقع المطور.</p> : <ul className="mt-2 space-y-2">{research.facts.map((fact, index) => <li key={index} className="flex items-start gap-2 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2"><strong>معلومات من النت ({selectedFacts().length} من {research.facts.length} مختارة)</strong><small className="text-[#556070]">الأسعار والسداد والتسليم والمتاح بتيجي من بيانات الموقع بس، مش من النت.</small></div>
+          {research.facts.length === 0 ? <p className="mt-2 text-sm text-[#556070]">مفيش معلومات موثوقة من مصدرين أو من موقع المطور.</p> : <ul className="mt-2 space-y-2">{research.facts.map((fact, index) => <li key={index} className="flex items-start gap-2 text-sm">
             <input type="checkbox" className="mt-1" disabled={Boolean(busy)} checked={!droppedFacts.includes(index)} onChange={() => toggleFact(index)} aria-label={`استخدم المعلومة ${index + 1}`} />
-            <span><span className={droppedFacts.includes(index) ? "text-[#9aa39d] line-through" : ""}>{fact.fact}</span> <Badge tone={fact.confidence === "official" ? "ok" : "gold"}>{fact.confidence === "official" ? "موقع المطور" : "مصدرين متفقين"}</Badge>
-              <span className="mt-1 flex flex-wrap gap-2" dir="ltr">{fact.sources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer" className="break-all text-xs text-[#a3854e] underline">{source.title || new URL(source.url).hostname}</a>)}</span></span>
+            <span><span className={droppedFacts.includes(index) ? "text-[#a9b4c4] line-through" : ""}>{fact.fact}</span> <Badge tone={fact.confidence === "official" ? "ok" : "gold"}>{fact.confidence === "official" ? "موقع المطور" : "مصدرين متفقين"}</Badge>
+              <span className="mt-1 flex flex-wrap gap-2" dir="ltr">{fact.sources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer" className="break-all text-xs text-[#b47c17] underline">{source.title || new URL(source.url).hostname}</a>)}</span></span>
           </li>)}</ul>}
-          {research.excluded.length > 0 && <details className="mt-2 text-xs text-[#5c6a62]"><summary>اتشال {research.excluded.length} معلومة (مصدر واحد أو معلومة تجارية)</summary><ul className="mt-1 list-disc ps-5">{research.excluded.map((fact, index) => <li key={index}>{fact.fact} — {fact.reason === "commercial" ? "معلومة تجارية" : "مصدر واحد بس"}</li>)}</ul></details>}
-          {research.notes && <p className="mt-2 text-xs text-[#5c6a62]">ملاحظات البحث: {research.notes}</p>}
+          {research.excluded.length > 0 && <details className="mt-2 text-xs text-[#556070]"><summary>اتشال {research.excluded.length} معلومة (مصدر واحد أو معلومة تجارية)</summary><ul className="mt-1 list-disc ps-5">{research.excluded.map((fact, index) => <li key={index}>{fact.fact} — {fact.reason === "commercial" ? "معلومة تجارية" : "مصدر واحد بس"}</li>)}</ul></details>}
+          {research.notes && <p className="mt-2 text-xs text-[#556070]">ملاحظات البحث: {research.notes}</p>}
         </div>}
-        <p className="mt-2 text-xs text-[#5c6a62]">الأسعار والسداد والاستلام بتظهر في جدول حي من وحداتنا جنب المقال، مش جوه نصّه.</p>
+        <p className="mt-2 text-xs text-[#556070]">الأسعار والسداد والاستلام بتظهر في جدول حي من وحداتنا جنب المقال، مش جوه نصّه.</p>
       </div>
 
       <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_320px]">
         <div className="min-w-0">
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-sm font-bold md:col-span-2">الكلمة المفتاحية (Focus Keyword)<input disabled={Boolean(busy)} className={inputClass} value={values.focus_keyword ?? ""} onChange={(event) => patchValues({ focus_keyword: event.target.value })} placeholder={values.language === "ar" ? "مثال: كمبوند ماونتن فيو التجمع الخامس" : "e.g. Mountain View New Cairo compound"} /></label>
-            {([['title','العنوان'],['slug','الرابط'],['meta_title','عنوان SEO'],['meta_description','وصف SEO'],['excerpt','المقدمة']] as const).map(([field,label]) => <label key={field} className={`text-sm font-bold ${field === 'excerpt' ? 'md:col-span-2' : ''}`}>{label}{(field === 'meta_title' || field === 'meta_description') && <small className="ms-2 font-normal text-[#5c6a62]">{values[field].length}/{field === 'meta_title' ? 60 : 160}</small>}<input disabled={Boolean(busy)} dir={field === 'slug' ? 'ltr' : undefined} className={inputClass} value={values[field]} onChange={(event) => patchValues({ [field]: event.target.value })} /></label>)}
+            {([['title','العنوان'],['slug','الرابط'],['meta_title','عنوان SEO'],['meta_description','وصف SEO'],['excerpt','المقدمة']] as const).map(([field,label]) => <label key={field} className={`text-sm font-bold ${field === 'excerpt' ? 'md:col-span-2' : ''}`}>{label}{(field === 'meta_title' || field === 'meta_description') && <small className="ms-2 font-normal text-[#556070]">{values[field].length}/{field === 'meta_title' ? 60 : 160}</small>}<input disabled={Boolean(busy)} dir={field === 'slug' ? 'ltr' : undefined} className={inputClass} value={values[field]} onChange={(event) => patchValues({ [field]: event.target.value })} /></label>)}
             <label className="text-sm font-bold md:col-span-2">الخلاصة — نقطة في كل سطر (3-5 نقاط)<textarea disabled={Boolean(busy)} className={`${inputClass} min-h-28 font-sans`} value={(values.key_takeaways ?? []).join("\n")} onChange={(event) => patchValues({ key_takeaways: event.target.value.split("\n") })} placeholder="جمل قصيرة بتجاوب مباشرة على موضوع المقال — من غير أسعار أو أرقام" /></label>
             <label className="text-sm font-bold md:col-span-2">نص المقال (Markdown آمن)<textarea disabled={Boolean(busy)} className={`${inputClass} min-h-80 font-sans`} value={values.body_markdown} onChange={(event) => patchValues({ body_markdown: event.target.value })} /></label>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-[#e7ddc8] p-4">
+          <div className="mt-4 rounded-2xl border border-[#e3e9f2] p-4">
             <div className="flex items-center justify-between gap-3"><h3 className="font-black">الأسئلة الشائعة (FAQ)</h3><button disabled={Boolean(busy) || (values.faq ?? []).length >= 10} onClick={addFaq} className="rounded-lg border px-3 py-1 text-sm font-bold disabled:opacity-50">+ سؤال</button></div>
-            <p className="mt-1 text-xs text-[#5c6a62]">بتظهر في آخر المقال وبتتسجل لجوجل كـ FAQ. الإجابات من غير أسعار أو مواعيد أو أرقام.</p>
-            {(values.faq ?? []).length === 0 ? <p className="mt-3 text-sm text-[#5c6a62]">مفيش أسئلة لسه.</p> : <div className="mt-3 space-y-3">{(values.faq ?? []).map((item, index) => <div key={index} className="rounded-xl bg-[#fbf8f2] p-3">
+            <p className="mt-1 text-xs text-[#556070]">بتظهر في آخر المقال وبتتسجل لجوجل كـ FAQ. الإجابات من غير أسعار أو مواعيد أو أرقام.</p>
+            {(values.faq ?? []).length === 0 ? <p className="mt-3 text-sm text-[#556070]">مفيش أسئلة لسه.</p> : <div className="mt-3 space-y-3">{(values.faq ?? []).map((item, index) => <div key={index} className="rounded-xl bg-[#f7f9fc] p-3">
               <div className="flex gap-2"><input disabled={Boolean(busy)} className={inputClass} value={item.question} onChange={(event) => updateFaq(index, { question: event.target.value })} placeholder="السؤال" /><button disabled={Boolean(busy)} onClick={() => removeFaq(index)} className="shrink-0 rounded-lg border px-3 text-sm font-bold disabled:opacity-50" aria-label={`حذف السؤال ${index + 1}`}>حذف</button></div>
               <textarea disabled={Boolean(busy)} className={`${inputClass} mt-2 min-h-20 font-sans`} value={item.answer} onChange={(event) => updateFaq(index, { answer: event.target.value })} placeholder="الإجابة (1-3 جمل)" />
             </div>)}</div>}
@@ -581,7 +581,7 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
         </div>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-4" aria-live="polite">
+      <div className="mt-4 rounded-2xl border border-[#e3e9f2] bg-[#f7f9fc] p-4" aria-live="polite">
         <h3 className="font-black">ملاحظات المراجعة</h3>
         <p className="mt-1 text-sm">راجع الحقائق والمصادر وجميع الملاحظات قبل النشر. الفحص الآلي لا يثبت صحة المعلومات.</p>
         {dirty && <p className="mt-2 text-sm font-bold">قد تكون الملاحظات غير محدثة. احفظ التعديلات لتحديثها قبل تأكيد المراجعة والنشر.</p>}
@@ -589,23 +589,23 @@ export default function ArticlesTab({ projects, focusProjectId = null, onFocusHa
           <h4 className="text-sm font-bold">مصادر المسودة</h4>
           <p className="mt-1 text-xs">عند إزالة مصدر، عدّل أو احذف الحقائق المرتبطة به من جميع حقول المقال، ثم احفظ لإعادة الفحص.</p>
           <ul className="mt-2 space-y-2">{values.source_refs.map((source, index) => <li key={`${source.type}:${source.id}:${index}`} className="flex items-start justify-between gap-3 text-sm">
-            <span>{source.label}<span className="block break-all text-xs text-[#5c6a62]" dir="ltr">{source.url}</span></span>
+            <span>{source.label}<span className="block break-all text-xs text-[#556070]" dir="ltr">{source.url}</span></span>
             <button disabled={Boolean(busy)} onClick={() => removeSource(index)} className="shrink-0 rounded-lg border px-3 py-1 font-bold disabled:opacity-50" aria-label={`إزالة المصدر: ${source.label}`}>إزالة المصدر</button>
           </li>)}</ul>
         </div>}
         {reviewIssues.length > 0 && <ul className="mt-3 space-y-2">{reviewIssues.map((issue, index) => <li key={`${issue.field}:${issue.code}:${index}`} className="text-sm">
           <strong>{REVIEW_FIELD_LABELS[issue.field] || issue.field}: {issue.severity === "blocker" ? "يمنع النشر" : "تحتاج مراجعة"}</strong>
           <span className="block">{issueInArabic(issue)}</span>
-          <span className="block text-xs text-[#5c6a62]" dir="ltr">{issue.message}</span>
+          <span className="block text-xs text-[#556070]" dir="ltr">{issue.message}</span>
         </li>)}</ul>}
         {hasPublishBlockers && <div className="mt-3 rounded-xl bg-red-50 p-3"><p className="text-sm font-bold text-red-700">فيه ملاحظات بتمنع النشر. دوس الزرار وهو يصلحها لوحده ويحفظ ويعيد الفحص. يمكنك متابعة التحرير وحفظها كمسودة.</p>{dirty && <p className="mt-1 text-xs text-red-700">احفظ تعديلاتك الأول.</p>}<button disabled={!selectedId || dirty || Boolean(busy)} onClick={() => void autoFix()} className="mt-2 rounded-xl bg-red-700 px-5 py-2 font-black text-white disabled:opacity-50">{busy === "fix" ? "بيصلّح…" : "صلّح اللي بيمنع النشر"}</button></div>}
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button disabled={!values.title || !values.body_markdown || !values.source_refs.length || Boolean(busy)} onClick={() => void save()} className="rounded-xl bg-[#0d1f18] px-5 py-2 font-black text-white disabled:opacity-50">{busy === "save" ? "جارٍ الحفظ…" : "حفظ كمسودة"}</button>
+        <button disabled={!values.title || !values.body_markdown || !values.source_refs.length || Boolean(busy)} onClick={() => void save()} className="rounded-xl bg-[#060f1c] px-5 py-2 font-black text-white disabled:opacity-50">{busy === "save" ? "جارٍ الحفظ…" : "حفظ كمسودة"}</button>
         <button disabled={!values.body_markdown} onClick={() => setPreview(true)} className="rounded-xl border px-5 py-2 font-black">معاينة</button>
         {loadedArticle?.status !== "published" && <Fragment><label className="flex items-center gap-2 text-sm font-bold"><input disabled={dirty || hasPublishBlockers || Boolean(busy)} type="checkbox" checked={reviewConfirmed} onChange={(event) => setReviewConfirmed(event.target.checked)} />راجعت حقائق النسخة المحفوظة ومصادرها وجميع ملاحظات المراجعة</label><button disabled={!selectedId || dirty || hasPublishBlockers || !reviewConfirmed || Boolean(busy)} onClick={() => void publish()} className="rounded-xl bg-emerald-700 px-5 py-2 font-black text-white disabled:opacity-50">{busy === "publish" ? "جارٍ النشر…" : "نشر النسخة المحفوظة"}</button></Fragment>}
       </div>
     </section>
-    {preview && <Modal title="معاينة المقال — غير منشور" wide onClose={() => setPreview(false)}><Preview article={values} /><button onClick={() => setPreview(false)} className="mt-5 rounded-xl bg-[#0d1f18] px-5 py-2 font-black text-white">العودة للتحرير</button></Modal>}
+    {preview && <Modal title="معاينة المقال — غير منشور" wide onClose={() => setPreview(false)}><Preview article={values} /><button onClick={() => setPreview(false)} className="mt-5 rounded-xl bg-[#060f1c] px-5 py-2 font-black text-white">العودة للتحرير</button></Modal>}
   </div></>;
 }

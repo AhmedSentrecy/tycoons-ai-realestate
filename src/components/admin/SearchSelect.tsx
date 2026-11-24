@@ -70,11 +70,11 @@ export function SearchSelect({
         className={`${inputClass} flex items-center justify-between gap-2 text-right`}
         dir={dir}
       >
-        <span className={`truncate ${value ? "font-bold" : "text-[#8a958f]"}`}>{value ? current?.label || value : placeholder}</span>
-        <span className="shrink-0 text-xs text-[#8a958f]">▾</span>
+        <span className={`truncate ${value ? "font-bold" : "text-[#7b8594]"}`}>{value ? current?.label || value : placeholder}</span>
+        <span className="shrink-0 text-xs text-[#7b8594]">▾</span>
       </button>
       {open && (
-        <div className="absolute inset-x-0 top-full z-50 mt-1 rounded-xl border border-[#e7ddc8] bg-white p-2 shadow-xl">
+        <div className="absolute inset-x-0 top-full z-50 mt-1 rounded-xl border border-[#e3e9f2] bg-white p-2 shadow-xl">
           <input
             autoFocus
             type="search"
@@ -95,7 +95,7 @@ export function SearchSelect({
           <ul className="mt-1 max-h-64 overflow-y-auto">
             {emptyLabel && (
               <li>
-                <button type="button" onClick={() => pick("")} className="w-full rounded-lg px-3 py-2 text-right text-sm text-[#5c6a62] hover:bg-[#f7f2ea]">
+                <button type="button" onClick={() => pick("")} className="w-full rounded-lg px-3 py-2 text-right text-sm text-[#556070] hover:bg-[#f4f6fa]">
                   {emptyLabel}
                 </button>
               </li>
@@ -105,21 +105,21 @@ export function SearchSelect({
                 <button
                   type="button"
                   onClick={() => pick(option.value)}
-                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-right text-sm hover:bg-[#f7f2ea] ${option.value === value ? "bg-[#f1eadc] font-black" : ""}`}
+                  className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-right text-sm hover:bg-[#f4f6fa] ${option.value === value ? "bg-[#eef2f7] font-black" : ""}`}
                   dir={dir}
                 >
                   <span className="truncate">{option.label || option.value}</span>
-                  {option.hint && <span className="shrink-0 text-[11px] text-[#5c6a62]">{option.hint}</span>}
+                  {option.hint && <span className="shrink-0 text-[11px] text-[#556070]">{option.hint}</span>}
                 </button>
               </li>
             ))}
-            {!shown.length && !allowNew && <li className="px-3 py-2 text-sm text-[#5c6a62]">مفيش نتايج</li>}
+            {!shown.length && !allowNew && <li className="px-3 py-2 text-sm text-[#556070]">مفيش نتايج</li>}
             {allowNew && query.trim() && !exact && (
               <li>
                 <button
                   type="button"
                   onClick={() => pick(query.trim(), true)}
-                  className="w-full rounded-lg bg-[#fffaf1] px-3 py-2 text-right text-sm font-black text-[#8a6630] hover:bg-[#f7f2ea]"
+                  className="w-full rounded-lg bg-[#f7f9fc] px-3 py-2 text-right text-sm font-black text-[#9a640f] hover:bg-[#f4f6fa]"
                 >
                   + إضافة «{query.trim()}» ({newLabel})
                 </button>
@@ -235,7 +235,7 @@ export function AreaFields({
             dir="ltr"
           />
         ) : (
-          <span className="block rounded-xl border border-dashed border-[#e7ddc8] px-3 py-2 text-xs text-[#8a958f]">اختار المنطقة الرئيسية الأول</span>
+          <span className="block rounded-xl border border-dashed border-[#e3e9f2] px-3 py-2 text-xs text-[#7b8594]">اختار المنطقة الرئيسية الأول</span>
         )}
       </label>
     </>

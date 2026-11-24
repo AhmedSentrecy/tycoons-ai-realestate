@@ -56,10 +56,10 @@ export default function UsersTab() {
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-3 flex items-center gap-2">
-        <p className="me-auto text-sm text-[#5c6a62]">
+        <p className="me-auto text-sm text-[#556070]">
           المستخدم العادي بيشتغل عادي، بس أي تعديل منه بيستنى موافقتك قبل ما يظهر على الموقع.
         </p>
-        <button onClick={() => setAdding(true)} className="rounded-full bg-[#0d1f18] px-4 py-2 text-sm font-black text-white">
+        <button onClick={() => setAdding(true)} className="rounded-full bg-[#060f1c] px-4 py-2 text-sm font-black text-white">
           + مستخدم جديد
         </button>
       </div>
@@ -68,12 +68,12 @@ export default function UsersTab() {
       {users && !users.length && <EmptyState title="مفيش مستخدمين" />}
       <div className="space-y-2">
         {users?.map((item) => (
-          <div key={item.id} className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#e7ddc8] bg-white p-3">
+          <div key={item.id} className="flex flex-wrap items-center gap-2 rounded-2xl border border-[#e3e9f2] bg-white p-3">
             <div className="me-auto min-w-0">
               <p className="font-black">
-                {item.display_name || item.username} <span className="text-xs font-bold text-[#5c6a62]">@{item.username}</span>
+                {item.display_name || item.username} <span className="text-xs font-bold text-[#556070]">@{item.username}</span>
               </p>
-              <p className="text-xs text-[#5c6a62]">
+              <p className="text-xs text-[#556070]">
                 {item.last_login_at ? `آخر دخول: ${new Date(item.last_login_at).toLocaleString("ar-EG")}` : "لسه مدخلش"}
               </p>
             </div>
@@ -81,10 +81,10 @@ export default function UsersTab() {
             {!item.active && <Badge tone="error">مقفول</Badge>}
             {item.id !== user.id && (
               <>
-                <button onClick={() => void update(item, { reset_password: true })} disabled={busy} className="rounded-lg bg-[#f7f2ea] px-3 py-1.5 text-xs font-black">
+                <button onClick={() => void update(item, { reset_password: true })} disabled={busy} className="rounded-lg bg-[#f4f6fa] px-3 py-1.5 text-xs font-black">
                   كلمة سر جديدة
                 </button>
-                <button onClick={() => void update(item, { active: !item.active })} disabled={busy} className="rounded-lg bg-[#f7f2ea] px-3 py-1.5 text-xs font-black">
+                <button onClick={() => void update(item, { active: !item.active })} disabled={busy} className="rounded-lg bg-[#f4f6fa] px-3 py-1.5 text-xs font-black">
                   {item.active ? "اقفل الحساب" : "افتح الحساب"}
                 </button>
               </>
@@ -109,7 +109,7 @@ export default function UsersTab() {
             <span className="mb-1 block font-bold">الاسم بالكامل</span>
             <input value={form.display_name} onChange={(event) => setForm({ ...form, display_name: event.target.value })} className={inputClass} />
           </label>
-          <p className="text-xs text-[#5c6a62]">هتتولد كلمة سر قوية تلقائيًا وتظهر لك مرة واحدة بس.</p>
+          <p className="text-xs text-[#556070]">هتتولد كلمة سر قوية تلقائيًا وتظهر لك مرة واحدة بس.</p>
           <div className="mt-4 flex justify-end gap-2">
             <button onClick={() => setAdding(false)} className="rounded-full px-4 py-2 text-sm font-bold">
               إلغاء
@@ -117,7 +117,7 @@ export default function UsersTab() {
             <button
               onClick={() => void create()}
               disabled={busy || form.username.length < 3}
-              className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
+              className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
             >
               إنشاء
             </button>
@@ -127,8 +127,8 @@ export default function UsersTab() {
 
       {credential && (
         <Modal title="كلمة السر" onClose={() => setCredential(null)}>
-          <p className="text-sm text-[#5c6a62]">انسخها وابعتها للمستخدم. مش هتظهر تاني بعد ما تقفل الشباك ده.</p>
-          <div className="mt-3 rounded-2xl bg-[#f7f2ea] p-4 text-center">
+          <p className="text-sm text-[#556070]">انسخها وابعتها للمستخدم. مش هتظهر تاني بعد ما تقفل الشباك ده.</p>
+          <div className="mt-3 rounded-2xl bg-[#f4f6fa] p-4 text-center">
             <p className="text-sm font-bold" dir="ltr">
               {credential.username}
             </p>
@@ -137,7 +137,7 @@ export default function UsersTab() {
             </p>
           </div>
           <div className="mt-4 flex justify-end">
-            <button onClick={() => setCredential(null)} className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white">
+            <button onClick={() => setCredential(null)} className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white">
               تمام، نسختها
             </button>
           </div>

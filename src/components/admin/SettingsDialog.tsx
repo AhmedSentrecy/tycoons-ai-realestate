@@ -32,11 +32,11 @@ export default function SettingsDialog({
     <div className="fixed inset-0 z-40 grid place-items-center bg-black/50 p-4" onClick={onClose}>
       <div dir="rtl" className="w-full max-w-lg rounded-3xl bg-white p-5" onClick={(event) => event.stopPropagation()}>
         <h2 className="text-xl font-black">إعدادات تحديث الموقع</h2>
-        <p className="mt-2 text-sm leading-relaxed text-[#5c6a62]">
+        <p className="mt-2 text-sm leading-relaxed text-[#556070]">
           صفحات المشاريع اللي جوجل بيقراها بتتبني وقت نشر الموقع. زرار «حدّث الموقع» بيعيد بناءها عشان تاخد الصور الجديدة.
           محتاج رابط <b dir="ltr">Build Hook</b> من Netlify مرة واحدة بس:
         </p>
-        <ol className="mt-2 list-decimal space-y-1 pe-5 text-sm text-[#5c6a62]">
+        <ol className="mt-2 list-decimal space-y-1 pe-5 text-sm text-[#556070]">
           <li>Netlify ← الموقع ← Site configuration ← Build &amp; deploy</li>
           <li>Build hooks ← Add build hook ← الاسم: Media admin ← Branch: main</li>
           <li>انسخ الرابط والصقه هنا</li>
@@ -50,7 +50,7 @@ export default function SettingsDialog({
           value={hook}
           onChange={(event) => setHook(event.target.value)}
           placeholder="https://api.netlify.com/build_hooks/…"
-          className="mt-3 w-full rounded-xl border border-[#e7ddc8] bg-[#fbf8f2] p-3 text-sm outline-none focus:border-[#a3854e]"
+          className="mt-3 w-full rounded-xl border border-[#e3e9f2] bg-[#f7f9fc] p-3 text-sm outline-none focus:border-[#b47c17]"
         />
         <div className="mt-4 flex justify-end gap-2">
           <button onClick={onClose} className="rounded-full px-4 py-2 text-sm font-bold">
@@ -59,7 +59,7 @@ export default function SettingsDialog({
           <button
             onClick={() => void save()}
             disabled={busy || !hook.trim()}
-            className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
+            className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
           >
             حفظ
           </button>

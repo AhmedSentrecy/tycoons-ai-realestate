@@ -47,22 +47,22 @@ export default function HeroImagePicker({ projects, defaultProjectId, value, dis
   };
 
   return (
-    <div className="min-w-0 max-w-full rounded-2xl border border-[#e7ddc8] p-4">
+    <div className="min-w-0 max-w-full rounded-2xl border border-[#e3e9f2] p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-black">الصورة الرئيسية للمقال <span className="text-xs font-normal text-[#5c6a62]">(اختياري — بتظهر في جوجل وواتساب وفيسبوك)</span></h3>
+        <h3 className="font-black">الصورة الرئيسية للمقال <span className="text-xs font-normal text-[#556070]">(اختياري — بتظهر في جوجل وواتساب وفيسبوك)</span></h3>
         {value && <button type="button" disabled={disabled} onClick={() => onChange(null)} className="rounded-lg border px-3 py-1 text-sm font-bold disabled:opacity-50">شيل الصورة</button>}
       </div>
 
       {value && (
         <div className="mt-3 flex items-center gap-3">
           {!invalid && <img src={value} alt="الصورة المختارة" className="h-20 w-32 shrink-0 rounded-xl object-cover" />}
-          <p dir="ltr" className="min-w-0 truncate text-xs text-[#5c6a62]">{value}</p>
+          <p dir="ltr" className="min-w-0 truncate text-xs text-[#556070]">{value}</p>
         </div>
       )}
       {invalid && <p className="mt-2 rounded-lg bg-red-50 p-2 text-sm font-bold text-red-700">الرابط ده مش صورة (لازم ينتهي بـ .jpg أو .png أو .webp). اختار صورة من تحت أو شيله.</p>}
 
       <label className="mt-3 block text-sm font-bold">صور مشروع
-        <select disabled={disabled} className="mt-1 w-full rounded-xl border border-[#e7ddc8] bg-white px-3 py-2" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
+        <select disabled={disabled} className="mt-1 w-full rounded-xl border border-[#e3e9f2] bg-white px-3 py-2" value={projectId} onChange={(event) => setProjectId(event.target.value)}>
           <option value="">اختر مشروع</option>
           {withImages.map((item) => <option key={item.id} value={item.id}>{item.name} ({mediaImages(item).length} صورة)</option>)}
         </select>
@@ -74,24 +74,24 @@ export default function HeroImagePicker({ projects, defaultProjectId, value, dis
             const selected = url === value;
             return (
               <button key={url} type="button" role="option" aria-selected={selected} disabled={disabled} onClick={() => onChange(url)}
-                className={`relative h-24 w-36 shrink-0 snap-start overflow-hidden rounded-xl border-4 disabled:opacity-50 ${selected ? "border-[#a3854e]" : "border-transparent"}`}>
+                className={`relative h-24 w-36 shrink-0 snap-start overflow-hidden rounded-xl border-4 disabled:opacity-50 ${selected ? "border-[#b47c17]" : "border-transparent"}`}>
                 <img src={url} alt={`${project.name} ${index + 1}`} loading="lazy" className="h-full w-full object-cover" />
-                {selected && <span className="absolute inset-x-0 bottom-0 bg-[#a3854e] text-xs font-bold text-white">مختارة ✓</span>}
+                {selected && <span className="absolute inset-x-0 bottom-0 bg-[#b47c17] text-xs font-bold text-white">مختارة ✓</span>}
               </button>
             );
           })}
         </div>
-      ) : <p className="mt-3 text-sm text-[#5c6a62]">المشروع ده مفيهوش صور لسه. ارفع صورة من جهازك أو اختار مشروع تاني.</p>)}
+      ) : <p className="mt-3 text-sm text-[#556070]">المشروع ده مفيهوش صور لسه. ارفع صورة من جهازك أو اختار مشروع تاني.</p>)}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={(event) => void upload(event.target.files?.[0])} />
         <button type="button" disabled={disabled || !project || uploading > 0} onClick={() => fileInput.current?.click()} className="rounded-lg border px-3 py-1 text-sm font-bold disabled:opacity-50">
           {uploading > 0 ? `بيرفع… ${Math.round(uploading * 100)}%` : "ارفع صورة من جهازك"}
         </button>
-        <button type="button" disabled={disabled} onClick={() => setShowLink(!showLink)} className="text-sm font-bold text-[#a3854e] underline">{showLink ? "إخفاء الرابط" : "أو حط رابط صورة"}</button>
+        <button type="button" disabled={disabled} onClick={() => setShowLink(!showLink)} className="text-sm font-bold text-[#b47c17] underline">{showLink ? "إخفاء الرابط" : "أو حط رابط صورة"}</button>
       </div>
-      {!project && <p className="mt-1 text-xs text-[#5c6a62]">اختار مشروع الأول علشان ترفع صورة.</p>}
-      {showLink && <input disabled={disabled} dir="ltr" className="mt-2 w-full rounded-xl border border-[#e7ddc8] bg-white px-3 py-2" value={value ?? ""} onChange={(event) => onChange(event.target.value.trim() || null)} placeholder="https://….webp" />}
+      {!project && <p className="mt-1 text-xs text-[#556070]">اختار مشروع الأول علشان ترفع صورة.</p>}
+      {showLink && <input disabled={disabled} dir="ltr" className="mt-2 w-full rounded-xl border border-[#e3e9f2] bg-white px-3 py-2" value={value ?? ""} onChange={(event) => onChange(event.target.value.trim() || null)} placeholder="https://….webp" />}
     </div>
   );
 }

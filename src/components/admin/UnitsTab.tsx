@@ -173,39 +173,39 @@ export default function UnitsTab({
       <section className={project ? "" : "hidden lg:block"}>
         {!project && <EmptyState title="اختار مشروع عشان تشوف وحداته" text="تقدر تضيف وحدة، تعدّل سعر، تعلّم وحدة إنها اتباعت، أو تستورد شيت كامل." />}
         {project && (
-          <div className="rounded-3xl border border-[#e7ddc8] bg-white">
-            <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] p-4">
-              <button onClick={() => onSelect("")} className="rounded-full bg-[#f7f2ea] px-3 py-1.5 text-sm font-bold lg:hidden">
+          <div className="rounded-3xl border border-[#e3e9f2] bg-white">
+            <div className="flex flex-wrap items-center gap-2 border-b border-[#ecf0f6] p-4">
+              <button onClick={() => onSelect("")} className="rounded-full bg-[#f4f6fa] px-3 py-1.5 text-sm font-bold lg:hidden">
                 → رجوع
               </button>
               <div className="me-auto min-w-0">
                 <h2 className="truncate text-xl font-black">{project.name}</h2>
-                <p className="text-xs text-[#5c6a62]">
+                <p className="text-xs text-[#556070]">
                   {!unitsLoading && units
                   ? `${units.length} وحدة · ${units.filter((unit) => unit.availability_status === "available").length} متاحة`
                   : "…"}
                 </p>
-                <p className={`text-xs font-bold ${project.wa_requests ? "text-emerald-700" : "text-[#8a958f]"}`}>
+                <p className={`text-xs font-bold ${project.wa_requests ? "text-emerald-700" : "text-[#7b8594]"}`}>
                   {waDemandLabel(project) ? `${waDemandLabel(project)} من ${projects.filter((row) => row.wa_rank).length} مشروع اتطلب` : "لسه مافيش طلبات واتساب للمشروع ده من الموقع"}
                 </p>
               </div>
-              <button onClick={() => setDialog("import")} className="rounded-full border border-[#d8c9ab] px-4 py-2 text-sm font-black text-[#8a6630]">
+              <button onClick={() => setDialog("import")} className="rounded-full border border-[#c9d3e1] px-4 py-2 text-sm font-black text-[#9a640f]">
                 استيراد Excel / CSV
               </button>
-              <button onClick={() => setDialog("add")} className="rounded-full bg-[#0d1f18] px-4 py-2 text-sm font-black text-white">
+              <button onClick={() => setDialog("add")} className="rounded-full bg-[#060f1c] px-4 py-2 text-sm font-black text-white">
                 + وحدة جديدة
               </button>
             </div>
 
             {checked.size > 0 && !unitsLoading && (
-              <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] bg-[#fffaf1] px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 border-b border-[#ecf0f6] bg-[#f7f9fc] px-4 py-3">
                 <span className="me-auto text-sm font-black">
                   {bulkProgress || `${checked.size} وحدة متحددة`}
                 </span>
                 <button
                   onClick={() => setChecked(new Set())}
                   disabled={busy}
-                  className="rounded-full border border-[#d8c9ab] px-4 py-2 text-sm font-black text-[#5c6a62] disabled:opacity-50"
+                  className="rounded-full border border-[#c9d3e1] px-4 py-2 text-sm font-black text-[#556070] disabled:opacity-50"
                 >
                   إلغاء التحديد
                 </button>
@@ -219,13 +219,13 @@ export default function UnitsTab({
               </div>
             )}
 
-            <div className="overflow-x-auto p-4">
+            <div className="max-h-[78vh] overflow-auto p-4">
               {unitsLoading && <p className="p-6 text-center text-sm font-bold">جاري التحميل…</p>}
               {!unitsLoading && units && !units.length && <p className="p-6 text-center text-sm font-bold">مفيش وحدات للمشروع ده لسه</p>}
               {!unitsLoading && units && units.length > 0 && (
                 <table className="w-full min-w-[880px] text-right text-sm">
-                  <thead className="text-xs font-black text-[#5c6a62]">
-                    <tr className="border-b border-[#efe7d8]">
+                  <thead className="sticky top-0 z-10 bg-white text-xs font-black text-[#556070]">
+                    <tr className="border-b border-[#ecf0f6]">
                       <th className="w-8 p-2">
                         <input
                           type="checkbox"
@@ -237,7 +237,7 @@ export default function UnitsTab({
                           }}
                           onChange={toggleAll}
                           disabled={busy}
-                          className="h-4 w-4 cursor-pointer accent-[#0d1f18]"
+                          className="h-4 w-4 cursor-pointer accent-[#060f1c]"
                         />
                       </th>
                       <th className="p-2">النوع</th>
@@ -254,7 +254,7 @@ export default function UnitsTab({
                     {units.map((unit) => {
                       const own = mediaImages(unit).length;
                       return (
-                        <tr key={unit.id} className={`border-b border-[#f4eee2] align-top ${checked.has(unit.id) ? "bg-[#fffaf1]" : ""}`}>
+                        <tr key={unit.id} className={`border-b border-[#f2f5fa] align-top ${checked.has(unit.id) ? "bg-[#f7f9fc]" : ""}`}>
                           <td className="p-2">
                             <input
                               type="checkbox"
@@ -262,29 +262,29 @@ export default function UnitsTab({
                               checked={checked.has(unit.id)}
                               onChange={() => toggle(unit.id)}
                               disabled={busy}
-                              className="mt-1 h-4 w-4 cursor-pointer accent-[#0d1f18]"
+                              className="mt-1 h-4 w-4 cursor-pointer accent-[#060f1c]"
                             />
                           </td>
                           <td className="p-2">
                             <span className="font-black">{unit.unit_type || "—"}</span>
-                            <span className="block text-xs text-[#5c6a62]">{unit.bedrooms_text || ""}</span>
+                            <span className="block text-xs text-[#556070]">{unit.bedrooms_text || ""}</span>
                             {pendingIds.has(unit.id) && <Badge tone="pending">مستني موافقة</Badge>}
                           </td>
                           <td className="p-2">{unit.area_sqm ? `${unit.area_sqm} م²` : "—"}</td>
                           <td className="p-2 font-bold">{formatPrice(unit.starting_price)}</td>
-                          <td className="p-2 text-xs text-[#5c6a62]">
+                          <td className="p-2 text-xs text-[#556070]">
                             {unit.down_payment_text || "—"}
                             <span className="block">{unit.installments_text || ""}</span>
                           </td>
-                          <td className="p-2 text-xs text-[#5c6a62]">{unit.delivery_text || "—"}</td>
+                          <td className="p-2 text-xs text-[#556070]">{unit.delivery_text || "—"}</td>
                           <td className="p-2">
                             <Badge tone={unit.availability_status === "available" ? "ok" : "muted"}>
                               {STATUS_LABELS[String(unit.availability_status)] ?? unit.availability_status}
                             </Badge>
                           </td>
-                          <td className="whitespace-nowrap p-2 text-xs text-[#5c6a62]">
+                          <td className="whitespace-nowrap p-2 text-xs text-[#556070]">
                             {isNewUnit(unit.created_at) && <Badge tone="ok">جديد</Badge>}
-                            <span className="block font-bold text-[#1b2420]">{adminDate(unit.created_at)}</span>
+                            <span className="block font-bold text-[#0f1724]">{adminDate(unit.created_at)}</span>
                             <span className="block">تحديث: {adminDate(unit.last_updated_at)}</span>
                           </td>
                           <td className="p-2">
@@ -294,7 +294,7 @@ export default function UnitsTab({
                                   setCurrent(unit);
                                   setDialog("edit");
                                 }}
-                                className="rounded-lg bg-[#f7f2ea] px-2 py-1 text-xs font-black"
+                                className="rounded-lg bg-[#f4f6fa] px-2 py-1 text-xs font-black"
                               >
                                 تعديل
                               </button>
@@ -303,12 +303,12 @@ export default function UnitsTab({
                                   setCurrent(unit);
                                   setDialog("media");
                                 }}
-                                className="rounded-lg bg-[#f7f2ea] px-2 py-1 text-xs font-black"
+                                className="rounded-lg bg-[#f4f6fa] px-2 py-1 text-xs font-black"
                               >
                                 صور {own ? `(${own})` : ""}
                               </button>
                               {unit.availability_status === "available" && (
-                                <button onClick={() => void markSold(unit)} className="rounded-lg bg-[#f7f2ea] px-2 py-1 text-xs font-black">
+                                <button onClick={() => void markSold(unit)} className="rounded-lg bg-[#f4f6fa] px-2 py-1 text-xs font-black">
                                   اتباعت
                                 </button>
                               )}
@@ -319,7 +319,7 @@ export default function UnitsTab({
                                 href={`${SITE_URL}${unitPath(unit)}`}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="rounded-lg px-2 py-1 text-xs font-black text-[#8a6630]"
+                                className="rounded-lg px-2 py-1 text-xs font-black text-[#9a640f]"
                               >
                                 ↗
                               </a>

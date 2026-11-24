@@ -40,14 +40,14 @@ export default function InventorySummary({ projects }: { projects: AdminProject[
   const n = (value: number) => new Intl.NumberFormat("en-EG").format(value);
 
   return (
-    <section className="mb-4 rounded-3xl border border-[#e7ddc8] bg-white p-4">
+    <section className="mb-4 rounded-3xl border border-[#e3e9f2] bg-white p-4">
       <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-        <h2 className="text-sm font-black text-[#14352a]">المعروض على الموقع دلوقتي</h2>
+        <h2 className="text-sm font-black text-[#0b1b30]">المعروض على الموقع دلوقتي</h2>
         <Stat value={n(data.units)} label="وحدة متاحة" />
         <Stat value={n(data.projects)} label="مشروع" />
         <Stat value={n(data.developers)} label="مطور" />
         <Stat value={n(data.fresh)} label="وحدة جديدة آخر 7 أيام" />
-        <button type="button" onClick={() => setOpen(!open)} className="ms-auto rounded-full border border-[#e0d3bb] px-4 py-1.5 text-xs font-bold">
+        <button type="button" onClick={() => setOpen(!open)} className="ms-auto rounded-full border border-[#dde4ee] px-4 py-1.5 text-xs font-bold">
           {open ? "اقفل التفاصيل" : "حسب المنطقة والمطور"}
         </button>
       </div>
@@ -64,8 +64,8 @@ export default function InventorySummary({ projects }: { projects: AdminProject[
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
-      <b className="block text-xl font-black text-[#a3854e]">{value}</b>
-      <span className="text-xs text-[#5c6a62]">{label}</span>
+      <b className="block text-xl font-black text-[#b47c17]">{value}</b>
+      <span className="text-xs text-[#556070]">{label}</span>
     </div>
   );
 }
@@ -78,8 +78,8 @@ function Breakdown({ title, rows, total }: { title: string; rows: [string, { uni
         {rows.map(([name, value]) => (
           <li key={name} className="grid grid-cols-[1fr_auto] items-center gap-2 text-xs">
             <div>
-              <div className="flex justify-between"><span className="font-bold">{name}</span><span className="text-[#5c6a62]">{value.units} وحدة · {value.projects} مشروع</span></div>
-              <div className="mt-1 h-1.5 rounded-full bg-[#f1eadc]"><div className="h-full rounded-full bg-[#14352a]" style={{ width: `${Math.max(2, (value.units / Math.max(1, total)) * 100)}%` }} /></div>
+              <div className="flex justify-between"><span className="font-bold">{name}</span><span className="text-[#556070]">{value.units} وحدة · {value.projects} مشروع</span></div>
+              <div className="mt-1 h-1.5 rounded-full bg-[#eef2f7]"><div className="h-full rounded-full bg-[#0b1b30]" style={{ width: `${Math.max(2, (value.units / Math.max(1, total)) * 100)}%` }} /></div>
             </div>
           </li>
         ))}

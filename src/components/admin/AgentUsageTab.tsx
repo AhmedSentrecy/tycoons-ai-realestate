@@ -12,8 +12,8 @@ const TOOL_LABELS: Record<string, string> = {
   create_whatsapp_inquiry: "تجهيز رسالة واتساب",
 };
 
-const MCP_COLOR = "#0d1f18";
-const WEBMCP_COLOR = "#a3854e";
+const MCP_COLOR = "#060f1c";
+const WEBMCP_COLOR = "#b47c17";
 
 function toolLabel(tool: string) {
   return TOOL_LABELS[tool] ?? tool;
@@ -21,10 +21,10 @@ function toolLabel(tool: string) {
 
 function Stat({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
-    <div className="rounded-2xl border border-[#e7ddc8] bg-white p-4">
-      <p className="text-xs font-bold text-[#5c6a62]">{label}</p>
+    <div className="rounded-2xl border border-[#e3e9f2] bg-white p-4">
+      <p className="text-xs font-bold text-[#556070]">{label}</p>
       <p className="mt-1 text-3xl font-black tabular-nums">{value.toLocaleString("en-US")}</p>
-      {hint && <p className="mt-1 text-[11px] text-[#5c6a62]">{hint}</p>}
+      {hint && <p className="mt-1 text-[11px] text-[#556070]">{hint}</p>}
     </div>
   );
 }
@@ -32,7 +32,7 @@ function Stat({ label, value, hint }: { label: string; value: number; hint?: str
 function DailyChart({ report }: { report: AgentUsageReport }) {
   const max = Math.max(1, ...report.by_day.map((day) => day.mcp + day.webmcp));
   return (
-    <div className="rounded-2xl border border-[#e7ddc8] bg-white p-4">
+    <div className="rounded-2xl border border-[#e3e9f2] bg-white p-4">
       <div className="mb-3 flex flex-wrap items-center gap-3 text-xs font-bold">
         <span className="me-auto text-sm font-black">الاستخدام يوم بيوم</span>
         <span className="flex items-center gap-1">
@@ -55,12 +55,12 @@ function DailyChart({ report }: { report: AgentUsageReport }) {
               {day.mcp > 0 && (
                 <div style={{ height: `${(day.mcp / max) * 100}%`, background: MCP_COLOR }} className={day.webmcp > 0 ? "" : "rounded-t-sm"} />
               )}
-              {total === 0 && <div className="h-px bg-[#e7ddc8]" />}
+              {total === 0 && <div className="h-px bg-[#e3e9f2]" />}
             </div>
           );
         })}
       </div>
-      <div dir="ltr" className="mt-1 flex justify-between text-[11px] text-[#5c6a62]">
+      <div dir="ltr" className="mt-1 flex justify-between text-[11px] text-[#556070]">
         <span>{report.by_day[0]?.day}</span>
         <span>{report.by_day.at(-1)?.day}</span>
       </div>
@@ -92,7 +92,7 @@ export default function AgentUsageTab() {
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="me-auto text-sm text-[#5c6a62]">
+        <p className="me-auto text-sm text-[#556070]">
           كل مرة أداة ذكاء اصطناعي (زي ChatGPT أو Claude أو Gemini في Chrome) بتستخدم بيانات الموقع بتتسجل هنا.
         </p>
         {([7, 30, 90] as const).map((value) => (
@@ -113,7 +113,7 @@ export default function AgentUsageTab() {
             setLoading(true);
             load();
           }}
-          disabled={loading} className="rounded-full bg-[#f7f2ea] px-3 py-1.5 text-xs font-black disabled:opacity-40">
+          disabled={loading} className="rounded-full bg-[#f4f6fa] px-3 py-1.5 text-xs font-black disabled:opacity-40">
           تحديث
         </button>
       </div>
@@ -139,7 +139,7 @@ export default function AgentUsageTab() {
           <DailyChart report={report} />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-[#e7ddc8] bg-white p-4">
+            <div className="rounded-2xl border border-[#e3e9f2] bg-white p-4">
               <p className="mb-3 text-sm font-black">أكتر حاجة بيتعمل</p>
               <div className="space-y-2">
                 {report.by_tool.map((item) => (
@@ -148,8 +148,8 @@ export default function AgentUsageTab() {
                       <span>{toolLabel(item.tool)}</span>
                       <span className="tabular-nums">{item.calls.toLocaleString("en-US")}</span>
                     </div>
-                    <div className="h-2 rounded-full bg-[#f1eadc]">
-                      <div className="h-2 rounded-full bg-[#a3854e]" style={{ width: `${(item.calls / maxTool) * 100}%` }} />
+                    <div className="h-2 rounded-full bg-[#eef2f7]">
+                      <div className="h-2 rounded-full bg-[#b47c17]" style={{ width: `${(item.calls / maxTool) * 100}%` }} />
                     </div>
                   </div>
                 ))}
@@ -159,18 +159,18 @@ export default function AgentUsageTab() {
               )}
             </div>
 
-            <div className="rounded-2xl border border-[#e7ddc8] bg-white p-4">
+            <div className="rounded-2xl border border-[#e3e9f2] bg-white p-4">
               <p className="mb-3 text-sm font-black">آخر الطلبات</p>
               <div className="max-h-80 space-y-2 overflow-y-auto">
                 {report.recent.map((call, index) => (
-                  <div key={`${call.created_at}-${index}`} className="rounded-xl bg-[#faf7f1] p-2 text-xs">
+                  <div key={`${call.created_at}-${index}`} className="rounded-xl bg-[#f7f9fc] p-2 text-xs">
                     <div className="flex flex-wrap items-center gap-1">
                       <span className="me-auto font-black">{toolLabel(call.tool)}</span>
                       <Badge tone={call.channel === "webmcp" ? "gold" : "muted"}>{call.channel === "webmcp" ? "WebMCP" : "MCP"}</Badge>
                       {!call.ok && <Badge tone="error">فشل</Badge>}
                     </div>
                     {call.query && <p className="mt-1 break-words">{call.query}</p>}
-                    <p className="mt-1 text-[11px] text-[#5c6a62]">
+                    <p className="mt-1 text-[11px] text-[#556070]">
                       {new Date(call.created_at).toLocaleString("ar-EG", { timeZone: "Africa/Cairo" })}
                       {call.result_count !== null && ` · ${call.result_count} نتيجة`}
                     </p>

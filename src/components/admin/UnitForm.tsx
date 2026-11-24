@@ -105,14 +105,14 @@ export default function UnitForm({
           />
         </label>
       </div>
-      <p className="mt-3 text-xs text-[#5c6a62]">
+      <p className="mt-3 text-xs text-[#556070]">
         لو السعر أو المساحة ناقصين، الوحدة هتتحفظ بحالة «محتاجة تأكيد» ومش هتظهر على الموقع لحد ما تتأكد.
       </p>
       <div className="mt-4 flex justify-end gap-2">
         <button type="button" onClick={onCancel} className="rounded-full px-4 py-2 text-sm font-bold">
           إلغاء
         </button>
-        <button type="submit" disabled={busy} className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40">
+        <button type="submit" disabled={busy} className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40">
           {busy ? "بيحفظ…" : "حفظ"}
         </button>
       </div>

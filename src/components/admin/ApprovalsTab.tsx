@@ -119,7 +119,7 @@ export default function ApprovalsTab({ onChanged, pendingTotal = 0 }: { onChange
             طلبات قديمة لسه مستنية ({pendingTotal})
           </Chip>
         )}
-        <span className="text-xs text-[#5c6a62]">أي إضافة أو تعديل أو مسح بيتطبق على طول وبيتسجل هنا: مين عمله وإمتى وكان إيه قبله.</span>
+        <span className="text-xs text-[#556070]">أي إضافة أو تعديل أو مسح بيتطبق على طول وبيتسجل هنا: مين عمله وإمتى وكان إيه قبله.</span>
       </div>
 
       {loading && <p className="p-6 text-center text-sm font-bold">جاري التحميل…</p>}
@@ -130,13 +130,13 @@ export default function ApprovalsTab({ onChanged, pendingTotal = 0 }: { onChange
       <div className="space-y-3">
         {!loading &&
           requests?.map((request) => (
-          <article key={request.id} className="rounded-3xl border border-[#e7ddc8] bg-white p-4">
+          <article key={request.id} className="rounded-3xl border border-[#e3e9f2] bg-white p-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="gold">{actionLabel(request)}</Badge>
               <span className="font-black">{request.summary}</span>
               <Badge tone={STATUS_TONES[request.status]}>{STATUS_TEXT[request.status]}</Badge>
               {request.conflict && <Badge tone="error">البيانات اتغيرت بعد الطلب</Badge>}
-              <span className="ms-auto text-xs text-[#5c6a62]">
+              <span className="ms-auto text-xs text-[#556070]">
                 {request.created_by_name} · {new Date(request.created_at).toLocaleString("ar-EG")}
                 {request.project_name ? ` · ${request.project_name}` : ""}
               </span>
@@ -146,15 +146,15 @@ export default function ApprovalsTab({ onChanged, pendingTotal = 0 }: { onChange
               <table className="w-full min-w-[420px] text-right text-xs">
                 <tbody>
                   {diffLines(request).map((line, index) => (
-                    <tr key={index} className="border-b border-[#f4eee2]">
+                    <tr key={index} className="border-b border-[#f2f5fa]">
                       <td className="w-32 p-1.5 font-bold">{UNIT_FIELD_LABELS[line.field] ?? line.field}</td>
-                      <td className="p-1.5 text-[#5c6a62] line-through">{show(line.field, line.before)}</td>
-                      <td className="p-1.5 font-bold text-[#1b2420]">{show(line.field, line.after)}</td>
+                      <td className="p-1.5 text-[#556070] line-through">{show(line.field, line.before)}</td>
+                      <td className="p-1.5 font-bold text-[#0f1724]">{show(line.field, line.after)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {request.action === "import" && <p className="mt-1 text-xs text-[#5c6a62]">{request.ops.length} عملية في الاستيراد ده</p>}
+              {request.action === "import" && <p className="mt-1 text-xs text-[#556070]">{request.ops.length} عملية في الاستيراد ده</p>}
             </div>
 
             {request.status === "pending" && (
@@ -180,7 +180,7 @@ export default function ApprovalsTab({ onChanged, pendingTotal = 0 }: { onChange
                     <button
                       onClick={() => void decide(request, "approve")}
                       disabled={busy === request.id}
-                      className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
+                      className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
                     >
                       {busy === request.id ? "…" : "طبّق"}
                     </button>
@@ -189,7 +189,7 @@ export default function ApprovalsTab({ onChanged, pendingTotal = 0 }: { onChange
               </div>
             )}
             {request.status !== "pending" && request.reviewed_at && (
-              <p className="mt-2 text-xs text-[#5c6a62]">
+              <p className="mt-2 text-xs text-[#556070]">
                 {request.reviewed_by_name} · {new Date(request.reviewed_at).toLocaleString("ar-EG")}
                 {request.review_note ? ` · ${request.review_note}` : ""}
               </p>

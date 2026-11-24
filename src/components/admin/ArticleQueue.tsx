@@ -126,13 +126,13 @@ export default function ArticleQueue({
     : queue;
 
   return (
-    <section className="mb-4 rounded-3xl border border-[#e7ddc8] bg-white p-4 shadow-sm">
+    <section className="mb-4 rounded-3xl border border-[#e3e9f2] bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={() => setOpen((state) => !state)} className="me-auto text-start">
           <h2 className="text-lg font-black">
-            مقالات ناقصة ({none.length + partial.length}) <span className="text-xs text-[#8a958f]">{open ? "▴" : "▾"}</span>
+            مقالات ناقصة ({none.length + partial.length}) <span className="text-xs text-[#7b8594]">{open ? "▴" : "▾"}</span>
           </h2>
-          <p className="text-xs text-[#5c6a62]">الأكتر طلبات واتساب فوق. أول ما المقال الناقص يتنشر، المشروع بيتشال من القايمة لوحده.</p>
+          <p className="text-xs text-[#556070]">الأكتر طلبات واتساب فوق. أول ما المقال الناقص يتنشر، المشروع بيتشال من القايمة لوحده.</p>
         </button>
         {open && (
           <>
@@ -143,7 +143,7 @@ export default function ArticleQueue({
                 وقّف بعد المسودة الحالية
               </button>
             ) : (
-              <button type="button" disabled={busy || !batchItems.length} onClick={() => setConfirming(true)} className="rounded-xl bg-[#d9b87c] px-3 py-2 text-xs font-black disabled:opacity-50">
+              <button type="button" disabled={busy || !batchItems.length} onClick={() => setConfirming(true)} className="rounded-xl bg-[#f0bd4f] px-3 py-2 text-xs font-black disabled:opacity-50">
                 {batchItems.length ? `اكتب مسودات لأول ${batchItems.length}` : "كل اللي في القايمة ليه مسودة"}
               </button>
             )}
@@ -154,26 +154,26 @@ export default function ArticleQueue({
         )}
       </div>
       {open && confirming && (
-        <div className="mt-3 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-3 text-sm">
+        <div className="mt-3 rounded-2xl border border-[#e3e9f2] bg-[#f7f9fc] p-3 text-sm">
           <p className="font-black">هتتكتب {batchItems.length} مسودات، كل مشروع: تحليل جوجل + بحث في النت + كتابة المقال.</p>
-          <ul className="mt-1 list-disc ps-5 text-xs text-[#5c6a62]">
+          <ul className="mt-1 list-disc ps-5 text-xs text-[#556070]">
             {batchItems.map((item) => <li key={item.project.id}><span dir="ltr">{item.project.name}</span> — {item.language === "ar" ? "عربي" : "إنجليزي"}</li>)}
           </ul>
-          <p className="mt-2 text-xs text-[#5c6a62]">
+          <p className="mt-2 text-xs text-[#556070]">
             بتاخد حوالي 15–30 دقيقة (كل مقال 3–6 دقايق). سيب الصفحة دي مفتوحة لحد ما يخلص.
             المسودات بتتحفظ بس — مفيش حاجة بتتنشر غير لما تراجعها وتدوس «نشر» بنفسك.
           </p>
           <div className="mt-2 flex gap-2">
-            <button type="button" onClick={() => void startBatch()} className="rounded-xl bg-[#0d1f18] px-4 py-2 text-xs font-black text-white">ابدأ</button>
-            <button type="button" onClick={() => setConfirming(false)} className="rounded-xl bg-[#f1eadc] px-4 py-2 text-xs font-black">إلغاء</button>
+            <button type="button" onClick={() => void startBatch()} className="rounded-xl bg-[#060f1c] px-4 py-2 text-xs font-black text-white">ابدأ</button>
+            <button type="button" onClick={() => setConfirming(false)} className="rounded-xl bg-[#eef2f7] px-4 py-2 text-xs font-black">إلغاء</button>
           </div>
         </div>
       )}
       {open && batch && (
-        <div className="mt-3 rounded-2xl border border-[#e7ddc8] p-3">
+        <div className="mt-3 rounded-2xl border border-[#e3e9f2] p-3">
           <div className="flex items-center gap-2">
             <p className="me-auto text-sm font-black">{batch.running ? "جاري كتابة المسودات… سيب الصفحة مفتوحة" : "خلصت دفعة المسودات"}</p>
-            {!batch.running && <button type="button" onClick={() => setBatch(null)} className="text-xs font-bold text-[#5c6a62]">إخفاء</button>}
+            {!batch.running && <button type="button" onClick={() => setBatch(null)} className="text-xs font-bold text-[#556070]">إخفاء</button>}
           </div>
           <ul className="mt-2 space-y-1">
             {batch.items.map((item) => {
@@ -181,10 +181,10 @@ export default function ArticleQueue({
               return (
                 <li key={item.project.id} className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="me-auto font-bold" dir="ltr">{item.project.name}</span>
-                  <span className="text-[#5c6a62]">{item.language === "ar" ? "عربي" : "إنجليزي"}</span>
+                  <span className="text-[#556070]">{item.language === "ar" ? "عربي" : "إنجليزي"}</span>
                   <Badge tone={STEP_TONE[progress.step]}>{stepLabel(progress)}</Badge>
                   {progress.step === "done" && progress.articleId && (
-                    <button type="button" disabled={batch.running} onClick={() => onOpen(progress.articleId!)} className="rounded-lg bg-[#f1eadc] px-2 py-1 font-black disabled:opacity-50">راجع المسودة</button>
+                    <button type="button" disabled={batch.running} onClick={() => onOpen(progress.articleId!)} className="rounded-lg bg-[#eef2f7] px-2 py-1 font-black disabled:opacity-50">راجع المسودة</button>
                   )}
                 </li>
               );
@@ -198,16 +198,16 @@ export default function ArticleQueue({
             {mode === "none" ? "كل المشاريع ليها مقال." : "كل المشاريع اللي ليها مقال، ليها النسختين."}
           </p>
         ) : (
-          <ul className="mt-3 max-h-96 divide-y divide-[#f1eadc] overflow-y-auto rounded-2xl border border-[#f1eadc]">
+          <ul className="mt-3 max-h-96 divide-y divide-[#eef2f7] overflow-y-auto rounded-2xl border border-[#eef2f7]">
             {shown.map((project) => {
               const have = languages.get(project.id);
               const missing: Language[] = (["ar", "en"] as const).filter((language) => !have?.has(language));
               const demand = waDemandLabel(project);
               return (
-                <li key={project.id} className={`flex flex-wrap items-center gap-2 p-2 ${project.id === activeProjectId ? "bg-[#fbf8f2]" : ""}`}>
+                <li key={project.id} className={`flex flex-wrap items-center gap-2 p-2 ${project.id === activeProjectId ? "bg-[#f7f9fc]" : ""}`}>
                   <div className="me-auto min-w-0">
                     <span className="block truncate text-sm font-black" dir="ltr">{project.name}</span>
-                    <span className="block truncate text-xs text-[#5c6a62]">
+                    <span className="block truncate text-xs text-[#556070]">
                       {project.developer || "—"} · {project.area_group || project.location || "—"} · {project.units_count || 0} وحدة
                     </span>
                     {demand && <span className="block text-xs font-bold text-emerald-700">{demand}</span>}
@@ -217,11 +217,11 @@ export default function ArticleQueue({
                     const draft = drafts.get(`${project.id}|${language}`);
                     const label = language === "ar" ? "العربي" : "الإنجليزي";
                     return draft ? (
-                      <button key={language} type="button" disabled={busy || running} onClick={() => onOpen(draft.id)} className="rounded-lg bg-[#f1eadc] px-3 py-1.5 text-xs font-black disabled:opacity-50">
+                      <button key={language} type="button" disabled={busy || running} onClick={() => onOpen(draft.id)} className="rounded-lg bg-[#eef2f7] px-3 py-1.5 text-xs font-black disabled:opacity-50">
                         كمّل مسودة {label}
                       </button>
                     ) : (
-                      <button key={language} type="button" disabled={busy || running} onClick={() => onWrite(project, language)} className="rounded-lg bg-[#0d1f18] px-3 py-1.5 text-xs font-black text-white disabled:opacity-50">
+                      <button key={language} type="button" disabled={busy || running} onClick={() => onWrite(project, language)} className="rounded-lg bg-[#060f1c] px-3 py-1.5 text-xs font-black text-white disabled:opacity-50">
                         اكتب {label}
                       </button>
                     );
@@ -229,7 +229,7 @@ export default function ArticleQueue({
                 </li>
               );
             })}
-            {!shown.length && <li className="p-3 text-center text-sm text-[#5c6a62]">مفيش نتيجة.</li>}
+            {!shown.length && <li className="p-3 text-center text-sm text-[#556070]">مفيش نتيجة.</li>}
           </ul>
         )
       )}

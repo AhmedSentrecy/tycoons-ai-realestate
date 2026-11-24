@@ -225,19 +225,19 @@ export default function ImportDialog({
     <Modal title={`استيراد وحدات — ${projectName}`} onClose={onClose} wide>
       {!rows && (
         <div>
-          <p className="text-sm leading-relaxed text-[#5c6a62]">
+          <p className="text-sm leading-relaxed text-[#556070]">
             ارفع ملف Excel أو CSV فيه وحدات المشروع. هعرض لك معاينة بالجديد والمتغيّر قبل أي حفظ، ومفيش حاجة هتتسجل غير لما توافق.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
-            <button onClick={() => fileInput.current?.click()} className="rounded-full bg-[#0d1f18] px-5 py-2.5 text-sm font-black text-white">
+            <button onClick={() => fileInput.current?.click()} className="rounded-full bg-[#060f1c] px-5 py-2.5 text-sm font-black text-white">
               اختار ملف
             </button>
-            <button onClick={downloadTemplate} className="rounded-full border border-[#d8c9ab] px-5 py-2.5 text-sm font-black text-[#8a6630]">
+            <button onClick={downloadTemplate} className="rounded-full border border-[#c9d3e1] px-5 py-2.5 text-sm font-black text-[#9a640f]">
               نزّل قالب CSV
             </button>
           </div>
           {parseError && <p className="mt-3 text-sm font-bold text-red-600">{parseError}</p>}
-          <p className="mt-4 text-xs text-[#5c6a62]">
+          <p className="mt-4 text-xs text-[#556070]">
             الأعمدة المفهومة: unit_type · bedrooms_text · area_sqm · starting_price · down_payment_text · installments_text · delivery_text ·
             finishing · availability_status · description (والأسماء العربية زي «النوع» و«المساحة» و«السعر» كمان).
           </p>
@@ -258,9 +258,9 @@ export default function ImportDialog({
               ملف تاني
             </button>
           </div>
-          <div className="max-h-[52vh] overflow-auto rounded-2xl border border-[#efe7d8]">
+          <div className="max-h-[52vh] overflow-auto rounded-2xl border border-[#ecf0f6]">
             <table className="w-full min-w-[720px] text-right text-xs">
-              <thead className="sticky top-0 bg-[#f7f2ea] font-black">
+              <thead className="sticky top-0 bg-[#f4f6fa] font-black">
                 <tr>
                   <th className="p-2">الحالة</th>
                   <th className="p-2">النوع</th>
@@ -271,7 +271,7 @@ export default function ImportDialog({
               </thead>
               <tbody>
                 {rows.map((row, index) => (
-                  <tr key={index} className="border-t border-[#efe7d8]">
+                  <tr key={index} className="border-t border-[#ecf0f6]">
                     <td className="p-2">
                       {row.kind === "new" && <Badge tone="ok">جديدة</Badge>}
                       {row.kind === "update" && <Badge tone="gold">تعديل</Badge>}
@@ -281,7 +281,7 @@ export default function ImportDialog({
                     <td className="p-2 font-bold">{String(row.values.unit_type ?? row.match?.unit_type ?? "—")}</td>
                     <td className="p-2">{String(row.values.area_sqm ?? row.match?.area_sqm ?? "—")}</td>
                     <td className="p-2">{formatPrice(row.values.starting_price ?? row.match?.starting_price ?? null)}</td>
-                    <td className="p-2 text-[#5c6a62]">
+                    <td className="p-2 text-[#556070]">
                       {row.kind === "update"
                         ? row.changed
                             .map((field) => {
@@ -310,7 +310,7 @@ export default function ImportDialog({
             <button
               onClick={() => onConfirm(ready.map((row) => ({ id: row.id, values: row.values })))}
               disabled={busy || !ready.length}
-              className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
+              className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
             >
               {busy ? "بيحفظ…" : `طبّق ${ready.length} صف`}
             </button>
