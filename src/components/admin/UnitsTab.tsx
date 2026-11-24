@@ -224,7 +224,7 @@ export default function UnitsTab({
               {!unitsLoading && units && !units.length && <p className="p-6 text-center text-sm font-bold">مفيش وحدات للمشروع ده لسه</p>}
               {!unitsLoading && units && units.length > 0 && (
                 <table className="w-full min-w-[880px] text-right text-sm">
-                  <thead className="sticky top-0 z-10 bg-white text-xs font-black text-[#556070]">
+                  <thead className="sticky -top-4 z-10 bg-white text-xs font-black text-[#556070]">
                     <tr className="border-b border-[#ecf0f6]">
                       <th className="w-8 p-2">
                         <input
