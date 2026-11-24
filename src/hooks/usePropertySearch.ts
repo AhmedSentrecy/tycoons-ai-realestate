@@ -66,6 +66,7 @@ export function optionPayload(item: RankedInventoryUnit) {
     delivery: item.unit.delivery_text,
     finishing: item.unit.finishing,
     availability: item.unit.availability_status,
+    project_slug: item.unit.project_slug || null,
     project_url: item.unit.project_slug ? `/projects/${item.unit.project_slug}` : null,
     reasons: item.matchReasons,
     differences: item.differences,
