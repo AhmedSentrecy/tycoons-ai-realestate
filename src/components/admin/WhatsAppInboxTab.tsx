@@ -841,7 +841,7 @@ export default function WhatsAppInboxTab({
 
               <div className="max-h-[78vh] overflow-auto p-4">
                 <table className="w-full min-w-[900px] text-right text-sm">
-                  <thead className="sticky top-0 z-10 bg-white text-xs font-black text-[#556070]">
+                  <thead className="sticky -top-4 z-10 bg-white text-xs font-black text-[#556070]">
                     <tr className="border-b border-[#ecf0f6]">
                       {pending && (
                         <th className="w-8 p-2">
