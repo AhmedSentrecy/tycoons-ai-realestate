@@ -11,6 +11,7 @@ const { imgSrcAttrs, heroSrcAttrs } = require("../../netlify/functions/_images.c
 const { buildProjectSchemas } = require("../../netlify/functions/_project-schema.cjs");
 const { projectFacts, projectFactsHtml, lastPriceUpdate } = require("../../netlify/functions/_project-facts.cjs");
 const { unitPath } = require("../../netlify/functions/_unit-url.cjs");
+const { offersSectionHtml, offerKeywords } = require("../../netlify/functions/_project-offers.cjs");
 const { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, arabicKeywords } = require("../../netlify/functions/_unit-labels.cjs");
 const { renderSafeMarkdown, priceDateNoteHtml } = require("../../netlify/functions/_article-render.cjs");
 const { topicOf, dropCoveredSections, unlinkSelf, durationMonths, durationAr, pageNumberConflicts, feddanOnly } = require("../../netlify/functions/_page-consistency.cjs");
@@ -469,6 +470,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   ${imageList[0] ? `<section class="bg-[#060f1c] px-5 pb-12"><img ${heroSrcAttrs(imageList[0], 1280)} alt="${escapeHtml(project.name)}" width="1280" height="720" fetchpriority="high" class="mx-auto aspect-[16/8] w-full max-w-7xl rounded-3xl object-contain"></section>` : ""}
   ${showcase}${showcase ? '<script src="/showcase.js" defer></script>' : ""}
   <section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]"><article>
+  ${offersSectionHtml(project.offers, { projectName: headingName(project), escapeHtml })}
   ${article.length ? linkProjectNames(article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#556070]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join(""), faqContext.projectLinks, project.slug) : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
   ${visibleFaq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(headingName(project))}</h2>${visibleFaq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e3e9f2] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#556070]">${linkProjectNames(escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea)), faqContext.projectLinks, project.slug)}</p></details>`).join("")}</section>` : ""}
   ${galleryHtml(project, imageList)}
@@ -525,7 +527,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
     description,
     canonical,
     image: imageList[0] || "",
-    keywords: arabicKeywords(arrayValue(project.seo_keywords).map(text).filter(Boolean), { areaAr: areaInfo(project.location).ar, developer: project.developer, developerAr: developerInfo(project.developer)?.name_ar || "", name: sourceName }),
+    keywords: arabicKeywords([...offerKeywords(project.offers, sourceName), ...arrayValue(project.seo_keywords).map(text).filter(Boolean)], { areaAr: areaInfo(project.location).ar, developer: project.developer, developerAr: developerInfo(project.developer)?.name_ar || "", name: sourceName }),
     schemas,
     body,
     alternates: [{ hreflang: "en", href: `${SITE_URL}/en/projects/${project.slug}` }],

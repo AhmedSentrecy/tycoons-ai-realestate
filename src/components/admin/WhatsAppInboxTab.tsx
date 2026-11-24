@@ -440,14 +440,14 @@ export default function WhatsAppInboxTab({
 
   return (
     <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
-      <aside className={`rounded-3xl border border-[#e7ddc8] bg-white p-3 ${bucket ? "hidden lg:block" : ""}`}>
+      <aside className={`rounded-3xl border border-[#e3e9f2] bg-white p-3 ${bucket ? "hidden lg:block" : ""}`}>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h2 className="text-lg font-black">وحدات واتساب</h2>
           <div className="flex gap-1">
-            <button onClick={reload} className="rounded-full bg-[#f1eadc] px-3 py-1.5 text-xs font-black">
+            <button onClick={reload} className="rounded-full bg-[#eef2f7] px-3 py-1.5 text-xs font-black">
               تحديث
             </button>
-            <button onClick={() => setGroupsOpen(true)} className="rounded-full border border-[#d8c9ab] px-3 py-1.5 text-xs font-black">
+            <button onClick={() => setGroupsOpen(true)} className="rounded-full border border-[#c9d3e1] px-3 py-1.5 text-xs font-black">
               الجروبات
             </button>
           </div>
@@ -471,14 +471,14 @@ export default function WhatsAppInboxTab({
               {autoApprove.paused ? (
                 <>
                   <span className="text-red-700">⏸ كل الأتمتة واقفة</span>
-                  <span className="block text-[11px] font-bold text-[#5c6a62]">
+                  <span className="block text-[11px] font-bold text-[#556070]">
                     {autoApprove.paused_since ? `من ${when(autoApprove.paused_since)} · ` : ""}الرسايل بتتحفظ من غير ما تتقري · المقالات شغالة
                   </span>
                 </>
               ) : (
                 <>
                   <span className="text-emerald-700">▶ الأتمتة شغالة</span>
-                  <span className="block text-[11px] font-bold text-[#5c6a62]">قراية الرسايل · بحث المشاريع · الصور · النزول التلقائي</span>
+                  <span className="block text-[11px] font-bold text-[#556070]">قراية الرسايل · بحث المشاريع · الصور · النزول التلقائي</span>
                 </>
               )}
             </span>
@@ -492,7 +492,7 @@ export default function WhatsAppInboxTab({
           </div>
         )}
         {status === "pending" && (
-          <div className="mt-2 rounded-2xl border border-[#e7ddc8] p-2.5">
+          <div className="mt-2 rounded-2xl border border-[#e3e9f2] p-2.5">
             <p className="mb-2 text-sm font-black">شغلك النهارده</p>
             <div className="space-y-1.5 text-sm">
               {(
@@ -518,19 +518,19 @@ export default function WhatsAppInboxTab({
                         window.setTimeout(() => document.getElementById("wa-photos")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
                       } else setFocus(active ? "" : step.key);
                     }}
-                    className={`flex w-full items-center gap-2 rounded-xl border p-2 text-right ${active ? "border-[#0d1f18] bg-[#fbf8f2]" : "border-[#efe7d8] bg-white"} ${step.count ? "" : "opacity-60"}`}
+                    className={`flex w-full items-center gap-2 rounded-xl border p-2 text-right ${active ? "border-[#060f1c] bg-[#f7f9fc]" : "border-[#ecf0f6] bg-white"} ${step.count ? "" : "opacity-60"}`}
                   >
                     <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-lg text-xs font-black ${step.tone}`}>{step.n}</span>
                     <span className="me-auto font-bold">{step.label}</span>
                     <span className="font-black">{step.count}</span>
-                    <span className="rounded-full border border-[#d8c9ab] px-2.5 py-0.5 text-xs font-black">{active ? "اقفل" : step.action}</span>
+                    <span className="rounded-full border border-[#c9d3e1] px-2.5 py-0.5 text-xs font-black">{active ? "اقفل" : step.action}</span>
                   </button>
                 );
               })}
             </div>
-            {today.researching > 0 && <p className="mt-1.5 text-xs text-[#5c6a62]">ولسه بنبحث على النت عن {today.researching} مشروع جديد، هيظهروا في 1 أو 2 لما يخلصوا.</p>}
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-[#efe7d8] pt-2 text-xs">
-              <span className="text-[#5c6a62]">كل الوحدات:</span>
+            {today.researching > 0 && <p className="mt-1.5 text-xs text-[#556070]">ولسه بنبحث على النت عن {today.researching} مشروع جديد، هيظهروا في 1 أو 2 لما يخلصوا.</p>}
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-[#ecf0f6] pt-2 text-xs">
+              <span className="text-[#556070]">كل الوحدات:</span>
               <button
                 onClick={() => { setFocus(""); setView("ready"); setBucket(""); setSelected(new Set()); }}
                 className={`rounded-full px-2.5 py-1 font-black ${!focus && view === "ready" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-700"}`}
@@ -539,7 +539,7 @@ export default function WhatsAppInboxTab({
               </button>
               <button
                 onClick={() => { setFocus(""); setView("review"); setBucket(""); setSelected(new Set()); }}
-                className={`rounded-full px-2.5 py-1 font-black ${!focus && view === "review" ? "bg-[#0d1f18] text-white" : "bg-[#f1eadc] text-[#0d1f18]"}`}
+                className={`rounded-full px-2.5 py-1 font-black ${!focus && view === "review" ? "bg-[#060f1c] text-white" : "bg-[#eef2f7] text-[#060f1c]"}`}
               >
                 محتاج مراجعة ({items.length - readyCount})
               </button>
@@ -549,7 +549,7 @@ export default function WhatsAppInboxTab({
         {status === "pending" && autoApprove && (
           <button
             onClick={() => setSettingsOpen((open) => !open)}
-            className="mt-2 flex w-full items-center gap-2 rounded-2xl bg-[#fbf8f2] px-3 py-2 text-right text-xs font-black"
+            className="mt-2 flex w-full items-center gap-2 rounded-2xl bg-[#f7f9fc] px-3 py-2 text-right text-xs font-black"
           >
             <span className="me-auto">
               إعدادات الأتمتة · النزول التلقائي{" "}
@@ -560,7 +560,7 @@ export default function WhatsAppInboxTab({
           </button>
         )}
         {status === "pending" && autoApprove && settingsOpen && (
-          <div className="mt-1 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-2.5 text-xs">
+          <div className="mt-1 rounded-2xl border border-[#e3e9f2] bg-[#f7f9fc] p-2.5 text-xs">
             <div className="flex items-center gap-2">
               <span className="me-auto font-black">
                 النزول التلقائي:{" "}
@@ -569,7 +569,7 @@ export default function WhatsAppInboxTab({
               <button
                 disabled={autoBusy}
                 onClick={() => void toggleAutoApprove()}
-                className="rounded-full border border-[#d8c9ab] px-3 py-1 font-black disabled:opacity-50"
+                className="rounded-full border border-[#c9d3e1] px-3 py-1 font-black disabled:opacity-50"
               >
                 {autoApprove.on ? "وقّفه" : "شغّله"}
               </button>
@@ -582,12 +582,12 @@ export default function WhatsAppInboxTab({
               <button
                 disabled={autoBusy}
                 onClick={() => void togglePhotoCheck()}
-                className="rounded-full border border-[#d8c9ab] px-3 py-1 font-black disabled:opacity-50"
+                className="rounded-full border border-[#c9d3e1] px-3 py-1 font-black disabled:opacity-50"
               >
                 {autoApprove.photo_check ? "وقّفه" : "شغّله"}
               </button>
             </div>
-            <p className="mt-1 leading-5 text-[#5c6a62]">
+            <p className="mt-1 leading-5 text-[#556070]">
               {!autoApprove.on
                 ? "الوحدات الجاهزة مستنية موافقتك."
                 : !autoApprove.photo_check
@@ -595,14 +595,14 @@ export default function WhatsAppInboxTab({
                   : "كل 15 دقيقة Claude بيشيّك على صور المشاريع (تبع المشروع ومفيهاش رقم غير رقمنا)، والوحدات الجاهزة اللي صور مشروعها عدّت بتنزل لوحدها. ماعدا اللي مشروعها مالوش صور ووحدات المشاريع الجديدة (بتنزل بـ «انشر»)."}
               {autoApprove.last_run ? ` آخر مرة ${when(autoApprove.last_run)}: نزلت ${autoApprove.last_approved} وحدة.` : ""}
             </p>
-            <p className="mt-1 leading-5 text-[#5c6a62]">
+            <p className="mt-1 leading-5 text-[#556070]">
               تكلفة تشييك الصور: النهارده ${autoApprove.photo_usage.today.usd.toFixed(2)} ({autoApprove.photo_usage.today.checks} مشروع) · من الأول $
               {autoApprove.photo_usage.total.usd.toFixed(2)} ({autoApprove.photo_usage.total.checks} مشروع،{" "}
               {Math.round((autoApprove.photo_usage.total.input_tokens + autoApprove.photo_usage.total.output_tokens) / 1000).toLocaleString("en")} ألف توكن)
               {autoApprove.photo_usage.firecrawl_credits ? ` · Firecrawl: ${autoApprove.photo_usage.firecrawl_credits} credit` : ""}
             </p>
             {held && (
-              <p className="mt-1 leading-5 text-[#5c6a62]">
+              <p className="mt-1 leading-5 text-[#556070]">
                 قاعدة الـ 7 أيام: اتشال {held.today} تحديث متكرر النهارده ({held.week} في آخر 7 أيام). النوع اللي اتحدّث على الموقع ما بيتحدّثش تاني قبل 7 أيام، إلا لو السعر الجديد أرخص.
               </p>
             )}
@@ -681,26 +681,26 @@ export default function WhatsAppInboxTab({
                       </span>
                     )}
                     <span className="mt-1.5 flex flex-wrap items-center gap-1">
-                      <span className="me-auto text-[#5c6a62]">{count} وحدة جاهزة</span>
+                      <span className="me-auto text-[#556070]">{count} وحدة جاهزة</span>
                       <button
                         onClick={() => {
                           setView("ready");
                           setBucket(projectId);
                           setSelected(new Set());
                         }}
-                        className="rounded-full bg-[#f1eadc] px-2.5 py-1 font-black"
+                        className="rounded-full bg-[#eef2f7] px-2.5 py-1 font-black"
                       >
                         الوحدات
                       </button>
                       {onOpenPhotos && (
-                        <button onClick={() => onOpenPhotos(projectId)} className="rounded-full bg-[#0d1f18] px-2.5 py-1 font-black text-white">
+                        <button onClick={() => onOpenPhotos(projectId)} className="rounded-full bg-[#060f1c] px-2.5 py-1 font-black text-white">
                           غيّر الصور
                         </button>
                       )}
                       <button
                         disabled={recheckBusy === projectId}
                         onClick={() => void recheckPhotos(projectId, project?.name || "المشروع")}
-                        className="rounded-full border border-[#d8c9ab] bg-white px-2.5 py-1 font-black disabled:opacity-50"
+                        className="rounded-full border border-[#c9d3e1] bg-white px-2.5 py-1 font-black disabled:opacity-50"
                       >
                         {recheckBusy === projectId ? "بيشيّك…" : "شيّك دلوقتي"}
                       </button>
@@ -734,8 +734,8 @@ export default function WhatsAppInboxTab({
           className={`${inputClass} mt-2`}
         />
         <div className="mt-3 max-h-[calc(100vh-260px)] space-y-1 overflow-y-auto">
-          {loading && <p className="p-4 text-center text-sm font-bold text-[#5c6a62]">جاري التحميل…</p>}
-          {!loading && !buckets.length && <p className="p-4 text-center text-sm font-bold text-[#5c6a62]">مفيش وحدات هنا</p>}
+          {loading && <p className="p-4 text-center text-sm font-bold text-[#556070]">جاري التحميل…</p>}
+          {!loading && !buckets.length && <p className="p-4 text-center text-sm font-bold text-[#556070]">مفيش وحدات هنا</p>}
           {!loading &&
             buckets.map(({ id, list, project, draft }) => {
               const active = id === activeBucket?.id;
@@ -748,7 +748,7 @@ export default function WhatsAppInboxTab({
                     setBucket(id);
                     setSelected(new Set());
                   }}
-                  className={`flex w-full items-center gap-3 rounded-2xl p-2 text-right transition ${active ? "bg-[#0d1f18] text-white" : "hover:bg-[#f7f2ea]"}`}
+                  className={`flex w-full items-center gap-3 rounded-2xl p-2 text-right transition ${active ? "bg-[#060f1c] text-white" : "hover:bg-[#f4f6fa]"}`}
                 >
                   {id === UNMATCHED ? (
                     <span className="grid h-12 w-16 shrink-0 place-items-center rounded-lg bg-red-50 text-[10px] font-black text-red-600">مش متطابقة</span>
@@ -757,11 +757,11 @@ export default function WhatsAppInboxTab({
                   ) : image ? (
                     <img src={image} alt="" loading="lazy" className="h-12 w-16 shrink-0 rounded-lg object-cover" />
                   ) : (
-                    <span className="grid h-12 w-16 shrink-0 place-items-center rounded-lg bg-[#f1eadc] text-[10px] font-black text-[#5c6a62]">بدون صور</span>
+                    <span className="grid h-12 w-16 shrink-0 place-items-center rounded-lg bg-[#eef2f7] text-[10px] font-black text-[#556070]">بدون صور</span>
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-black">{project ? project.name : draft ? draft.name : "مشاريع مش موجودة على الموقع"}</span>
-                    <span className={`block truncate text-xs ${active ? "text-white/70" : "text-[#5c6a62]"}`}>
+                    <span className={`block truncate text-xs ${active ? "text-white/70" : "text-[#556070]"}`}>
                       {project
                         ? `${project.developer || "—"} · ${project.area_group || project.location || "—"}`
                         : draft
@@ -781,14 +781,14 @@ export default function WhatsAppInboxTab({
         {!loading && !activeBucket && <EmptyState title={pending ? "مفيش وحدات مستنية" : "مفيش حاجة هنا"} text="أول ما مطور ينزل وحدات في الجروب هتظهر هنا." />}
         {activeBucket && (
           <div className="space-y-4">
-            <div className="rounded-3xl border border-[#e7ddc8] bg-white">
-              <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] p-4">
-                <button onClick={() => setBucket("")} className="rounded-full bg-[#f7f2ea] px-3 py-1.5 text-sm font-bold lg:hidden">
+            <div className="rounded-3xl border border-[#e3e9f2] bg-white">
+              <div className="flex flex-wrap items-center gap-2 border-b border-[#ecf0f6] p-4">
+                <button onClick={() => setBucket("")} className="rounded-full bg-[#f4f6fa] px-3 py-1.5 text-sm font-bold lg:hidden">
                   → رجوع
                 </button>
                 <div className="me-auto min-w-0">
                   <h2 className="truncate text-xl font-black">{activeProject ? activeProject.name : activeDraft ? activeDraft.name : "وحدات مشروعها مش موجود على الموقع"}</h2>
-                  <p className="text-xs text-[#5c6a62]">
+                  <p className="text-xs text-[#556070]">
                     {activeProject
                       ? `${activeProject.developer || "—"} · ${[activeProject.sub_area, activeProject.area_group].filter(Boolean).join(", ") || activeProject.location || "—"} · ${siteUnits.length} وحدة على الموقع`
                       : activeDraft
@@ -803,7 +803,7 @@ export default function WhatsAppInboxTab({
                   placeholder="ابحث في الوحدات: اسم، نوع، مساحة، سعر، جروب…"
                   className={`${inputClass} w-full sm:w-80`}
                 />
-                {unitQuery.trim() && <span className="text-xs font-bold text-[#5c6a62]">{rows.length} من {bucketRows.length}</span>}
+                {unitQuery.trim() && <span className="text-xs font-bold text-[#556070]">{rows.length} من {bucketRows.length}</span>}
                 {pending && view === "ready" && rows.length > 0 && !activeDraft && (
                   <button
                     disabled={bulkBusy}
@@ -839,10 +839,10 @@ export default function WhatsAppInboxTab({
                 />
               )}
 
-              <div className="overflow-x-auto p-4">
+              <div className="max-h-[78vh] overflow-auto p-4">
                 <table className="w-full min-w-[900px] text-right text-sm">
-                  <thead className="text-xs font-black text-[#5c6a62]">
-                    <tr className="border-b border-[#efe7d8]">
+                  <thead className="sticky top-0 z-10 bg-white text-xs font-black text-[#556070]">
+                    <tr className="border-b border-[#ecf0f6]">
                       {pending && (
                         <th className="w-8 p-2">
                           <input
@@ -850,7 +850,7 @@ export default function WhatsAppInboxTab({
                             aria-label="تحديد الكل"
                             checked={allChecked}
                             onChange={() => setSelected(allChecked ? new Set() : new Set(rowIds))}
-                            className="h-4 w-4 cursor-pointer accent-[#0d1f18]"
+                            className="h-4 w-4 cursor-pointer accent-[#060f1c]"
                           />
                         </th>
                       )}
@@ -872,7 +872,7 @@ export default function WhatsAppInboxTab({
                       const filled = autoFilled[String(item.id)] ?? {};
                       const rejectedAt = rejectedBefore[String(item.id)];
                       return (
-                        <tr key={item.id} className={`border-b border-[#f4eee2] align-top ${selected.has(item.id) ? "bg-[#fffaf1]" : ""}`}>
+                        <tr key={item.id} className={`border-b border-[#f2f5fa] align-top ${selected.has(item.id) ? "bg-[#f7f9fc]" : ""}`}>
                           {pending && (
                             <td className="p-2">
                               <input
@@ -880,40 +880,40 @@ export default function WhatsAppInboxTab({
                                 aria-label="اختيار"
                                 checked={selected.has(item.id)}
                                 onChange={() => toggleSelect(item.id)}
-                                className="mt-1 h-4 w-4 cursor-pointer accent-[#0d1f18]"
+                                className="mt-1 h-4 w-4 cursor-pointer accent-[#060f1c]"
                               />
                             </td>
                           )}
                           {!activeProject && (
                             <td className="p-2">
                               <span className="font-black">{item.project_name || "—"}</span>
-                              <span className="block text-xs text-[#5c6a62]">{item.developer || ""}</span>
+                              <span className="block text-xs text-[#556070]">{item.developer || ""}</span>
                               {pending && (() => {
                                 const suggestion = suggestions[String(item.id)];
                                 const same = rows.filter((row) => row.id !== item.id && nameKey(row.project_name) === nameKey(item.project_name)).length;
                                 if (!suggestion)
                                   return (
-                                    <button onClick={() => setEditing(item)} className="mt-1 rounded-lg border border-dashed border-[#d8c9ab] px-2 py-1 text-[11px] font-black text-[#8a6630]">
+                                    <button onClick={() => setEditing(item)} className="mt-1 rounded-lg border border-dashed border-[#c9d3e1] px-2 py-1 text-[11px] font-black text-[#9a640f]">
                                       اختار المشروع أو اعمله جديد
                                     </button>
                                   );
                                 return (
-                                  <div className="mt-1 rounded-xl bg-[#fffaf1] p-2 ring-1 ring-[#ecdcbc]">
-                                    <span className="block text-[11px] text-[#5c6a62]">تقصد ({WA_SUGGEST_LABELS[suggestion.kind]}):</span>
+                                  <div className="mt-1 rounded-xl bg-[#f7f9fc] p-2 ring-1 ring-[#e3e9f2]">
+                                    <span className="block text-[11px] text-[#556070]">تقصد ({WA_SUGGEST_LABELS[suggestion.kind]}):</span>
                                     <span className="block text-xs font-black" dir="ltr">{suggestion.name}؟</span>
                                     <div className="mt-1 flex gap-1">
                                       <button
                                         onClick={() => void linkProject(item, suggestion.project_id, suggestion.name)}
                                         disabled={busyId === item.id}
-                                        className="rounded-lg bg-[#0d1f18] px-2 py-1 text-[11px] font-black text-white disabled:opacity-40"
+                                        className="rounded-lg bg-[#060f1c] px-2 py-1 text-[11px] font-black text-white disabled:opacity-40"
                                       >
                                         {busyId === item.id ? "…" : `تأكيد${same ? ` (+${same})` : ""}`}
                                       </button>
-                                      <button onClick={() => setEditing(item)} className="rounded-lg bg-white px-2 py-1 text-[11px] font-black ring-1 ring-[#e0d3bb]">
+                                      <button onClick={() => setEditing(item)} className="rounded-lg bg-white px-2 py-1 text-[11px] font-black ring-1 ring-[#dde4ee]">
                                         غيّر
                                       </button>
                                     </div>
-                                    {same > 0 && <span className="mt-1 block text-[10px] text-[#5c6a62]">هيتربط معاها {same} وحدة بنفس الاسم</span>}
+                                    {same > 0 && <span className="mt-1 block text-[10px] text-[#556070]">هيتربط معاها {same} وحدة بنفس الاسم</span>}
                                   </div>
                                 );
                               })()}
@@ -921,7 +921,7 @@ export default function WhatsAppInboxTab({
                           )}
                           <td className="p-2">
                             <span className="font-black">{item.unit_type || "—"}</span>
-                            <span className="block text-xs text-[#5c6a62]">{item.bedrooms_text || ""}</span>
+                            <span className="block text-xs text-[#556070]">{item.bedrooms_text || ""}</span>
                             <div className="mt-1 flex flex-wrap gap-1">
                               {match && <Badge tone="gold">هتحدّث وحدة موجودة</Badge>}
                               {twins.length > 0 && <Badge tone="pending">مكررة ×{twins.length + 1}</Badge>}
@@ -973,10 +973,10 @@ export default function WhatsAppInboxTab({
                           <td className="p-2 font-bold">
                             {formatPrice(item.starting_price)}
                             {match && Number(match.starting_price) > 0 && (
-                              <span className="block text-[11px] font-normal text-[#5c6a62]">الحالي: {formatPrice(match.starting_price)}</span>
+                              <span className="block text-[11px] font-normal text-[#556070]">الحالي: {formatPrice(match.starting_price)}</span>
                             )}
                           </td>
-                          <td className="p-2 text-xs text-[#5c6a62]">
+                          <td className="p-2 text-xs text-[#556070]">
                             {item.down_payment_text || "—"}
                             <AutoMark source={filled.down_payment_text} />
                             <span className="block">
@@ -990,12 +990,12 @@ export default function WhatsAppInboxTab({
                               </span>
                             )}
                           </td>
-                          <td className="p-2 text-xs text-[#5c6a62]">
+                          <td className="p-2 text-xs text-[#556070]">
                             {item.delivery_text || "—"}
                             <AutoMark source={filled.delivery_text} />
                           </td>
-                          <td className="p-2 text-xs text-[#5c6a62]">
-                            <span className="block font-bold text-[#1b2420]">{item.source_group || "جروب"}</span>
+                          <td className="p-2 text-xs text-[#556070]">
+                            <span className="block font-bold text-[#0f1724]">{item.source_group || "جروب"}</span>
                             {when(item.created_at)}
                             {twins.length > 0 && (
                               <span className="mt-1 block text-[11px] text-amber-700">
@@ -1007,7 +1007,7 @@ export default function WhatsAppInboxTab({
                           <td className="p-2">
                             {pending && (
                               <div className="flex flex-wrap justify-end gap-1">
-                                <button onClick={() => setEditing(item)} className="rounded-lg bg-[#f7f2ea] px-2 py-1 text-xs font-black">
+                                <button onClick={() => setEditing(item)} className="rounded-lg bg-[#f4f6fa] px-2 py-1 text-xs font-black">
                                   تعديل وصور
                                 </button>
                                 <button onClick={() => void reject([item.id])} className="rounded-lg bg-white px-2 py-1 text-xs font-black text-red-600">
@@ -1016,7 +1016,7 @@ export default function WhatsAppInboxTab({
                                 <button
                                   onClick={() => void quickApprove(item)}
                                   disabled={busyId === item.id}
-                                  className="rounded-lg bg-[#0d1f18] px-2 py-1 text-xs font-black text-white disabled:opacity-40"
+                                  className="rounded-lg bg-[#060f1c] px-2 py-1 text-xs font-black text-white disabled:opacity-40"
                                 >
                                   {busyId === item.id ? "…" : "وافق"}
                                 </button>
@@ -1028,7 +1028,7 @@ export default function WhatsAppInboxTab({
                     })}
                     {!rows.length && unitQuery.trim() && (
                       <tr>
-                        <td colSpan={9} className="p-6 text-center text-sm text-[#5c6a62]">مفيش وحدة فيها «{unitQuery.trim()}».</td>
+                        <td colSpan={9} className="p-6 text-center text-sm text-[#556070]">مفيش وحدة فيها «{unitQuery.trim()}».</td>
                       </tr>
                     )}
                   </tbody>
@@ -1037,15 +1037,15 @@ export default function WhatsAppInboxTab({
             </div>
 
             {activeProject && (
-              <div className="rounded-3xl border border-[#e7ddc8] bg-white p-4">
+              <div className="rounded-3xl border border-[#e3e9f2] bg-white p-4">
                 <h3 className="mb-2 text-base font-black">الوحدات الموجودة على الموقع في {activeProject.name}</h3>
                 {!siteUnits.length ? (
-                  <p className="p-4 text-center text-sm text-[#5c6a62]">مفيش وحدات للمشروع ده على الموقع لسه.</p>
+                  <p className="p-4 text-center text-sm text-[#556070]">مفيش وحدات للمشروع ده على الموقع لسه.</p>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-[720px] text-right text-sm">
-                      <thead className="text-xs font-black text-[#5c6a62]">
-                        <tr className="border-b border-[#efe7d8]">
+                      <thead className="text-xs font-black text-[#556070]">
+                        <tr className="border-b border-[#ecf0f6]">
                           <th className="p-2">النوع</th>
                           <th className="p-2">المساحة</th>
                           <th className="p-2">السعر</th>
@@ -1059,19 +1059,19 @@ export default function WhatsAppInboxTab({
                         {siteUnits.map((unit) => {
                           const touched = rows.some((item) => item.match_unit_id === unit.id);
                           return (
-                            <tr key={unit.id} className={`border-b border-[#f4eee2] ${touched ? "bg-[#fffaf1]" : ""}`}>
+                            <tr key={unit.id} className={`border-b border-[#f2f5fa] ${touched ? "bg-[#f7f9fc]" : ""}`}>
                               <td className="p-2">
                                 <span className="font-black">{unit.unit_type || "—"}</span>
-                                <span className="block text-xs text-[#5c6a62]">{unit.bedrooms_text || ""}</span>
+                                <span className="block text-xs text-[#556070]">{unit.bedrooms_text || ""}</span>
                                 {touched && <Badge tone="gold">جاله تحديث من واتساب</Badge>}
                               </td>
                               <td className="p-2">{unit.area_sqm ? `${unit.area_sqm} م²` : "—"}</td>
                               <td className="p-2 font-bold">{formatPrice(unit.starting_price)}</td>
-                              <td className="p-2 text-xs text-[#5c6a62]">
+                              <td className="p-2 text-xs text-[#556070]">
                                 {unit.down_payment_text || "—"}
                                 <span className="block">{unit.installments_text || ""}</span>
                               </td>
-                              <td className="p-2 text-xs text-[#5c6a62]">{unit.delivery_text || "—"}</td>
+                              <td className="p-2 text-xs text-[#556070]">{unit.delivery_text || "—"}</td>
                               <td className="p-2">
                                 <Badge tone={unit.availability_status === "available" ? "ok" : "muted"}>
                                   {STATUS_LABELS[String(unit.availability_status)] ?? unit.availability_status}
@@ -1156,29 +1156,29 @@ const finishingText = (value: string) => (FINISHING_LABELS[value] ? `${value} ($
 function FinishingBar({ current, suggested, onConfirm, onEdit }: { current: string; suggested: string; onConfirm: (value: string) => void; onEdit: () => void }) {
   if (current)
     return (
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] bg-[#fbf8f2] px-4 py-2 text-xs">
-        <span className="font-bold text-[#5c6a62]">التشطيب الافتراضي للمرحلة:</span>
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#ecf0f6] bg-[#f7f9fc] px-4 py-2 text-xs">
+        <span className="font-bold text-[#556070]">التشطيب الافتراضي للمرحلة:</span>
         <b dir="ltr">{finishingText(current)}</b>
-        <span className="text-[#5c6a62]">— أي وحدة من غير تشطيب بتاخده</span>
-        <button onClick={onEdit} className="ms-auto rounded-full bg-white px-3 py-1 font-black ring-1 ring-[#e0d3bb]">تعديل</button>
+        <span className="text-[#556070]">— أي وحدة من غير تشطيب بتاخده</span>
+        <button onClick={onEdit} className="ms-auto rounded-full bg-white px-3 py-1 font-black ring-1 ring-[#dde4ee]">تعديل</button>
       </div>
     );
   if (suggested)
     return (
-      <div className="flex flex-wrap items-center gap-2 border-b border-[#ecdcbc] bg-[#fffaf1] px-4 py-2 text-xs">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#e3e9f2] bg-[#f7f9fc] px-4 py-2 text-xs">
         <span className="font-bold">كل وحدات المرحلة دي على الموقع تشطيبها</span>
         <b dir="ltr">{finishingText(suggested)}</b>
-        <span className="text-[#5c6a62]">— تخليه التشطيب الافتراضي؟</span>
+        <span className="text-[#556070]">— تخليه التشطيب الافتراضي؟</span>
         <span className="ms-auto flex gap-1">
-          <button onClick={() => onConfirm(suggested)} className="rounded-full bg-[#0d1f18] px-3 py-1 font-black text-white">تأكيد</button>
-          <button onClick={onEdit} className="rounded-full bg-white px-3 py-1 font-black ring-1 ring-[#e0d3bb]">اختار غيره</button>
+          <button onClick={() => onConfirm(suggested)} className="rounded-full bg-[#060f1c] px-3 py-1 font-black text-white">تأكيد</button>
+          <button onClick={onEdit} className="rounded-full bg-white px-3 py-1 font-black ring-1 ring-[#dde4ee]">اختار غيره</button>
         </span>
       </div>
     );
   return (
-    <div className="flex flex-wrap items-center gap-2 border-b border-[#efe7d8] px-4 py-2 text-xs">
-      <span className="text-[#5c6a62]">المرحلة دي مالهاش تشطيب افتراضي، فالوحدات اللي من غير تشطيب بتفضل فاضية.</span>
-      <button onClick={onEdit} className="ms-auto rounded-full border border-[#d8c9ab] px-3 py-1 font-black text-[#8a6630]">حدّد التشطيب</button>
+    <div className="flex flex-wrap items-center gap-2 border-b border-[#ecf0f6] px-4 py-2 text-xs">
+      <span className="text-[#556070]">المرحلة دي مالهاش تشطيب افتراضي، فالوحدات اللي من غير تشطيب بتفضل فاضية.</span>
+      <button onClick={onEdit} className="ms-auto rounded-full border border-[#c9d3e1] px-3 py-1 font-black text-[#9a640f]">حدّد التشطيب</button>
     </div>
   );
 }
@@ -1188,7 +1188,7 @@ function FinishingDialog({ project, suggested, onClose, onSave }: { project: Adm
   const [busy, setBusy] = useState(false);
   return (
     <Modal title={`التشطيب الافتراضي — ${project.name}`} onClose={onClose}>
-      <p className="mb-3 text-sm text-[#5c6a62]">
+      <p className="mb-3 text-sm text-[#556070]">
         أي وحدة جاية من الواتساب للمرحلة دي من غير تشطيب هتاخد التشطيب ده (وعليها علامة «تلقائي»). لو الرسالة ذكرت تشطيب تاني، اللي في الرسالة هو اللي بيتحط.
       </p>
       <div className="min-h-[330px]">
@@ -1204,7 +1204,7 @@ function FinishingDialog({ project, suggested, onClose, onSave }: { project: Adm
             await onSave(value);
             setBusy(false);
           }}
-          className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
+          className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
         >
           {busy ? "بيحفظ…" : "احفظ"}
         </button>
@@ -1393,7 +1393,7 @@ function EditDialog({
                 dir="ltr"
               />
             </div>
-            <button type="button" onClick={() => setNewProjectOpen(true)} className="shrink-0 rounded-xl border border-[#d8c9ab] px-3 py-2 text-xs font-black text-[#8a6630]">
+            <button type="button" onClick={() => setNewProjectOpen(true)} className="shrink-0 rounded-xl border border-[#c9d3e1] px-3 py-2 text-xs font-black text-[#9a640f]">
               + مشروع جديد
             </button>
           </div>
@@ -1401,7 +1401,7 @@ function EditDialog({
             <button
               type="button"
               onClick={() => set("project_id", suggestion.project_id)}
-              className="mt-1 block rounded-lg bg-[#fffaf1] px-2 py-1 text-xs font-black text-[#8a6630] ring-1 ring-[#ecdcbc]"
+              className="mt-1 block rounded-lg bg-[#f7f9fc] px-2 py-1 text-xs font-black text-[#9a640f] ring-1 ring-[#e3e9f2]"
             >
               اقتراح ({WA_SUGGEST_LABELS[suggestion.kind]}): <span dir="ltr">{suggestion.name}</span> — استخدمه
             </button>
@@ -1447,7 +1447,7 @@ function EditDialog({
             className={inputClass}
           />
           {Number(String(values.starting_price ?? "").replace(/,/g, "")) > 0 && (
-            <span className="mt-1 block text-xs text-[#5c6a62]">{formatPrice(String(values.starting_price).replace(/,/g, ""))}</span>
+            <span className="mt-1 block text-xs text-[#556070]">{formatPrice(String(values.starting_price).replace(/,/g, ""))}</span>
           )}
         </label>
         <label className="block text-sm">
@@ -1477,20 +1477,20 @@ function EditDialog({
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <span className="text-sm font-bold">صور الوحدة (من الصور اللي على Supabase)</span>
             {images.length > 0 && (
-              <button type="button" onClick={() => setImages([])} className="text-xs font-bold text-[#8a6630] underline">
+              <button type="button" onClick={() => setImages([])} className="text-xs font-bold text-[#9a640f] underline">
                 شيل الاختيار ({images.length})
               </button>
             )}
           </div>
           {!projectId ? (
-            <p className="rounded-xl bg-[#f7f2ea] p-3 text-xs text-[#5c6a62]">اختار المشروع الأول عشان تظهر صوره.</p>
+            <p className="rounded-xl bg-[#f4f6fa] p-3 text-xs text-[#556070]">اختار المشروع الأول عشان تظهر صوره.</p>
           ) : !photoGroups.length ? (
-            <p className="rounded-xl bg-[#f7f2ea] p-3 text-xs text-[#5c6a62]">المشروع ده مافيهوش صور لسه. ارفعها من تابة الصور، والوحدة هتعرض صور المشروع تلقائيًا.</p>
+            <p className="rounded-xl bg-[#f4f6fa] p-3 text-xs text-[#556070]">المشروع ده مافيهوش صور لسه. ارفعها من تابة الصور، والوحدة هتعرض صور المشروع تلقائيًا.</p>
           ) : (
-            <div className="space-y-3 rounded-2xl border border-[#efe6d4] p-3">
+            <div className="space-y-3 rounded-2xl border border-[#ecf0f6] p-3">
               {photoGroups.map((group) => (
                 <div key={group.label}>
-                  <p className="mb-1 text-xs font-black text-[#5c6a62]">{group.label}</p>
+                  <p className="mb-1 text-xs font-black text-[#556070]">{group.label}</p>
                   <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
                     {group.urls.map((url) => {
                       const order = images.indexOf(url);
@@ -1499,11 +1499,11 @@ function EditDialog({
                           type="button"
                           key={url}
                           onClick={() => toggleImage(url)}
-                          className={`relative overflow-hidden rounded-lg border-2 ${order >= 0 ? "border-[#a3854e]" : "border-transparent"}`}
+                          className={`relative overflow-hidden rounded-lg border-2 ${order >= 0 ? "border-[#b47c17]" : "border-transparent"}`}
                         >
                           <img src={url} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />
                           {order >= 0 && (
-                            <span className="absolute right-1 top-1 rounded-full bg-[#0d1f18] px-1.5 text-[10px] font-black text-white">
+                            <span className="absolute right-1 top-1 rounded-full bg-[#060f1c] px-1.5 text-[10px] font-black text-white">
                               {order === 0 ? "غلاف" : order + 1}
                             </span>
                           )}
@@ -1513,7 +1513,7 @@ function EditDialog({
                   </div>
                 </div>
               ))}
-              <p className="text-[11px] text-[#5c6a62]">
+              <p className="text-[11px] text-[#556070]">
                 أول صورة تختارها بتبقى الغلاف.{" "}
                 {replacing
                   ? images.length
@@ -1536,14 +1536,14 @@ function EditDialog({
         <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-sm font-bold">
           إلغاء
         </button>
-        <button type="button" disabled={busy} onClick={() => void submit(false)} className="rounded-full bg-[#f1eadc] px-5 py-2 text-sm font-black disabled:opacity-40">
+        <button type="button" disabled={busy} onClick={() => void submit(false)} className="rounded-full bg-[#eef2f7] px-5 py-2 text-sm font-black disabled:opacity-40">
           احفظ بس
         </button>
         <button
           type="button"
           disabled={busy || gaps.length > 0}
           onClick={() => void submit(true)}
-          className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
+          className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
         >
           {busy ? "بيحفظ…" : "✅ احفظ ووافق"}
         </button>
@@ -1570,13 +1570,13 @@ const DRAFT_FIELD_ORDER: WaDraftField[] = [
 /** What the web found for an unsettled detail: each value with its pages; «اختار» uses it (counts as confirmed by you). */
 function WebOptions({ options, busy, onPick, label = "لقيناه على النت:" }: { options: WaWebOption[]; busy: boolean; onPick: (value: string) => void; label?: string }) {
   return (
-    <div className="mt-1 space-y-1 rounded-lg bg-white/70 p-1.5 ring-1 ring-[#ecdcbc]">
-      <span className="block text-[10px] font-bold text-[#5c6a62]">{label}</span>
+    <div className="mt-1 space-y-1 rounded-lg bg-white/70 p-1.5 ring-1 ring-[#e3e9f2]">
+      <span className="block text-[10px] font-bold text-[#556070]">{label}</span>
       {options.map((option) => (
         <div key={option.value} className="flex flex-wrap items-center gap-1 text-[11px]">
           <span className="font-black">{option.value}</span>
           {option.sources.slice(0, 3).map((url, index) => (
-            <a key={url} href={url} target="_blank" rel="noreferrer" className="text-[#8a6d2f] underline">
+            <a key={url} href={url} target="_blank" rel="noreferrer" className="text-[#9a640f] underline">
               مصدر {index + 1}
             </a>
           ))}
@@ -1611,14 +1611,14 @@ function DraftPanel({ draft, onEdit, onPublish, onChanged }: { draft: WaDraft; o
   };
   const trusted = (field: WaDraftField) => draft.confirmed.includes(field) || (draft.sources[field]?.length ?? 0) >= 2;
   return (
-    <div className="space-y-3 border-b border-[#efe7d8] bg-[#fbf8f2] p-4">
+    <div className="space-y-3 border-b border-[#ecf0f6] bg-[#f7f9fc] p-4">
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={draft.status === "ready" ? "ok" : draft.status === "researching" ? "pending" : "error"}>
           {draft.status === "ready" ? "بيانات المشروع كاملة" : draft.status === "researching" ? "بندوّر عليه على النت" : "محتاج مراجعة"}
         </Badge>
         {draft.doubts.filter(waDraftDoubtBlocks).map((code) => <Badge key={code} tone="error">{waDraftDoubtLabel(code)}</Badge>)}
         {draft.doubts.some((code) => !waDraftDoubtBlocks(code)) && (
-          <span className="text-xs text-[#5c6a62]" title={draft.doubts.filter((code) => !waDraftDoubtBlocks(code)).map(waDraftDoubtLabel).join(" · ")}>
+          <span className="text-xs text-[#556070]" title={draft.doubts.filter((code) => !waDraftDoubtBlocks(code)).map(waDraftDoubtLabel).join(" · ")}>
             {draft.doubts.filter((code) => !waDraftDoubtBlocks(code)).length} ملاحظة على الاستلام والتقسيط والتشطيب: مش بتوقف النشر، وبتتاخد من الوحدات
           </span>
         )}
@@ -1628,11 +1628,11 @@ function DraftPanel({ draft, onEdit, onPublish, onChanged }: { draft: WaDraft; o
             وافق على الاسم وانشر
           </button>
         )}
-        <button onClick={onEdit} className="rounded-full bg-[#0d1f18] px-4 py-1.5 text-xs font-black text-white">تعديل بيانات المشروع</button>
+        <button onClick={onEdit} className="rounded-full bg-[#060f1c] px-4 py-1.5 text-xs font-black text-white">تعديل بيانات المشروع</button>
         <button
           disabled={Boolean(busy)}
           onClick={() => void run("research", async () => (await adminApi.waDraftResearch(token, draft.id)).draft, "اتعمل بحث جديد")}
-          className="rounded-full border border-[#d8c9ab] px-4 py-1.5 text-xs font-black disabled:opacity-50"
+          className="rounded-full border border-[#c9d3e1] px-4 py-1.5 text-xs font-black disabled:opacity-50"
         >
           {busy === "research" ? "بيدوّر… (دقيقة أو اتنين)" : "ابحث تاني"}
         </button>
@@ -1644,14 +1644,14 @@ function DraftPanel({ draft, onEdit, onPublish, onChanged }: { draft: WaDraft; o
           const sources = draft.sources[field] ?? [];
           return (
             <div key={field} className={`flex items-start gap-2 ${field === "description" ? "sm:col-span-2" : ""}`}>
-              <dt className="w-28 shrink-0 text-xs font-bold text-[#5c6a62]">{WA_DRAFT_FIELD_LABELS[field]}</dt>
+              <dt className="w-28 shrink-0 text-xs font-bold text-[#556070]">{WA_DRAFT_FIELD_LABELS[field]}</dt>
               <dd className="min-w-0 flex-1">
-                {value ? <span className="font-bold">{value}</span> : <span className="text-[#9aa49e]">—</span>}
+                {value ? <span className="font-bold">{value}</span> : <span className="text-[#a9b4c4]">—</span>}
                 {draft.confirmed.includes(field) && <span className="ms-1 text-[11px] font-black text-emerald-700">✓ إنت أكدته</span>}
                 {!draft.confirmed.includes(field) && sources.length > 0 && (
                   <span className="ms-1 text-[11px]">
                     {sources.slice(0, 3).map((url, index) => (
-                      <a key={url} href={url} target="_blank" rel="noreferrer" className="me-1 text-[#8a6d2f] underline">
+                      <a key={url} href={url} target="_blank" rel="noreferrer" className="me-1 text-[#9a640f] underline">
                         مصدر {index + 1}
                       </a>
                     ))}
@@ -1733,15 +1733,15 @@ function PublishDialog({ draft, readyUnits, allUnits, onClose }: { draft: WaDraf
       {phase === "confirm" ? (
         <div className="space-y-2 text-sm">
           <p className="font-black">اللي هيحصل:</p>
-          <ul className="list-disc space-y-1 ps-5 text-[#3d4a43]">
+          <ul className="list-disc space-y-1 ps-5 text-[#334155]">
             <li>المشروع هيتعمل على الموقع ببياناته اللي فوق ({draft.developer} · {[draft.sub_area, draft.area_group].filter(Boolean).join("، ")}).</li>
             <li>{readyUnits} وحدة جاهزة من {allUnits} هتتوافق وتنزل معاه. الباقي يفضل في «محتاج مراجعة» تحت نفس المشروع.</li>
             <li>البحث عن صور المشروع هيبدأ لوحده، والصور هتظهرلك اقتراح في «مشاريع ناقصها صور» توافق عليها.</li>
             <li>أداة الكتابة هتكتب المقال عربي وبعده إنجليزي (حوالي 5–10 دقايق)، وكل مقال بيتنشر لوحده لو عدّى التشييك. لو ما عدّاش بيفضل مسودة في «مقالات ناقصة».</li>
           </ul>
-          <p className="text-xs text-[#5c6a62]">سيب الصفحة مفتوحة لحد ما يخلص.</p>
+          <p className="text-xs text-[#556070]">سيب الصفحة مفتوحة لحد ما يخلص.</p>
           <div className="flex justify-end gap-2 pt-2">
-            <button onClick={() => onClose(false)} className="rounded-full bg-[#f1eadc] px-4 py-2 text-sm font-black">إلغاء</button>
+            <button onClick={() => onClose(false)} className="rounded-full bg-[#eef2f7] px-4 py-2 text-sm font-black">إلغاء</button>
             <button onClick={() => void start()} className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-black text-white">انشر</button>
           </div>
         </div>
@@ -1772,7 +1772,7 @@ function PublishDialog({ draft, readyUnits, allUnits, onClose }: { draft: WaDraf
           )}
           {phase === "done" && (
             <div className="flex justify-end">
-              <button onClick={() => onClose(true)} className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white">قفل</button>
+              <button onClick={() => onClose(true)} className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white">قفل</button>
             </div>
           )}
         </div>
@@ -1822,8 +1822,8 @@ function DraftEditDialog({ draft, onClose, onSaved }: { draft: WaDraft; onClose:
         ))}
       </div>
       <div className="mt-4 flex justify-end gap-2">
-        <button onClick={onClose} className="rounded-full bg-[#f1eadc] px-4 py-2 text-sm font-black">إلغاء</button>
-        <button disabled={saving} onClick={() => void save()} className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-50">
+        <button onClick={onClose} className="rounded-full bg-[#eef2f7] px-4 py-2 text-sm font-black">إلغاء</button>
+        <button disabled={saving} onClick={() => void save()} className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-50">
           {saving ? "بيحفظ…" : "احفظ"}
         </button>
       </div>
@@ -1870,14 +1870,14 @@ function ResearchModeBox() {
   };
   if (!settings) return null;
   return (
-    <div className="mb-4 space-y-2 rounded-2xl border border-[#e7ddc8] bg-[#fbf8f2] p-3 text-sm">
+    <div className="mb-4 space-y-2 rounded-2xl border border-[#e3e9f2] bg-[#f7f9fc] p-3 text-sm">
       <p className="font-black">
         البحث عن المشاريع الجديدة: {MODE_LABELS[settings.mode]}
-        <span className="ms-2 text-xs font-bold text-[#5c6a62]">النهارده {settings.used_today} من {settings.cap}</span>
+        <span className="ms-2 text-xs font-bold text-[#556070]">النهارده {settings.used_today} من {settings.cap}</span>
       </p>
       <ul className="space-y-0.5 text-[11px] leading-5">
         {(Object.keys(MODE_LABELS) as WaResearchMode[]).map((key) => (
-          <li key={key} className={key === mode ? "font-black text-[#0d1f18]" : "text-[#7a857f]"}>
+          <li key={key} className={key === mode ? "font-black text-[#060f1c]" : "text-[#7b8594]"}>
             <span className="font-black">{MODE_LABELS[key]}:</span> {MODE_HINTS[key]}
           </li>
         ))}
@@ -1899,7 +1899,7 @@ function ResearchModeBox() {
             <input type="datetime-local" value={until} onChange={(event) => setUntil(event.target.value)} className={`${inputClass} mt-1 py-1`} />
           </label>
         )}
-        <button disabled={saving} onClick={() => void save()} className="rounded-full bg-[#0d1f18] px-4 py-1.5 text-xs font-black text-white disabled:opacity-50">
+        <button disabled={saving} onClick={() => void save()} className="rounded-full bg-[#060f1c] px-4 py-1.5 text-xs font-black text-white disabled:opacity-50">
           {saving ? "بيحفظ…" : "احفظ"}
         </button>
       </div>
@@ -1952,7 +1952,7 @@ function GroupsDialog({ onClose, developers }: { onClose: () => void; developers
     <Modal title="جروبات الواتساب" onClose={onClose}>
       <ResearchModeBox />
 
-      <p className="mb-3 text-sm text-[#5c6a62]">
+      <p className="mb-3 text-sm text-[#556070]">
         أي جروب جديد بيتضاف هنا لوحده وشغال. اقفل أي جروب مش جروب مطور (شات، شخصي…) وهيتم تجاهل رسايله.
       </p>
       {groups === null ? (
@@ -1960,12 +1960,12 @@ function GroupsDialog({ onClose, developers }: { onClose: () => void; developers
       ) : !groups.length ? (
         <p className="py-6 text-center text-sm">لسه مفيش جروبات اتسجلت.</p>
       ) : (
-        <ul className="divide-y divide-[#efe6d4]">
+        <ul className="divide-y divide-[#ecf0f6]">
           {groups.map((group) => (
             <li key={group.group_id} className="flex items-center justify-between gap-3 py-2">
               <div className="min-w-0">
                 <p className="truncate font-bold">{group.name || group.group_id}</p>
-                <p className="text-[11px] text-[#5c6a62]">
+                <p className="text-[11px] text-[#556070]">
                   {group.messages} رسالة · آخر رسالة {when(group.last_seen_at)}
                 </p>
                 <div className="mt-1 text-xs">
@@ -1984,7 +1984,7 @@ function GroupsDialog({ onClose, developers }: { onClose: () => void; developers
               <button
                 onClick={() => void toggle(group)}
                 disabled={busy === group.group_id}
-                className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-black disabled:opacity-40 ${group.track ? "bg-emerald-50 text-emerald-700" : "bg-[#f1eadc] text-[#5c6a62]"}`}
+                className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-black disabled:opacity-40 ${group.track ? "bg-emerald-50 text-emerald-700" : "bg-[#eef2f7] text-[#556070]"}`}
               >
                 {group.track ? "شغال" : "متوقف"}
               </button>
@@ -2086,15 +2086,15 @@ function PhotoGapRow({
       <div className="flex items-center gap-2">
         <span className="min-w-0 me-auto">
           <span className="block truncate font-black">{gap.name}</span>
-          <span className="block truncate text-[#5c6a62]">
+          <span className="block truncate text-[#556070]">
             {gap.developer || "—"} · {gap.waiting ? `${gap.waiting} وحدة جاهزة` : "اتنشر من غير صور"}
           </span>
         </span>
-        <button onClick={onUnits} className="rounded-full bg-[#f1eadc] px-2.5 py-1 font-black">
+        <button onClick={onUnits} className="rounded-full bg-[#eef2f7] px-2.5 py-1 font-black">
           الوحدات
         </button>
         {onOpenPhotos && (
-          <button onClick={onOpenPhotos} className="rounded-full bg-[#0d1f18] px-2.5 py-1 font-black text-white">
+          <button onClick={onOpenPhotos} className="rounded-full bg-[#060f1c] px-2.5 py-1 font-black text-white">
             ارفع صور
           </button>
         )}
@@ -2108,7 +2108,7 @@ function PhotoGapRow({
                 الصفحة
               </a>
             )}
-            <span className="ms-1 font-normal text-[#5c6a62]">· دوس على الصورة تكبر، و✕ تشيلها</span>
+            <span className="ms-1 font-normal text-[#556070]">· دوس على الصورة تكبر، و✕ تشيلها</span>
           </p>
           <div className="mt-1 flex flex-wrap gap-1">
             {suggestion.urls.map((url, index) => {
@@ -2130,7 +2130,7 @@ function PhotoGapRow({
               );
             })}
           </div>
-          {suggestion.reason && <p className="mt-1 text-[#5c6a62]">اتشالت صور: {suggestion.reason}</p>}
+          {suggestion.reason && <p className="mt-1 text-[#556070]">اتشالت صور: {suggestion.reason}</p>}
           <div className="mt-1.5 flex flex-wrap gap-1">
             <button disabled={busy || !picked.length} onClick={() => void add()} className="rounded-full bg-emerald-600 px-3 py-1 font-black text-white disabled:opacity-50">
               {busy ? "…" : `ضيف المختار (${picked.length})`}
@@ -2142,7 +2142,7 @@ function PhotoGapRow({
         </div>
       ) : (
         <div className="mt-1.5 flex flex-wrap items-center gap-1">
-          <span className="me-auto text-[#5c6a62]">
+          <span className="me-auto text-[#556070]">
             {!suggestion
               ? "لسه ما دوّرناش على صوره"
               : suggestion.status === "none"
@@ -2153,7 +2153,7 @@ function PhotoGapRow({
                     ? "رفضت الصور المقترحة"
                     : "الصور اتضافت"}
           </span>
-          <button disabled={busy} onClick={() => void search()} className="rounded-full border border-[#d8c9ab] px-2.5 py-1 font-black disabled:opacity-50">
+          <button disabled={busy} onClick={() => void search()} className="rounded-full border border-[#c9d3e1] px-2.5 py-1 font-black disabled:opacity-50">
             {busy ? "بيدوّر… (حوالي دقيقة)" : suggestion ? "دوّر تاني" : "دوّر دلوقتي"}
           </button>
         </div>

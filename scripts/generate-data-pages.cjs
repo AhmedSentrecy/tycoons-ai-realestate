@@ -54,6 +54,16 @@ async function main() {
     fetchRows("units", "id,project_id,project_name,developer,location,unit_type,bedrooms_text,area_sqm,starting_price,down_payment_text,installments_text,delivery_text,finishing,availability_status,description,image_url,gallery_urls,brochure_url,video_url,created_at,last_updated_at", { availability_status: "eq.available", project_id: "not.is.null" }),
     fetchDevelopers(),
   ]);
+  // Live offers / launches / price changes (admin «تحديثات المشاريع»). A missing table or a failed read
+  // must not stop the build: the pages are then published without the offers section.
+  const offersByProject = new Map();
+  try {
+    for (const offer of await fetchRows("project_offers", "project_id,kind,title_ar,body_ar,valid_until,created_at,active", { active: "eq.true" })) {
+      offersByProject.set(offer.project_id, [...(offersByProject.get(offer.project_id) || []), offer]);
+    }
+  } catch (error) {
+    console.warn(`project_offers skipped: ${error.message}`);
+  }
   // Only rows with a stored slug become pages: legacy duplicate rows without a
   // slug would otherwise collide with the canonical row via the generated slug
   // and overwrite its rich page.
@@ -187,7 +197,7 @@ async function main() {
     if (!project.slug) continue;
     const projectUnits = unitsByProject.get(project.id) || [];
     const projectGuides = (guidesByProject.get(project.id) || []).filter((guide) => guide.language === "ar");
-    await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, project, projectUnits, projectGuides, faqContext));
+    await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, { ...project, offers: offersByProject.get(project.id) || [] }, projectUnits, projectGuides, faqContext));
     projectCount += 1;
   }
   for (const unit of units) {

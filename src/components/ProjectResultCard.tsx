@@ -18,6 +18,8 @@ import { openUnitWhatsApp } from "@/lib/whatsapp";
 import { parseSearchQuery } from "@/lib/propertySearch";
 import { unitPath } from "@/lib/unitUrl";
 import DeveloperLogo from "@/components/DeveloperLogo";
+import { ProjectOfferBadge } from "@/components/ProjectOffersSection";
+import { useProjectOffers } from "@/lib/projectOffers";
 
 interface Props {
   group: GroupedResult;
@@ -26,6 +28,7 @@ interface Props {
 
 export default function ProjectResultCard({ group, query }: Props) {
   const unit = group.best.unit;
+  const offers = useProjectOffers(unit.project_id);
   const criteria = parseSearchQuery(query);
   const showPaymentEstimate = Boolean(criteria.monthlyInstallmentMax || criteria.downPaymentCashMax);
   const payment = group.best.paymentEstimate;
@@ -69,6 +72,7 @@ export default function ProjectResultCard({ group, query }: Props) {
           <span className="mr-1 text-[11px] font-semibold text-[#6b7585]"> جنيه{group.maxPrice <= group.minPrice ? " · يبدأ من" : ""}</span>
         </div>
         <h3 className="mt-0.5 text-[15px] font-extrabold text-[#0a1628]">{group.projectName}</h3>
+        <ProjectOfferBadge offers={offers} />
         <p className="text-xs text-[#6b7585]">
           {group.developer} · {group.location}
         </p>

@@ -35,14 +35,14 @@ export default function DevelopersTab() {
     return rows.filter((row) => !q || `${row.name} ${row.name_ar ?? ""}`.toLowerCase().includes(q));
   }, [rows, query]);
 
-  if (loading) return <p className="p-6 text-center font-bold text-[#5c6a62]">جاري التحميل…</p>;
+  if (loading) return <p className="p-6 text-center font-bold text-[#556070]">جاري التحميل…</p>;
 
   return (
-    <section className="rounded-3xl border border-[#e7ddc8] bg-white p-5">
+    <section className="rounded-3xl border border-[#e3e9f2] bg-white p-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold text-[#14352a]">المطورين — SEO</h2>
-          <p className="mt-1 text-sm text-[#5c6a62]">اكتب نبذة كل شركة وعنوان ووصف جوجل وارفع اللوجو. الشركة اللي ناقصها حاجة مكتوب جنبها.</p>
+          <h2 className="text-xl font-extrabold text-[#0b1b30]">المطورين — SEO</h2>
+          <p className="mt-1 text-sm text-[#556070]">اكتب نبذة كل شركة وعنوان ووصف جوجل وارفع اللوجو. الشركة اللي ناقصها حاجة مكتوب جنبها.</p>
         </div>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث باسم المطور" className={`${inputClass} max-w-xs`} />
       </div>
@@ -50,18 +50,18 @@ export default function DevelopersTab() {
         {list.map((row) => {
           const missing = [!row.logo_path && "لوجو", !row.about_ar && "نبذة", !row.name_ar && "اسم عربي"].filter(Boolean) as string[];
           return (
-            <li key={row.slug} className="flex items-center gap-3 rounded-2xl border border-[#eee5d6] p-3">
-              <span className={`grid h-12 w-20 shrink-0 place-items-center rounded-lg p-1 ${row.logo_on_dark || !row.logo_path ? "bg-[#14352a]" : "bg-[#f7f2ea]"}`}>
-                {row.logo_path ? <img src={`${prefix}${row.logo_path}`} alt="" className="max-h-10 max-w-full object-contain" /> : <span className="text-xs font-black text-[#d9b87c]">{row.name.slice(0, 2).toUpperCase()}</span>}
+            <li key={row.slug} className="flex items-center gap-3 rounded-2xl border border-[#ecf0f6] p-3">
+              <span className={`grid h-12 w-20 shrink-0 place-items-center rounded-lg p-1 ${row.logo_on_dark || !row.logo_path ? "bg-[#0b1b30]" : "bg-[#f4f6fa]"}`}>
+                {row.logo_path ? <img src={`${prefix}${row.logo_path}`} alt="" className="max-h-10 max-w-full object-contain" /> : <span className="text-xs font-black text-[#f0bd4f]">{row.name.slice(0, 2).toUpperCase()}</span>}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-bold">{row.name_ar || row.name} <span className="text-xs font-normal text-[#5c6a62]">{row.name_ar ? row.name : ""}</span></p>
-                <p className="text-xs text-[#5c6a62]">{row.projects} مشروع</p>
+                <p className="truncate font-bold">{row.name_ar || row.name} <span className="text-xs font-normal text-[#556070]">{row.name_ar ? row.name : ""}</span></p>
+                <p className="text-xs text-[#556070]">{row.projects} مشروع</p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {missing.length ? missing.map((item) => <Badge key={item} tone="pending">ناقص {item}</Badge>) : <Badge tone="ok">كامل</Badge>}
                 </div>
               </div>
-              <button type="button" onClick={() => setEditing(row)} className="rounded-full bg-[#14352a] px-4 py-1.5 text-xs font-bold text-white">تعديل</button>
+              <button type="button" onClick={() => setEditing(row)} className="rounded-full bg-[#0b1b30] px-4 py-1.5 text-xs font-bold text-white">تعديل</button>
             </li>
           );
         })}
@@ -116,11 +116,11 @@ function DeveloperDialog({ row, prefix, onClose, onSave }: { row: AdminDeveloper
 
   return (
     <Modal title={`صفحة ${row.name_ar || row.name}`} onClose={onClose} wide>
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-[#f7f2ea] p-4">
-        <span className={`grid h-16 w-32 place-items-center rounded-xl p-2 ${onDark ? "bg-[#14352a]" : "bg-white"}`}>
-          {logo ? <img src={`${prefix}${logo}`} alt="" className="max-h-12 max-w-full object-contain" /> : <span className="text-xs text-[#5c6a62]">مفيش لوجو</span>}
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-[#f4f6fa] p-4">
+        <span className={`grid h-16 w-32 place-items-center rounded-xl p-2 ${onDark ? "bg-[#0b1b30]" : "bg-white"}`}>
+          {logo ? <img src={`${prefix}${logo}`} alt="" className="max-h-12 max-w-full object-contain" /> : <span className="text-xs text-[#556070]">مفيش لوجو</span>}
         </span>
-        <label className="cursor-pointer rounded-full bg-[#c49b5f] px-4 py-2 text-sm font-bold text-white">
+        <label className="cursor-pointer rounded-full bg-[#d99a2b] px-4 py-2 text-sm font-bold text-white">
           {uploading ? "بيترفع…" : logo ? "غيّر اللوجو" : "ارفع اللوجو"}
           <input type="file" accept="image/png,image/webp,image/jpeg" hidden disabled={uploading} onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); }} />
         </label>
@@ -128,7 +128,7 @@ function DeveloperDialog({ row, prefix, onClose, onSave }: { row: AdminDeveloper
           <input type="checkbox" checked={onDark} onChange={(event) => setOnDark(event.target.checked)} />
           اللوجو فاتح (يتعرض على خلفية غامقة)
         </label>
-        <p className="w-full text-xs text-[#5c6a62]">PNG أو WebP بخلفية شفافة، أقل من 3 ميجا. اللوجو ده بيظهر على كل مشاريع الشركة.</p>
+        <p className="w-full text-xs text-[#556070]">PNG أو WebP بخلفية شفافة، أقل من 3 ميجا. اللوجو ده بيظهر على كل مشاريع الشركة.</p>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {FIELDS.map(({ key, label, long, dir, hint }) => (
@@ -139,8 +139,8 @@ function DeveloperDialog({ row, prefix, onClose, onSave }: { row: AdminDeveloper
             ) : (
               <input dir={dir} value={values[key]} onChange={(event) => setValues({ ...values, [key]: event.target.value })} className={inputClass} />
             )}
-            {hint && <span className="mt-1 block text-xs text-[#5c6a62]">{hint}</span>}
-            {key.startsWith("seo_description") && <span className="mt-1 block text-xs text-[#5c6a62]">{values[key].length} حرف</span>}
+            {hint && <span className="mt-1 block text-xs text-[#556070]">{hint}</span>}
+            {key.startsWith("seo_description") && <span className="mt-1 block text-xs text-[#556070]">{values[key].length} حرف</span>}
           </label>
         ))}
       </div>
@@ -150,7 +150,7 @@ function DeveloperDialog({ row, prefix, onClose, onSave }: { row: AdminDeveloper
           type="button"
           disabled={busy || uploading || !Object.keys(changed).length}
           onClick={async () => { setBusy(true); await onSave(changed); setBusy(false); }}
-          className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
+          className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
         >
           {busy ? "بيحفظ…" : "احفظ"}
         </button>

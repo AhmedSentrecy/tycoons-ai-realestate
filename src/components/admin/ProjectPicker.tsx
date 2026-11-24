@@ -48,9 +48,9 @@ export default function ProjectPicker({
   }, [projects, query, filter]);
 
   return (
-    <aside className={`rounded-3xl border border-[#e7ddc8] bg-white p-3 ${className}`}>
+    <aside className={`rounded-3xl border border-[#e3e9f2] bg-white p-3 ${className}`}>
       {onCreate && (
-        <button onClick={onCreate} className="mb-2 w-full rounded-xl bg-[#0d1f18] px-4 py-2.5 text-sm font-black text-white">
+        <button onClick={onCreate} className="mb-2 w-full rounded-xl bg-[#060f1c] px-4 py-2.5 text-sm font-black text-white">
           + مشروع جديد
         </button>
       )}
@@ -73,7 +73,7 @@ export default function ProjectPicker({
         </Chip>
       </div>
       <div className="mt-3 max-h-[calc(100vh-240px)] space-y-1 overflow-y-auto">
-        {loading && <p className="p-4 text-center text-sm font-bold text-[#5c6a62]">جاري التحميل…</p>}
+        {loading && <p className="p-4 text-center text-sm font-bold text-[#556070]">جاري التحميل…</p>}
         {error && (
           <div className="p-4 text-center text-sm">
             <p className="font-bold text-red-600">{error}</p>
@@ -91,7 +91,7 @@ export default function ProjectPicker({
                 key={project.id}
                 onClick={() => onSelect(project.id)}
                 className={`flex w-full items-center gap-3 rounded-2xl p-2 text-right transition ${
-                  active ? "bg-[#0d1f18] text-white" : "hover:bg-[#f7f2ea]"
+                  active ? "bg-[#060f1c] text-white" : "hover:bg-[#f4f6fa]"
                 }`}
               >
                 {images[0] ? (
@@ -103,7 +103,7 @@ export default function ProjectPicker({
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-black">{project.name}</span>
-                  <span className={`block truncate text-xs ${active ? "text-white/70" : "text-[#5c6a62]"}`}>
+                  <span className={`block truncate text-xs ${active ? "text-white/70" : "text-[#556070]"}`}>
                     {project.developer || "—"} · {images.length} صورة · {project.units_count} وحدة
                     {project.slug ? "" : " · مش ظاهر"}
                   </span>
@@ -112,7 +112,7 @@ export default function ProjectPicker({
               </button>
             );
           })}
-        {!loading && !error && !visible.length && <p className="p-4 text-center text-sm font-bold text-[#5c6a62]">مفيش نتايج</p>}
+        {!loading && !error && !visible.length && <p className="p-4 text-center text-sm font-bold text-[#556070]">مفيش نتايج</p>}
       </div>
     </aside>
   );

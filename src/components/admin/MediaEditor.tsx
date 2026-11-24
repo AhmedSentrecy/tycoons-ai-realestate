@@ -188,7 +188,7 @@ export default function MediaEditor({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <p className="me-auto text-sm leading-relaxed text-[#5c6a62]">{hint}</p>
+        <p className="me-auto text-sm leading-relaxed text-[#556070]">{hint}</p>
         <SaveBadge state={saveState} />
       </div>
 
@@ -200,14 +200,14 @@ export default function MediaEditor({
         onDragLeave={() => setDragOver(false)}
         onDrop={onDrop}
         className={`rounded-3xl border-2 border-dashed p-6 text-center transition ${
-          dragOver ? "border-[#a3854e] bg-[#f7f2ea]" : "border-[#e0d3bb] bg-[#fbf8f2]"
+          dragOver ? "border-[#b47c17] bg-[#f4f6fa]" : "border-[#dde4ee] bg-[#f7f9fc]"
         }`}
       >
         <p className="text-lg font-black">اسحب الصور هنا</p>
-        <p className="mt-1 text-xs text-[#5c6a62]">JPG · PNG · WebP · HEIC — بتتضغط لـWebP تلقائيًا عشان الموقع يفضل سريع</p>
+        <p className="mt-1 text-xs text-[#556070]">JPG · PNG · WebP · HEIC — بتتضغط لـWebP تلقائيًا عشان الموقع يفضل سريع</p>
         <button
           onClick={() => fileInput.current?.click()}
-          className="mt-3 rounded-full bg-[#0d1f18] px-5 py-2.5 text-sm font-black text-white"
+          className="mt-3 rounded-full bg-[#060f1c] px-5 py-2.5 text-sm font-black text-white"
         >
           اختار صور من الجهاز
         </button>
@@ -227,7 +227,7 @@ export default function MediaEditor({
       {activeJobs && (
         <ul className="mt-3 space-y-1.5">
           {jobs.map((job) => (
-            <li key={job.id} className="rounded-xl bg-[#f7f2ea] px-3 py-2 text-xs">
+            <li key={job.id} className="rounded-xl bg-[#f4f6fa] px-3 py-2 text-xs">
               <div className="flex justify-between gap-2 font-bold">
                 <span className="truncate" dir="ltr">
                   {job.name}
@@ -241,7 +241,7 @@ export default function MediaEditor({
               </div>
               {job.status !== "error" && (
                 <div className="mt-1 h-1 overflow-hidden rounded-full bg-white">
-                  <div className="h-full bg-[#a3854e] transition-all" style={{ width: `${Math.round(job.progress * 100)}%` }} />
+                  <div className="h-full bg-[#b47c17] transition-all" style={{ width: `${Math.round(job.progress * 100)}%` }} />
                 </div>
               )}
             </li>
@@ -252,10 +252,10 @@ export default function MediaEditor({
       <div className="mt-4 flex items-center justify-between">
         <h3 className="font-black">المعرض ({media.images.length})</h3>
         {media.images.length > 0 && (
-          <p className="text-xs text-[#5c6a62]">دوس على الصورة تكبر{media.images.length > 1 ? "، واسحبها لتغيير ترتيبها" : ""}</p>
+          <p className="text-xs text-[#556070]">دوس على الصورة تكبر{media.images.length > 1 ? "، واسحبها لتغيير ترتيبها" : ""}</p>
         )}
       </div>
-      {!media.images.length && <p className="mt-2 rounded-2xl bg-[#fbf8f2] p-4 text-center text-sm text-[#5c6a62]">لسه مفيش صور</p>}
+      {!media.images.length && <p className="mt-2 rounded-2xl bg-[#f7f9fc] p-4 text-center text-sm text-[#556070]">لسه مفيش صور</p>}
       <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
         {media.images.map((url, index) => (
           <figure
@@ -270,8 +270,8 @@ export default function MediaEditor({
               setDragIndex(null);
             }}
             onDragEnd={() => setDragIndex(null)}
-            className={`group relative overflow-hidden rounded-2xl border bg-[#f7f2ea] ${
-              index === 0 ? "border-[#a3854e] ring-2 ring-[#d9b87c]" : "border-[#efe7d8]"
+            className={`group relative overflow-hidden rounded-2xl border bg-[#f4f6fa] ${
+              index === 0 ? "border-[#b47c17] ring-2 ring-[#f0bd4f]" : "border-[#ecf0f6]"
             } ${dragIndex === index ? "opacity-40" : ""}`}
           >
             <img
@@ -283,7 +283,7 @@ export default function MediaEditor({
               className="aspect-[4/3] w-full cursor-zoom-in object-cover"
             />
             {index === 0 && (
-              <span className="absolute right-2 top-2 rounded-full bg-[#d9b87c] px-2 py-0.5 text-[11px] font-black text-[#0d1f18]">
+              <span className="absolute right-2 top-2 rounded-full bg-[#f0bd4f] px-2 py-0.5 text-[11px] font-black text-[#060f1c]">
                 الغلاف
               </span>
             )}
@@ -326,7 +326,7 @@ export default function MediaEditor({
                     move(index, 0);
                     setViewing(0);
                   }}
-                  className="rounded-full bg-[#d9b87c] px-3 py-1.5 font-black text-[#0d1f18]"
+                  className="rounded-full bg-[#f0bd4f] px-3 py-1.5 font-black text-[#060f1c]"
                 >
                   اجعلها الغلاف
                 </button>
@@ -374,7 +374,7 @@ export default function MediaEditor({
 function SaveBadge({ state }: { state: "idle" | "saving" | "saved" | "pending" | "error" }) {
   if (state === "idle") return null;
   const styles = {
-    saving: "bg-[#f7f2ea] text-[#5c6a62]",
+    saving: "bg-[#f4f6fa] text-[#556070]",
     saved: "bg-emerald-50 text-emerald-700",
     pending: "bg-amber-50 text-amber-700",
     error: "bg-red-50 text-red-600",
@@ -419,30 +419,30 @@ function LinkField({
   const input = useRef<HTMLInputElement>(null);
   const dirty = draft.trim() !== saved;
   return (
-    <div className="rounded-2xl border border-[#efe7d8] p-3">
+    <div className="rounded-2xl border border-[#ecf0f6] p-3">
       <div className="flex items-center justify-between">
         <h4 className="font-black">{title}</h4>
         {saved && (
-          <a href={saved} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#8a6630] underline">
+          <a href={saved} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#9a640f] underline">
             افتح ↗
           </a>
         )}
       </div>
-      <p className="mt-0.5 text-xs text-[#5c6a62]">{help}</p>
+      <p className="mt-0.5 text-xs text-[#556070]">{help}</p>
       <div className="mt-2 flex gap-2">
         <input
           dir="ltr"
           value={draft}
           onChange={(event) => onDraft(event.target.value)}
           placeholder="https://…"
-          className="min-w-0 flex-1 rounded-xl border border-[#e7ddc8] bg-[#fbf8f2] px-3 py-2 text-xs outline-none focus:border-[#a3854e]"
+          className="min-w-0 flex-1 rounded-xl border border-[#e3e9f2] bg-[#f7f9fc] px-3 py-2 text-xs outline-none focus:border-[#b47c17]"
         />
         {dirty ? (
-          <button onClick={onSave} className="rounded-xl bg-[#0d1f18] px-3 text-xs font-black text-white">
+          <button onClick={onSave} className="rounded-xl bg-[#060f1c] px-3 text-xs font-black text-white">
             حفظ
           </button>
         ) : (
-          <button onClick={() => input.current?.click()} className="rounded-xl bg-[#f1eadc] px-3 text-xs font-black">
+          <button onClick={() => input.current?.click()} className="rounded-xl bg-[#eef2f7] px-3 text-xs font-black">
             رفع ملف
           </button>
         )}

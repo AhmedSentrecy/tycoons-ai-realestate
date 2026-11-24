@@ -46,6 +46,8 @@ import { unitPath } from "@/lib/unitUrl";
 import { fitTitle } from "@/lib/fitTitle";
 import projectNamesAr from "@/content/project-names-ar.json";
 import ServerHtmlOr from "@/components/ServerHtmlOr";
+import ProjectOffersSection from "@/components/ProjectOffersSection";
+import { useProjectOffers } from "@/lib/projectOffers";
 
 // Arabic H1/title for the top projects (audit SEO-07); same file as the static and server pages.
 const PROJECT_NAMES_AR: Record<string, { h1: string; title?: string }> = projectNamesAr.projects;
@@ -308,6 +310,7 @@ export default function ProjectPage() {
   // Arabic searched name for headings, the same rule as the pre-rendered page (arabicProjectName).
   const arabicHeadingName = tidyArabicName((PROJECT_NAMES_AR[slug]?.title || "").split(/\s+20\d\d|\s+—\s+/)[0].trim() || (PROJECT_NAMES_AR[slug]?.h1 || "").split(/\s+—\s+/)[0].trim()) || project?.project_name || "";
   const developerBrand = useDeveloper(project?.developer ?? "");
+  const offers = useProjectOffers(project?.project_id);
   // Hero line in Arabic: stored copy with the English names swapped; if English is still left,
   // the plain Arabic sentence instead (same rule as the pre-rendered page).
   const heroLine = (() => {
@@ -660,6 +663,7 @@ export default function ProjectPage() {
       <section className="mx-auto max-w-6xl px-5 py-12 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]">
           <article>
+            <ProjectOffersSection offers={offers} projectName={arabicHeadingName} />
             {localizedArabic?.article_sections.length ? localizedArabic.article_sections.map((section, sectionIndex) => (
               <section key={section.key || section.heading} className={sectionIndex ? "mt-12" : ""}>
                 {section.heading && <h2 className={sectionIndex ? "text-2xl font-extrabold" : "text-3xl font-extrabold"}>{replaceTokens(section.heading, minPrice, minArea, maxArea)}</h2>}

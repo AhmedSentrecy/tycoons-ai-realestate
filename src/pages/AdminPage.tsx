@@ -29,7 +29,6 @@ import ProjectFaqTab from "../components/admin/ProjectFaqTab";
 import SettingsDialog from "../components/admin/SettingsDialog";
 import UnitsTab from "../components/admin/UnitsTab";
 import UsersTab from "../components/admin/UsersTab";
-import { Badge, TabButton } from "../components/admin/ui";
 
 const FREE_STORAGE_BYTES = 1024 * 1024 * 1024;
 
@@ -114,7 +113,7 @@ export default function AdminPage() {
 
   if (token && checking) {
     return (
-      <main dir="rtl" className="grid min-h-screen place-items-center bg-[#0d1f18] text-white">
+      <main dir="rtl" className="grid min-h-screen place-items-center bg-[#060f1c] text-white">
         <p className="font-bold">جاري الدخول…</p>
       </main>
     );
@@ -122,7 +121,7 @@ export default function AdminPage() {
 
   if (token && !user && resumeFailed) {
     return (
-      <main dir="rtl" className="grid min-h-screen place-items-center bg-[#0d1f18] p-6 text-center text-white">
+      <main dir="rtl" className="grid min-h-screen place-items-center bg-[#060f1c] p-6 text-center text-white">
         <div>
           <p className="font-bold">في مشكلة في الاتصال بالسيرفر. إنت لسه مسجل دخول.</p>
           <button
@@ -131,7 +130,7 @@ export default function AdminPage() {
               setResumeFailed(false);
               setResumeAttempt((value) => value + 1);
             }}
-            className="mt-4 rounded-full bg-[#d9b87c] px-5 py-2 font-black text-[#0d1f18]"
+            className="mt-4 rounded-full bg-[#f0bd4f] px-5 py-2 font-black text-[#060f1c]"
           >
             حاول تاني
           </button>
@@ -177,7 +176,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
   }
 
   return (
-    <main dir="rtl" className="grid min-h-screen place-items-center bg-[#0d1f18] p-4 text-white">
+    <main dir="rtl" className="grid min-h-screen place-items-center bg-[#060f1c] p-4 text-white">
       <form
         className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl"
         onSubmit={(event) => {
@@ -188,7 +187,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
         <div className="mb-6 flex items-center gap-3">
           <img src="/images/logo.png" alt="Tycoons" className="h-11 w-11 rounded-xl object-contain" />
           <div>
-            <p className="text-xs font-black tracking-[.18em] text-[#d9b87c]">TYCOONS ADMIN</p>
+            <p className="text-xs font-black tracking-[.18em] text-[#f0bd4f]">TYCOONS ADMIN</p>
             <h1 className="text-2xl font-black">لوحة التحكم</h1>
           </div>
         </div>
@@ -201,7 +200,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
           autoComplete="username"
           value={username}
           onChange={(event) => setUsername(event.target.value)}
-          className="w-full rounded-xl border border-white/15 bg-white/10 p-3 text-white outline-none focus:border-[#d9b87c]"
+          className="w-full rounded-xl border border-white/15 bg-white/10 p-3 text-white outline-none focus:border-[#f0bd4f]"
         />
         <label className="mb-2 mt-4 block text-sm font-bold text-white/70" htmlFor="admin-password">
           كلمة السر
@@ -212,12 +211,12 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
-          className="w-full rounded-xl border border-white/15 bg-white/10 p-3 text-white outline-none focus:border-[#d9b87c]"
+          className="w-full rounded-xl border border-white/15 bg-white/10 p-3 text-white outline-none focus:border-[#f0bd4f]"
         />
         <button
           type="submit"
           disabled={busy || !username || !password}
-          className="mt-5 w-full rounded-xl bg-[#d9b87c] p-3 font-black text-[#0d1f18] disabled:opacity-50"
+          className="mt-5 w-full rounded-xl bg-[#f0bd4f] p-3 font-black text-[#060f1c] disabled:opacity-50"
         >
           {busy ? "جاري الدخول…" : "دخول"}
         </button>
@@ -229,9 +228,78 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
 
 type Tab = "projects" | "media" | "units" | "developers" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents" | "whatsapp" | "wainbox" | "waupdates";
 
+/**
+ * The admin tabs in 4 groups, so related pages sit next to each other and the bar never needs a
+ * sideways scroll: المشاريع (project, its updates, launches, FAQ) · الوحدات · المحتوى والـ SEO · المتابعة.
+ * The top row picks the group, the second row the page inside it.
+ */
+const NAV_GROUPS: { label: string; tabs: { tab: Tab; label: string; ownerOnly?: boolean }[] }[] = [
+  { label: "المشاريع", tabs: [
+    { tab: "projects", label: "المشاريع" },
+    { tab: "waupdates", label: "تحديثات المشاريع" },
+    { tab: "launches", label: "بتتطرح دلوقتي" },
+    { tab: "faq", label: "أسئلة المشاريع" },
+  ] },
+  { label: "الوحدات", tabs: [
+    { tab: "units", label: "الوحدات" },
+    { tab: "wainbox", label: "وحدات واتساب" },
+  ] },
+  { label: "المحتوى والـ SEO", tabs: [
+    { tab: "articles", label: "المقالات" },
+    { tab: "developers", label: "المطورين — SEO" },
+    { tab: "media", label: "الصور والميديا" },
+  ] },
+  { label: "المتابعة", tabs: [
+    { tab: "approvals", label: "سجل التعديلات" },
+    { tab: "whatsapp", label: "دوسات الواتساب", ownerOnly: true },
+    { tab: "agents", label: "استخدام الـ AI", ownerOnly: true },
+    { tab: "users", label: "المستخدمين", ownerOnly: true },
+  ] },
+];
+
+function AdminNav({ tab, setTab, isOwner, pendingTotal }: { tab: Tab; setTab: (tab: Tab) => void; isOwner: boolean; pendingTotal: number }) {
+  const groups = NAV_GROUPS.map((group) => ({ ...group, tabs: group.tabs.filter((item) => isOwner || !item.ownerOnly) }));
+  const active = groups.find((group) => group.tabs.some((item) => item.tab === tab)) ?? groups[0];
+  const badge = (item: Tab) => (item === "approvals" && isOwner && pendingTotal > 0 ? pendingTotal : 0);
+  return (
+    <nav className="border-t border-white/10 bg-[#0b1b30]">
+      <div className="mx-auto flex max-w-[1720px] flex-wrap gap-1.5 px-4 pt-2">
+        {groups.map((group) => {
+          const on = group === active;
+          const count = group.tabs.reduce((sum, item) => sum + badge(item.tab), 0);
+          return (
+            <button
+              key={group.label}
+              onClick={() => setTab(group.tabs[0].tab)}
+              className={`rounded-t-2xl px-4 py-2 text-sm font-black transition ${on ? "bg-[#f4f6fa] text-[#0b1b30]" : "text-white/75 hover:bg-white/10 hover:text-white"}`}
+            >
+              {group.label}
+              {count > 0 && <span className="ms-1.5 rounded-full bg-[#ff5a36] px-1.5 py-0.5 text-[10px] text-white">{count}</span>}
+            </button>
+          );
+        })}
+      </div>
+      <div className="bg-[#f4f6fa]">
+        <div className="mx-auto flex max-w-[1720px] flex-wrap gap-1.5 px-4 py-2">
+          {active.tabs.map((item) => (
+            <button
+              key={item.tab}
+              onClick={() => setTab(item.tab)}
+              className={`rounded-full px-4 py-1.5 text-sm font-bold transition ${tab === item.tab ? "bg-[#0b1b30] text-white shadow-sm" : "text-[#334155] hover:bg-white"}`}
+            >
+              {item.label}
+              {badge(item.tab) > 0 && <span className="ms-1.5 rounded-full bg-[#ff5a36] px-1.5 py-0.5 text-[10px] text-white">{badge(item.tab)}</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
 function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser; onSignOut: () => void }) {
   const isOwner = user.role === "owner";
-  const [tab, setTab] = useState<Tab>("media");
+  const [tab, setTab] = useState<Tab>("projects");
   // "اكتب المقال" from the projects tab: open the articles tab on that project.
   const [articleFocus, setArticleFocus] = useState<string | null>(null);
   const writeArticle = (projectId: string) => {
@@ -351,12 +419,12 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
 
   return (
     <AdminContext.Provider value={context}>
-      <main dir="rtl" className="min-h-screen bg-[#f7f2ea] text-[#1b2420]">
-        <header className="sticky top-0 z-30 border-b border-[#0d1f18]/10 bg-[#0d1f18] text-white">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3">
+      <main dir="rtl" className="min-h-screen bg-[#f4f6fa] text-[#0f1724]">
+        <header className="sticky top-0 z-30 border-b border-[#060f1c]/10 bg-[#060f1c] text-white">
+          <div className="mx-auto flex max-w-[1720px] flex-wrap items-center gap-3 px-4 py-3">
             <img src="/images/logo.png" alt="Tycoons" className="h-9 w-9 rounded-lg object-contain" />
             <div className="me-auto">
-              <p className="text-[11px] font-black tracking-[.18em] text-[#d9b87c]">TYCOONS ADMIN</p>
+              <p className="text-[11px] font-black tracking-[.18em] text-[#f0bd4f]">TYCOONS ADMIN</p>
               <h1 className="text-lg font-black leading-tight">
                 لوحة التحكم <span className="text-xs font-bold text-white/60">· {user.display_name || user.username}</span>
               </h1>
@@ -369,13 +437,13 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
                 </div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/15">
                   <div
-                    className={`h-full rounded-full ${usedRatio > 0.85 ? "bg-red-400" : "bg-[#d9b87c]"}`}
+                    className={`h-full rounded-full ${usedRatio > 0.85 ? "bg-red-400" : "bg-[#f0bd4f]"}`}
                     style={{ width: `${Math.max(2, usedRatio * 100)}%` }}
                   />
                 </div>
               </div>
             )}
-            <button onClick={() => void rebuild()} className="rounded-full bg-[#d9b87c] px-4 py-2 text-sm font-black text-[#0d1f18]">
+            <button onClick={() => void rebuild()} className="rounded-full bg-[#f0bd4f] px-4 py-2 text-sm font-black text-[#060f1c]">
               حدّث الموقع
             </button>
             {isOwner && (
@@ -387,57 +455,21 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
               خروج
             </button>
           </div>
-          <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto bg-white px-4 pt-2 text-[#1b2420]">
-            <TabButton active={tab === "projects"} onClick={() => setTab("projects")}>المشاريع</TabButton>
-            <TabButton active={tab === "media"} onClick={() => setTab("media")}>
-              الصور والميديا
-            </TabButton>
-            <TabButton active={tab === "units"} onClick={() => setTab("units")}>
-              الوحدات
-            </TabButton>
-            <TabButton active={tab === "wainbox"} onClick={() => setTab("wainbox")}>
-              وحدات واتساب
-            </TabButton>
-            <TabButton active={tab === "waupdates"} onClick={() => setTab("waupdates")}>
-              تحديثات المشاريع
-            </TabButton>
-            <TabButton active={tab === "developers"} onClick={() => setTab("developers")}>المطورين — SEO</TabButton>
-            <TabButton active={tab === "launches"} onClick={() => setTab("launches")}>بتتطرح دلوقتي</TabButton>
-            <TabButton active={tab === "articles"} onClick={() => setTab("articles")}>المقالات</TabButton>
-            <TabButton active={tab === "faq"} onClick={() => setTab("faq")}>أسئلة المشاريع</TabButton>
-            <TabButton active={tab === "approvals"} onClick={() => setTab("approvals")}>
-              سجل التعديلات {isOwner && pendingTotal > 0 && <Badge tone="pending">{pendingTotal}</Badge>}
-            </TabButton>
-            {isOwner && (
-              <TabButton active={tab === "users"} onClick={() => setTab("users")}>
-                المستخدمين
-              </TabButton>
-            )}
-            {isOwner && (
-              <TabButton active={tab === "agents"} onClick={() => setTab("agents")}>
-                استخدام الـ AI
-              </TabButton>
-            )}
-            {isOwner && (
-              <TabButton active={tab === "whatsapp"} onClick={() => setTab("whatsapp")}>
-                دوسات الواتساب
-              </TabButton>
-            )}
-          </div>
+          <AdminNav tab={tab} setTab={setTab} isOwner={isOwner} pendingTotal={pendingTotal} />
         </header>
 
         {notice && (
           <div
             role="status"
             className={`fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-2xl px-4 py-3 text-center text-sm font-bold shadow-xl ${
-              notice.tone === "ok" ? "bg-[#0d1f18] text-white" : "bg-red-600 text-white"
+              notice.tone === "ok" ? "bg-[#060f1c] text-white" : "bg-red-600 text-white"
             }`}
           >
             {notice.text}
           </div>
         )}
 
-        <div className="mx-auto max-w-7xl px-4 py-4">
+        <div className="mx-auto max-w-[1720px] px-4 py-4">
           <InventorySummary projects={projects} />
           {tab === "projects" && <ProjectsTab projects={projects} onChanged={refresh} onWriteArticle={writeArticle} />}
           {tab === "developers" && <DevelopersTab />}

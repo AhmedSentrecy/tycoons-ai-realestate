@@ -59,11 +59,11 @@ export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { p
   const countOf = (state: "both" | "partial" | "none") => (languages ? live.filter((project) => project.slug && coverage(project) === state).length : 0);
 
   return (
-    <section className="rounded-3xl border border-[#e7ddc8] bg-white p-5">
+    <section className="rounded-3xl border border-[#e3e9f2] bg-white p-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-extrabold text-[#14352a]">المشاريع</h2>
-          <p className="mt-1 text-sm text-[#5c6a62]">عدّل بيانات أي مشروع أو امسحه. أي تعديل بيتطبق على طول وبيتسجل في «سجل التعديلات».</p>
+          <h2 className="text-xl font-extrabold text-[#0b1b30]">المشاريع</h2>
+          <p className="mt-1 text-sm text-[#556070]">عدّل بيانات أي مشروع أو امسحه. أي تعديل بيتطبق على طول وبيتسجل في «سجل التعديلات».</p>
         </div>
         <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث باسم المشروع أو المطور أو المنطقة" className={`${inputClass} max-w-sm`} />
       </div>
@@ -76,36 +76,36 @@ export default function ProjectsTab({ projects, onChanged, onWriteArticle }: { p
             <Chip active={articleFilter === "none"} onClick={() => setArticleFilter("none")}>من غير مقال ({countOf("none")})</Chip>
           </>
         )}
-        <span className="ms-auto text-xs font-bold text-[#5c6a62]">ترتيب:</span>
+        <span className="ms-auto text-xs font-bold text-[#556070]">ترتيب:</span>
         <Chip active={sortBy === "name"} onClick={() => setSortBy("name")}>بالاسم</Chip>
         <Chip active={sortBy === "whatsapp"} onClick={() => setSortBy("whatsapp")}>طلبات الواتساب</Chip>
       </div>
-      <p className="mt-3 text-xs text-[#5c6a62]">{list.length} مشروع</p>
+      <p className="mt-3 text-xs text-[#556070]">{list.length} مشروع</p>
       <ul className="mt-2 grid gap-2">
         {list.map((project) => {
           const cover = mediaImages(project)[0];
           return (
-            <li key={project.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#eee5d6] p-3">
-              {cover ? <img src={cover} alt="" loading="lazy" className="h-12 w-16 rounded-lg object-cover" /> : <span className="h-12 w-16 rounded-lg bg-[#f1ebdc]" />}
+            <li key={project.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#ecf0f6] p-3">
+              {cover ? <img src={cover} alt="" loading="lazy" className="h-12 w-16 rounded-lg object-cover" /> : <span className="h-12 w-16 rounded-lg bg-[#eef2f7]" />}
               <div className="min-w-0 flex-1">
                 <p className="truncate font-bold">{project.name} {!project.slug && <Badge tone="muted">ملوش صفحة</Badge>} {project.slug && languages && <LanguageBadges languages={languages.get(project.id)} />}</p>
-                <p className="truncate text-xs text-[#5c6a62]">
+                <p className="truncate text-xs text-[#556070]">
                   {project.developer} · {project.location} · {project.available_units} وحدة متاحة من {project.units_count}
                   {project.new_units_week ? ` · ${project.new_units_week} جديدة الأسبوع ده` : ""} · آخر تحديث {fmt(project.last_updated_at)}
                 </p>
                 {waDemandLabel(project) && <p className="text-xs font-bold text-emerald-700">{waDemandLabel(project)}</p>}
               </div>
               {project.slug && (
-                <a href={`/projects/${project.slug}`} target="_blank" rel="noopener" className="rounded-full border border-[#e0d3bb] px-3 py-1.5 text-xs font-bold">
+                <a href={`/projects/${project.slug}`} target="_blank" rel="noopener" className="rounded-full border border-[#dde4ee] px-3 py-1.5 text-xs font-bold">
                   افتح الصفحة
                 </a>
               )}
               {project.slug && languages && coverage(project) !== "both" && onWriteArticle && (
-                <button type="button" onClick={() => onWriteArticle(project.id)} className="rounded-full bg-[#d9b87c] px-4 py-1.5 text-xs font-black text-[#0d1f18]">
+                <button type="button" onClick={() => onWriteArticle(project.id)} className="rounded-full bg-[#f0bd4f] px-4 py-1.5 text-xs font-black text-[#060f1c]">
                   اكتب المقال
                 </button>
               )}
-              <button type="button" onClick={() => setEditing(project)} className="rounded-full bg-[#14352a] px-4 py-1.5 text-xs font-bold text-white">
+              <button type="button" onClick={() => setEditing(project)} className="rounded-full bg-[#0b1b30] px-4 py-1.5 text-xs font-bold text-white">
                 تعديل
               </button>
               <button type="button" onClick={() => setDeleting(project)} className="rounded-full border border-red-200 px-4 py-1.5 text-xs font-bold text-red-600">
@@ -202,7 +202,7 @@ function EditDialog({
             ) : (
               <input value={values[key]} onChange={(event) => setValues({ ...values, [key]: event.target.value })} required={required} className={inputClass} />
             )}
-            {hint && <span className="mt-1 block text-xs text-[#5c6a62]">{hint}</span>}
+            {hint && <span className="mt-1 block text-xs text-[#556070]">{hint}</span>}
           </label>
         ))}
         <AreaFields
@@ -211,10 +211,10 @@ function EditDialog({
           sub={values.sub_area}
           onChange={(area_group, sub_area) => setValues({ ...values, area_group, sub_area })}
         />
-        <p className="rounded-2xl bg-[#f7f2ea] p-3 text-xs text-[#5c6a62] sm:col-span-2">رابط الصفحة مش بيتغير لو غيرت الاسم، عشان جوجل ميخسرش الصفحة. التعديل بيظهر على الموقع خلال دقايق.</p>
+        <p className="rounded-2xl bg-[#f4f6fa] p-3 text-xs text-[#556070] sm:col-span-2">رابط الصفحة مش بيتغير لو غيرت الاسم، عشان جوجل ميخسرش الصفحة. التعديل بيظهر على الموقع خلال دقايق.</p>
         <div className="flex justify-end gap-2 sm:col-span-2">
           <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-sm font-bold">إلغاء</button>
-          <button type="submit" disabled={busy || !ready} className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40">
+          <button type="submit" disabled={busy || !ready} className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40">
             {busy ? "بيحفظ…" : "احفظ"}
           </button>
         </div>

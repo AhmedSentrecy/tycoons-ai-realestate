@@ -62,7 +62,7 @@ export default function ProjectForm({
               onChange={(developer, isNew) => setValues((current) => ({ ...current, developer, new_developer: isNew }))}
               prefillIsNew={Boolean(initial?.developer)}
             />
-            {values.new_developer && <span className="mt-1 block text-xs text-[#8a6630]">«{values.developer}» هيتضاف كمطور جديد في تابة المطورين.</span>}
+            {values.new_developer && <span className="mt-1 block text-xs text-[#9a640f]">«{values.developer}» هيتضاف كمطور جديد في تابة المطورين.</span>}
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
             <AreaFields
@@ -73,14 +73,14 @@ export default function ProjectForm({
             />
           </div>
           {values.area_group && (
-            <p className="text-xs text-[#5c6a62]">
+            <p className="text-xs text-[#556070]">
               هيظهر على الموقع: <b dir="ltr">{areaLabel(values.area_group, values.sub_area)}</b>
             </p>
           )}
           <label className="block text-sm">
             <span className="mb-1 block font-bold">التشطيب الافتراضي (اختياري)</span>
             <FinishingSelect value={values.finishing ?? ""} onChange={(finishing) => setValues({ ...values, finishing })} />
-            <span className="mt-1 block text-xs text-[#5c6a62]">أي وحدة من الواتساب من غير تشطيب بتاخده من هنا.</span>
+            <span className="mt-1 block text-xs text-[#556070]">أي وحدة من الواتساب من غير تشطيب بتاخده من هنا.</span>
           </label>
           <label className="block text-sm">
             <span className="mb-1 block font-bold">وصف قصير (اختياري)</span>
@@ -93,7 +93,7 @@ export default function ProjectForm({
             />
           </label>
         </div>
-        <p className="mt-3 rounded-2xl bg-[#f7f2ea] p-3 text-xs leading-relaxed text-[#5c6a62]">
+        <p className="mt-3 rounded-2xl bg-[#f4f6fa] p-3 text-xs leading-relaxed text-[#556070]">
           رابط المشروع على الموقع وعنوان ووصف الـSEO بيتعملوا تلقائي من الاسم والمطور والمنطقة. بعد الحفظ افتح المشروع وارفع صوره وضيف وحداته،
           وصفحته هتظهر على الموقع بعد أول «حدّث الموقع».
         </p>
@@ -104,7 +104,7 @@ export default function ProjectForm({
           <button
             type="submit"
             disabled={busy || !ready}
-            className="rounded-full bg-[#0d1f18] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
+            className="rounded-full bg-[#060f1c] px-5 py-2 text-sm font-black text-white disabled:opacity-40"
           >
             {busy ? "بيحفظ…" : "إنشاء المشروع"}
           </button>
