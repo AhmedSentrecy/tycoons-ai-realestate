@@ -2099,6 +2099,181 @@ async function photoSuggestReject(user: AdminUser, body: Json) {
 }
 
 /** pg_cron every 15 minutes (and «ابحث تاني»): group new names, then research a few drafts, within the mode's limits. */
+// ---------- project updates (payment plan / offer / delivery / finishing from the groups) ----------
+
+const UPDATE_TYPES = ["payment_plan", "offer", "delivery", "finishing", "price_change", "launch", "other"];
+/** The project fields an update can change on the site (only what the update states). */
+const UPDATE_FIELDS = ["down_payment_text", "installments_text", "delivery_text", "finishing"] as const;
+const UPDATE_COLUMNS =
+  "id,created_at,message_log_id,message_date,source_group,project_name,developer,project_id,update_type,down_payment_text,installments_text,delivery_text,finishing,valid_until,details,status,decided_at";
+/** Same project (linked id, else the WhatsApp name) + same type: only the newest one matters. */
+const updateKey = (row: Json) => `${text(row.project_id) || aliasKey(row.project_name)}|${text(row.update_type)}`;
+
+/**
+ * Copies the updates the reader saved in wa_message_log.ai_updates into wa_project_updates (once per
+ * message + project + type), linked to the site project when the name is known, then marks older
+ * pending updates of the same project + type as "superseded".
+ */
+async function importUpdates() {
+  const { data: logs, error } = await db.from("wa_message_log").select("id,created_at,group_name,ai_updates")
+    .not("ai_updates", "is", null).in("status", ["chatgpt_read", "chatgpt_project_update", "stored"]).order("id").limit(5000);
+  fail(error);
+  const { data: done, error: doneError } = await db.from("wa_project_updates").select("message_log_id").limit(20000);
+  fail(doneError);
+  const seen = new Set(((done ?? []) as Json[]).map((row) => Number(row.message_log_id)));
+  const fresh = ((logs ?? []) as Json[]).filter((log) => !seen.has(Number(log.id)));
+  let added = 0;
+  if (fresh.length) {
+    const [projects, aliases] = await Promise.all([allProjects(), allAliases()]);
+    const rows: Json[] = [];
+    for (const log of fresh) {
+      const items = Array.isArray((log.ai_updates as Json)?.updates) ? ((log.ai_updates as Json).updates as Json[]) : [];
+      const keys = new Set<string>();
+      for (const item of items) {
+        if (!item || typeof item !== "object") continue;
+        const type = UPDATE_TYPES.includes(text(item.update_type)) ? text(item.update_type) : "other";
+        const name = text(item.project_name).split(" @ ")[0].replace(/\s+/g, " ").slice(0, 300) || "Needs project name";
+        const unique = `${name}|${type}`;
+        if (keys.has(unique)) continue;
+        keys.add(unique);
+        const aliased = aliases.get(aliasKey(name));
+        const project = NO_NAME_KEYS.has(aliasKey(name)) ? null
+          : (aliased ? projects.find((row) => row.id === aliased) : null) ?? matchProject(projects, name, text(item.developer));
+        rows.push({
+          message_log_id: Number(log.id), message_date: log.created_at, source_group: text(log.group_name).slice(0, 300) || null,
+          project_name: name, developer: text(item.developer).slice(0, 300) || null, project_id: project?.id ?? null, update_type: type,
+          down_payment_text: text(item.down_payment_text).slice(0, 100) || null, installments_text: text(item.installments_text).slice(0, 100) || null,
+          delivery_text: text(item.delivery_text).slice(0, 200) || null, finishing: text(item.finishing).slice(0, 200) || null,
+          valid_until: text(item.valid_until).slice(0, 100) || null, details: text(item.details).slice(0, 2000) || null,
+        });
+      }
+    }
+    for (let i = 0; i < rows.length; i += 500) {
+      const { data: inserted, error: insertError } = await db.from("wa_project_updates")
+        .upsert(rows.slice(i, i + 500), { onConflict: "message_log_id,project_name,update_type", ignoreDuplicates: true }).select("id");
+      fail(insertError);
+      added += inserted?.length ?? 0;
+    }
+  }
+  return { added, superseded: await supersedeOld() };
+}
+
+/** Older pending updates of the same project + type become "superseded" (the newest one stays). */
+async function supersedeOld(): Promise<number> {
+  const { data, error } = await db.from("wa_project_updates").select("id,project_id,project_name,update_type,message_date")
+    .eq("status", "pending").order("message_date", { ascending: false }).order("id", { ascending: false }).limit(20000);
+  fail(error);
+  const newest = new Set<string>();
+  const old: number[] = [];
+  for (const row of (data ?? []) as Json[]) {
+    const key = updateKey(row);
+    if (newest.has(key)) old.push(Number(row.id));
+    else newest.add(key);
+  }
+  for (let i = 0; i < old.length; i += 500) {
+    fail((await db.from("wa_project_updates").update({ status: "superseded" }).in("id", old.slice(i, i + 500))).error);
+  }
+  return old.length;
+}
+
+/** «تحديثات المشاريع»: the newest pending update per project + type, with the project's current values. */
+async function updatesList(body: Json) {
+  const imported = await importUpdates();
+  const status = ["pending", "applied", "ignored"].includes(text(body.status)) ? text(body.status) : "pending";
+  const { data, error } = await db.from("wa_project_updates").select(UPDATE_COLUMNS).eq("status", status)
+    .order(status === "pending" ? "message_date" : "decided_at", { ascending: false }).limit(status === "pending" ? 2000 : 300);
+  fail(error);
+  const items = (data ?? []) as Json[];
+  const ids = [...new Set(items.map((row) => text(row.project_id)).filter(Boolean))];
+  const projects: Record<string, Json> = {};
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data: rows, error: projectError } = await db.from("projects")
+      .select("id,name,developer,slug,down_payment_text,installments_text,delivery_text,finishing").in("id", ids.slice(i, i + 200));
+    fail(projectError);
+    for (const row of (rows ?? []) as Json[]) projects[text(row.id)] = row;
+  }
+  const counts: Record<string, number> = {};
+  for (const name of ["pending", "applied", "ignored", "superseded"]) {
+    const { count } = await db.from("wa_project_updates").select("id", { count: "exact", head: true }).eq("status", name);
+    counts[name] = count ?? 0;
+  }
+  return { items, projects, counts, imported };
+}
+
+async function loadUpdate(id: unknown) {
+  const { data, error } = await db.from("wa_project_updates").select(UPDATE_COLUMNS).eq("id", Number(id)).maybeSingle();
+  fail(error);
+  if (!data) throw new HttpError(404, "update_not_found");
+  return data as Json;
+}
+
+/** Links an update (and every pending update with the same WhatsApp name) to a site project and remembers the name. */
+async function updatesLink(user: AdminUser, body: Json) {
+  const row = await loadUpdate(body.id);
+  const projectId = text(body.project_id);
+  if (!/^[0-9a-f-]{36}$/i.test(projectId)) throw new HttpError(400, "project_id_invalid");
+  const { data: project } = await db.from("projects").select("id").eq("id", projectId).maybeSingle();
+  if (!project) throw new HttpError(404, "project_not_found");
+  const key = aliasKey(row.project_name);
+  const { data: same, error } = await db.from("wa_project_updates").select("id,project_name").eq("status", "pending").is("project_id", null).limit(5000);
+  fail(error);
+  const ids = NO_NAME_KEYS.has(key) ? [Number(row.id)]
+    : [...new Set([Number(row.id), ...((same ?? []) as Json[]).filter((item) => aliasKey(item.project_name) === key).map((item) => Number(item.id))])];
+  fail((await db.from("wa_project_updates").update({ project_id: projectId }).in("id", ids)).error);
+  const remembered = NO_NAME_KEYS.has(key) ? false : await rememberAlias(row.project_name, projectId, user.id);
+  await supersedeOld();
+  return { ok: true, linked: ids.length, remembered };
+}
+
+/**
+ * «طبّق على المشروع»: the update's stated payment / delivery / finishing (as edited by the admin) become the
+ * project's, through admin_apply_ops "project_update" (logged in admin_change_requests). An update with
+ * nothing to change on the page (offer, launch, price change) is just marked as seen.
+ */
+async function updatesApply(user: AdminUser, body: Json) {
+  const row = await loadUpdate(body.id);
+  if (text(row.status) !== "pending") throw new HttpError(409, "already_decided");
+  const projectId = text(row.project_id);
+  if (!projectId) throw new HttpError(400, "project_required");
+  const { data: project, error } = await db.from("projects").select("id,name,down_payment_text,installments_text,delivery_text,finishing").eq("id", projectId).maybeSingle();
+  fail(error);
+  if (!project) throw new HttpError(404, "project_not_found");
+  const edits = (body.values && typeof body.values === "object" ? body.values : {}) as Json;
+  const values: Json = {};
+  for (const field of UPDATE_FIELDS) {
+    const value = (field in edits ? text(edits[field]) : text(row[field])).slice(0, 200);
+    // Only what the update states changes; an empty field keeps the project's current value.
+    if (value && value !== text(project[field])) values[field] = value;
+  }
+  const now = new Date().toISOString();
+  let result: unknown = null;
+  if (Object.keys(values).length) {
+    const ops = [{ op: "project_update", id: projectId, values }];
+    const applied = await db.rpc("admin_apply_ops", { ops });
+    if (applied.error) throw new HttpError(409, `apply_failed:${applied.error.message}`);
+    result = applied.data;
+    const current = project as Json;
+    const before = Object.fromEntries(Object.keys(values).map((field) => [field, current[field] ?? null]));
+    await db.from("admin_change_requests").insert({
+      entity: "project", action: "update", target_id: projectId, project_id: projectId,
+      summary: `واتساب (${text(row.source_group) || "جروب"}): تحديث ${text(project.name)} — ${Object.keys(values).join(", ")}`,
+      ops, before, created_by: user.id, status: "approved", reviewed_by: user.id, reviewed_at: now, result,
+    }).then(() => undefined, () => undefined);
+  }
+  fail((await db.from("wa_project_updates").update({ status: "applied", decided_by: user.id, decided_at: now }).eq("id", Number(row.id))).error);
+  return { ok: true, changed: Object.keys(values), result };
+}
+
+/** «تجاهل»: the updates stay in the history but change nothing. */
+async function updatesIgnore(user: AdminUser, body: Json) {
+  const ids = (Array.isArray(body.ids) ? body.ids : [body.id]).map(Number).filter((id) => Number.isInteger(id) && id > 0).slice(0, 500);
+  if (!ids.length) throw new HttpError(400, "ids_required");
+  const { data, error } = await db.from("wa_project_updates").update({ status: "ignored", decided_by: user.id, decided_at: new Date().toISOString() })
+    .in("id", ids).eq("status", "pending").select("id");
+  fail(error);
+  return { ok: true, ignored: data?.length ?? 0 };
+}
+
 async function researchRun() {
   const settings = await researchSettings();
   if (settings.mode === "off") return { skipped: "off" };
@@ -2343,6 +2518,10 @@ Deno.serve(async (req: Request) => {
       case "photo_suggest_approve": return reply(await photoSuggestApprove(user, body));
       case "photo_suggest_reject": return reply(await photoSuggestReject(user, body));
       case "publish_draft": return reply(await publishDraft(user, body));
+      case "updates_list": return reply(await updatesList(body));
+      case "updates_link": return reply(await updatesLink(user, body));
+      case "updates_apply": return reply(await updatesApply(user, body));
+      case "updates_ignore": return reply(await updatesIgnore(user, body));
       default: return reply({ error: "unknown_action" }, 400);
     }
   } catch (error) {

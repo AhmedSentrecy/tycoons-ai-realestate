@@ -542,11 +542,54 @@ export const adminApi = {
     call<{ groups: WaGroup[] }>("group_developer", { group_id: groupId, developer }, token, WA_INBOX_API),
   waInboxReject: (token: string, ids: number[]) => call<{ ok: boolean; rejected: number }>("reject", { ids }, token, WA_INBOX_API),
   waGroups: (token: string) => call<{ groups: WaGroup[] }>("groups", {}, token, WA_INBOX_API),
+  /** «تحديثات المشاريع»: payment plans / offers / delivery / finishing read from the WhatsApp groups. */
+  waUpdates: (token: string, status: WaUpdateStatus) =>
+    call<{ items: WaProjectUpdate[]; projects: Record<string, WaUpdateProject>; counts: Record<string, number>; imported: { added: number; superseded: number } }>(
+      "updates_list", { status }, token, WA_INBOX_API),
+  /** Links the update (and every pending update with the same WhatsApp name) to a site project. */
+  waUpdatesLink: (token: string, id: number, projectId: string) =>
+    call<{ ok: boolean; linked: number; remembered: boolean }>("updates_link", { id, project_id: projectId }, token, WA_INBOX_API),
+  /** «طبّق على المشروع»: the stated payment / delivery / finishing become the project's (empty fields keep the current value). */
+  waUpdatesApply: (token: string, id: number, values: Partial<Record<WaUpdateField, string>>) =>
+    call<{ ok: boolean; changed: string[] }>("updates_apply", { id, values }, token, WA_INBOX_API),
+  waUpdatesIgnore: (token: string, ids: number[]) => call<{ ok: boolean; ignored: number }>("updates_ignore", { ids }, token, WA_INBOX_API),
   waGroupToggle: (token: string, groupId: string, track: boolean) =>
     call<{ groups: WaGroup[] }>("group_toggle", { group_id: groupId, track }, token, WA_INBOX_API),
 };
 
 export type WaInboxStatus = "pending" | "approved" | "rejected";
+export type WaUpdateStatus = "pending" | "applied" | "ignored";
+export type WaUpdateType = "payment_plan" | "offer" | "delivery" | "finishing" | "price_change" | "launch" | "other";
+export type WaUpdateField = "down_payment_text" | "installments_text" | "delivery_text" | "finishing";
+export interface WaProjectUpdate {
+  id: number;
+  created_at: string;
+  message_log_id: number;
+  message_date: string | null;
+  source_group: string | null;
+  project_name: string;
+  developer: string | null;
+  project_id: string | null;
+  update_type: WaUpdateType;
+  down_payment_text: string | null;
+  installments_text: string | null;
+  delivery_text: string | null;
+  finishing: string | null;
+  valid_until: string | null;
+  details: string | null;
+  status: WaUpdateStatus | "superseded";
+  decided_at: string | null;
+}
+export interface WaUpdateProject {
+  id: string;
+  name: string;
+  developer: string | null;
+  slug: string | null;
+  down_payment_text: string | null;
+  installments_text: string | null;
+  delivery_text: string | null;
+  finishing: string | null;
+}
 /** Ready WhatsApp units go on the site by themselves every 15 minutes (except units that would have no photo). */
 export interface WaAutoApprove {
   on: boolean;
