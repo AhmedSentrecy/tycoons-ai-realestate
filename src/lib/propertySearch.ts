@@ -104,6 +104,9 @@ const QUERY_ALIAS_GROUPS: Array<{ canonical: string; aliases: string[] }> = [
   { canonical: "al qamzi developments", aliases: ["القمزي للتطوير", "القمزي", "قمزي"] },
   { canonical: "plato residence", aliases: ["بلاتو ريزيدنس"] },
   { canonical: "capital hills", aliases: ["كابيتال هيلز"] },
+  { canonical: "mountain view", aliases: ["ماونتن فيو", "ماونتين فيو", "ماونت فيو", "مونتن فيو", "ماونتن ڤيو"] },
+  { canonical: "aliva", aliases: ["اليفا", "أليفا", "إليفا", "آليفا", "عليفا", "اليڤا", "الايفا"] },
+  { canonical: "icity", aliases: ["اي سيتي", "آي سيتي", "اى سيتى", "اي ستي", "ايسيتي"] },
 ];
 
 const STOP_WORDS = new Set(
@@ -188,6 +191,32 @@ const STOP_WORDS = new Set(
     "سنين",
     "years",
     "year",
+    // Conversational filler from voice requests ("أنا بدور على عروض أليفا").
+    "انا",
+    "أنا",
+    "ادور",
+    "أدور",
+    "بدورلي",
+    "عن",
+    "مشروع",
+    "كمبوند",
+    "عرض",
+    "عروض",
+    "العرض",
+    "العروض",
+    "اوفر",
+    "أوفر",
+    "الاوفر",
+    "offer",
+    "offers",
+    "سداد",
+    "نظام",
+    "انظمه",
+    "أنظمة",
+    "انظمة",
+    "الجديد",
+    "الجديده",
+    "الجديدة",
   ].map((word) => normalizeText(word)),
 );
 

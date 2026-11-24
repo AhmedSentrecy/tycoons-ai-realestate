@@ -24,7 +24,7 @@ const session=recContext.exports.beginVoiceRecording({},draft=>{assert.equal(com
 session.addRemote({});session.append('client','Hello');session.append('client',' there');session.append('assistant','Hi');session.qualify({name:'Test',summary:'Synthetic test'});session.stop();session.stop();
 assert.equal(sourceCount,2);assert.equal(closeCount,1);assert.equal(recording.state,'inactive');assert.equal(completed.transcript[0].text,'Hello there');assert.equal(completed.summary,'Synthetic test');assert.ok(completed.audio.size>0);
 const hook=fs.readFileSync('src/hooks/useRealtimeVoice.ts','utf8');
-assert.match(hook,/Date\.now\(\) \+ 240_000/);assert.match(hook,/if \(left === 0\) endImmediately\(\)/);assert.match(hook,/visibilitychange/);assert.match(hook,/getTracks\(\).*stop/s);assert.match(hook,/await onSearchQuery\(query\)/);assert.doesNotMatch(hook,/callbackPayload \?\? getLastSearchVoicePayload/);
+assert.doesNotMatch(hook,/240_000/,'the call has no time limit');assert.match(hook,/setElapsedSeconds\(Math\.floor\(\(Date\.now\(\) - sessionStartedAtRef\.current\) \/ 1000\)\)/,'the bar counts the call time up');assert.match(hook,/visibilitychange/);assert.match(hook,/getTracks\(\).*stop/s);assert.match(hook,/await onSearchQuery\(query\)/);assert.doesNotMatch(hook,/callbackPayload \?\? getLastSearchVoicePayload/);
 assert.match(hook,/handledCallsRef\.current\.has\(callKey\)/, 'repeated call_id events must be deduplicated per session');
 assert.match(hook,/const isCurrent = \(\) => generation === generationRef\.current/);
 assert.ok((hook.match(/if \(!isCurrent\(\)\) return false;/g)||[]).length >= 5, 'startup cancellation must be checked after each awaited stage');
@@ -38,4 +38,14 @@ assert.match(voiceContext,/performance\.now\(\)/);assert.match(voiceContext,/\[v
 const propertyHook=fs.readFileSync('src/hooks/usePropertySearch.ts','utf8');assert.match(propertyHook,/down_payment: item\.unit\.down_payment_text/);assert.match(propertyHook,/installments: item\.unit\.installments_text/);
 assert.match(propertyHook,/inventoryFreshness\(units\)/);
 const inventory=fs.readFileSync('src/lib/inventory.ts','utf8');assert.match(inventory,/if \(inventoryPageIsComplete\(page\.rawCount\)\) break/);assert.doesNotMatch(inventory,/if \(page\.length < PAGE_SIZE\) break/);
+let fallbackDraft; const fallback=recContext.exports.beginVoiceRecording({},d=>{fallbackDraft=d;});
+fallback.append('client','اسمي أحمد ورقمي ٠١٠ ١٢٣٤ ٥٦٧٨');fallback.append('assistant','تمام');fallback.stop();
+assert.equal(fallbackDraft.phone,'01012345678','phone falls back to what the client said');assert.equal(fallbackDraft.name,'أحمد','name falls back to what the client said');
+let keptDraft; const kept=recContext.exports.beginVoiceRecording({},d=>{keptDraft=d;});
+kept.append('client','رقمي 01012345678');kept.qualify({name:'منى',phone:'01198765432',summary:'x'});kept.stop();
+assert.equal(keptDraft.phone,'01198765432','the confirmed number from the assistant wins');assert.equal(keptDraft.name,'منى');
+const connect=fs.readFileSync('netlify/functions/openai-realtime-connect.js','utf8');
+assert.match(connect,/project_offers/,'the assistant is told about confirmed offers');assert.match(connect,/never 'correct' the client with the same figure/);
+assert.match(connect,/Call prepare_lead_summary as soon as the client states or corrects a first name or phone number/);
+assert.match(voiceContext,/withVoiceOffers\(searchInventoryForVoice\(units, clean\)\)/);assert.match(propertyHook,/project_slug: item\.unit\.project_slug/);
 console.log('Voice recording mocks, locale and timeout configuration checks passed');

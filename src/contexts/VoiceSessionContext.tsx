@@ -32,7 +32,9 @@ export function VoiceSessionProvider({ children, onSearchNavigate }: { children:
     else navigate(`/search?q=${encodeURIComponent(clean)}`);
     const units = await loadInventory(false);
     const inventoryReadyAt = performance.now();
-    const search = searchInventoryForVoice(units, clean);
+    // Confirmed offers live in content/project-showcase.json, not on the units; load them only for voice.
+    const { withVoiceOffers } = await import("@/lib/voiceOffers");
+    const search = withVoiceOffers(searchInventoryForVoice(units, clean));
     const completedAt = performance.now();
     console.debug("[voice-timing] search", {
       inventory_ms: Math.round(inventoryReadyAt - startedAt),
@@ -87,8 +89,8 @@ export function VoiceSessionProvider({ children, onSearchNavigate }: { children:
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-semibold text-[#d6b77d]">مساعد Tycoons الصوتي</p>
                 <p className="truncate text-sm font-bold">{status}</p>
-                <p className={voice.remainingSeconds <= 30 ? "text-xs font-bold text-amber-300" : "text-xs text-white/65"}>
-                  {Math.floor(voice.remainingSeconds / 60)}:{String(voice.remainingSeconds % 60).padStart(2, "0")} — {voice.remainingSeconds <= 30 ? "المحادثة هتنتهي تلقائيًا" : "الحد الأقصى 4 دقايق"}
+                <p className="text-xs text-white/65">
+                  مدة المكالمة <span dir="ltr">{Math.floor(voice.elapsedSeconds / 60)}:{String(voice.elapsedSeconds % 60).padStart(2, "0")}</span>
                 </p>
                 {voice.transcript && <p className="mt-0.5 truncate text-xs text-white/65">{voice.transcript}</p>}
               </div>

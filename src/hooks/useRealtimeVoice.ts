@@ -26,8 +26,9 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
   const [transcript, setTranscript] = useState("");
   const [voiceDraft, setVoiceDraft] = useState<VoiceDraft | null>(null);
   const recordingRef = useRef<ReturnType<typeof beginVoiceRecording> | null>(null);
-  const [remainingSeconds, setRemainingSeconds] = useState(240);
-  const sessionDeadlineRef = useRef(0);
+  // No time limit on the call; the bar shows how long it has been running.
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const sessionStartedAtRef = useRef(0);
   const sessionTimerRef = useRef<number | null>(null);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
@@ -51,7 +52,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
     recordingRef.current = null;
     if (sessionTimerRef.current !== null) window.clearInterval(sessionTimerRef.current);
     sessionTimerRef.current = null;
-    sessionDeadlineRef.current = 0;
+    sessionStartedAtRef.current = 0;
     abortRef.current?.abort();
     abortRef.current = null;
     connectingRef.current = false;
@@ -161,7 +162,7 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
       console.debug("[voice-timing] microphone_ready", { generation, elapsed_ms: Math.round(performance.now() - startupStartedRef.current) });
       streamRef.current = stream;
       closeTimerRef.current = window.setTimeout(() => {
-        if (!sessionDeadlineRef.current) { endImmediately(); setErrorMsg("الاتصال أخد وقت طويل. جرّب تاني."); }
+        if (!sessionStartedAtRef.current) { endImmediately(); setErrorMsg("الاتصال أخد وقت طويل. جرّب تاني."); }
       }, 20_000);
       recordingRef.current = beginVoiceRecording(stream, setVoiceDraft);
 
@@ -272,14 +273,12 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
               closeTimerRef.current = null;
               connectingRef.current = false;
               setState("connected");
-              if (!sessionDeadlineRef.current) {
-                sessionDeadlineRef.current = Date.now() + 240_000;
-                setRemainingSeconds(240);
+              if (!sessionStartedAtRef.current) {
+                sessionStartedAtRef.current = Date.now();
+                setElapsedSeconds(0);
                 sessionTimerRef.current = window.setInterval(() => {
-                  const left = Math.max(0, Math.ceil((sessionDeadlineRef.current - Date.now()) / 1000));
-                  setRemainingSeconds(left);
-                  if (left === 0) endImmediately();
-                }, 250);
+                  setElapsedSeconds(Math.floor((Date.now() - sessionStartedAtRef.current) / 1000));
+                }, 500);
               }
               break;
             case "session.input_transcript.delta":
@@ -390,5 +389,5 @@ export function useRealtimeVoice({ onSearchQuery }: RealtimeOptions) {
     }
   }, [cleanup, endImmediately, onSearchQuery, sendFunctionOutput]);
 
-  return { state, errorMsg, transcript, remainingSeconds, voiceDraft, clearVoiceDraft: () => setVoiceDraft(null), connect, disconnect: endImmediately };
+  return { state, errorMsg, transcript, elapsedSeconds, voiceDraft, clearVoiceDraft: () => setVoiceDraft(null), connect, disconnect: endImmediately };
 }
