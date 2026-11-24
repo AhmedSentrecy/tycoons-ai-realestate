@@ -27,7 +27,8 @@ const db = {
     { id: L3, agent_id: MOSTAFA, client_name: "Old buyer", phone: "+20 111 000 9999", stage: "Lost / Dead", next_action: "", next_action_date: null, next_action_time: null, next_action_trigger: "", notes: "", budget: "", updated_at: "2026-11-01T10:00:00Z" },
   ],
   sales_pipeline_activity: [
-    { id: randomUUID(), pipeline_id: L1, agent_id: AHMED, activity_type: "feedback", body: "عايزة تنقل، معاها مليون مقدم واستقرينا على سراي", created_at: "2026-11-23T12:24:00Z", actor_type: "system", metadata: { crm_feedback_author: "Ahmed Yehya" } },
+    { id: randomUUID(), pipeline_id: L1, agent_id: AHMED, activity_type: "feedback", body: "عايزة تنقل، معاها مليون مقدم واستقرينا على سراي", created_at: "2026-11-23T12:24:00Z", actor_type: "system", metadata: { crm_feedback_author: "Ahmed Yehya", crm_feedback_at_cairo: `${today} 14:24` } },
+    { id: randomUUID(), pipeline_id: L2, agent_id: MOSTAFA, activity_type: "feedback", body: "na", created_at: "2026-11-22T12:30:00Z", actor_type: "system", metadata: { crm_feedback_author: "Ahmed Yehya", crm_feedback_at_cairo: "2020-01-01 10:00" } },
     { id: randomUUID(), pipeline_id: L2, agent_id: MOSTAFA, activity_type: "feedback", body: "interested in Mountain View iCity", created_at: "2026-11-22T12:00:00Z", actor_type: "system", metadata: {} },
   ],
   sales_pipeline_history: [],
@@ -129,7 +130,7 @@ assert.equal(init.body.result.protocolVersion, "2025-06-18");
 const list = await call(OWNER_KEY, "tools/list");
 assert.deepEqual(
   list.body.result.tools.map((t) => t.name),
-  ["list_agents", "search_leads", "get_lead", "list_followups", "add_war_room_card", "update_feedback", "search_units"],
+  ["list_agents", "search_leads", "get_lead", "agent_report", "list_followups", "add_war_room_card", "update_feedback", "search_units"],
 );
 
 // --- list_agents
@@ -214,6 +215,32 @@ assert.equal((await tool(AGENT_KEY, "update_feedback", { lead_id: L1, feedback: 
 assert.equal((await tool(OWNER_KEY, "update_feedback", { lead_id: L2, next_action_date: "23-11-2026" })).isError, true);
 ok(await tool(OWNER_KEY, "update_feedback", { lead_id: L2, next_action: "كلمه بكرة", next_action_date: "" }));
 assert.equal(db.sales_pipeline.find((r) => r.id === L2).next_action_date, null);
+
+// --- search_leads with no query lists leads
+const listed = ok(await tool(OWNER_KEY, "search_leads", { agent: "mostafa", stage: "Contacted" }));
+assert.equal(listed.mode, "list");
+assert.ok(listed.results.every((r) => r.agent === "mostafa-amr" && r.stage === "Contacted"));
+assert.equal(ok(await tool(AGENT_KEY, "search_leads", {})).results.every((r) => r.agent === "mostafa-amr"), true);
+assert.equal((await tool(OWNER_KEY, "search_leads", { query: "x" })).isError, true, "one letter is still refused");
+
+// --- agent_report
+const team = ok(await tool(OWNER_KEY, "agent_report"));
+assert.equal(team.mode, "team");
+const ahmedRow = team.team.find((r) => r.agent === "ahmed-yehia");
+assert.equal(ahmedRow.feedback_written_30d, 1, "CRM author 'Ahmed Yehya' matches agent 'Ahmed Yehia'; the 2020 line is outside 30 days");
+const rep = ok(await tool(OWNER_KEY, "agent_report", { agent: "أحمد يحيى" }));
+assert.equal(rep.mode, "agent");
+assert.equal(rep.numbers.agent, "ahmed-yehia");
+assert.equal(rep.numbers.open_leads, 1);
+assert.equal(rep.numbers.overdue, 1);
+assert.equal(rep.numbers.open_untouched_30d, 0);
+assert.equal(rep.last_feedback_on_open_leads.real_conversation, 1);
+assert.equal(rep.weekly_feedback.length, 12);
+assert.equal(rep.weekly_feedback.reduce((n, w) => n + w.feedback_lines, 0), 1);
+assert.equal(rep.call_first[0].lead_id, L1);
+assert.equal(rep.call_first[0].followup_status, "overdue");
+const mine = ok(await tool(AGENT_KEY, "agent_report", { agent: "ahmed-yehia" }));
+assert.equal(mine.numbers.agent, "mostafa-amr", "agent links always report on themselves");
 
 // --- search_units responds (empty inventory in this offline test)
 assert.equal(ok(await tool(OWNER_KEY, "search_units", { query: "شقة التجمع" })).results.length, 0);
