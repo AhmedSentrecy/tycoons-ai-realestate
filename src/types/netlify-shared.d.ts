@@ -63,3 +63,20 @@ declare module "*netlify/functions/_inventory-facts.cjs" {
   export function canonicalProjectSlug(slug: string): string;
   export function unitInquiry(unit: { id: string; starting_price: number; area_sqm?: number | null }, slug?: string, lang?: string): string;
 }
+
+declare module "*netlify/functions/_project-offers.cjs" {
+  export interface ProjectOfferRow {
+    project_id?: string;
+    kind: string;
+    title_ar: string;
+    body_ar?: string | null;
+    valid_until?: string | null;
+    created_at?: string;
+    active?: boolean;
+  }
+  export const OFFER_LABELS_AR: Record<string, string>;
+  export function liveOffers<T extends ProjectOfferRow>(rows: T[] | null | undefined, today?: string): T[];
+  export function untilAr(value: string | null | undefined): string;
+  export function offerKeywords(rows: ProjectOfferRow[] | null | undefined, projectName: string): string[];
+  export function offersSectionHtml(rows: ProjectOfferRow[] | null | undefined, options: { projectName: string; escapeHtml: (value: unknown) => string }): string;
+}

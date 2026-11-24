@@ -550,8 +550,12 @@ export const adminApi = {
   waUpdatesLink: (token: string, id: number, projectId: string) =>
     call<{ ok: boolean; linked: number; remembered: boolean }>("updates_link", { id, project_id: projectId }, token, WA_INBOX_API),
   /** «طبّق على المشروع»: the stated payment / delivery / finishing become the project's (empty fields keep the current value). */
-  waUpdatesApply: (token: string, id: number, values: Partial<Record<WaUpdateField, string>>) =>
-    call<{ ok: boolean; changed: string[] }>("updates_apply", { id, values }, token, WA_INBOX_API),
+  waUpdatesApply: (token: string, id: number, values: Partial<Record<WaUpdateField, string>>, offer?: WaOfferInput) =>
+    call<{ ok: boolean; changed: string[]; offer: WaProjectOffer | null }>("updates_apply", { id, values, ...(offer ? { offer } : {}) }, token, WA_INBOX_API),
+  /** «العروض المنشورة»: live offers / launches / price changes shown on the site. */
+  waOffers: (token: string) => call<{ offers: WaProjectOffer[]; projects: Record<string, { id: string; name: string; developer: string | null; slug: string | null }> }>("offers_list", {}, token, WA_INBOX_API),
+  waOfferSave: (token: string, id: number, offer: WaOfferInput) => call<{ ok: boolean; offer: WaProjectOffer }>("offers_save", { id, ...offer }, token, WA_INBOX_API),
+  waOfferRemove: (token: string, id: number) => call<{ ok: boolean; removed: number }>("offers_remove", { id }, token, WA_INBOX_API),
   waUpdatesIgnore: (token: string, ids: number[]) => call<{ ok: boolean; ignored: number }>("updates_ignore", { ids }, token, WA_INBOX_API),
   waGroupToggle: (token: string, groupId: string, track: boolean) =>
     call<{ groups: WaGroup[] }>("group_toggle", { group_id: groupId, track }, token, WA_INBOX_API),
@@ -577,8 +581,28 @@ export interface WaProjectUpdate {
   finishing: string | null;
   valid_until: string | null;
   details: string | null;
+  headline_ar: string | null;
+  summary_ar: string | null;
   status: WaUpdateStatus | "superseded";
   decided_at: string | null;
+}
+export interface WaOfferInput {
+  title_ar: string;
+  body_ar: string;
+  /** YYYY-MM-DD, or "" = stays until replaced or removed. */
+  valid_until: string;
+}
+export interface WaProjectOffer {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  project_id: string;
+  update_id: number | null;
+  kind: "offer" | "launch" | "price_change" | "other";
+  title_ar: string;
+  body_ar: string | null;
+  valid_until: string | null;
+  active: boolean;
 }
 export interface WaUpdateProject {
   id: string;
@@ -965,6 +989,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   build_hook_missing: "لازم تحط رابط Build Hook من الإعدادات الأول",
   invalid_build_hook: "رابط الـBuild Hook مش صحيح",
   rebuild_too_soon: "لسه عامل تحديث من أقل من 3 دقايق",
+  offer_title_required: "اكتب سطر العرض (3 حروف على الأقل)",
+  offer_not_found: "العرض ده مش منشور",
   research_faq_invalid: "في سؤال ناقص: لازم سؤال وإجابة (20 حرف على الأقل) ومصدر واحد على الأقل",
   build_hook_failed: "Netlify رفض طلب التحديث",
   gallery_too_long: "أقصى عدد 60 صورة",

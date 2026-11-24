@@ -2105,7 +2105,10 @@ const UPDATE_TYPES = ["payment_plan", "offer", "delivery", "finishing", "price_c
 /** The project fields an update can change on the site (only what the update states). */
 const UPDATE_FIELDS = ["down_payment_text", "installments_text", "delivery_text", "finishing"] as const;
 const UPDATE_COLUMNS =
-  "id,created_at,message_log_id,message_date,source_group,project_name,developer,project_id,update_type,down_payment_text,installments_text,delivery_text,finishing,valid_until,details,status,decided_at";
+  "id,created_at,message_log_id,message_date,source_group,project_name,developer,project_id,update_type,down_payment_text,installments_text,delivery_text,finishing,valid_until,details,headline_ar,summary_ar,status,decided_at";
+/** Update types that become a public offer line on the site (card badge + article section). */
+const OFFER_KINDS = ["offer", "launch", "price_change", "other"];
+const OFFER_COLUMNS = "id,created_at,updated_at,project_id,update_id,kind,title_ar,body_ar,valid_until,active";
 /** Same project (linked id, else the WhatsApp name) + same type: only the newest one matters. */
 const updateKey = (row: Json) => `${text(row.project_id) || aliasKey(row.project_name)}|${text(row.update_type)}`;
 
@@ -2145,6 +2148,7 @@ async function importUpdates() {
           down_payment_text: text(item.down_payment_text).slice(0, 100) || null, installments_text: text(item.installments_text).slice(0, 100) || null,
           delivery_text: text(item.delivery_text).slice(0, 200) || null, finishing: text(item.finishing).slice(0, 200) || null,
           valid_until: text(item.valid_until).slice(0, 100) || null, details: text(item.details).slice(0, 2000) || null,
+          headline_ar: text(item.headline_ar).slice(0, 200) || null, summary_ar: text(item.summary_ar).slice(0, 1200) || null,
         });
       }
     }
@@ -2260,8 +2264,67 @@ async function updatesApply(user: AdminUser, body: Json) {
       ops, before, created_by: user.id, status: "approved", reviewed_by: user.id, reviewed_at: now, result,
     }).then(() => undefined, () => undefined);
   }
+  // «انشر على الموقع»: an offer / launch / price change becomes the project's live offer of that kind.
+  let offer: Json | null = null;
+  if (body.offer && typeof body.offer === "object" && OFFER_KINDS.includes(text(row.update_type))) {
+    offer = await publishOffer(user, projectId, text(row.update_type), body.offer as Json, Number(row.id));
+  }
   fail((await db.from("wa_project_updates").update({ status: "applied", decided_by: user.id, decided_at: now }).eq("id", Number(row.id))).error);
-  return { ok: true, changed: Object.keys(values), result };
+  return { ok: true, changed: Object.keys(values), result, offer };
+}
+
+
+/** Cleans the admin's offer text; a valid end date (YYYY-MM-DD) is kept, anything else means "until replaced". */
+function offerValues(input: Json) {
+  const title = text(input.title_ar).replace(/\s+/g, " ").slice(0, 200);
+  if (title.length < 3) throw new HttpError(400, "offer_title_required");
+  const body = text(input.body_ar).replace(/[ \t]+/g, " ").slice(0, 1200);
+  const until = text(input.valid_until);
+  return { title_ar: title, body_ar: body || null, valid_until: /^\d{4}-\d{2}-\d{2}$/.test(until) ? until : null };
+}
+
+/** Publishes an offer line on the project; the previous live offer of the same kind is retired (one per kind). */
+async function publishOffer(user: AdminUser, projectId: string, kind: string, input: Json, updateId: number | null) {
+  const values = offerValues(input);
+  fail((await db.from("project_offers").update({ active: false, updated_at: new Date().toISOString() })
+    .eq("project_id", projectId).eq("kind", kind).eq("active", true)).error);
+  const { data, error } = await db.from("project_offers")
+    .insert({ project_id: projectId, kind, update_id: updateId, created_by: user.id, ...values }).select(OFFER_COLUMNS).single();
+  fail(error);
+  return data as Json;
+}
+
+/** «العروض المنشورة»: every live offer with its project's name and page. */
+async function offersList() {
+  const { data, error } = await db.from("project_offers").select(OFFER_COLUMNS).eq("active", true).order("created_at", { ascending: false }).limit(1000);
+  fail(error);
+  const offers = (data ?? []) as Json[];
+  const ids = [...new Set(offers.map((row) => text(row.project_id)))];
+  const projects: Record<string, Json> = {};
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data: rows, error: projectError } = await db.from("projects").select("id,name,developer,slug").in("id", ids.slice(i, i + 200));
+    fail(projectError);
+    for (const row of (rows ?? []) as Json[]) projects[text(row.id)] = row;
+  }
+  return { offers, projects };
+}
+
+/** Edits a live offer's wording / end date by hand. */
+async function offersSave(body: Json) {
+  const values = offerValues(body);
+  const { data, error } = await db.from("project_offers").update({ ...values, updated_at: new Date().toISOString() })
+    .eq("id", Number(body.id)).eq("active", true).select(OFFER_COLUMNS).maybeSingle();
+  fail(error);
+  if (!data) throw new HttpError(404, "offer_not_found");
+  return { ok: true, offer: data };
+}
+
+/** Takes an offer off the site. */
+async function offersRemove(body: Json) {
+  const { data, error } = await db.from("project_offers").update({ active: false, updated_at: new Date().toISOString() })
+    .eq("id", Number(body.id)).eq("active", true).select("id");
+  fail(error);
+  return { ok: true, removed: data?.length ?? 0 };
 }
 
 /** «تجاهل»: the updates stay in the history but change nothing. */
@@ -2522,6 +2585,9 @@ Deno.serve(async (req: Request) => {
       case "updates_link": return reply(await updatesLink(user, body));
       case "updates_apply": return reply(await updatesApply(user, body));
       case "updates_ignore": return reply(await updatesIgnore(user, body));
+      case "offers_list": return reply(await offersList());
+      case "offers_save": return reply(await offersSave(body));
+      case "offers_remove": return reply(await offersRemove(body));
       default: return reply({ error: "unknown_action" }, 400);
     }
   } catch (error) {
