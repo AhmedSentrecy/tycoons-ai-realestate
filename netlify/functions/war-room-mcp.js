@@ -20,7 +20,7 @@ import { inventoryUnitId, loadInventory } from "../../src/lib/inventory.ts";
 import { searchInventory } from "../../src/lib/propertySearch.ts";
 
 const SERVER_NAME = "tycoons-sales-war-room";
-const SERVER_VERSION = "1.0.0";
+const SERVER_VERSION = "1.1.0";
 const DEFAULT_SUPABASE_URL = "https://coqnjymekrkoausiiytm.supabase.co";
 const LATEST_PROTOCOL_VERSION = "2025-11-25";
 const SUPPORTED_PROTOCOL_VERSIONS = new Set(["2025-03-26", "2025-06-18", LATEST_PROTOCOL_VERSION]);
@@ -68,17 +68,16 @@ const TOOL_DEFINITIONS = [
     name: "search_leads",
     title: "Search leads and feedback",
     description:
-      "Search every Sales War Room lead by client name, phone, notes, next action, or any word written inside the lead's feedback history (Arabic or English). Example: 'سراي', 'مقدم مليون', 'Mountain View', '0100 123'.",
+      "Search every Sales War Room lead by client name, phone, notes, next action, or any word written inside the lead's feedback history (Arabic or English). Example: 'سراي', 'مقدم مليون', 'Mountain View', '0100 123'. Leave query empty to list leads, e.g. all of one agent's Warm leads (agent + stage). For an agent's numbers or a performance report use agent_report instead.",
     inputSchema: {
       type: "object",
       properties: {
-        query: { type: "string", minLength: 2, description: "Words to find" },
+        query: { type: "string", description: "Words to find. Empty = list leads with the other filters." },
         agent: agentProp,
         stage: { type: "string", enum: STAGES },
         include_closed: { type: "boolean", description: "Include Won and Lost leads. Default true." },
-        limit: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+        limit: { type: "integer", minimum: 1, maximum: 100, default: 20 },
       },
-      required: ["query"],
       additionalProperties: false,
     },
     annotations: READ_ONLY,
@@ -93,6 +92,22 @@ const TOOL_DEFINITIONS = [
         lead_id: { type: "string" },
         phone: { type: "string" },
         activity_limit: { type: "integer", minimum: 1, maximum: 200, default: 50 },
+      },
+      additionalProperties: false,
+    },
+    annotations: READ_ONLY,
+  },
+  {
+    name: "agent_report",
+    title: "Agent performance report",
+    description:
+      "Numbers for one sales agent, or for the whole team when no agent is given: open leads, overdue and missing follow-ups, leads by stage, feedback the agent wrote in the last 30 days and per week, how stale the open leads are, duplicates, and the Warm/Hold/overdue leads to call first with their last feedback. Use this for any dashboard, report, PDF or evaluation of an agent's work.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        agent: agentProp,
+        weeks: { type: "integer", minimum: 4, maximum: 26, default: 12, description: "How many weeks of weekly feedback to return" },
+        priority_limit: { type: "integer", minimum: 0, maximum: 100, default: 40 },
       },
       additionalProperties: false,
     },
@@ -436,14 +451,29 @@ async function listAgents(_args, access) {
 
 async function searchLeads(args, access) {
   const query = cleanText(args.query, 200);
-  if (normalizeText(query).length < 2) throw new ToolInputError("query must contain at least 2 characters");
-  const limit = boundedInteger(args.limit, 20, 1, 50);
+  const listAll = normalizeText(query).length === 0;
+  if (!listAll && normalizeText(query).length < 2) throw new ToolInputError("query must contain at least 2 characters, or leave it empty to list leads");
+  const limit = boundedInteger(args.limit, listAll ? 50 : 20, 1, 100);
   const includeClosed = args.include_closed !== false;
   const stage = args.stage ? cleanText(args.stage, 40) : "";
   if (stage && !STAGES.includes(stage)) throw new ToolInputError(`stage must be one of: ${STAGES.join(", ")}`);
 
   const { agents, scope } = await scopeAgents(access, args.agent);
   const agentsById = new Map(agents.map((a) => [a.id, a]));
+
+  if (listAll) {
+    const rows = (await loadPipeline(scope)).filter(
+      (row) => (!stage || row.stage === stage) && (includeClosed || !CLOSED_STAGES.has(row.stage)),
+    );
+    return {
+      query: "",
+      mode: "list",
+      total_matches: rows.length,
+      returned: Math.min(limit, rows.length),
+      results: rows.slice(0, limit).map((row) => cardView(row, agentsById)),
+    };
+  }
+
   const [pipeline, activity] = await Promise.all([
     loadPipeline(scope),
     restAll(
@@ -563,6 +593,180 @@ async function listFollowups(args, access) {
         String(a.next_action_time || "").localeCompare(String(b.next_action_time || "")),
     );
   return { when, today_cairo: today, total: rows.length, returned: Math.min(limit, rows.length), leads: rows.slice(0, limit).map((r) => cardView(r, agentsById)) };
+}
+
+// ---------------------------------------------------------------- agent report
+
+const ONE_WORD_RE = /^\s*(na|wa|na wa|ni|n a|no answer|off|busy|closed|call back.*)\s*$/;
+const NO_ANSWER_RE = /(مردش|مردتش|لم يتم الرد|مغلق|مش مجمع|غير موجود)/;
+
+export function isOneWordFeedback(body) {
+  const text = String(body || "");
+  const latin = text.toLowerCase().replace(/[^a-z؀-ۿ ]/g, "").trim();
+  return ONE_WORD_RE.test(latin) || NO_ANSWER_RE.test(text);
+}
+
+// "Ahmed Yehya" (CRM) and "Ahmed Yehia" (War Room) are the same person: compare consonants only.
+const nameSkeleton = (value) => String(value || "").toLowerCase().replace(/[^a-z]/g, "").replace(/[aeiouy]/g, "");
+
+function cairoDayOf(activity) {
+  const crm = String(activity.crm_at ?? activity.metadata?.crm_feedback_at_cairo ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(crm)) return crm.slice(0, 10);
+  return cairoToday(new Date(activity.created_at));
+}
+
+const dayNumber = (isoDay) => Date.parse(`${isoDay}T00:00:00Z`) / 86400000;
+
+function weekStart(isoDay) {
+  const d = new Date(`${isoDay}T00:00:00Z`);
+  return addDays(isoDay, -((d.getUTCDay() + 6) % 7));
+}
+
+async function loadFeedback() {
+  const rows = await restAll(
+    "sales_pipeline_activity?select=pipeline_id,agent_id,actor_type,actor_agent_id,body,created_at,author:metadata->>crm_feedback_author,crm_at:metadata->>crm_feedback_at_cairo&activity_type=eq.feedback&order=created_at.desc",
+  );
+  return rows.map((a) => ({ ...a, author: a.author ?? a.metadata?.crm_feedback_author ?? null, day: cairoDayOf(a) }));
+}
+
+function writerOf(activity, agents) {
+  if (activity.author) {
+    const sk = nameSkeleton(activity.author);
+    const match = agents.find((ag) => sk && (nameSkeleton(ag.name_en) === sk || nameSkeleton(ag.slug) === sk));
+    return match ? match.id : null;
+  }
+  return activity.actor_type === "agent" ? activity.actor_agent_id || activity.agent_id : null;
+}
+
+function agentNumbers(agent, cards, feedback, agents, today) {
+  const open = cards.filter((r) => !CLOSED_STAGES.has(r.stage));
+  const written = feedback.filter((a) => writerOf(a, agents) === agent.id && dayNumber(today) - dayNumber(a.day) <= 30);
+  return {
+    agent: agent.slug,
+    agent_name: agent.name_ar || agent.name_en,
+    total_cards: cards.length,
+    open_leads: open.length,
+    overdue: open.filter((r) => r.next_action_date && r.next_action_date < today).length,
+    no_next_date: open.filter((r) => !r.next_action_date).length,
+    warm_hot: open.filter((r) => r.stage === "Warm" || r.stage === "Hot / Very Potential").length,
+    meetings_or_later: cards.filter((r) => /^Meeting/.test(r.stage) || r.stage === "Negotiation / Closing").length,
+    won: cards.filter((r) => r.stage === "Won").length,
+    lost: cards.filter((r) => r.stage === "Lost / Dead").length,
+    feedback_written_30d: written.length,
+    leads_worked_30d: new Set(written.map((a) => a.pipeline_id)).size,
+  };
+}
+
+async function agentReport(args, access) {
+  const weeks = boundedInteger(args.weeks, 12, 4, 26);
+  const priorityLimit = boundedInteger(args.priority_limit, 40, 0, 100);
+  const { agents, scope, self } = await scopeAgents(access, args.agent);
+  const today = cairoToday();
+  const [pipeline, feedback] = await Promise.all([loadPipeline(scope), loadFeedback()]);
+
+  if (access.role === "owner" && !args.agent) {
+    return {
+      today_cairo: today,
+      mode: "team",
+      note: "Feedback is counted for the person who wrote it, on any card. Call again with agent for one agent's full report.",
+      team: scope.map((a) => agentNumbers(a, pipeline.filter((r) => r.agent_id === a.id), feedback, agents, today)),
+    };
+  }
+
+  const agent = self || scope[0];
+  const agentsById = new Map(agents.map((a) => [a.id, a]));
+  const cards = pipeline.filter((r) => r.agent_id === agent.id);
+  const open = cards.filter((r) => !CLOSED_STAGES.has(r.stage));
+  const cardIds = new Set(cards.map((r) => r.id));
+
+  const lastByLead = new Map();
+  for (const a of feedback) {
+    if (!cardIds.has(a.pipeline_id)) continue;
+    const prev = lastByLead.get(a.pipeline_id);
+    if (!prev || a.day > prev.day || (a.day === prev.day && String(a.crm_at || a.created_at) > String(prev.crm_at || prev.created_at))) {
+      lastByLead.set(a.pipeline_id, a);
+    }
+  }
+
+  const numbers = agentNumbers(agent, cards, feedback, agents, today);
+  const daysSince = (lead) => {
+    const last = lastByLead.get(lead.id);
+    return last ? dayNumber(today) - dayNumber(last.day) : null;
+  };
+  numbers.open_untouched_30d = open.filter((r) => {
+    const d = daysSince(r);
+    return d === null || d > 30;
+  }).length;
+  const phones = new Map();
+  for (const r of cards) {
+    const core = phoneCore(r.phone);
+    if (core.length >= 7) phones.set(core, (phones.get(core) || 0) + 1);
+  }
+  numbers.duplicate_phones = [...phones.values()].filter((n) => n > 1).length;
+
+  const stageCounts = STAGES.map((stage) => ({ stage, leads: cards.filter((r) => r.stage === stage).length })).filter((s) => s.leads);
+
+  const ownLines = feedback.filter((a) => writerOf(a, agents) === agent.id);
+  const firstWeek = weekStart(addDays(today, -7 * (weeks - 1)));
+  const weekly = [];
+  for (let w = firstWeek; w <= today; w = addDays(w, 7)) {
+    const inWeek = ownLines.filter((a) => a.day >= w && a.day < addDays(w, 7));
+    weekly.push({ week_start: w, feedback_lines: inWeek.length, leads_worked: new Set(inWeek.map((a) => a.pipeline_id)).size });
+  }
+
+  const lastKinds = { real_conversation: 0, no_answer_or_one_word: 0, no_feedback: 0 };
+  const staleness = { "0-7_days": 0, "8-30_days": 0, "31-60_days": 0, "over_60_days": 0, no_feedback: 0 };
+  for (const r of open) {
+    const last = lastByLead.get(r.id);
+    if (!last) lastKinds.no_feedback += 1;
+    else if (isOneWordFeedback(last.body)) lastKinds.no_answer_or_one_word += 1;
+    else lastKinds.real_conversation += 1;
+    const d = daysSince(r);
+    if (d === null) staleness.no_feedback += 1;
+    else if (d <= 7) staleness["0-7_days"] += 1;
+    else if (d <= 30) staleness["8-30_days"] += 1;
+    else if (d <= 60) staleness["31-60_days"] += 1;
+    else staleness.over_60_days += 1;
+  }
+
+  const campaigns = new Map();
+  for (const r of open) campaigns.set(r.campaign || "—", (campaigns.get(r.campaign || "—") || 0) + 1);
+
+  const hotOrder = { "Hot / Very Potential": 1, Warm: 2, "Negotiation / Closing": 3, "Meeting Scheduled": 4, "Meeting Held": 5, Hold: 6 };
+  const priority = open
+    .filter((r) => hotOrder[r.stage] || (r.next_action_date && r.next_action_date < today))
+    .map((r) => {
+      const last = lastByLead.get(r.id);
+      return {
+        ...cardView(r, agentsById),
+        followup_status: r.next_action_date ? (r.next_action_date < today ? "overdue" : "scheduled") : "no_date",
+        days_since_feedback: daysSince(r),
+        last_feedback: last ? String(last.body || "").slice(0, 200) : null,
+        last_feedback_by: last ? last.author || last.actor_type : null,
+        last_feedback_looks_like_not_interested: last ? /(\bni\b|not interested|مش مهتم|غير مهتم|closed|اشتر)/i.test(String(last.body || "")) : false,
+      };
+    })
+    .sort((a, b) => (hotOrder[a.stage] || 9) - (hotOrder[b.stage] || 9) || (a.days_since_feedback ?? 9999) - (b.days_since_feedback ?? 9999));
+
+  return {
+    today_cairo: today,
+    mode: "agent",
+    definitions: {
+      open_leads: "cards whose stage is not Won or Lost / Dead",
+      overdue: "open cards whose next follow-up date is before today (Cairo)",
+      feedback_written_30d: "feedback lines this agent wrote in the last 30 days, on any card, dated by the CRM feedback time",
+      open_untouched_30d: "open cards with no feedback from anyone in the last 30 days",
+      no_answer_or_one_word: "last feedback is a word like na, wa, ni, no answer, busy, closed, or says مردش / مغلق",
+    },
+    numbers,
+    stages: stageCounts,
+    weekly_feedback: weekly,
+    last_feedback_on_open_leads: lastKinds,
+    days_since_last_feedback_on_open_leads: staleness,
+    open_leads_by_campaign: [...campaigns.entries()].map(([campaign, leads]) => ({ campaign, leads })).sort((a, b) => b.leads - a.leads),
+    call_first_total: priority.length,
+    call_first: priority.slice(0, priorityLimit),
+  };
 }
 
 const warmValid = (nextAction, nextDate, trigger) =>
@@ -770,6 +974,7 @@ const TOOL_HANDLERS = {
   search_leads: searchLeads,
   get_lead: getLead,
   list_followups: listFollowups,
+  agent_report: agentReport,
   add_war_room_card: addCard,
   update_feedback: updateFeedback,
   search_units: searchUnits,
@@ -830,8 +1035,8 @@ async function handleRpc(body, access, protocolHeader) {
         serverInfo: { name: SERVER_NAME, title: "Tycoons Sales War Room", version: SERVER_VERSION },
         instructions:
           access.role === "owner"
-            ? "Owner access: every agent. Search leads before adding a card to avoid duplicates. Dates are Cairo time. Confirm with the user before add_war_room_card or update_feedback."
-            : `Agent access for ${access.agentSlug}: only this agent's cards. Search leads before adding a card. Dates are Cairo time. Confirm with the user before writing.`,
+            ? "Owner access: every agent. For any report, dashboard or evaluation of an agent, call agent_report. To list an agent's leads, call search_leads with an empty query. Search leads before adding a card to avoid duplicates. Dates are Cairo time. Confirm with the user before add_war_room_card or update_feedback."
+            : `Agent access for ${access.agentSlug}: only this agent's cards. For a report on this agent's work, call agent_report. Search leads before adding a card. Dates are Cairo time. Confirm with the user before writing.`,
       }),
     };
   }
