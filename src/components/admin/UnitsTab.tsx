@@ -14,6 +14,8 @@ import {
 import { useAdmin } from "./AdminContext";
 import ImportDialog from "./ImportDialog";
 import MediaEditor from "./MediaEditor";
+import PaymentIssuesPanel from "./PaymentIssuesPanel";
+import { paymentIssues } from "@/lib/paymentIssues";
 import ProjectPicker from "./ProjectPicker";
 import UnitForm from "./UnitForm";
 import { Badge, EmptyState, Modal } from "./ui";
@@ -159,6 +161,8 @@ export default function UnitsTab({
   }
 
   return (
+    <>
+    <PaymentIssuesPanel onOpenProject={onSelect} refreshKey={units?.length ?? 0} />
     <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
       <ProjectPicker
         projects={projects}
@@ -275,6 +279,11 @@ export default function UnitsTab({
                           <td className="p-2 text-xs text-[#556070]">
                             {unit.down_payment_text || "—"}
                             <span className="block">{unit.installments_text || ""}</span>
+                            {paymentIssues(unit).map((issue) => (
+                              <span key={issue.field} className="mt-1 block max-w-[260px] rounded-lg bg-[#fff8e8] px-2 py-1 font-bold text-[#7a5a14]">
+                                ⚠️ {issue.field === "down_payment" ? "المقدم" : "التقسيط"}: {issue.reason}
+                              </span>
+                            ))}
                           </td>
                           <td className="p-2 text-xs text-[#556070]">{unit.delivery_text || "—"}</td>
                           <td className="p-2">
@@ -382,6 +391,7 @@ export default function UnitsTab({
         />
       )}
     </div>
+    </>
   );
 }
 
