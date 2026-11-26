@@ -17,6 +17,7 @@ import AgentUsageTab from "../components/admin/AgentUsageTab";
 import WhatsAppClicksTab from "../components/admin/WhatsAppClicksTab";
 import WhatsAppInboxTab from "../components/admin/WhatsAppInboxTab";
 import ProjectUpdatesTab from "../components/admin/ProjectUpdatesTab";
+import SalesFactsTab from "../components/admin/SalesFactsTab";
 import ApprovalsTab from "../components/admin/ApprovalsTab";
 import ArticlesTab from "../components/admin/ArticlesTab";
 import HomepageLaunchesTab from "../components/admin/HomepageLaunchesTab";
@@ -226,7 +227,7 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
   );
 }
 
-type Tab = "projects" | "media" | "units" | "developers" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents" | "whatsapp" | "wainbox" | "waupdates";
+type Tab = "projects" | "media" | "units" | "developers" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents" | "whatsapp" | "wainbox" | "waupdates" | "salesfacts";
 
 /**
  * The admin tabs in 4 groups, so related pages sit next to each other and the bar never needs a
@@ -237,6 +238,7 @@ const NAV_GROUPS: { label: string; tabs: { tab: Tab; label: string; ownerOnly?: 
   { label: "المشاريع", tabs: [
     { tab: "projects", label: "المشاريع" },
     { tab: "waupdates", label: "تحديثات المشاريع" },
+    { tab: "salesfacts", label: "معلومات البيع" },
     { tab: "launches", label: "بتتطرح دلوقتي" },
     { tab: "faq", label: "أسئلة المشاريع" },
   ] },
@@ -509,6 +511,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
             />
           )}
           {tab === "waupdates" && <ProjectUpdatesTab projects={projects} onChanged={refresh} />}
+          {tab === "salesfacts" && <SalesFactsTab projects={projects} />}
           {tab === "launches" && <HomepageLaunchesTab projects={projects} />}
           {tab === "articles" && <ArticlesTab projects={projects} focusProjectId={articleFocus} onFocusHandled={() => setArticleFocus(null)} />}
           {tab === "faq" && <ProjectFaqTab projects={projects} />}

@@ -556,6 +556,12 @@ export const adminApi = {
   waOffers: (token: string) => call<{ offers: WaProjectOffer[]; projects: Record<string, { id: string; name: string; developer: string | null; slug: string | null }> }>("offers_list", {}, token, WA_INBOX_API),
   waOfferSave: (token: string, id: number, offer: WaOfferInput) => call<{ ok: boolean; offer: WaProjectOffer }>("offers_save", { id, ...offer }, token, WA_INBOX_API),
   waOfferRemove: (token: string, id: number) => call<{ ok: boolean; removed: number }>("offers_remove", { id }, token, WA_INBOX_API),
+  salesFacts: (token: string, filter: { status?: SalesFactStatus | ""; category?: SalesFactCategory | "" } = {}) =>
+    call<{ facts: SalesFact[]; counts: { status?: Record<string, number>; category_active?: Record<string, number> } }>("facts_list", filter, token, WA_INBOX_API),
+  salesFactSave: (token: string, fact: SalesFactInput) => call<{ ok: boolean; fact: SalesFact }>("facts_save", { ...fact }, token, WA_INBOX_API),
+  salesFactStatus: (token: string, ids: number[], status: SalesFactStatus) =>
+    call<{ ok: boolean; changed: number }>("facts_status", { ids, status }, token, WA_INBOX_API),
+  saraFile: (token: string) => call<{ markdown: string }>("sara_file", {}, token, WA_INBOX_API),
   waUpdatesIgnore: (token: string, ids: number[]) => call<{ ok: boolean; ignored: number }>("updates_ignore", { ids }, token, WA_INBOX_API),
   waGroupToggle: (token: string, groupId: string, track: boolean) =>
     call<{ groups: WaGroup[] }>("group_toggle", { group_id: groupId, track }, token, WA_INBOX_API),
@@ -592,6 +598,52 @@ export interface WaOfferInput {
   /** YYYY-MM-DD, or "" = stays until replaced or removed. */
   valid_until: string;
 }
+export type SalesFactCategory = "urgency" | "offer" | "eoi" | "track_record" | "price_history" | "rental" | "comparison" | "customer_story";
+export type SalesFactStatus = "active" | "expired" | "needs_confirmation" | "rejected";
+export type SalesFactSource = "whatsapp" | "web" | "inventory" | "owner" | "research";
+
+/** One selling point Sara may say (sales_facts). Expired facts stay for articles. */
+export interface SalesFact {
+  id: number;
+  category: SalesFactCategory;
+  kind: string | null;
+  project_id: string | null;
+  project_name: string | null;
+  developer: string | null;
+  area_group: string | null;
+  statement_ar: string;
+  details: string | null;
+  numbers: Record<string, string> | null;
+  source_type: SalesFactSource;
+  source_label: string | null;
+  source_urls: string[];
+  source_date: string | null;
+  update_id: number | null;
+  valid_until: string | null;
+  status: SalesFactStatus;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+  reviewed_at: string | null;
+}
+
+export interface SalesFactInput {
+  id?: number;
+  category: SalesFactCategory;
+  statement_ar: string;
+  project_id?: string | null;
+  project_name?: string | null;
+  developer?: string | null;
+  source_type: SalesFactSource;
+  source_label?: string | null;
+  source_urls?: string[];
+  source_date?: string | null;
+  valid_until?: string | null;
+  status: SalesFactStatus;
+  note?: string | null;
+  kind?: string | null;
+}
+
 export interface WaProjectOffer {
   id: number;
   created_at: string;
