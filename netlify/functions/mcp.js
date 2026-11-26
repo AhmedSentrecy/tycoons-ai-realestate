@@ -7,7 +7,7 @@ import {
 } from "../../src/lib/inventory.ts";
 import { searchInventory } from "../../src/lib/propertySearch.ts";
 import { agentResultCount, recordAgentToolCall } from "../../src/lib/agentUsage.ts";
-import { paymentDetailsFor, withPaymentDetails } from "./_payment-details.js";
+import { paymentDetailsFor, projectExpertFor, withPaymentDetails } from "./_payment-details.js";
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201110100025";
@@ -44,7 +44,7 @@ const TOOL_DEFINITIONS = [
     name: "search_properties",
     title: "Search Tycoons properties",
     description:
-      "Search the current public Tycoons Investments inventory in Arabic or English. Returns exact matches before clearly labelled alternatives. Availability and commercial terms must be reconfirmed.",
+      "Search the current public Tycoons Investments inventory in Arabic or English. Returns exact matches before clearly labelled alternatives. Units from projects with a reviewed expert card also carry project_expert (key facts, advantage, and a disadvantage to mention only if the client asks). Availability and commercial terms must be reconfirmed.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -76,7 +76,7 @@ const TOOL_DEFINITIONS = [
     name: "get_property_details",
     title: "Get property details",
     description:
-      "Get the current public details for one Tycoons inventory unit using the stable unit_id returned by search_properties, including payment_details (live developer offer, project payment plan, reviewed updates) when available.",
+      "Get the current public details for one Tycoons inventory unit using the stable unit_id returned by search_properties, including payment_details (live developer offer, project payment plan, reviewed updates) and the full project_expert card (payment plans, available units, rent ranges, yield on amount paid until handover, resale, developer facts) when available.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -382,8 +382,13 @@ async function getPropertyDetails(args) {
   }
 
   const paymentDetails = await paymentDetailsFor(unit);
+  const projectExpert = projectExpertFor(unit);
   return {
-    property: { ...publicUnit(unit, true), ...(paymentDetails ? { payment_details: paymentDetails } : {}) },
+    property: {
+      ...publicUnit(unit, true),
+      ...(paymentDetails ? { payment_details: paymentDetails } : {}),
+      ...(projectExpert ? { project_expert: projectExpert } : {}),
+    },
     notice:
       "This is the latest public inventory record. Reconfirm availability and all commercial terms before making a decision.",
   };
