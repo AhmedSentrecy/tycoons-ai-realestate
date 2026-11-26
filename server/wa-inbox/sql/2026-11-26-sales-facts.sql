@@ -85,7 +85,8 @@ language sql security definer set search_path = public as $$
   select count(*)::int from x;
 $$;
 
--- Sara's file, generated from active facts + live price-per-meter comparisons from inventory.
+-- Sara's file, generated from active facts + live price-per-meter comparisons from inventory
+-- (per area / sub-area, outliers beyond 2.5x the area median dropped, "Other" skipped).
 create or replace function public.sales_essentials_md() returns text
 language plpgsql stable security definer set search_path = public as $$
 declare
@@ -93,6 +94,7 @@ declare
   sec record; line text; cmp text := '';
   area_ar jsonb := '{"New Cairo":"القاهرة الجديدة","Mostakbal City":"مستقبل سيتي","New Capital":"العاصمة الإدارية","North Coast":"الساحل الشمالي","Sheikh Zayed":"الشيخ زايد","October":"أكتوبر","Ain Sokhna":"العين السخنة","Shorouk":"الشروق"}';
   grp record;
+  sub_ar jsonb := '{"5th Settlement":"التجمع الخامس","6th Settlement":"التجمع السادس","El Shorouk":"الشروق","Golden Square":"الجولدن سكوير","Ras El Hekma":"رأس الحكمة","Sidi Abdel Rahman":"سيدي عبد الرحمن","El Dabaa":"الضبعة","New Zayed":"زايد الجديدة","South Investors":"جنوب الأكاديمية","North Investors":"شمال المستثمرين","90th Street":"شارع التسعين","North 90th Street":"شمال التسعين","South New Cairo":"جنوب القاهرة الجديدة","Financial District":"الحي المالي","El Lotus":"اللوتس"}';
 begin
   out := '// Sales Essentials for Sara - sales_essentials_for_sara.md' || E'\n'
       || '// الملف ده بيتولّد لوحده من «معلومات البيع» في الأدمن (' || to_char(now() at time zone 'Africa/Cairo','YYYY-MM-DD HH24:MI') || ').' || E'\n'
@@ -118,24 +120,28 @@ begin
       out := out || line || E'\n';
     end loop;
     if sec.cat = 'comparison' then
-      -- up to 2 lines per area: the 6 apartment projects with the most units there, cheapest first, in threes
       cmp := '';
       for grp in
         with per as (
-          select p.area_group, p.sub_area, p.name,
+          select p.area_group, coalesce(p.sub_area, '') sub, p.name,
                  round(percentile_cont(0.5) within group (order by u.starting_price / nullif(u.area_sqm,0)) / 1000) k,
                  count(*) n
           from units u join projects p on p.id = u.project_id
           where u.availability_status = 'available' and u.area_sqm >= 40 and u.starting_price > 100000
-            and u.unit_type ilike any (array['%apartment%','%شقة%']) and p.area_group is not null
+            and u.unit_type ilike any (array['%apartment%','%شقة%']) and p.area_group is not null and p.area_group <> 'Other'
           group by 1,2,3 having count(*) >= 3),
-        top as (select *, row_number() over (partition by area_group order by n desc, name) r from per),
-        pick as (select *, row_number() over (partition by area_group order by k, name) o from top where r <= 6)
-        select area_group, (o - 1) / 3 g,
+        med as (select area_group, sub, percentile_cont(0.5) within group (order by k) m, count(*) c from per group by 1,2),
+        clean as (select per.* from per join med using (area_group, sub)
+                  where med.c >= 2 and per.k between med.m / 2.5 and med.m * 2.5),
+        top as (select *, row_number() over (partition by area_group, sub order by n desc, name) r from clean),
+        pick as (select *, row_number() over (partition by area_group, sub order by k, name) o from top where r <= 6)
+        select area_group, sub, (o - 1) / 3 g, count(*) cnt,
                string_agg(name || ' حوالي ' || to_char(k, 'FM999,999') || ' ألف جنيه', '، وفي ' order by o) txt
-        from pick group by 1, 2 order by 1, 2
+        from pick group by 1, 2, 3 having count(*) >= 2 order by 1, 2, 3
       loop
-        cmp := cmp || '- في ' || coalesce(area_ar ->> grp.area_group, grp.area_group) || ': سعر متر الشقق في ' || grp.txt
+        cmp := cmp || '- في ' || coalesce(area_ar ->> grp.area_group, grp.area_group)
+            || case when grp.sub <> '' then ' (' || coalesce(sub_ar ->> grp.sub, grp.sub) || ')' else '' end
+            || ': سعر متر الشقق في ' || grp.txt
             || ' (من المخزون المتاح على الموقع، ' || to_char(today,'YYYY-MM-DD') || ')' || E'\n';
       end loop;
       out := out || cmp;
@@ -143,5 +149,18 @@ begin
   end loop;
   return out;
 end $$;
+
+-- Counts for the admin tab.
+create or replace function public.sales_facts_counts() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object(
+    'status', coalesce((select jsonb_object_agg(status, n) from (select status, count(*) n from sales_facts group by 1) s), '{}'::jsonb),
+    'category_active', coalesce((select jsonb_object_agg(category, n) from (select category, count(*) n from sales_facts where status = 'active' group by 1) c), '{}'::jsonb));
+$$;
 revoke all on function public.sales_essentials_md() from public, anon, authenticated;
 revoke all on function public.sales_facts_expire() from public, anon, authenticated;
+revoke all on function public.sales_facts_counts() from public, anon, authenticated;
+grant execute on function public.sales_facts_counts(), public.sales_essentials_md(), public.sales_facts_expire() to service_role;
+
+-- Daily at 00:05 Cairo: end the facts whose last day passed.
+select cron.schedule('sales-facts-expire', '5 22 * * *', $$select public.sales_facts_expire()$$);
