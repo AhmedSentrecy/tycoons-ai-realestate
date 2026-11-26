@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSiteSky } from "@/lib/useSiteSky";
 import { Link, useNavigate, useSearchParams } from "react-router";
-import { CheckCircle2, MessageCircle, Search, SlidersHorizontal } from "lucide-react";
+import { CheckCircle2, MessageCircle, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import Navbar from "@/sections/Navbar";
 import Footer from "@/sections/Footer";
 import ProjectResultCard from "@/components/ProjectResultCard";
 import SmartSearchBar from "@/components/SmartSearchBar";
-import { usePropertySearch } from "@/hooks/usePropertySearch";
+import { runSearch, usePropertySearch } from "@/hooks/usePropertySearch";
+import { detectBedrooms, detectQuestion, expertAnswer, understandQuery, type SearchUnderstanding } from "@/lib/searchUnderstanding";
 import { groupByProject } from "@/lib/searchDisplay";
 import { openSearchWhatsApp } from "@/lib/whatsapp";
 
@@ -25,6 +26,7 @@ export default function SearchPage() {
   const q = (params.get("q") ?? "").trim();
   const { results, searchFresh, inventory } = usePropertySearch();
   const [visible, setVisible] = useState(24);
+  const [understood, setUnderstood] = useState<{ q: string; value: SearchUnderstanding | null; used: string } | null>(null);
 
   useEffect(() => {
     document.title = q ? `نتائج البحث: ${q} | Tycoons Investments` : "البحث | Tycoons Investments";
@@ -48,9 +50,35 @@ export default function SearchPage() {
     if (q && inventory.units.length) void searchFresh(q);
   }, [q, inventory.units.length, searchFresh]);
 
+  // Smart search: OpenAI cleans the request (spelling, question words). The normal search runs first,
+  // then the cleaned query replaces it only if it finds exact matches. On any failure nothing changes.
+  const units = inventory.units;
+  useEffect(() => {
+    if (!q || !units.length) return;
+    let active = true;
+    void understandQuery(q).then((value) => {
+      if (!active) return;
+      const cleaned = value?.search_query?.trim() ?? "";
+      let used = q;
+      if (cleaned && cleaned !== q && runSearch(units, cleaned).totalExact > 0) {
+        used = cleaned;
+        void searchFresh(cleaned);
+      }
+      setUnderstood({ q, value, used });
+    });
+    return () => { active = false; };
+  }, [q, units, searchFresh]);
+
   const exactGroups = useMemo(() => groupByProject(results.exact), [results]);
   const altGroups = useMemo(() => groupByProject(results.alternatives), [results]);
   const total = results.totalExact + results.totalAlternatives;
+  const ai = understood?.q === q ? understood : null;
+  const answer = useMemo(() => {
+    if (!q) return null;
+    const question = ai?.value?.question ?? detectQuestion(q);
+    const bedrooms = ai?.value?.bedrooms ?? detectBedrooms(q);
+    return expertAnswer(results.exact[0]?.unit.project_slug, question, bedrooms, ai?.value?.furnished ?? null);
+  }, [q, ai, results]);
 
   return (
     <div data-sky-page dir="rtl" className="min-h-screen bg-[#f4f6fa] text-[#0f1724]">
@@ -92,6 +120,7 @@ export default function SearchPage() {
                 <p className="text-xs font-bold text-[#9a640f]">طلب البحث</p>
                 <h2 className="mt-1 text-xl font-extrabold text-[#0a1628] sm:text-2xl">{q}</h2>
                 {results.interpreted && <p className="mt-2 text-sm font-semibold text-[#92733f]">{results.interpreted}</p>}
+                {ai && ai.used !== q && <p className="mt-1 text-xs font-semibold text-[#6b7585]">دوّرنا على: {ai.used}</p>}
               </div>
               {!inventory.loading && total > 0 && (
                 <div className="flex gap-2 text-center">
@@ -100,6 +129,16 @@ export default function SearchPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {!inventory.loading && answer && (
+          <div className="mb-7 rounded-3xl border border-[#cfe3d6] bg-[#f3faf5] p-5 shadow-sm sm:p-6">
+            <div className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-[#126a3b]" /><h2 className="text-lg font-extrabold text-[#0a1628]">{answer.title}</h2></div>
+            <ul className="mt-3 space-y-2 text-sm leading-relaxed text-[#1f2d3d] sm:text-base">
+              {answer.lines.map((line) => <li key={line}>• {line}</li>)}
+            </ul>
+            <p className="mt-3 text-xs text-[#5b6b62]">{answer.note}</p>
           </div>
         )}
 
