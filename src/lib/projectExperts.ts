@@ -54,11 +54,13 @@ export function projectExpertSummary(slug: string | null | undefined): ProjectEx
   };
 }
 
-/** Full card for get_property_details. */
+/** Full card for get_property_details. The internal source list (listing websites) stays in the repo only. */
 export function projectExpertFull(slug: string | null | undefined): (Card & { notice: string }) | null {
   const card = BY_SLUG.get(String(slug || "").trim());
   if (!card) return null;
-  return { ...card, notice: PROJECT_EXPERT_NOTICE };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { sources, ...publicCard } = card;
+  return { ...(publicCard as Card), notice: PROJECT_EXPERT_NOTICE };
 }
 
 export type ProjectExpertVoice = {

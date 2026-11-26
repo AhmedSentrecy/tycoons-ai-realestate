@@ -7,7 +7,7 @@ import Footer from "@/sections/Footer";
 import ProjectResultCard from "@/components/ProjectResultCard";
 import SmartSearchBar from "@/components/SmartSearchBar";
 import { runSearch, usePropertySearch } from "@/hooks/usePropertySearch";
-import { detectBedrooms, detectQuestion, expertAnswer, understandQuery, type SearchUnderstanding } from "@/lib/searchUnderstanding";
+import { detectBedrooms, detectQuestion, expertAnswer, namesProject, understandQuery, type SearchUnderstanding } from "@/lib/searchUnderstanding";
 import { groupByProject } from "@/lib/searchDisplay";
 import { openSearchWhatsApp } from "@/lib/whatsapp";
 
@@ -75,9 +75,18 @@ export default function SearchPage() {
   const ai = understood?.q === q ? understood : null;
   const answer = useMemo(() => {
     if (!q) return null;
-    const question = ai?.value?.question ?? detectQuestion(q);
+    // Keywords win when they find a topic ("اسعار ايجار" is a rent question even if the AI says price).
+    const keyword = detectQuestion(q);
+    const question = keyword !== "none" ? keyword : ai?.value?.question ?? "none";
     const bedrooms = ai?.value?.bedrooms ?? detectBedrooms(q);
-    return expertAnswer(results.exact[0]?.unit.project_slug, question, bedrooms, ai?.value?.furnished ?? null);
+    // Use the first matching project that has an expert card, not only the top result.
+    const slugs = [...new Set(results.exact.map((item) => item.unit.project_slug).filter(Boolean))];
+    // Only for a project the buyer named, so a general search like "شقة في التجمع" shows no project box.
+    for (const slug of slugs.filter((item) => namesProject(item, q) || namesProject(item, ai?.used ?? ""))) {
+      const found = expertAnswer(slug, question, bedrooms, ai?.value?.furnished ?? null);
+      if (found) return found;
+    }
+    return null;
   }, [q, ai, results]);
 
   return (

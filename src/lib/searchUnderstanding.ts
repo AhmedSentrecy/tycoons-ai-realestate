@@ -2,6 +2,7 @@
 // buyer's question, and builds a short answer from the project's reviewed expert card.
 // Every number shown comes from the card or the inventory, never from the AI.
 import { projectExpertFull } from "@/lib/projectExperts";
+import { normalizeText } from "@/lib/propertySearch";
 
 export type SearchQuestion = "rent" | "yield" | "price" | "payment" | "delivery" | "none";
 
@@ -62,6 +63,47 @@ function rentLine(segment: RentSegment): string {
 
 export type ExpertAnswer = { project: string; title: string; lines: string[]; note: string };
 
+type ExpertCard = NonNullable<ReturnType<typeof projectExpertFull>>;
+
+// Area words are removed from the project names, so "اي سيتي" alone still counts as naming the project,
+// while a general search such as "شقة في التجمع" does not.
+const AREA_WORDS = ["التجمع الخامس", "التجمع", "نيو كايرو", "القاهره الجديده", "new cairo", "اكتوبر", "october", "mv", "ماونتن فيو", "mountain view"];
+
+function projectTerms(card: ExpertCard): string[] {
+  const names = [card.project.name_ar, card.project.name_en, ...(card.project.aliases ?? [])];
+  const terms = names.map((name) => {
+    let value = ` ${normalizeText(name)} `;
+    for (const word of AREA_WORDS) value = value.replace(` ${normalizeText(word)} `, " ");
+    return value.replace(/\s+/g, " ").trim();
+  });
+  return [...new Set(terms.filter((term) => term.length >= 4))];
+}
+
+/** True when the buyer's text names this project (not just its area or developer). */
+export function namesProject(projectSlug: string | null | undefined, query: string): boolean {
+  const card = projectExpertFull(projectSlug);
+  if (!card) return false;
+  const text = ` ${normalizeText(query)} `;
+  return projectTerms(card).some((term) => text.includes(` ${term} `));
+}
+
+/** Box shown when the buyer only names the project: payment plans, delivery, typical rent and the advantage. Never the disadvantage. */
+function projectOverview(card: ExpertCard): ExpertAnswer | null {
+  const project = card.project.name_ar;
+  const lines: string[] = [];
+  const plans = card.payment_plans as { phases?: Phase[]; delivery?: string } | undefined;
+  for (const phase of plans?.phases ?? []) {
+    lines.push(`${phase.phase}: مقدم ${phase.down_payment} على ${phase.years} سنين`);
+  }
+  if (plans?.delivery) lines.push(`الاستلام: ${plans.delivery}`);
+  const rent = card.rent as { segments?: RentSegment[] } | undefined;
+  const main = [...(rent?.segments ?? [])].sort((a, b) => ((b as { listings?: number }).listings ?? 0) - ((a as { listings?: number }).listings ?? 0))[0];
+  if (main) lines.push(`متوسط الإيجار المطلوب لشقة ${main.bedrooms} غرف ${main.furnished ? "مفروشة" : "مش مفروشة"}: حوالي ${egp(main.average_egp)} جنيه في الشهر`);
+  if (card.summary.advantage) lines.push(card.summary.advantage);
+  if (!lines.length) return null;
+  return { project, title: `معلومات عن ${project}`, lines, note: "الإيجار متوسط الأسعار المطلوبة في السوق. اتأكد من التفاصيل مع المستشار قبل الحجز." };
+}
+
 /** Short answer for the search page from the project's expert card, or null when there is nothing reviewed to say. */
 export function expertAnswer(
   projectSlug: string | null | undefined,
@@ -70,8 +112,9 @@ export function expertAnswer(
   furnished: boolean | null = null,
 ): ExpertAnswer | null {
   const card = projectExpertFull(projectSlug);
-  if (!card || question === "none" || question === "price") return null;
+  if (!card) return null;
   const project = card.project.name_ar;
+  if (question === "none" || question === "price") return projectOverview(card);
 
   if (question === "rent") {
     const rent = card.rent as { basis?: string; segments?: RentSegment[] } | undefined;
