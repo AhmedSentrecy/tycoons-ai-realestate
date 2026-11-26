@@ -60,3 +60,36 @@ export function projectExpertFull(slug: string | null | undefined): (Card & { no
   if (!card) return null;
   return { ...card, notice: PROJECT_EXPERT_NOTICE };
 }
+
+export type ProjectExpertVoice = {
+  project: string;
+  card_version: string;
+  key_facts: string[];
+  advantage: string;
+  disadvantage: { text: string; say_only_if_client_asks: boolean };
+  payment_plans?: unknown;
+  rent?: unknown;
+  yield_spoken?: string;
+  ask_only_if_client_asks?: unknown;
+  rules: string[];
+};
+
+/** Card for the site's voice assistant: the short summary plus rent, plans, the spoken yield and ask-only answers. */
+export function projectExpertForVoice(slug: string | null | undefined): ProjectExpertVoice | null {
+  const card = BY_SLUG.get(String(slug || "").trim());
+  if (!card) return null;
+  const plans = card.payment_plans as { phases?: unknown; delivery?: string; mega_offer_note?: string } | undefined;
+  const yieldExample = card.yield_example as { spoken?: string } | undefined;
+  return {
+    project: card.project.name_ar,
+    card_version: card.card_version,
+    key_facts: card.summary.key_facts,
+    advantage: card.summary.advantage,
+    disadvantage: card.summary.disadvantage,
+    payment_plans: plans ? { phases: plans.phases, delivery: plans.delivery, note: plans.mega_offer_note } : undefined,
+    rent: card.rent,
+    yield_spoken: yieldExample?.spoken,
+    ask_only_if_client_asks: card.ask_only_if_client_asks,
+    rules: card.assistant_rules,
+  };
+}
