@@ -7,6 +7,7 @@ import {
 } from "../../src/lib/inventory.ts";
 import { searchInventory } from "../../src/lib/propertySearch.ts";
 import { agentResultCount, recordAgentToolCall } from "../../src/lib/agentUsage.ts";
+import { paymentDetailsFor, withPaymentDetails } from "./_payment-details.js";
 
 const SITE_URL = "https://tycoons-inv.com";
 const WHATSAPP_NUMBER = "201110100025";
@@ -75,7 +76,7 @@ const TOOL_DEFINITIONS = [
     name: "get_property_details",
     title: "Get property details",
     description:
-      "Get the current public details for one Tycoons inventory unit using the stable unit_id returned by search_properties.",
+      "Get the current public details for one Tycoons inventory unit using the stable unit_id returned by search_properties, including payment_details (live developer offer, project payment plan, reviewed updates) when available.",
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -337,7 +338,7 @@ async function searchProperties(args) {
   if (query.length < 2) throw new ToolInputError("query must contain at least 2 characters");
 
   const limit = boundedInteger(input.limit, 5, 1, MAX_TOOL_RESULTS);
-  const units = await loadInventory();
+  const { units, byId } = await inventoryWithIds();
   const result = searchInventory(units, query);
   const matches = [
     ...result.exact.map((item) => ({
@@ -353,14 +354,15 @@ async function searchProperties(args) {
       differences: item.differences,
     })),
   ].slice(0, limit);
+  const withPayments = await withPaymentDetails(matches, byId);
 
   return {
     query,
     interpreted: result.interpreted,
     exact_count: result.totalExact,
     alternative_count: result.totalAlternatives,
-    returned_count: matches.length,
-    results: matches,
+    returned_count: withPayments.length,
+    results: withPayments,
     notice:
       "Availability, prices, payment plans, delivery, and finishing are time-sensitive and must be reconfirmed with Tycoons Investments.",
   };
@@ -379,8 +381,9 @@ async function getPropertyDetails(args) {
     throw new ToolInputError("Unknown or outdated unit_id. Run search_properties again.");
   }
 
+  const paymentDetails = await paymentDetailsFor(unit);
   return {
-    property: publicUnit(unit, true),
+    property: { ...publicUnit(unit, true), ...(paymentDetails ? { payment_details: paymentDetails } : {}) },
     notice:
       "This is the latest public inventory record. Reconfirm availability and all commercial terms before making a decision.",
   };
