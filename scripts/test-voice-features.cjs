@@ -45,7 +45,7 @@ let keptDraft; const kept=recContext.exports.beginVoiceRecording({},d=>{keptDraf
 kept.append('client','رقمي 01012345678');kept.qualify({name:'منى',phone:'01198765432',summary:'x'});kept.stop();
 assert.equal(keptDraft.phone,'01198765432','the confirmed number from the assistant wins');assert.equal(keptDraft.name,'منى');
 const connect=fs.readFileSync('netlify/functions/openai-realtime-connect.js','utf8');
-assert.match(connect,/project_offers/,'the assistant is told about confirmed offers');assert.match(connect,/never 'correct' the client with the same figure/);
+assert.match(connect,/project_offers/,'the assistant is told about confirmed offers');assert.match(connect,/project_experts/,'the assistant is told about expert cards');assert.match(connect,/Never volunteer the disadvantage/);assert.match(connect,/never 'correct' the client with the same figure/);
 assert.match(connect,/Call prepare_lead_summary as soon as the client states or corrects a first name or phone number/);
 assert.match(voiceContext,/withVoiceOffers\(searchInventoryForVoice\(units, clean\)\)/);assert.match(propertyHook,/project_slug: item\.unit\.project_slug/);
 console.log('Voice recording mocks, locale and timeout configuration checks passed');

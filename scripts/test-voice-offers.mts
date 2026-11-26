@@ -30,4 +30,21 @@ assert.equal(payload.options[0].current_offer, "confirmed_offer");
 assert.equal(payload.options[1].current_offer, undefined);
 assert.equal(payload.project_offers.length, 1);
 assert.match(payload.offer_instruction, /متقولش أبدًا إن مفيش عروض/);
+// Expert card: iCity New Cairo reaches the voice assistant once, short enough to speak from.
+const ICITY = "mountain-view-icity-new-cairo--mountain-view";
+const withExpert = withVoiceOffers({ options: [{ project_slug: ICITY }, { project_slug: ICITY }, { project_slug: "creek-town--il-cazar-developments" }] }, beforeEnd) as any;
+assert.equal(withExpert.options[0].has_project_expert, true);
+assert.equal(withExpert.options[2].has_project_expert, undefined);
+assert.equal(withExpert.project_experts.length, 1, "one card per project");
+const card = withExpert.project_experts[0];
+assert.equal(card.project, "ماونتن فيو آي سيتي التجمع");
+assert.equal(card.disadvantage.say_only_if_client_asks, true);
+assert.ok(card.rent.segments.some((s: any) => s.bedrooms === 3 && s.furnished === false));
+assert.match(card.yield_spoken, /المدفوع|دفعت/);
+assert.match(withExpert.expert_instruction, /إلا لو العميل سأل/);
+assert.equal("available_units" in card, false, "the voice card leaves out unit lists");
+assert.equal(withVoiceOffers({ options: [{ project_slug: "creek-town--il-cazar-developments" }] }, beforeEnd).hasOwnProperty("project_experts"), false);
+
+const icityUnits = [...units, { ...base, project_name: "Mountain View iCity New Cairo", project_slug: ICITY, location: "Fifth Settlement, New Cairo" }];
+assert.equal(searchInventory(icityUnits, "آي سيتي التجمع").exact[0]?.unit.project_name, "Mountain View iCity New Cairo");
 console.log("Voice offers and Arabic project names checks passed");

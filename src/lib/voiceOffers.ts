@@ -2,6 +2,7 @@
 // Source: content/project-showcase.json (the same file the project pages use).
 // Loaded lazily from the voice session only, so it never enters the main bundle.
 import showcase from "../../content/project-showcase.json";
+import { projectExpertForVoice, type ProjectExpertVoice } from "./projectExperts";
 
 type Plan = { tag?: string; title?: string; big?: string; big_label?: string; items?: string[] };
 type Offer = {
@@ -91,23 +92,45 @@ export function voiceOfferFor(slug: string | null | undefined, now = Date.now())
   return null;
 }
 
-/** Marks options with current_offer and lists each project's offer once in project_offers. */
+/**
+ * Marks options with current_offer and lists each project's offer once in project_offers.
+ * Also adds each project's expert card once in project_experts (content/project-experts).
+ */
 export function withVoiceOffers<T extends Record<string, unknown>>(payload: T, now = Date.now()): T {
   const options = Array.isArray(payload.options) ? (payload.options as Array<Record<string, unknown>>) : [];
   const seen = new Map<string, VoiceOffer>();
+  const experts = new Map<string, ProjectExpertVoice>();
   const enriched = options.map((option) => {
     const slug = typeof option.project_slug === "string" ? option.project_slug : "";
     const offer = voiceOfferFor(slug, now);
-    if (!offer) return option;
-    seen.set(slug, offer);
-    return { ...option, current_offer: offer.kind, current_offer_project: offer.project };
+    const expert = experts.get(slug) || projectExpertForVoice(slug);
+    let next = option;
+    if (offer) {
+      seen.set(slug, offer);
+      next = { ...next, current_offer: offer.kind, current_offer_project: offer.project };
+    }
+    if (expert) {
+      experts.set(slug, expert);
+      next = { ...next, has_project_expert: true };
+    }
+    return next;
   });
-  if (!seen.size) return { ...payload, options: enriched };
   return {
     ...payload,
     options: enriched,
-    project_offers: [...seen.values()],
-    offer_instruction:
-      "فيه عرض أو نظام سداد مؤكد في project_offers للمشاريع اللي عليها current_offer. قدّمه للعميل كأنظمة السداد الحالية للمشروع، ومتقولش أبدًا إن مفيش عروض. اقرأ النسب زي ما هي في spoken.",
+    ...(seen.size
+      ? {
+          project_offers: [...seen.values()],
+          offer_instruction:
+            "فيه عرض أو نظام سداد مؤكد في project_offers للمشاريع اللي عليها current_offer. قدّمه للعميل كأنظمة السداد الحالية للمشروع، ومتقولش أبدًا إن مفيش عروض. اقرأ النسب زي ما هي في spoken.",
+        }
+      : {}),
+    ...(experts.size
+      ? {
+          project_experts: [...experts.values()],
+          expert_instruction:
+            "فيه كارت خبير للمشروع في project_experts. استخدم أرقامه لما العميل يسأل عن الإيجار أو العائد أو أنظمة السداد أو الاستلام. الإيجار قوله متوسط ومعاه سعر تحت وسعر فوق، والعائد على المدفوع لحد الاستلام بس. العيب وask_only_if_client_asks متقولش منهم حاجة إلا لو العميل سأل عن نفس الموضوع.",
+        }
+      : {}),
   };
 }
