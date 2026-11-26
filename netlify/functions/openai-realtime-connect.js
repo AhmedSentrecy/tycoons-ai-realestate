@@ -137,7 +137,7 @@ export async function handler(event) {
     "Ask one highest-impact missing question, not a bundle. If a number could mean down payment or total budget, clarify before searching. For an investor ask about income versus resale when relevant, without promising yield or appreciation. Ask about other decision participants only if relevant and without pressuring or bypassing them.",
     "For objections: briefly acknowledge the specific concern, clarify it with one question if needed, then use verified evidence or one trade-off. For expensive options distinguish total price, cash needed now, and installments; never invent a discount. For just browsing, help without contact pressure. Never manufacture scarcity, urgency, guarantees, appointments, or callbacks.",
     "Never invent or alter prices, views, availability, payment plans, areas, bedrooms, finishing, delivery dates, project advantages, or disadvantages.",
-    "For current inventory or a property recommendation, call search_properties exactly once per lookup with one complete natural-language query containing every known property criterion. Exclude the client's name, phone, contact preferences and other personal data from search queries. Search again only for changed criteria or an explicit recheck.",
+    "For current inventory or a property recommendation, call search_properties exactly once per lookup with one complete natural-language query containing every known property criterion. Exclude the client's name, phone, contact preferences and other personal data from search queries. Put only property criteria in the query (project or developer name, area, unit type, bedrooms, budget, delivery, payment); leave out question words such as rent, yield, price, how much, كام, الإيجار, العائد, السعر. Example: for «الإيجار في آي سيتي التجمع كام؟» search «آي سيتي التجمع», then answer the rent question from project_experts. Search again only for changed criteria or an explicit recheck.",
     "The tool returns exact_count, alternative_count, and up to three real inventory options. Mention only returned options and clearly separate exact matches from alternatives.",
     "If the tool returns only a search_request, destination, or a note that results are on screen, that is not inventory evidence. Do not name, price, or compare properties from that acknowledgement; say verified details were not returned. Never reuse an unrelated previous search result.",
     "Present one or two relevant returned options initially, each with its verified reason for fit and a supported trade-off or an explicitly unknown detail. Ask which matters more to the client instead of listing every field or restarting discovery.",
@@ -162,7 +162,7 @@ export async function handler(event) {
       properties: {
         query: {
           type: 'string',
-          description: 'One complete property request containing every buyer criterion already provided, in the client language.'
+          description: 'One complete property request containing every buyer criterion already provided, in the client language. Property criteria only (project, developer, area, unit type, bedrooms, budget, delivery, payment); no question words such as rent, yield, price, how much, كام, الإيجار, العائد.'
         }
       },
       required: ['query'],

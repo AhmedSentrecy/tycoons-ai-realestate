@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 
 import mcpHealth, {
   config as healthConfig,
@@ -67,6 +68,9 @@ function testProjectExpertCards() {
 
 async function run() {
   testProjectExpertCards();
+
+  // Sarah is told to search with property criteria only, not the rent/price question words.
+  assert.match(readFileSync("netlify/functions/mcp.js", "utf8"), /leave out question words such as rent, yield, price/);
 
   assert.deepEqual(config.rateLimit, {
     windowLimit: 60,

@@ -47,4 +47,8 @@ assert.equal(withVoiceOffers({ options: [{ project_slug: "creek-town--il-cazar-d
 
 const icityUnits = [...units, { ...base, project_name: "Mountain View iCity New Cairo", project_slug: ICITY, location: "Fifth Settlement, New Cairo" }];
 assert.equal(searchInventory(icityUnits, "آي سيتي التجمع").exact[0]?.unit.project_name, "Mountain View iCity New Cairo");
+// Rent, yield and price questions still find the project (the question words are not search terms).
+for (const query of ["الايجار فى اى سيتى التجمع كام", "العائد في آي سيتي التجمع كام", "اسعار اي سيتي التجمع بكام"]) {
+  assert.equal(searchInventory(icityUnits, query).exact[0]?.unit.project_name, "Mountain View iCity New Cairo", `${query} should find iCity New Cairo`);
+}
 console.log("Voice offers and Arabic project names checks passed");

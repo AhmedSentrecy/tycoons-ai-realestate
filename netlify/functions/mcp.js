@@ -54,7 +54,7 @@ const TOOL_DEFINITIONS = [
           minLength: 2,
           maxLength: 300,
           description:
-            "Natural-language buyer request containing any known location, budget, unit type, bedrooms, area, delivery, finishing, down-payment, or installment criteria.",
+            "Natural-language buyer request containing any known project or developer name, location, budget, unit type, bedrooms, area, delivery, finishing, down-payment, or installment criteria. Send property criteria only: leave out question words such as rent, yield, price, how much, كام, الإيجار, العائد, السعر. Example: for the question \"الإيجار في آي سيتي التجمع كام؟\" send \"آي سيتي التجمع\" and answer the rent question from project_expert.",
         },
         limit: {
           type: "integer",
