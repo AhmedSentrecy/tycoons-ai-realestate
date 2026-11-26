@@ -54,7 +54,9 @@ begin
   if stmt is null or length(stmt) < 3 then return new; end if;
   -- the same fact typed in by hand already (same project, section, date) → don't duplicate
   if exists (select 1 from sales_facts f where f.status = 'active' and f.category = cat
-               and f.project_id is not distinct from new.project_id and f.source_date = new.message_date::date) then
+               and f.source_date = (new.message_date at time zone 'Africa/Cairo')::date
+               and ((new.project_id is not null and f.project_id = new.project_id)
+                    or f.statement_ar ilike '%' || new.project_name || '%')) then
     return new;
   end if;
   select area_group into area from projects where id = new.project_id;
