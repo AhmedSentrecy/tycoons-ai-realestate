@@ -4,7 +4,10 @@
 //   2. the project row (projects.down_payment_text / installments_text / delivery_text / finishing / description),
 //   3. WhatsApp project updates the admin APPLIED (wa_project_updates.details, valid_until).
 // Pending (not yet reviewed) WhatsApp updates are never published.
+// It also attaches the project's expert card (content/project-experts) as project_expert:
+// short in search results, full in get_property_details.
 import { voiceOfferFor } from "../../src/lib/voiceOffers.ts";
+import { projectExpertFull, projectExpertSummary } from "../../src/lib/projectExperts.ts";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "https://coqnjymekrkoausiiytm.supabase.co";
 const PUBLISHABLE_KEY =
@@ -104,7 +107,12 @@ export async function paymentDetailsFor(unit, now = Date.now()) {
   return value;
 }
 
-/** Adds payment_details to a list of public units (one lookup per project). */
+/** Full expert card for one unit's project, or null when the project has no reviewed card. */
+export function projectExpertFor(unit) {
+  return projectExpertFull(unit?.project_slug);
+}
+
+/** Adds payment_details and the short project_expert card to a list of public units (one lookup per project). */
 export async function withPaymentDetails(entries, unitsById) {
   const byProject = new Map();
   for (const entry of entries) {
@@ -118,6 +126,11 @@ export async function withPaymentDetails(entries, unitsById) {
   return entries.map((entry) => {
     const unit = unitsById.get(entry.unit_id);
     const details = unit ? resolved.get(unit.project_id || unit.project_slug || unit.project_name) : null;
-    return details ? { ...entry, payment_details: details } : entry;
+    const expert = unit ? projectExpertSummary(unit.project_slug) : null;
+    return {
+      ...entry,
+      ...(details ? { payment_details: details } : {}),
+      ...(expert ? { project_expert: expert } : {}),
+    };
   });
 }

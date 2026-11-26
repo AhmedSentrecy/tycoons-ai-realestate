@@ -4,6 +4,11 @@ import mcpHealth, {
   config as healthConfig,
 } from "../netlify/functions/mcp-health.js";
 import mcp, { config } from "../netlify/functions/mcp.js";
+import {
+  hasProjectExpert,
+  projectExpertFull,
+  projectExpertSummary,
+} from "../src/lib/projectExperts.ts";
 
 const ENDPOINT = "https://tycoons-inv.com/mcp";
 const PROTOCOL_VERSION = "2025-11-25";
@@ -30,7 +35,39 @@ function structured(result) {
   return result.structuredContent;
 }
 
+const ICITY_NEW_CAIRO = "mountain-view-icity-new-cairo--mountain-view";
+
+// Expert cards: short in search results, full in get_property_details (no network needed).
+function testProjectExpertCards() {
+  assert.equal(hasProjectExpert(ICITY_NEW_CAIRO), true);
+  assert.equal(projectExpertSummary("unknown-project"), null);
+  assert.equal(projectExpertFull(""), null);
+
+  const summary = projectExpertSummary(ICITY_NEW_CAIRO);
+  assert.equal(summary.project, "ماونتن فيو آي سيتي التجمع");
+  assert.ok(summary.key_facts.length >= 3 && summary.key_facts.length <= 6);
+  assert.ok(summary.advantage.length > 0);
+  assert.equal(summary.disadvantage.say_only_if_client_asks, true);
+  assert.match(summary.notice, /paid until handover/);
+  // the short card stays short: no unit lists, rent tables or ask-only answers
+  for (const key of ["available_units", "rent", "yield_example", "ask_only_if_client_asks", "payment_plans"]) {
+    assert.equal(key in summary, false, `summary should not carry ${key}`);
+  }
+
+  const full = projectExpertFull(ICITY_NEW_CAIRO);
+  assert.ok(full.available_units.units.length > 0);
+  assert.ok(full.rent.segments.some((s) => s.bedrooms === 3 && s.furnished === false && s.average_egp > 0));
+  assert.equal(full.yield_example.paid_until_handover_egp, 1861906);
+  assert.ok(full.ask_only_if_client_asks.length > 0);
+  assert.ok(full.payment_plans.phases.some((p) => p.phase === "Club Park"));
+  assert.ok(JSON.stringify(summary).length < JSON.stringify(full).length / 2);
+  // the public card never carries internal sources
+  assert.doesNotMatch(JSON.stringify(full), /wa_message_log|Tai Tycoons|internal_notes/);
+}
+
 async function run() {
+  testProjectExpertCards();
+
   assert.deepEqual(config.rateLimit, {
     windowLimit: 60,
     windowSize: 60,
@@ -106,6 +143,31 @@ async function run() {
   assert.ok(aliva.payment_details, "Aliva result should carry payment_details");
   assert.ok(Array.isArray(aliva.payment_details.current_offer?.plans) && aliva.payment_details.current_offer.plans.length > 0);
   assert.match(aliva.payment_details.notice, /do not convert it into equal installments/);
+
+  // project_expert: only projects with a reviewed card carry it
+  assert.equal("project_expert" in aliva, false, "Aliva has no expert card yet");
+
+  const icitySearch = await rpc(32, "tools/call", {
+    name: "search_properties",
+    arguments: { query: "Mountain View iCity New Cairo", limit: 10 },
+  });
+  const icityData = structured(icitySearch.body.result);
+  const icityUnit = icityData.results.find((unit) => unit.project_expert);
+  assert.ok(icityUnit, "an iCity New Cairo result should carry project_expert");
+  assert.equal(icityUnit.project_expert.project, "ماونتن فيو آي سيتي التجمع");
+  assert.ok(icityUnit.project_expert.key_facts.length > 0);
+  assert.equal(icityUnit.project_expert.disadvantage.say_only_if_client_asks, true);
+  assert.equal("available_units" in icityUnit.project_expert, false, "search keeps the card short");
+
+  const icityDetails = await rpc(33, "tools/call", {
+    name: "get_property_details",
+    arguments: { unit_id: icityUnit.unit_id },
+  });
+  const icityProperty = structured(icityDetails.body.result).property;
+  assert.ok(icityProperty.project_expert, "details should carry the full project_expert card");
+  assert.ok(icityProperty.project_expert.available_units.units.length > 0);
+  assert.ok(icityProperty.project_expert.yield_example.gross_yield_on_paid.average);
+  assert.ok(icityProperty.project_expert.ask_only_if_client_asks.length > 0);
 
   const firstId = searchData.results[0].unit_id;
   const secondId = searchData.results[1].unit_id;
