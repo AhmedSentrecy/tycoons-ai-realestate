@@ -1,7 +1,8 @@
 // Smart search: the OpenAI function (mocked, no network) and the answer box built from the expert card.
 import assert from "node:assert/strict";
 import searchUnderstand, { cleanResult, config, understand } from "../netlify/functions/search-understand.js";
-import { detectBedrooms, detectQuestion, expertAnswer } from "../src/lib/searchUnderstanding.ts";
+import { detectBedrooms, detectQuestion, expertAnswer, namesProject } from "../src/lib/searchUnderstanding.ts";
+import { projectExpertFull } from "../src/lib/projectExperts.ts";
 
 const ICITY = "mountain-view-icity-new-cairo--mountain-view";
 
@@ -35,6 +36,7 @@ if (savedKey) process.env.OPENAI_API_KEY = savedKey;
 // 4) Question detection works without the AI.
 assert.equal(detectQuestion("الايجار فى اى سيتى التجمع كام"), "rent");
 assert.equal(detectQuestion("العائد في آي سيتي"), "yield");
+assert.equal(detectQuestion("اسعار ايجار ماونتن فيو اى سيتى"), "rent");
 assert.equal(detectQuestion("نظام السداد في آي سيتي"), "payment");
 assert.equal(detectQuestion("شقة في التجمع تحت 10 مليون"), "none");
 assert.equal(detectBedrooms("ايجار شقة 3 غرف في آي سيتي"), 3);
@@ -48,7 +50,24 @@ const rent3 = expertAnswer(ICITY, "rent", 3, false);
 assert.equal(rent3?.lines.length, 1);
 assert.match(expertAnswer(ICITY, "yield")?.lines[0] ?? "", /1.86 مليون/);
 assert.match(expertAnswer(ICITY, "payment")?.lines.join(" ") ?? "", /Club Park/);
-assert.equal(expertAnswer(ICITY, "none"), null);
+// Name only → project overview box (plans, delivery, typical rent, advantage), never the disadvantage.
+const overview = expertAnswer(ICITY, "none");
+assert.match(overview?.title ?? "", /معلومات عن ماونتن فيو آي سيتي التجمع/);
+assert.match(overview?.lines.join(" ") ?? "", /Club Park/);
+assert.match(overview?.lines.join(" ") ?? "", /31,900/);
+assert.doesNotMatch(JSON.stringify(overview), /Mivida|هايد بارك|أقل من/);
+
+// The box shows only when the buyer names the project, not for a general area search.
+assert.equal(namesProject(ICITY, "آي سيتي التجمع"), true);
+assert.equal(namesProject(ICITY, "اسعار ايجار ماونتن فيو اى سيتى"), true);
+assert.equal(namesProject(ICITY, "iCity New Cairo"), true);
+assert.equal(namesProject(ICITY, "شقة في التجمع تحت 10 مليون"), false);
+assert.equal(namesProject(ICITY, "الايجار في التجمع"), false);
+
+// No listing-website names reach buyers, the voice assistant or the MCP.
+const publicText = JSON.stringify([projectExpertFull(ICITY), ...["none", "rent", "yield", "payment", "delivery"].map((q) => expertAnswer(ICITY, q as "rent"))]);
+assert.doesNotMatch(publicText, /Property Finder|Bayut|Aqarmap|Nawy|Dubizzle/i);
+assert.match(expertAnswer(ICITY, "rent")?.note ?? "", /متوسط أسعار الإيجار المطلوبة في السوق \(يوليو–أغسطس 2026\)/);
 assert.equal(expertAnswer("unknown-project", "rent"), null);
 const everything = JSON.stringify(["rent", "yield", "payment", "delivery"].map((q) => expertAnswer(ICITY, q as "rent")));
 assert.doesNotMatch(everything, /Core|تأخير|كورونا|COVID|wa_message_log/);
