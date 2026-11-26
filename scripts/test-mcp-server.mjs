@@ -101,6 +101,11 @@ async function run() {
   assert.ok(searchData.results.every((unit) => /^unit_[a-f0-9]{16}$/.test(unit.unit_id)));
   assert.ok(searchData.results.every((unit) => unit.data_provenance.confidence === "high"));
   assert.ok(searchData.results.some((unit) => /aliva/i.test(unit.project)));
+  // payment details: the live developer offer reaches the MCP (not only "2%" / "14 years")
+  const aliva = searchData.results.find((unit) => /aliva/i.test(unit.project));
+  assert.ok(aliva.payment_details, "Aliva result should carry payment_details");
+  assert.ok(Array.isArray(aliva.payment_details.current_offer?.plans) && aliva.payment_details.current_offer.plans.length > 0);
+  assert.match(aliva.payment_details.notice, /do not convert it into equal installments/);
 
   const firstId = searchData.results[0].unit_id;
   const secondId = searchData.results[1].unit_id;
@@ -113,6 +118,7 @@ async function run() {
   assert.equal(detailsData.property.unit_id, firstId);
   assert.ok(detailsData.property.starting_price_egp > 0);
   assert.ok(Array.isArray(detailsData.property.images));
+  if (/aliva/i.test(detailsData.property.project)) assert.ok(detailsData.property.payment_details);
   assert.equal("source_reference" in detailsData.property, false);
   assert.equal("internal_notes" in detailsData.property, false);
 
