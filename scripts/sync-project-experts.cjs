@@ -1,7 +1,9 @@
 // Pulls the expert cards (rent, yield, resale, payment plans, developer facts) from Supabase into
 // content/project-experts/cards.json before tests and build. Supabase is the single source:
 // edit the cards in the project_experts table, then rebuild the site («حدّث الموقع»).
-// The public view project_experts_public never carries the internal source list (listing websites).
+// The site build reads project_experts_web: the card plus `evidence` (how each number was collected), which only
+// the website shows («أسئلة بالأرقام»). Sara, the MCP and the voice assistant get the card without evidence
+// (project_experts_public / projectExperts.ts). Neither view carries the internal source list.
 // If Supabase can't be reached, the last pulled copy stays as it is, so the site never loses its cards.
 const fs = require("node:fs");
 const path = require("node:path");
@@ -11,12 +13,15 @@ const KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PU
 const OUT = path.join(__dirname, "..", "content", "project-experts", "cards.json");
 
 async function main() {
-  const url = `${SUPABASE_URL}/rest/v1/project_experts_public?select=slug,card_version,card,updated_at&order=slug`;
+  const headers = { apikey: KEY, Authorization: `Bearer ${KEY}`, Accept: "application/json" };
+  const read = async (view) => {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${view}?select=slug,card_version,card,updated_at&order=slug`, { headers, signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error(`${view}: HTTP ${response.status}`);
+    return response.json();
+  };
   let rows;
   try {
-    const response = await fetch(url, { headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, Accept: "application/json" }, signal: AbortSignal.timeout(20000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    rows = await response.json();
+    rows = await read("project_experts_web").catch(() => read("project_experts_public"));
   } catch (error) {
     console.warn(`[sync-project-experts] Supabase not reachable (${error.message}); keeping the last copy in ${path.relative(process.cwd(), OUT)}`);
     return;
@@ -34,7 +39,7 @@ async function main() {
       return rest;
     });
   const body = {
-    generated_from: "Supabase project_experts_public — don't edit this file by hand",
+    generated_from: "Supabase project_experts_web — don't edit this file by hand",
     cards,
   };
   fs.writeFileSync(OUT, JSON.stringify(body, null, 1) + "\n");

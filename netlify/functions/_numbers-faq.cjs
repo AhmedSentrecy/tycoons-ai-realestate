@@ -7,6 +7,8 @@
 // - The disadvantage and ask_only_if_client_asks are NEVER published here.
 // - No listing-website names: rent/resale are "متوسط الأسعار المطلوبة في السوق" with their date.
 // - Rent is quoted low / average / high; yield is on the amount paid until handover only (the card's own sentence).
+// - The documentation (basis, number of listings, sample size) comes from card.evidence, which only the website
+//   shows; Sara, WhatsApp, the MCP and the voice assistant get the card without it.
 
 const AR = "\\u0600-\\u06FF";
 const LISTING_SITES = new RegExp(
@@ -37,8 +39,21 @@ function factText(fact, projectName) {
   return label ? `${body} (${label})` : body;
 }
 
+function rentEvidence(card) {
+  const rent = card.rent || {};
+  const evidence = (card.evidence && card.evidence.rent) || {};
+  const counts = Array.isArray(evidence.segments) ? evidence.segments : [];
+  // Older cards kept basis/listings inside rent; evidence wins when both exist.
+  const listingsOf = (seg) => {
+    const match = counts.find((e) => Number(e.bedrooms) === Number(seg.bedrooms) && Boolean(e.furnished) === Boolean(seg.furnished));
+    return Number(match?.listings ?? seg.listings) || 0;
+  };
+  return { basis: clean(evidence.basis) || clean(rent.basis), listingsOf };
+}
+
 function rentAnswer(card) {
   const rent = card.rent || {};
+  const { basis: evidenceBasis, listingsOf } = rentEvidence(card);
   const segments = Array.isArray(rent.segments) ? rent.segments : [];
   const lines = segments
     .filter((seg) => Number(seg.average_egp) > 0)
@@ -46,13 +61,13 @@ function rentAnswer(card) {
       const rooms = bedroomsAr(seg.bedrooms);
       const kind = `شقة ${rooms}${seg.furnished ? " مفروشة" : " مش مفروشة"}`.trim();
       const range = Number(seg.low_egp) && Number(seg.high_egp) ? `من ${egp(seg.low_egp)} لـ ${egp(seg.high_egp)} جنيه في الشهر، والمتوسط حوالي ${egp(seg.average_egp)}` : `حوالي ${egp(seg.average_egp)} جنيه في الشهر`;
-      const n = Number(seg.listings);
+      const n = listingsOf(seg);
       const count = n === 1 ? "إعلان واحد" : n === 2 ? "إعلانين" : n >= 3 && n <= 10 ? `${n} إعلانات` : `${n} إعلان`;
       const sample = n ? ` (${count}${n < 3 ? "، عينة صغيرة" : ""})` : "";
       return `${kind}: ${range}${sample}`;
     });
   if (!lines.length) return "";
-  const basis = clean(rent.basis) || "متوسط أسعار الإيجار المطلوبة في السوق";
+  const basis = evidenceBasis || "متوسط أسعار الإيجار المطلوبة في السوق";
   return `${lines.join(". ")}. ${basis}.`;
 }
 
@@ -61,7 +76,8 @@ function resaleAnswer(card) {
   const p = resale.price_per_sqm_egp || {};
   if (!Number(p.average)) return "";
   const range = Number(p.low) && Number(p.high) ? `من ${egp(p.low)} لـ ${egp(p.high)} جنيه للمتر، والمتوسط حوالي ${egp(p.average)}` : `حوالي ${egp(p.average)} جنيه للمتر`;
-  const parts = [`سعر الريسيل ${range}`, clean(resale.basis)].filter(Boolean);
+  const basis = clean(card.evidence?.resale?.basis) || clean(resale.basis);
+  const parts = [`سعر الريسيل ${range}`, basis].filter(Boolean);
   if (clean(resale.rent_yield_on_full_price)) parts.push(clean(resale.rent_yield_on_full_price));
   // resale.note is guidance for the assistant (how to compare), not text for the page.
   return `${parts.join(". ")}.`;

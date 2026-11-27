@@ -1,7 +1,7 @@
 // Smart search on the client: asks /api/search-understand (OpenAI) for a clean query and the
 // buyer's question, and builds a short answer from the project's reviewed expert card.
 // Every number shown comes from the card or the inventory, never from the AI.
-import { projectExpertFull } from "@/lib/projectExperts";
+import { projectExpertEvidence, projectExpertFull } from "@/lib/projectExperts";
 import { normalizeText } from "@/lib/propertySearch";
 
 export type SearchQuestion = "rent" | "yield" | "price" | "payment" | "delivery" | "none";
@@ -106,7 +106,10 @@ function projectOverview(card: ExpertCard): ExpertAnswer | null {
   }
   if (plans?.delivery) lines.push(`الاستلام: ${plans.delivery}`);
   const rent = card.rent as { segments?: RentSegment[] } | undefined;
-  const main = [...(rent?.segments ?? [])].sort((a, b) => ((b as { listings?: number }).listings ?? 0) - ((a as { listings?: number }).listings ?? 0))[0];
+  // The best-documented segment (most listings, from the website-only evidence) is the one shown.
+  const counts = projectExpertEvidence(card.project.slug)?.rent?.segments ?? [];
+  const listingsOf = (seg: RentSegment) => counts.find((e) => e.bedrooms === seg.bedrooms && e.furnished === seg.furnished)?.listings ?? 0;
+  const main = [...(rent?.segments ?? [])].sort((a, b) => listingsOf(b) - listingsOf(a))[0];
   if (main) lines.push(`متوسط الإيجار المطلوب لشقة ${main.bedrooms} غرف ${main.furnished ? "مفروشة" : "مش مفروشة"}: حوالي ${egp(main.average_egp)} جنيه في الشهر`);
   if (card.summary.advantage) lines.push(card.summary.advantage);
   if (!lines.length) return null;
@@ -136,7 +139,8 @@ export function expertAnswer(
       project,
       title: `الإيجار في ${project}`,
       lines: (picked.length ? picked : segments).map(rentLine),
-      note: rent?.basis ? `${rent.basis}.` : "أسعار مطلوبة في الإعلانات.",
+      // The search page is the website, so it keeps the collection note (evidence).
+      note: projectExpertEvidence(card.project.slug)?.rent?.basis ? `${projectExpertEvidence(card.project.slug)?.rent?.basis}.` : "متوسط أسعار الإيجار المطلوبة في السوق.",
     };
   }
 
