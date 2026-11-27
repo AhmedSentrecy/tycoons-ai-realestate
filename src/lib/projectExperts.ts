@@ -2,10 +2,11 @@
 // Source: content/project-experts/<project>.json — one reviewed card per project, keyed by the project slug.
 // Used by the MCP (netlify/functions/mcp.js) so phone/voice agents can answer with numbers.
 import iCityNewCairo from "../../content/project-experts/mountain-view-icity-new-cairo.json";
+import iCityOctober from "../../content/project-experts/mountain-view-icity-october.json";
 
 type Card = {
   card_version: string;
-  project: { slug: string; name_en: string; name_ar: string; aliases?: string[]; not_to_confuse_with?: string[] };
+  project: { slug: string; name_en: string; name_ar: string; location?: string; aliases?: string[]; not_to_confuse_with?: string[] };
   summary: {
     key_facts: string[];
     advantage: string;
@@ -16,7 +17,7 @@ type Card = {
   [key: string]: unknown;
 };
 
-const CARDS: Card[] = [iCityNewCairo as unknown as Card];
+const CARDS: Card[] = [iCityNewCairo as unknown as Card, iCityOctober as unknown as Card];
 const BY_SLUG = new Map(CARDS.map((card) => [card.project.slug, card]));
 
 export const PROJECT_EXPERT_NOTICE =

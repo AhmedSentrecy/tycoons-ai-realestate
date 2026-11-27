@@ -1,0 +1,115 @@
+{
+  "card_version": "2026-11-27",
+  "project": {
+    "slug": "mountain-view-icity-october--mountain-view",
+    "name_en": "Mountain View iCity October",
+    "name_ar": "ماونتن فيو آي سيتي أكتوبر",
+    "aliases": ["آي سيتي أكتوبر", "اي سيتي اكتوبر", "آي سيتي 6 أكتوبر", "iCity October", "MV iCity October"],
+    "not_to_confuse_with": ["Mountain View iCity New Cairo (آي سيتي التجمع)"],
+    "developer": "Mountain View",
+    "location": "6 أكتوبر، قريب من ميدان جهينة ومول العرب",
+    "area_feddan": 500
+  },
+
+  "summary": {
+    "key_facts": [
+      "عرض الـ 14 سنة: 2% عند الحجز + 2% بعد 3 شهور + 2% بعد 6 شهور، وقسط شهري يبدأ من 20 ألف، ودفعة آخر كل سنة (عرض ماونتن فيو، 16 نوفمبر 2026).",
+      "من غير العرض: Club Park مقدم 10% + 5% دفعة تانية على 8 سنين، أو 5% على 10 سنين، وخصم الكاش 25% (أنظمة سداد المطور، 22 نوفمبر 2026).",
+      "Club Park اتسلمت وفيها سكان، وفيه وحدات Ready to Move، وفيه Off Plan بتسليم بعد 2.5 و4 سنين.",
+      "إيجار الشقة 3 غرف: من 22 لـ 35 ألف في الشهر، والمتوسط حوالي 27,500 (متوسط الأسعار المطلوبة في السوق، يونيو–نوفمبر 2026).",
+      "الريسيل الجاهز في Club Park: متوسط حوالي 36 ألف للمتر كاش، يعني شقة 155م² بحوالي 5.6 مليون."
+    ],
+    "advantage": "أقل كاش تبدأ بيه في ماونتن فيو غرب القاهرة: 2% مقدم وتقسيط لحد 14 سنة، والمشروع فيه سكان وإيجارات فعلًا في Club Park.",
+    "disadvantage": {
+      "text": "سعر المتر في الوحدات الجديدة (حوالي 90 ألف للشقة الجاهزة) أعلى بكتير من الريسيل الجاهز في Club Park (حوالي 36 ألف)، فاللي عايز يبيع بعد شوية هيلاقي منافسة من الريسيل.",
+      "say_only_if_client_asks": true
+    }
+  },
+
+  "assistant_rules": [
+    "الأسعار والعروض: قول دايمًا تاريخ المصدر.",
+    "أي رقم عن مبيعات أو تسليمات الشركة: قول قبله «حسب الشركة».",
+    "الإيجار: قول المتوسط ومعاه سعر تحت وسعر فوق، ووضّح إنها متوسط الأسعار المطلوبة في السوق وتاريخها.",
+    "متذكرش للعميل أسماء مواقع الإعلانات أو أي مصدر خارجي؛ قول «الأسعار المطلوبة في السوق» وتاريخها.",
+    "الـ Yield بيتحسب على المدفوع لحد الاستلام بس.",
+    "عرض الـ 14 سنة: قول إنه عرض بتاريخه، واتأكد إنه لسه ساري للوحدة قبل الحجز.",
+    "العيب وخانة ask_only_if_client_asks: متقولش منهم أي حاجة إلا لو العميل سأل عن نفس الموضوع.",
+    "لو العميل قال «آي سيتي» بس: اسأله التجمع ولا أكتوبر.",
+    "متوعدش بعائد ولا بزيادة سعر."
+  ],
+
+  "developer_summary": {
+    "founded": 2005,
+    "chairman": "م. عمرو سليمان",
+    "delivered_units_total": { "value": "أكتر من 19,300 وحدة لحد نص 2026", "basis": "حسب الشركة" },
+    "deliveries_2025": { "value": "أكتر من 2,200 وحدة حسب ترتيب The Board Consulting (المعلن بيتراوح بين 2,100 و2,500)" },
+    "sales_2025": { "value": "104 مليار جنيه", "basis": "حسب الشركة" }
+  },
+
+  "payment_plans": {
+    "source": "أنظمة سداد ماونتن فيو، 22 نوفمبر 2026، وعرض ماونتن فيو 16 نوفمبر 2026",
+    "phases": [
+      { "phase": "عرض الـ 14 سنة", "down_payment": "2% + 2% بعد 3 شهور + 2% بعد 6 شهور", "years": 14, "note": "قسط شهري يبدأ من 20 ألف ودفعة آخر كل سنة" },
+      { "phase": "عرض الـ 12 سنة", "down_payment": "5% + 5% بعد 3 شهور", "years": 12, "note": "قسط شهري يبدأ من 20 ألف ودفعة آخر كل سنة، وخصم 15%" },
+      { "phase": "Club Park", "down_payment": "10% + 5% دفعة تانية", "years": 8, "cash_discount": "25%" },
+      { "phase": "Club Park", "down_payment": "5%", "years": 10, "cash_discount": "25%" },
+      { "phase": "Lagoon Park", "down_payment": "1.5% + 1.5% دفعة تانية", "years": 12, "note": "مع دفعات سنوية" },
+      { "phase": "Lagoon Park", "down_payment": "100 ألف جنيه", "years": 10, "note": "مع دفعات سنوية" }
+    ],
+    "delivery": "فيه وحدات Ready to Move وخلال 3 شهور، وفيه Off Plan بتسليم بعد 2.5 و4 سنين",
+    "not_in_source": "قيمة الدفعة السنوية لكل وحدة مش مكتوبة، فمتقسمش على أقساط متساوية. المراحل المتاحة: Club Park وLagoon Park وMV Park.",
+    "mega_offer_note": "عرض الـ 14 والـ 12 سنة لآي سيتي أكتوبر وأليفا بس، مش آي سيتي التجمع"
+  },
+
+  "available_units": {
+    "source": "مخزون Tycoons، 24 نوفمبر 2026",
+    "units": [
+      { "type": "I-Apartment", "bedrooms": 2, "area_sqm": 115, "price_egp": 8507289, "delivery": "4 سنين" },
+      { "type": "Garden Apartment", "bedrooms": 2, "area_sqm": 110, "price_egp": 10192100, "delivery": "4 سنين" },
+      { "type": "Garden Apartment", "bedrooms": 3, "area_sqm": 130, "price_egp": 11505818, "delivery": "4 سنين" },
+      { "type": "Millennial", "bedrooms": 3, "area_sqm": 165, "price_egp": 14933024, "delivery": "Ready to Move" },
+      { "type": "I-Villa", "bedrooms": 3, "area_sqm": 190, "price_egp": 16350159, "delivery": "2.5 سنة" },
+      { "type": "Park Villa", "bedrooms": 3, "area_sqm": 275, "price_egp": 22865210, "delivery": "Ready to Move" },
+      { "type": "I-Villa", "bedrooms": 3, "area_sqm": 230, "price_egp": 26504466, "delivery": "Ready to Move" },
+      { "type": "Lake House", "area_sqm": 385, "price_egp": 63159269, "delivery": "Ready to Move" }
+    ]
+  },
+
+  "rent": {
+    "basis": "متوسط أسعار الإيجار المطلوبة في السوق (يونيو–نوفمبر 2026)، مش إيجارات اتقفلت فعلًا",
+    "segments": [
+      { "bedrooms": 3, "furnished": false, "low_egp": 22000, "average_egp": 27500, "high_egp": 35000, "listings": 6, "confidence": "متوسطة" }
+    ],
+    "missing": "مفيش عينة كفاية لشقة غرفتين أو شقة مفروشة في 2026"
+  },
+
+  "yield_example": {
+    "unit": "Millennial، 3 غرف، 165م²، Ready to Move، بـ 14,933,024",
+    "paid_until_handover_egp": 2239954,
+    "paid_basis": "نظام Club Park: 10% مقدم + 5% دفعة تانية، والاستلام بعد الدفعة التانية",
+    "annual_rent_egp": { "low": 264000, "average": 330000, "high": 420000 },
+    "gross_yield_on_paid": { "low": "11.8%", "average": "14.7%", "high": "18.8%" },
+    "spoken": "لو اشتريت الشقة دي على نظام Club Park واستلمتها بعد الدفعة التانية، هتكون دفعت حوالي 2.24 مليون. إيجار الشقة 3 غرف في آي سيتي أكتوبر بيتراوح من 22 لـ 35 ألف في الشهر والمتوسط حوالي 27,500، يعني العائد على اللي دفعته بيتراوح من 12% لـ 19% والمتوسط حوالي 15%."
+  },
+
+  "resale": {
+    "basis": "متوسط أسعار البيع المطلوبة في السوق (2026)، شقق جاهزة في Club Park بالكاش ومتسددة بالكامل",
+    "price_per_sqm_egp": { "low": 32500, "average": 36338, "high": 39286, "listings": 7 },
+    "rent_yield_on_full_price": "شقة 155م² بحوالي 5.6 مليون كاش وإيجارها المتوسط 330 ألف في السنة، يعني حوالي 5.9% على السعر كله",
+    "note": "الريسيل ده كاش ومتسدد، فينفع يتقارن بالـ Primary على إجمالي السعر. أغلبه Core & Shell."
+  },
+
+  "ask_only_if_client_asks": [
+    { "topic": "التشطيب", "answer": "فيه وحدات Core & Shell ووحدات متشطبة بالكامل حسب الوحدة، وأغلب الريسيل الجاهز في Club Park Core & Shell." },
+    { "topic": "الريسيل مقابل الجديد", "answer": "الريسيل الجاهز في Club Park حوالي 36 ألف للمتر كاش، والجديد الجاهز حوالي 90 ألف للمتر بالتقسيط. الفرق ده مهم للي ناوي يبيع بعد فترة قصيرة." }
+  ],
+
+  "sources": [
+    { "name": "أنظمة سداد ماونتن فيو (كل المشاريع)", "date": "2026-11-22", "type": "developer" },
+    { "name": "عرض ماونتن فيو 14 و12 سنة (رسائل الجروب 3117 و3766)", "date": "2026-11-16", "type": "developer" },
+    { "name": "مخزون Tycoons", "date": "2026-11-24", "type": "inventory" },
+    { "name": "إعلانات إيجار Property Finder وBayut", "date": "2026-06/2026-11", "type": "listing" },
+    { "name": "إعلانات بيع Bayut (ريسيل Club Park)", "date": "2026", "type": "listing" },
+    { "name": "أموال الغد (المراحل الخمسة والمساحة)", "type": "news" }
+  ]
+}
