@@ -72,4 +72,16 @@ assert.equal(expertAnswer("unknown-project", "rent"), null);
 const everything = JSON.stringify(["rent", "yield", "payment", "delivery"].map((q) => expertAnswer(ICITY, q as "rent")));
 assert.doesNotMatch(everything, /Core|تأخير|كورونا|COVID|wa_message_log/);
 
+// iCity October card: its own boxes, and each area word picks the right iCity.
+const OCTOBER = "mountain-view-icity-october--mountain-view";
+assert.equal(namesProject(OCTOBER, "آي سيتي أكتوبر"), true);
+assert.equal(namesProject(OCTOBER, "آي سيتي التجمع"), false);
+assert.equal(namesProject(ICITY, "اي سيتي اكتوبر"), false);
+assert.match(expertAnswer(OCTOBER, "rent")?.lines[0] ?? "", /27,500 جنيه في الشهر، من 22,000 لـ 35,000/);
+assert.match(expertAnswer(OCTOBER, "payment")?.lines.join(" ") ?? "", /على 14 سنة/);
+assert.match(expertAnswer(OCTOBER, "yield")?.lines[0] ?? "", /2.24 مليون/);
+const octoberText = JSON.stringify([projectExpertFull(OCTOBER), ...["none", "rent", "yield", "payment", "delivery"].map((q) => expertAnswer(OCTOBER, q as "rent"))]);
+assert.doesNotMatch(octoberText, /Property Finder|Bayut|Aqarmap|Nawy|Dubizzle|3117|3766/i);
+assert.doesNotMatch(JSON.stringify(expertAnswer(OCTOBER, "none")), /منافسة من الريسيل/);
+
 console.log("Smart search understanding and expert answer checks passed");

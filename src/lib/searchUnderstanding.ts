@@ -84,16 +84,25 @@ export function namesProject(projectSlug: string | null | undefined, query: stri
   const card = projectExpertFull(projectSlug);
   if (!card) return false;
   const text = ` ${normalizeText(query)} `;
+  // "آي سيتي التجمع" must not name iCity October: an area word that is not this project's area rules it out.
+  const own = ` ${normalizeText([card.project.name_ar, card.project.name_en, card.project.location ?? "", ...(card.project.aliases ?? [])].join(" "))} `;
+  const otherArea = AREA_WORDS.filter((word) => !["mv", "ماونتن فيو", "mountain view"].includes(word))
+    .map(normalizeText)
+    .some((word) => text.includes(` ${word} `) && !own.includes(` ${word} `));
+  if (otherArea) return false;
   return projectTerms(card).some((term) => text.includes(` ${term} `));
 }
+
+/** "على 8 سنين" / "على 14 سنة". */
+const yearsAr = (years: number) => `${years} ${years > 10 ? "سنة" : "سنين"}`;
 
 /** Box shown when the buyer only names the project: payment plans, delivery, typical rent and the advantage. Never the disadvantage. */
 function projectOverview(card: ExpertCard): ExpertAnswer | null {
   const project = card.project.name_ar;
   const lines: string[] = [];
   const plans = card.payment_plans as { phases?: Phase[]; delivery?: string } | undefined;
-  for (const phase of plans?.phases ?? []) {
-    lines.push(`${phase.phase}: مقدم ${phase.down_payment} على ${phase.years} سنين`);
+  for (const phase of (plans?.phases ?? []).slice(0, 3)) {
+    lines.push(`${phase.phase}: مقدم ${phase.down_payment} على ${yearsAr(phase.years)}`);
   }
   if (plans?.delivery) lines.push(`الاستلام: ${plans.delivery}`);
   const rent = card.rent as { segments?: RentSegment[] } | undefined;
@@ -144,7 +153,7 @@ export function expertAnswer(
     return {
       project,
       title: `أنظمة السداد في ${project}`,
-      lines: phases.map((phase) => `${phase.phase}: مقدم ${phase.down_payment} على ${phase.years} سنين${phase.cash_discount ? `، وخصم الكاش ${phase.cash_discount}` : ""}`),
+      lines: phases.map((phase) => `${phase.phase}: مقدم ${phase.down_payment} على ${yearsAr(phase.years)}${phase.cash_discount ? `، وخصم الكاش ${phase.cash_discount}` : ""}`),
       note: plans?.source ? `المصدر: ${plans.source}. اتأكد من المستشار قبل الحجز.` : "اتأكد من المستشار قبل الحجز.",
     };
   }
