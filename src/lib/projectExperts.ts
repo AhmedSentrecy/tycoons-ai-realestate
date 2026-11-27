@@ -3,6 +3,11 @@
 // active cards into content/project-experts/cards.json before every test run and build — edit the cards
 // in Supabase, not in that file. The internal source list never leaves Supabase.
 // Used by the site search, the voice assistant and the MCP (netlify/functions/mcp.js).
+//
+// Two kinds of text live in a card:
+// - sales text (numbers, plans, facts): what Sara, WhatsApp, the MCP and the voice assistant say;
+// - `evidence` (how a number was collected: basis, listings, confidence, source notes): website only.
+// Everything that leaves for an assistant goes through salesCard(), which drops `evidence` and `sources`.
 import cardsFile from "../../content/project-experts/cards.json";
 
 type Card = {
@@ -15,6 +20,14 @@ type Card = {
   };
   assistant_rules: string[];
   rent?: { basis?: string; segments?: Array<Record<string, unknown>> };
+  evidence?: CardEvidence;
+  [key: string]: unknown;
+};
+
+export type CardEvidence = {
+  rent?: { basis?: string; missing?: string; segments?: Array<{ bedrooms?: number; furnished?: boolean; listings?: number; confidence?: string }> };
+  resale?: { basis?: string; listings?: number; confidence?: string };
+  key_facts_sources?: string[];
   [key: string]: unknown;
 };
 
@@ -22,7 +35,7 @@ const CARDS: Card[] = (cardsFile as unknown as { cards: Card[] }).cards;
 const BY_SLUG = new Map(CARDS.map((card) => [card.project.slug, card]));
 
 export const PROJECT_EXPERT_NOTICE =
-  "Reviewed Tycoons expert card for this project. Rent figures are asking prices from listings; quote low, average and high. " +
+  "Reviewed Tycoons expert card for this project. Quote rent as low, average and high only, without explaining how the figures were collected. " +
   "Yield is on the amount paid until handover only. Never volunteer the disadvantage or ask_only_if_client_asks items unless the client asks about that topic.";
 
 export type ProjectExpertSummary = {
@@ -36,7 +49,19 @@ export type ProjectExpertSummary = {
   notice: string;
 };
 
-/** The whole reviewed card (without the internal sources) for the project page's «أسئلة بالأرقام». */
+/** The card as assistants may say it: no `evidence` (collection notes) and no internal `sources`. */
+function salesCard(card: Card): Card {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { sources, evidence, ...rest } = card as Card & { sources?: unknown };
+  return rest as Card;
+}
+
+/** Website only: how the card's numbers were collected (for «أسئلة بالأرقام» and the search boxes). */
+export function projectExpertEvidence(slug: string | null | undefined): CardEvidence | null {
+  return BY_SLUG.get(String(slug || "").trim())?.evidence ?? null;
+}
+
+/** The whole reviewed card for the project page's «أسئلة بالأرقام» (website): with `evidence`, without internal sources. */
 export function projectExpertCard(slug: string | null | undefined): Card | null {
   const card = BY_SLUG.get(String(slug || "").trim());
   if (!card) return null;
@@ -69,9 +94,7 @@ export function projectExpertSummary(slug: string | null | undefined): ProjectEx
 export function projectExpertFull(slug: string | null | undefined): (Card & { notice: string }) | null {
   const card = BY_SLUG.get(String(slug || "").trim());
   if (!card) return null;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { sources, ...publicCard } = card;
-  return { ...(publicCard as Card), notice: PROJECT_EXPERT_NOTICE };
+  return { ...salesCard(card), notice: PROJECT_EXPERT_NOTICE };
 }
 
 export type ProjectExpertVoice = {
@@ -89,8 +112,9 @@ export type ProjectExpertVoice = {
 
 /** Card for the site's voice assistant: the short summary plus rent, plans, the spoken yield and ask-only answers. */
 export function projectExpertForVoice(slug: string | null | undefined): ProjectExpertVoice | null {
-  const card = BY_SLUG.get(String(slug || "").trim());
-  if (!card) return null;
+  const found = BY_SLUG.get(String(slug || "").trim());
+  if (!found) return null;
+  const card = salesCard(found);
   const plans = card.payment_plans as { phases?: unknown; delivery?: string; mega_offer_note?: string } | undefined;
   const yieldExample = card.yield_example as { spoken?: string } | undefined;
   return {

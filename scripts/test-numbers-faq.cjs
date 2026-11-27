@@ -23,13 +23,24 @@ for (const card of cards) {
   for (const seg of card.rent.segments) {
     for (const value of [seg.low_egp, seg.average_egp, seg.high_egp]) assert.ok(rent.answer.includes(new Intl.NumberFormat("en-US").format(value)), `${card.project.slug}: rent ${value}`);
   }
-  assert.match(rent.answer, /متوسط أسعار الإيجار المطلوبة في السوق/);
-  // Yield: the card's own sentence (on the amount paid until handover).
-  assert.ok(byName(items, "العائد").answer.endsWith(card.yield_example.spoken), "yield: the card's own sentence");
-  assert.ok(byName(items, "العائد").answer.startsWith(`مثال: ${card.yield_example.unit}`), "yield: names the example unit");
-  assert.equal(all.includes(card.resale.note), false, "resale note is assistant guidance, not page text");
-  // Resale per sqm.
-  assert.ok(byName(items, "سعر الريسيل").answer.includes(new Intl.NumberFormat("en-US").format(card.resale.price_per_sqm_egp.average)));
+  // The website keeps the documentation, from card.evidence: basis and how many listings.
+  assert.ok(card.evidence?.rent?.basis, `${card.project.slug}: rent evidence`);
+  assert.ok(rent.answer.includes(card.evidence.rent.basis), `${card.project.slug}: rent basis shown on the website`);
+  assert.match(rent.answer, /إعلان/, `${card.project.slug}: listings count shown on the website`);
+  // Yield: the card's own sentence (on the amount paid until handover), when the card has an example.
+  if (card.yield_example) {
+    assert.ok(byName(items, "العائد").answer.endsWith(card.yield_example.spoken), "yield: the card's own sentence");
+    assert.ok(byName(items, "العائد").answer.startsWith(`مثال: ${card.yield_example.unit}`), "yield: names the example unit");
+  } else {
+    assert.equal(byName(items, "العائد"), undefined, `${card.project.slug}: no yield question without an example`);
+  }
+  // Resale per sqm, with its evidence basis; resale.note is assistant guidance, not page text.
+  if (card.resale) {
+    assert.equal(all.includes(card.resale.note), false, "resale note is assistant guidance, not page text");
+    const resale = byName(items, "سعر الريسيل").answer;
+    assert.ok(resale.includes(new Intl.NumberFormat("en-US").format(card.resale.price_per_sqm_egp.average)));
+    if (card.evidence?.resale?.basis) assert.ok(resale.includes(card.evidence.resale.basis), `${card.project.slug}: resale basis shown on the website`);
+  }
   // Plans, offers (prefix "<project> (dev): " dropped, source kept), developer record.
   assert.ok(byName(items, "إيه أنظمة السداد"));
   const offers = byName(items, "إيه العروض الحالية");

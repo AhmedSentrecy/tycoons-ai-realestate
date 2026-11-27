@@ -148,8 +148,9 @@ async function run() {
   assert.ok(Array.isArray(aliva.payment_details.current_offer?.plans) && aliva.payment_details.current_offer.plans.length > 0);
   assert.match(aliva.payment_details.notice, /do not convert it into equal installments/);
 
-  // project_expert: only projects with a reviewed card carry it
-  assert.equal("project_expert" in aliva, false, "Aliva has no expert card yet");
+  // project_expert: Aliva has a reviewed card now; the MCP copy never says how a figure was collected
+  assert.ok(aliva.project_expert, "Aliva result should carry project_expert");
+  assert.doesNotMatch(JSON.stringify(aliva.project_expert), /اتقفلت|مطلوبة في|listings|confidence|"evidence"/);
 
   const icitySearch = await rpc(32, "tools/call", {
     name: "search_properties",
