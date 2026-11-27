@@ -64,6 +64,22 @@ async function main() {
   } catch (error) {
     console.warn(`project_offers skipped: ${error.message}`);
   }
+  // «أسئلة بالأرقام»: active sales facts (admin «معلومات البيع») + the expert cards pulled from Supabase.
+  // Like the offers, a failed read only leaves the section out.
+  const factsByProject = new Map();
+  try {
+    for (const fact of await fetchRows("sales_facts_public", "project_id,category,kind,statement_ar,source_label,source_date,valid_until", { project_id: "not.is.null" })) {
+      factsByProject.set(fact.project_id, [...(factsByProject.get(fact.project_id) || []), fact]);
+    }
+  } catch (error) {
+    console.warn(`sales_facts_public skipped: ${error.message}`);
+  }
+  const expertsBySlug = new Map();
+  try {
+    for (const card of require("../content/project-experts/cards.json").cards || []) expertsBySlug.set(card.project.slug, card);
+  } catch (error) {
+    console.warn(`expert cards skipped: ${error.message}`);
+  }
   // Only rows with a stored slug become pages: legacy duplicate rows without a
   // slug would otherwise collide with the canonical row via the generated slug
   // and overwrite its rich page.
@@ -197,7 +213,7 @@ async function main() {
     if (!project.slug) continue;
     const projectUnits = unitsByProject.get(project.id) || [];
     const projectGuides = (guidesByProject.get(project.id) || []).filter((guide) => guide.language === "ar");
-    await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, { ...project, offers: offersByProject.get(project.id) || [] }, projectUnits, projectGuides, faqContext));
+    await writePage(path.join("projects", `${project.slug}.html`), renderProjectStatic(shell, { ...project, offers: offersByProject.get(project.id) || [], salesFacts: factsByProject.get(project.id) || [], expert: expertsBySlug.get(project.slug) || null }, projectUnits, projectGuides, faqContext));
     projectCount += 1;
   }
   for (const unit of units) {

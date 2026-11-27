@@ -48,6 +48,8 @@ import projectNamesAr from "@/content/project-names-ar.json";
 import ServerHtmlOr from "@/components/ServerHtmlOr";
 import ProjectOffersSection from "@/components/ProjectOffersSection";
 import { useProjectOffers } from "@/lib/projectOffers";
+import ProjectNumbersSection from "@/components/ProjectNumbersSection";
+import { useProjectNumbers } from "@/lib/projectNumbers";
 
 // Arabic H1/title for the top projects (audit SEO-07); same file as the static and server pages.
 const PROJECT_NAMES_AR: Record<string, { h1: string; title?: string }> = projectNamesAr.projects;
@@ -311,6 +313,7 @@ export default function ProjectPage() {
   const arabicHeadingName = tidyArabicName((PROJECT_NAMES_AR[slug]?.title || "").split(/\s+20\d\d|\s+—\s+/)[0].trim() || (PROJECT_NAMES_AR[slug]?.h1 || "").split(/\s+—\s+/)[0].trim()) || project?.project_name || "";
   const developerBrand = useDeveloper(project?.developer ?? "");
   const offers = useProjectOffers(project?.project_id);
+  const numbers = useProjectNumbers({ projectId: project?.project_id, slug, projectName: project?.project_name || "", developer: project?.developer });
   // Hero line in Arabic: stored copy with the English names swapped; if English is still left,
   // the plain Arabic sentence instead (same rule as the pre-rendered page).
   const heroLine = (() => {
@@ -574,17 +577,21 @@ export default function ProjectPage() {
           { "@type": "ListItem", position: developerHasPage ? 4 : 3, name: project.project_name, item: pageUrl },
         ],
       },
-      ...(faq.length
+      ...(faq.length || numbers.items.length
         ? [{
             "@type": "FAQPage",
-            mainEntity: faq.map((item) => ({
-              "@type": "Question",
-              name: replaceTokens(item.question, minPrice, minArea, maxArea),
-              acceptedAnswer: {
-                "@type": "Answer",
-                text: replaceTokens(item.answer, minPrice, minArea, maxArea),
-              },
-            })),
+            mainEntity: [
+              ...faq.map((item) => ({
+                "@type": "Question",
+                name: replaceTokens(item.question, minPrice, minArea, maxArea),
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: replaceTokens(item.answer, minPrice, minArea, maxArea),
+                },
+              })),
+              // «أسئلة بالأرقام»: rent, yield, resale, plans, live offers, developer record.
+              ...numbers.items.map((item) => ({ "@type": "Question", name: item.question, acceptedAnswer: { "@type": "Answer", text: item.answer } })),
+            ],
           }]
         : []),
     ],
@@ -664,6 +671,7 @@ export default function ProjectPage() {
         <div className="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]">
           <article>
             <ProjectOffersSection offers={offers} projectName={arabicHeadingName} />
+            <ProjectNumbersSection items={numbers.items} projectName={arabicHeadingName} updated={numbers.updated} />
             {localizedArabic?.article_sections.length ? localizedArabic.article_sections.map((section, sectionIndex) => (
               <section key={section.key || section.heading} className={sectionIndex ? "mt-12" : ""}>
                 {section.heading && <h2 className={sectionIndex ? "text-2xl font-extrabold" : "text-3xl font-extrabold"}>{replaceTokens(section.heading, minPrice, minArea, maxArea)}</h2>}

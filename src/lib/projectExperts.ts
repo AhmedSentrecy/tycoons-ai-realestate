@@ -1,8 +1,9 @@
 // "Expert per project" cards: reviewed facts per project (payment plans, units, rent, yield, resale, developer).
-// Source: content/project-experts/<project>.json — one reviewed card per project, keyed by the project slug.
-// Used by the MCP (netlify/functions/mcp.js) so phone/voice agents can answer with numbers.
-import iCityNewCairo from "../../content/project-experts/mountain-view-icity-new-cairo.json";
-import iCityOctober from "../../content/project-experts/mountain-view-icity-october.json";
+// Source: Supabase table project_experts (the single source). scripts/sync-project-experts.cjs pulls the
+// active cards into content/project-experts/cards.json before every test run and build — edit the cards
+// in Supabase, not in that file. The internal source list never leaves Supabase.
+// Used by the site search, the voice assistant and the MCP (netlify/functions/mcp.js).
+import cardsFile from "../../content/project-experts/cards.json";
 
 type Card = {
   card_version: string;
@@ -17,7 +18,7 @@ type Card = {
   [key: string]: unknown;
 };
 
-const CARDS: Card[] = [iCityNewCairo as unknown as Card, iCityOctober as unknown as Card];
+const CARDS: Card[] = (cardsFile as unknown as { cards: Card[] }).cards;
 const BY_SLUG = new Map(CARDS.map((card) => [card.project.slug, card]));
 
 export const PROJECT_EXPERT_NOTICE =
@@ -34,6 +35,15 @@ export type ProjectExpertSummary = {
   full_card: string;
   notice: string;
 };
+
+/** The whole reviewed card (without the internal sources) for the project page's «أسئلة بالأرقام». */
+export function projectExpertCard(slug: string | null | undefined): Card | null {
+  const card = BY_SLUG.get(String(slug || "").trim());
+  if (!card) return null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { sources, ...publicCard } = card;
+  return publicCard as Card;
+}
 
 export function hasProjectExpert(slug: string | null | undefined): boolean {
   return BY_SLUG.has(String(slug || "").trim());
@@ -55,7 +65,7 @@ export function projectExpertSummary(slug: string | null | undefined): ProjectEx
   };
 }
 
-/** Full card for get_property_details. The internal source list (listing websites) stays in the repo only. */
+/** Full card for get_property_details. The internal source list (listing websites) stays in Supabase only. */
 export function projectExpertFull(slug: string | null | undefined): (Card & { notice: string }) | null {
   const card = BY_SLUG.get(String(slug || "").trim());
   if (!card) return null;
