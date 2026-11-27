@@ -60,7 +60,8 @@ for (const card of cards) {
   assert.ok(card.assistant_rules.includes(RULES_ALLOWED[1]), `${slug}: no listing-site names rule kept`);
   assert.equal(card.assistant_rules.some((rule: string) => /وتاريخها|الأسعار المطلوبة في السوق/.test(rule)), false, `${slug}: no rule asks to explain the source`);
 
-  // Website: the documentation is still there, from evidence.
+  // Website: the documentation is still there, from evidence (cards with rent only).
+  if (!card.rent) continue;
   assert.ok(evidence && (evidence as { rent?: { basis?: string } }).rent?.basis, `${slug}: evidence.rent.basis kept for the website`);
   const site = JSON.stringify(numbersFaq({ projectName: card.project.name_en, developer: "Mountain View", card: projectExpertCard(slug), facts: [] }));
   assert.ok(site.includes((evidence as { rent: { basis: string } }).rent.basis), `${slug}: website shows the rent basis`);

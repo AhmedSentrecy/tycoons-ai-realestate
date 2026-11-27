@@ -19,15 +19,19 @@ for (const card of cards) {
   const all = JSON.stringify(items);
 
   // Rent: every segment's low / average / high exactly as in the card.
+  // Cards without rent (D2N: commercial, no rent figures yet) get no rent question.
   const rent = byName(items, "إيجار الشقق");
-  assert.ok(rent, `${card.project.slug}: rent question`);
-  for (const seg of card.rent.segments) {
-    for (const value of [seg.low_egp, seg.average_egp, seg.high_egp]) assert.ok(rent.answer.includes(new Intl.NumberFormat("en-US").format(value)), `${card.project.slug}: rent ${value}`);
+  if (!card.rent) assert.equal(rent, undefined, `${card.project.slug}: no rent question without rent`);
+  else {
+    assert.ok(rent, `${card.project.slug}: rent question`);
+    for (const seg of card.rent.segments) {
+      for (const value of [seg.low_egp, seg.average_egp, seg.high_egp]) assert.ok(rent.answer.includes(new Intl.NumberFormat("en-US").format(value)), `${card.project.slug}: rent ${value}`);
+    }
+    // The website keeps the documentation, from card.evidence: basis and how many listings.
+    assert.ok(card.evidence?.rent?.basis, `${card.project.slug}: rent evidence`);
+    assert.ok(rent.answer.includes(card.evidence.rent.basis), `${card.project.slug}: rent basis shown on the website`);
+    assert.match(rent.answer, /إعلان/, `${card.project.slug}: listings count shown on the website`);
   }
-  // The website keeps the documentation, from card.evidence: basis and how many listings.
-  assert.ok(card.evidence?.rent?.basis, `${card.project.slug}: rent evidence`);
-  assert.ok(rent.answer.includes(card.evidence.rent.basis), `${card.project.slug}: rent basis shown on the website`);
-  assert.match(rent.answer, /إعلان/, `${card.project.slug}: listings count shown on the website`);
   // Yield: the card's own sentence (on the amount paid until handover), when the card has an example.
   if (card.yield_example) {
     assert.ok(byName(items, "العائد").answer.endsWith(card.yield_example.spoken), "yield: the card's own sentence");
