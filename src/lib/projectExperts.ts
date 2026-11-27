@@ -12,7 +12,7 @@ import cardsFile from "../../content/project-experts/cards.json";
 
 type Card = {
   card_version: string;
-  project: { slug: string; name_en: string; name_ar: string; location?: string; aliases?: string[]; not_to_confuse_with?: string[] };
+  project: { slug: string; name_en: string; name_ar: string; location?: string; aliases?: string[]; not_to_confuse_with?: string[]; phase_slugs?: string[] };
   summary: {
     key_facts: string[];
     advantage: string;
@@ -32,7 +32,8 @@ export type CardEvidence = {
 };
 
 const CARDS: Card[] = (cardsFile as unknown as { cards: Card[] }).cards;
-const BY_SLUG = new Map(CARDS.map((card) => [card.project.slug, card]));
+// One card per main project (Sarai, Taj City…): its phases' pages (project.phase_slugs) use the same card.
+const BY_SLUG = new Map(CARDS.flatMap((card) => [card.project.slug, ...(card.project.phase_slugs ?? [])].map((slug) => [slug, card] as const)));
 
 export const PROJECT_EXPERT_NOTICE =
   "Reviewed Tycoons expert card for this project. Quote rent as low, average and high only, without explaining how the figures were collected. " +

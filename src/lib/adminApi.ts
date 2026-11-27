@@ -8,6 +8,8 @@ const API = `${SUPABASE_URL}/functions/v1/tycoons-admin`;
 const LAUNCHES_API = `${SUPABASE_URL}/functions/v1/homepage-launches`;
 /** Units from WhatsApp developer groups waiting for approval (own small function, same admin login). */
 const WA_INBOX_API = `${SUPABASE_URL}/functions/v1/wa-inbox`;
+/** «كروت الخبير»: one reviewed card per project (own small function, same admin login). */
+const EXPERT_CARDS_API = `${SUPABASE_URL}/functions/v1/expert-cards`;
 export const ADMIN_TOKEN_KEY = "tycoons_admin_token";
 
 export type MediaTarget = "project" | "unit";
@@ -562,6 +564,9 @@ export const adminApi = {
   salesFactStatus: (token: string, ids: number[], status: SalesFactStatus) =>
     call<{ ok: boolean; changed: number }>("facts_status", { ids, status }, token, WA_INBOX_API),
   saraFile: (token: string) => call<{ markdown: string }>("sara_file", {}, token, WA_INBOX_API),
+  expertCards: (token: string) => call<{ cards: ExpertCardRow[] }>("list", {}, token, EXPERT_CARDS_API),
+  expertCardSave: (token: string, slug: string, card: ExpertCard, status: ExpertCardStatus) =>
+    call<{ ok: boolean; card: ExpertCardRow }>("save", { slug, card, status }, token, EXPERT_CARDS_API),
   waUpdatesIgnore: (token: string, ids: number[]) => call<{ ok: boolean; ignored: number }>("updates_ignore", { ids }, token, WA_INBOX_API),
   waGroupToggle: (token: string, groupId: string, track: boolean) =>
     call<{ groups: WaGroup[] }>("group_toggle", { group_id: groupId, track }, token, WA_INBOX_API),
@@ -601,6 +606,34 @@ export interface WaOfferInput {
 export type SalesFactCategory = "urgency" | "offer" | "eoi" | "track_record" | "price_history" | "rental" | "comparison" | "customer_story";
 export type SalesFactStatus = "active" | "expired" | "needs_confirmation" | "rejected";
 export type SalesFactSource = "whatsapp" | "web" | "inventory" | "owner" | "research";
+
+/** «كروت الخبير»: the reviewed card per project (Supabase project_experts). Sales text + `evidence` (website only). */
+export type ExpertCardStatus = "active" | "draft" | "archived";
+export interface ExpertCardPhase { phase: string; down_payment: string; years: number; cash_discount?: string; note?: string }
+export interface ExpertCardRent { bedrooms: number; furnished: boolean; low_egp: number; average_egp: number; high_egp: number }
+export interface ExpertCard {
+  card_version?: string;
+  project: { slug: string; name_ar: string; name_en: string; [key: string]: unknown };
+  summary: { key_facts: string[]; advantage: string; disadvantage: { text: string; say_only_if_client_asks: boolean } };
+  assistant_rules?: string[];
+  payment_plans?: { source?: string; phases?: ExpertCardPhase[]; delivery?: string; [key: string]: unknown };
+  rent?: { segments?: ExpertCardRent[]; [key: string]: unknown };
+  resale?: { price_per_sqm_egp?: { low?: number; average?: number; high?: number }; [key: string]: unknown };
+  yield_example?: { spoken?: string; [key: string]: unknown };
+  evidence?: { rent?: { basis?: string; [key: string]: unknown }; resale?: { basis?: string; [key: string]: unknown }; [key: string]: unknown };
+  [key: string]: unknown;
+}
+export interface ExpertCardRow {
+  slug: string;
+  project_id: string | null;
+  project_name: string;
+  developer: string | null;
+  card: ExpertCard;
+  card_version: string | null;
+  status: ExpertCardStatus;
+  updated_at: string;
+  reviewed_at: string | null;
+}
 
 /** One selling point Sara may say (sales_facts). Expired facts stay for articles. */
 export interface SalesFact {
@@ -1021,6 +1054,11 @@ export function formatBytes(bytes: number) {
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
+  card_invalid: "الكارت ناقص (لازم يبقى فيه المشروع والحقائق المهمة)",
+  card_slug_mismatch: "الكارت ده مش بتاع المشروع ده",
+  card_not_found: "الكارت مش موجود",
+  sources_not_in_card: "المصادر الداخلية مش بتتكتب جوه الكارت",
+  collection_words_in_sales_text: "كلام البيع فيه شرح لمصدر الرقم (إعلان، اتقفلت، مطلوبة في…). اكتب الشرح ده في «مصدر الرقم للموقع» بس",
   invalid_password: "اسم المستخدم أو كلمة السر غلط",
   too_many_attempts: "محاولات كتير غلط. استنى ربع ساعة وجرّب تاني",
   login_required: "انتهت الجلسة، ادخل تاني",

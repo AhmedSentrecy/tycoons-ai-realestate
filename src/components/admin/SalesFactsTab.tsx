@@ -164,7 +164,9 @@ export default function SalesFactsTab({ projects }: { projects: AdminProject[] }
           <div className="me-auto">
             <h2 className="text-xl font-black">معلومات البيع</h2>
             <p className="text-xs text-[#556070]">
-              كل معلومة سارة بتقولها للعميل بمصدرها وآخر يوم ليها. اللي بتخلص ما بتتمسحش — بتفضل محفوظة للمقالات والمحتوى.
+              العروض والأخبار اللي ليها ميعاد وبتخلص (عرض جديد، آخر وحدات، تسليم مرحلة، EOI)، كل معلومة بمصدرها وآخر يوم ليها. اللي بتخلص ما بتتمسحش — بتفضل محفوظة للمقالات والمحتوى.
+              <br />
+              الأرقام الثابتة للمشروع (السداد والإيجار والعائد والريسيل) مكانها «كروت الخبير».
             </p>
           </div>
           <button onClick={reload} className="rounded-full border border-[#c9d3e1] p-2" title="تحديث">

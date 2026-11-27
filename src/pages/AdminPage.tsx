@@ -18,6 +18,7 @@ import WhatsAppClicksTab from "../components/admin/WhatsAppClicksTab";
 import WhatsAppInboxTab from "../components/admin/WhatsAppInboxTab";
 import ProjectUpdatesTab from "../components/admin/ProjectUpdatesTab";
 import SalesFactsTab from "../components/admin/SalesFactsTab";
+import ExpertCardsTab from "../components/admin/ExpertCardsTab";
 import ApprovalsTab from "../components/admin/ApprovalsTab";
 import ArticlesTab from "../components/admin/ArticlesTab";
 import HomepageLaunchesTab from "../components/admin/HomepageLaunchesTab";
@@ -227,18 +228,19 @@ function LoginScreen({ onLogin }: { onLogin: (token: string, user: AdminUser) =>
   );
 }
 
-type Tab = "projects" | "media" | "units" | "developers" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents" | "whatsapp" | "wainbox" | "waupdates" | "salesfacts";
+type Tab = "projects" | "media" | "units" | "developers" | "launches" | "articles" | "faq" | "approvals" | "users" | "agents" | "whatsapp" | "wainbox" | "waupdates" | "salesfacts" | "expertcards";
 
 /**
  * The admin tabs in 4 groups, so related pages sit next to each other and the bar never needs a
  * sideways scroll: المشاريع (project, its updates, launches, FAQ) · الوحدات · المحتوى والـ SEO · المتابعة.
  * The top row picks the group, the second row the page inside it.
  */
-const NAV_GROUPS: { label: string; tabs: { tab: Tab; label: string; ownerOnly?: boolean }[] }[] = [
+const NAV_GROUPS: { label: string; tabs: { tab: Tab; label: string; hint?: string; ownerOnly?: boolean }[] }[] = [
   { label: "المشاريع", tabs: [
     { tab: "projects", label: "المشاريع" },
     { tab: "waupdates", label: "تحديثات المشاريع" },
-    { tab: "salesfacts", label: "معلومات البيع" },
+    { tab: "expertcards", label: "كروت الخبير", hint: "ملف ثابت لكل مشروع: السداد والإيجار والعائد" },
+    { tab: "salesfacts", label: "معلومات البيع", hint: "عروض وأخبار ليها ميعاد وبتخلص" },
     { tab: "launches", label: "بتتطرح دلوقتي" },
     { tab: "faq", label: "أسئلة المشاريع" },
   ] },
@@ -290,6 +292,7 @@ function AdminNav({ tab, setTab, isOwner, pendingTotal }: { tab: Tab; setTab: (t
               className={`rounded-full px-4 py-1.5 text-sm font-bold transition ${tab === item.tab ? "bg-[#0b1b30] text-white shadow-sm" : "text-[#334155] hover:bg-white"}`}
             >
               {item.label}
+              {item.hint && <span className={`block text-[10px] font-semibold ${tab === item.tab ? "text-white/75" : "text-[#6b7585]"}`}>{item.hint}</span>}
               {badge(item.tab) > 0 && <span className="ms-1.5 rounded-full bg-[#ff5a36] px-1.5 py-0.5 text-[10px] text-white">{badge(item.tab)}</span>}
             </button>
           ))}
@@ -511,6 +514,7 @@ function Dashboard({ token, user, onSignOut }: { token: string; user: AdminUser;
             />
           )}
           {tab === "waupdates" && <ProjectUpdatesTab projects={projects} onChanged={refresh} />}
+          {tab === "expertcards" && <ExpertCardsTab />}
           {tab === "salesfacts" && <SalesFactsTab projects={projects} />}
           {tab === "launches" && <HomepageLaunchesTab projects={projects} />}
           {tab === "articles" && <ArticlesTab projects={projects} focusProjectId={articleFocus} onFocusHandled={() => setArticleFocus(null)} />}

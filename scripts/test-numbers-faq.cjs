@@ -9,12 +9,13 @@ const byName = (items, start) => items.find((item) => item.question.startsWith(s
 
 assert.ok(cards.length >= 2, "expert cards pulled from Supabase");
 for (const card of cards) {
+  const dev = card.project.developer || "Mountain View";
   assert.equal("sources" in card, false, `${card.project.slug}: the internal source list never ships`);
   const facts = [
-    { category: "offer", statement_ar: `${card.project.name_en} (Mountain View): خصم 15% على 12 سنة`, source_label: "حسب المطور، 2026-11-16", source_date: "2026-11-16" },
+    { category: "offer", statement_ar: `${card.project.name_en} (${dev}): خصم 15% على 12 سنة`, source_label: "حسب المطور، 2026-11-16", source_date: "2026-11-16" },
     { category: "track_record", statement_ar: "سلّمت مرحلة Club Park", source_label: "حسب المطور، 2026-11-20", source_date: "2026-11-20" },
   ];
-  const items = numbersFaq({ projectName: card.project.name_en, developer: "Mountain View", card, facts });
+  const items = numbersFaq({ projectName: card.project.name_en, developer: dev, card, facts });
   const all = JSON.stringify(items);
 
   // Rent: every segment's low / average / high exactly as in the card.
@@ -45,8 +46,8 @@ for (const card of cards) {
   assert.ok(byName(items, "إيه أنظمة السداد"));
   const offers = byName(items, "إيه العروض الحالية");
   assert.equal(offers.answer, "خصم 15% على 12 سنة (حسب المطور، 2026-11-16)");
-  assert.match(byName(items, "Mountain View سلّمت").answer, /2005/);
-  assert.match(byName(items, "Mountain View سلّمت").answer, /Club Park/);
+  assert.match(byName(items, `${dev} سلّمت`).answer, new RegExp(String(card.developer_summary.founded)));
+  assert.match(byName(items, `${dev} سلّمت`).answer, /Club Park/);
 
   // Never published: the disadvantage, the ask-only answers, listing-site names.
   assert.equal(all.includes(card.summary.disadvantage.text), false, `${card.project.slug}: disadvantage hidden`);

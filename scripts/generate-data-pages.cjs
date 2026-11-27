@@ -76,7 +76,10 @@ async function main() {
   }
   const expertsBySlug = new Map();
   try {
-    for (const card of require("../content/project-experts/cards.json").cards || []) expertsBySlug.set(card.project.slug, card);
+    // One card per main project; its phases' pages (project.phase_slugs) share it.
+    for (const card of require("../content/project-experts/cards.json").cards || []) {
+      for (const slug of [card.project.slug, ...(card.project.phase_slugs || [])]) expertsBySlug.set(slug, card);
+    }
   } catch (error) {
     console.warn(`expert cards skipped: ${error.message}`);
   }

@@ -103,14 +103,15 @@ export function withVoiceOffers<T extends Record<string, unknown>>(payload: T, n
   const enriched = options.map((option) => {
     const slug = typeof option.project_slug === "string" ? option.project_slug : "";
     const offer = voiceOfferFor(slug, now);
-    const expert = experts.get(slug) || projectExpertForVoice(slug);
+    // Phases of one project (Sarai, Taj City…) share one card: keep it once, keyed by the project.
+    const expert = projectExpertForVoice(slug);
     let next = option;
     if (offer) {
       seen.set(slug, offer);
       next = { ...next, current_offer: offer.kind, current_offer_project: offer.project };
     }
     if (expert) {
-      experts.set(slug, expert);
+      experts.set(expert.project, expert);
       next = { ...next, has_project_expert: true };
     }
     return next;
