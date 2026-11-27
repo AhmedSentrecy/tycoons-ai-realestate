@@ -67,4 +67,12 @@ for (const card of cards) {
   assert.match(site, /إعلان/, `${slug}: website shows how many listings`);
 }
 
-console.log("Expert cards: sales text clean, website evidence kept");
+// One card per main project: every phase page (project.phase_slugs) gets the main project's card.
+for (const card of cards) {
+  for (const phase of card.project.phase_slugs || []) {
+    assert.equal(projectExpertCard(phase)?.project.slug, card.project.slug, `${phase}: uses ${card.project.slug}'s card`);
+    assert.equal(projectExpertForVoice(phase)?.project, projectExpertForVoice(card.project.slug)?.project, `${phase}: voice gets the same card`);
+  }
+}
+
+console.log("Expert cards: sales text clean, website evidence kept, phases share the main card");
