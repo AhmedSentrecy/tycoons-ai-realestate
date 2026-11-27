@@ -80,3 +80,20 @@ declare module "*netlify/functions/_project-offers.cjs" {
   export function offerKeywords(rows: ProjectOfferRow[] | null | undefined, projectName: string): string[];
   export function offersSectionHtml(rows: ProjectOfferRow[] | null | undefined, options: { projectName: string; escapeHtml: (value: unknown) => string }): string;
 }
+
+declare module "*netlify/functions/_numbers-faq.cjs" {
+  export interface NumbersFaqFact {
+    category: string;
+    kind?: string | null;
+    statement_ar: string;
+    source_label?: string | null;
+    source_date?: string | null;
+    valid_until?: string | null;
+    project_id?: string | null;
+  }
+  export interface NumbersFaqItem { question: string; answer: string }
+  export function numbersFaq(input: { projectName: string; developer?: string | null; card: unknown; facts?: NumbersFaqFact[] }): NumbersFaqItem[];
+  export function numbersFaqUpdated(input: { card: unknown; facts?: NumbersFaqFact[] }): string;
+  export function numbersFaqHtml(items: NumbersFaqItem[], options: { projectName: string; updated: string; escapeHtml: (value: unknown) => string }): string;
+  export const LISTING_SITES: RegExp;
+}

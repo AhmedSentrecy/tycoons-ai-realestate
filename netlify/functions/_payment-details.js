@@ -4,7 +4,7 @@
 //   2. the project row (projects.down_payment_text / installments_text / delivery_text / finishing / description),
 //   3. WhatsApp project updates the admin APPLIED (wa_project_updates.details, valid_until).
 // Pending (not yet reviewed) WhatsApp updates are never published.
-// It also attaches the project's expert card (content/project-experts) as project_expert:
+// It also attaches the project's expert card (Supabase project_experts, via src/lib/projectExperts.ts) as project_expert:
 // short in search results, full in get_property_details.
 import { voiceOfferFor } from "../../src/lib/voiceOffers.ts";
 import { projectExpertFull, projectExpertSummary } from "../../src/lib/projectExperts.ts";

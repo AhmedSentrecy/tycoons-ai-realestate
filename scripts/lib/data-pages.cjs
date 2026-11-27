@@ -12,6 +12,7 @@ const { buildProjectSchemas } = require("../../netlify/functions/_project-schema
 const { projectFacts, projectFactsHtml, lastPriceUpdate } = require("../../netlify/functions/_project-facts.cjs");
 const { unitPath } = require("../../netlify/functions/_unit-url.cjs");
 const { offersSectionHtml, offerKeywords } = require("../../netlify/functions/_project-offers.cjs");
+const { numbersFaq, numbersFaqHtml, numbersFaqUpdated } = require("../../netlify/functions/_numbers-faq.cjs");
 const { unitTypeAr, bedroomsAr, arabicHeroLine, defaultHeroLine, hasLatinWords, arabicKeywords } = require("../../netlify/functions/_unit-labels.cjs");
 const { renderSafeMarkdown, priceDateNoteHtml } = require("../../netlify/functions/_article-render.cjs");
 const { topicOf, dropCoveredSections, unlinkSelf, durationMonths, durationAr, pageNumberConflicts, feddanOnly } = require("../../netlify/functions/_page-consistency.cjs");
@@ -415,6 +416,9 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
         answer: `استخدم النسخة الرسمية من ${project.developer} لتأكيد المراحل والمداخل. الصفحة تعرض الوحدات والأسعار للمقارنة ولا تستبدل المخطط المساحي الرسمي.`,
       }]
     : baseFaq);
+  // «أسئلة بالأرقام»: rent, yield, resale, plans, live offers and the developer's record, one sentence each.
+  const numbersItems = numbersFaq({ projectName: project.name, developer: text(project.developer), card: project.expert, facts: project.salesFacts });
+  const numbersUpdated = numbersFaqUpdated({ card: project.expert, facts: project.salesFacts || [] });
   const storedArticle = arrayValue(project.article_sections);
   let article = isIcityOctober && !hasWrittenArticle
     ? [...storedArticle, {
@@ -471,6 +475,7 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
   ${showcase}${showcase ? '<script src="/showcase.js" defer></script>' : ""}
   <section class="mx-auto max-w-7xl px-5 py-16"><div class="grid gap-12 lg:grid-cols-[1.6fr_0.8fr]"><article>
   ${offersSectionHtml(project.offers, { projectName: headingName(project), escapeHtml })}
+  ${numbersFaqHtml(numbersItems, { projectName: headingName(project), updated: numbersUpdated, escapeHtml })}
   ${article.length ? linkProjectNames(article.map((section) => `<section class="mb-12"><h2 class="text-3xl font-extrabold">${escapeHtml(replaceTokens(section.heading, minPrice, minArea, maxArea))}</h2>${arrayValue(section.paragraphs).map((paragraph) => `<p class="mt-5 font-light leading-loose text-[#556070]">${escapeHtml(replaceTokens(paragraph, minPrice, minArea, maxArea))}</p>`).join("")}</section>`).join(""), faqContext.projectLinks, project.slug) : `<h2 class="text-3xl font-extrabold">عن ${escapeHtml(project.name)}</h2><p class="mt-5">${escapeHtml(description)}</p>`}
   ${visibleFaq.length ? `<section><h2 class="text-2xl font-extrabold">أسئلة شائعة عن ${escapeHtml(headingName(project))}</h2>${visibleFaq.map((item) => `<details class="mt-4 rounded-2xl border border-[#e3e9f2] bg-white/70 p-5"><summary class="font-bold">${escapeHtml(replaceTokens(item.question, minPrice, minArea, maxArea))}</summary><p class="mt-3 text-[#556070]">${linkProjectNames(escapeHtml(replaceTokens(item.answer, minPrice, minArea, maxArea)), faqContext.projectLinks, project.slug)}</p></details>`).join("")}</section>` : ""}
   ${galleryHtml(project, imageList)}
@@ -491,11 +496,15 @@ function renderProjectStatic(shell, project, projectUnits, guides = [], faqConte
     {
       "@type": "FAQPage",
       "@id": `${canonical}#faq`,
-      mainEntity: faq.map((item) => ({
+      mainEntity: [...faq.map((item) => ({
         "@type": "Question",
         name: replaceTokens(item.question, minPrice, minArea, maxArea),
         acceptedAnswer: { "@type": "Answer", text: replaceTokens(item.answer, minPrice, minArea, maxArea) },
-      })),
+      })), ...numbersItems.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: { "@type": "Answer", text: item.answer },
+      }))],
     },
     {
       "@type": "BreadcrumbList",
