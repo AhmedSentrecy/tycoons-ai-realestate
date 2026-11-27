@@ -84,4 +84,12 @@ const octoberText = JSON.stringify([projectExpertFull(OCTOBER), ...["none", "ren
 assert.doesNotMatch(octoberText, /Property Finder|Bayut|Aqarmap|Nawy|Dubizzle|3117|3766/i);
 assert.doesNotMatch(JSON.stringify(expertAnswer(OCTOBER, "none")), /منافسة من الريسيل/);
 
+// Madinet Masr: short names with a digit, phases share the main card, and Mostakbal City alone names no project.
+if (namesProject("d2n--madinet-masr", "d2n")) {
+  assert.equal(namesProject("d2n--madinet-masr", "مكاتب D2N"), true);
+  assert.equal(namesProject("the-butterfly--madinet-masr", "بترفلاي مستقبل سيتي"), true);
+  assert.equal(namesProject("mountain-view-aliva--mountain-view", "بترفلاي مستقبل سيتي"), false, "Aliva is not named by «مستقبل سيتي»");
+  assert.equal(namesProject("taj-city-origami--madinet-masr", "تاج سيتي مدينة مصر"), true, "developer name never rules a project out");
+}
+
 console.log("Smart search understanding and expert answer checks passed");

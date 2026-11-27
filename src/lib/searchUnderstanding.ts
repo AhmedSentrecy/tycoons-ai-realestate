@@ -67,7 +67,13 @@ type ExpertCard = NonNullable<ReturnType<typeof projectExpertFull>>;
 
 // Area words are removed from the project names, so "اي سيتي" alone still counts as naming the project,
 // while a general search such as "شقة في التجمع" does not.
-const AREA_WORDS = ["التجمع الخامس", "التجمع", "نيو كايرو", "القاهره الجديده", "new cairo", "اكتوبر", "october", "mv", "ماونتن فيو", "mountain view"];
+// Developer names: they are stripped from a project's names but never rule a project out.
+const DEVELOPER_WORDS = ["mv", "ماونتن فيو", "mountain view", "مدينه مصر", "madinet masr"];
+const AREA_WORDS = [
+  "التجمع الخامس", "التجمع", "نيو كايرو", "القاهره الجديده", "new cairo", "اكتوبر", "october",
+  "مستقبل سيتي", "المستقبل سيتي", "mostakbal city", "الشروق", "shorouk", "هليوبوليس الجديده", "new heliopolis",
+  ...DEVELOPER_WORDS,
+];
 
 function projectTerms(card: ExpertCard): string[] {
   const names = [card.project.name_ar, card.project.name_en, ...(card.project.aliases ?? [])];
@@ -76,7 +82,8 @@ function projectTerms(card: ExpertCard): string[] {
     for (const word of AREA_WORDS) value = value.replace(` ${normalizeText(word)} `, " ");
     return value.replace(/\s+/g, " ").trim();
   });
-  return [...new Set(terms.filter((term) => term.length >= 4))];
+  // Short names count when they carry a digit (D2N).
+  return [...new Set(terms.filter((term) => term.length >= 4 || (term.length >= 3 && /\d/.test(term))))];
 }
 
 /** True when the buyer's text names this project (not just its area or developer). */
@@ -85,8 +92,8 @@ export function namesProject(projectSlug: string | null | undefined, query: stri
   if (!card) return false;
   const text = ` ${normalizeText(query)} `;
   // "آي سيتي التجمع" must not name iCity October: an area word that is not this project's area rules it out.
-  const own = ` ${normalizeText([card.project.name_ar, card.project.name_en, card.project.location ?? "", ...(card.project.aliases ?? [])].join(" "))} `;
-  const otherArea = AREA_WORDS.filter((word) => !["mv", "ماونتن فيو", "mountain view"].includes(word))
+  const own = ` ${normalizeText([card.project.name_ar, card.project.name_en, card.project.location ?? "", ...(card.project.aliases ?? [])].join(" ")).replace(/[،,()]/g, " ").replace(/\s+/g, " ")} `;
+  const otherArea = AREA_WORDS.filter((word) => !DEVELOPER_WORDS.includes(word))
     .map(normalizeText)
     .some((word) => text.includes(` ${word} `) && !own.includes(` ${word} `));
   if (otherArea) return false;
